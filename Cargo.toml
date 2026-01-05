@@ -1,0 +1,23 @@
+[workspace]
+members = ["merkrs", "merkrs-py", "merkrs-wasm"]
+# Only check / build main crates by default (check all with `--workspace`)
+default-members = ["merkrs"]
+
+resolver = "3"
+
+[workspace.dependencies]
+merkrs = { path = "./merkrs"}
+
+alloy-primitives = "1.5.2"
+alloy-sol-types = "1.5.2"
+hex = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha3 = "0.10"
+thiserror = "2.0.17"
+
+[profile.release]
+lto = true           # Enable Link Time Optimization to remove unused code
+codegen-units = 1    # Maximize optimization at the cost of slower compilation
+panic = 'abort'      # Remove panic handling to reduce binary size
+strip = true         # Fully strip debug symbols; debugging in production will be difficult
