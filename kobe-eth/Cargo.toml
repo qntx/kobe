@@ -13,13 +13,13 @@ std = ["alloc", "kobe/std", "k256/std", "sha3/std"]
 alloc = ["kobe/alloc", "k256/alloc"]
 
 [dependencies]
-kobe = { path = "../kobe", default-features = false }
-k256 = { version = "0.13", default-features = false, features = ["ecdsa"] }
-sha3 = { version = "0.10", default-features = false }
-zeroize = { version = "1.7", default-features = false, features = ["derive"] }
-rand_core = { version = "0.6", default-features = false }
+kobe.workspace = true
+k256.workspace = true
+rand_core.workspace = true
+sha3.workspace = true
+zeroize.workspace = true
 
 [dev-dependencies]
-rand = "0.9.2"
-hex = "0.4"
-hex-literal = "1.1.0"
+hex.workspace = true
+hex-literal.workspace = true
+rand.workspace = true

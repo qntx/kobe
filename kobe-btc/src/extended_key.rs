@@ -131,7 +131,7 @@ impl ExtendedPrivateKey {
     /// Derive a child key at the given index.
     pub fn derive_child(&self, index: ChildIndex) -> Result<Self> {
         if self.depth == 255 {
-            return Err(Error::StaticMessage("Maximum derivation depth reached"));
+            return Err(Error::MaxDepthExceeded);
         }
 
         let mut mac =
@@ -336,7 +336,7 @@ impl ExtendedPrivateKey {
         let network = match &decoded[..4] {
             [0x04, 0x88, 0xAD, 0xE4] => Network::Mainnet, // xprv
             [0x04, 0x35, 0x83, 0x94] => Network::Testnet, // tprv
-            _ => return Err(Error::StaticMessage("Unknown extended key version")),
+            _ => return Err(Error::msg("unknown extended key version")),
         };
 
         let depth = decoded[4];
@@ -356,7 +356,7 @@ impl ExtendedPrivateKey {
 
         // Private key (skip 0x00 prefix)
         if decoded[45] != 0x00 {
-            return Err(Error::StaticMessage("Invalid private key prefix"));
+            return Err(Error::msg("invalid private key prefix"));
         }
         let private_key = BtcPrivateKey::from_bytes(&decoded[46..78])?;
 

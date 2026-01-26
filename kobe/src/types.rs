@@ -1,5 +1,6 @@
 //! Core types used throughout the library.
 
+use subtle::ConstantTimeEq;
 use zeroize::Zeroize;
 
 /// A 32-byte secret key with automatic zeroization.
@@ -56,6 +57,20 @@ impl<const N: usize> core::fmt::Debug for SecretBytes<N> {
         write!(f, "SecretBytes<{}>[REDACTED]", N)
     }
 }
+
+impl<const N: usize> ConstantTimeEq for SecretBytes<N> {
+    fn ct_eq(&self, other: &Self) -> subtle::Choice {
+        self.0.ct_eq(&other.0)
+    }
+}
+
+impl<const N: usize> PartialEq for SecretBytes<N> {
+    fn eq(&self, other: &Self) -> bool {
+        self.ct_eq(other).into()
+    }
+}
+
+impl<const N: usize> Eq for SecretBytes<N> {}
 
 /// Type alias for 32-byte secret (private key, seed, etc.)
 pub type Secret32 = SecretBytes<32>;

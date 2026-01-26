@@ -12,8 +12,8 @@ use alloc::string::String;
 use crate::address::EthAddress;
 use crate::public_key::EthPublicKey;
 use k256::ecdsa::SigningKey;
+use k256::elliptic_curve::rand_core::{CryptoRng, RngCore};
 use kobe::{Error, Result, Signature};
-use rand_core::{CryptoRng, RngCore};
 use sha3::{Digest, Keccak256};
 use zeroize::Zeroize;
 

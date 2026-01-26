@@ -11,35 +11,41 @@ pub type Result<T> = core::result::Result<T, Error>;
 /// Errors that can occur in the Kobe wallet library.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error {
-    /// Invalid private key
+    /// Invalid private key bytes or format
     InvalidPrivateKey,
-    /// Invalid public key
+    /// Invalid public key bytes or format
     InvalidPublicKey,
-    /// Invalid signature
+    /// Invalid signature format or verification failed
     InvalidSignature,
-    /// Invalid address format
+    /// Invalid address format or network mismatch
     InvalidAddress,
-    /// Invalid checksum
+    /// Checksum verification failed
     InvalidChecksum,
-    /// Invalid length for the given operation
+    /// Invalid byte length for the given operation
     InvalidLength {
-        /// Expected length
+        /// Expected length in bytes
         expected: usize,
-        /// Actual length
+        /// Actual length in bytes
         actual: usize,
     },
-    /// Invalid encoding (hex, base58, etc.)
+    /// Invalid encoding (hex, base58, bech32, etc.)
     InvalidEncoding,
-    /// Invalid derivation path
+    /// Invalid BIP-32 derivation path format
     InvalidDerivationPath,
-    /// Invalid mnemonic phrase
+    /// Invalid BIP-39 mnemonic phrase
     InvalidMnemonic,
-    /// Invalid word in mnemonic
+    /// Word not found in BIP-39 wordlist
     InvalidWord,
-    /// Invalid entropy length
+    /// Invalid entropy length for mnemonic generation
     InvalidEntropyLength,
-    /// Cryptographic operation failed
+    /// ECDSA or other cryptographic operation failed
     CryptoError,
+    /// Hardened derivation required but not used
+    HardenedDerivationRequired,
+    /// Maximum derivation depth exceeded
+    MaxDepthExceeded,
+    /// Unsupported operation for this key type
+    UnsupportedOperation,
     /// Message with description
     #[cfg(feature = "alloc")]
     Message(String),
@@ -54,20 +60,43 @@ impl fmt::Display for Error {
             Self::InvalidPublicKey => write!(f, "invalid public key"),
             Self::InvalidSignature => write!(f, "invalid signature"),
             Self::InvalidAddress => write!(f, "invalid address"),
-            Self::InvalidChecksum => write!(f, "invalid checksum"),
+            Self::InvalidChecksum => write!(f, "checksum verification failed"),
             Self::InvalidLength { expected, actual } => {
-                write!(f, "invalid length: expected {}, got {}", expected, actual)
+                write!(
+                    f,
+                    "invalid length: expected {} bytes, got {}",
+                    expected, actual
+                )
             }
             Self::InvalidEncoding => write!(f, "invalid encoding"),
-            Self::InvalidDerivationPath => write!(f, "invalid derivation path"),
-            Self::InvalidMnemonic => write!(f, "invalid mnemonic"),
-            Self::InvalidWord => write!(f, "invalid word in mnemonic"),
+            Self::InvalidDerivationPath => write!(f, "invalid BIP-32 derivation path"),
+            Self::InvalidMnemonic => write!(f, "invalid mnemonic phrase"),
+            Self::InvalidWord => write!(f, "word not found in wordlist"),
             Self::InvalidEntropyLength => write!(f, "invalid entropy length"),
-            Self::CryptoError => write!(f, "cryptographic error"),
+            Self::CryptoError => write!(f, "cryptographic operation failed"),
+            Self::HardenedDerivationRequired => {
+                write!(f, "hardened derivation required for this operation")
+            }
+            Self::MaxDepthExceeded => write!(f, "maximum derivation depth exceeded"),
+            Self::UnsupportedOperation => write!(f, "unsupported operation"),
             #[cfg(feature = "alloc")]
             Self::Message(msg) => write!(f, "{}", msg),
             Self::StaticMessage(msg) => write!(f, "{}", msg),
         }
+    }
+}
+
+impl Error {
+    /// Create a new error with a static message.
+    #[inline]
+    pub const fn msg(message: &'static str) -> Self {
+        Self::StaticMessage(message)
+    }
+
+    /// Create a length mismatch error.
+    #[inline]
+    pub const fn length(expected: usize, actual: usize) -> Self {
+        Self::InvalidLength { expected, actual }
     }
 }
 

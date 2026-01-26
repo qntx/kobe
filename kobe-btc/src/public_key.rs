@@ -77,6 +77,28 @@ impl BtcPublicKey {
         self.to_compressed_bytes()
     }
 
+    /// Get the x-only public key (32 bytes) for Taproot.
+    ///
+    /// This returns only the x-coordinate of the public key point,
+    /// which is used in BIP-340 Schnorr signatures and P2TR addresses.
+    pub fn to_x_only(&self) -> [u8; 32] {
+        let point = self.inner.to_encoded_point(true);
+        let bytes = point.as_bytes();
+        let mut x_only = [0u8; 32];
+        // Skip the prefix byte (0x02 or 0x03) and take only x-coordinate
+        x_only.copy_from_slice(&bytes[1..33]);
+        x_only
+    }
+
+    /// Check if the public key has an even y-coordinate.
+    ///
+    /// Used for Taproot to determine if key needs negation.
+    pub fn has_even_y(&self) -> bool {
+        let point = self.inner.to_encoded_point(true);
+        let prefix = point.as_bytes()[0];
+        prefix == 0x02
+    }
+
     /// Get the hash160 of the public key (for P2PKH addresses).
     pub fn hash160(&self) -> [u8; 20] {
         let bytes = if self.compressed {

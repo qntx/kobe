@@ -24,3 +24,8 @@ target
 # Added by cargo
 
 /target
+
+/alloy
+/bdk_wallet
+/solama-sdl
+/wagyu

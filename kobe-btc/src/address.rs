@@ -61,9 +61,7 @@ impl BtcAddress {
             }
             AddressFormat::P2WPKH => {
                 if !public_key.is_compressed() {
-                    return Err(Error::StaticMessage(
-                        "P2WPKH requires compressed public key",
-                    ));
+                    return Err(Error::msg("P2WPKH requires compressed public key"));
                 }
                 let hash = public_key.hash160();
                 let mut data = [0u8; 32];
@@ -77,9 +75,7 @@ impl BtcAddress {
             }
             AddressFormat::P2SHP2WPKH => {
                 if !public_key.is_compressed() {
-                    return Err(Error::StaticMessage(
-                        "P2SH-P2WPKH requires compressed public key",
-                    ));
+                    return Err(Error::msg("P2SH-P2WPKH requires compressed public key"));
                 }
                 // Build redeem script: OP_0 <20-byte-key-hash>
                 let keyhash = public_key.hash160();
@@ -99,9 +95,20 @@ impl BtcAddress {
                     format: AddressFormat::P2SH, // Display as P2SH
                 })
             }
-            _ => Err(Error::StaticMessage(
-                "Unsupported address format for public key",
-            )),
+            AddressFormat::P2TR => {
+                // BIP-341 Taproot: use x-only public key (32 bytes)
+                // For key-path only spending, the output key is the internal key
+                let x_only = public_key.to_x_only();
+                let mut data = [0u8; 32];
+                data.copy_from_slice(&x_only);
+                Ok(Self {
+                    data,
+                    data_len: 32,
+                    network,
+                    format,
+                })
+            }
+            _ => Err(Error::UnsupportedOperation),
         }
     }
 
@@ -158,20 +165,15 @@ impl BtcAddress {
 
         let hrp = Hrp::parse(self.network.bech32_hrp()).map_err(|_| Error::InvalidEncoding)?;
 
-        let version = match self.format {
-            AddressFormat::P2WPKH | AddressFormat::P2WSH => 0u8,
-            AddressFormat::P2TR => 1u8,
-            _ => return Err(Error::StaticMessage("Invalid format for bech32")),
-        };
-
-        let mut data = Vec::with_capacity(self.data_len + 1);
-        data.push(version);
-        data.extend_from_slice(&self.data[..self.data_len]);
-
-        // Use witness version encoding with appropriate variant
+        // Use segwit encoding which properly handles witness version and checksum variant
         let encoded = match self.format {
-            AddressFormat::P2TR => bech32::encode::<bech32::Bech32m>(hrp, &data),
-            _ => bech32::encode::<bech32::Bech32>(hrp, &data),
+            AddressFormat::P2TR => {
+                bech32::segwit::encode(hrp, bech32::segwit::VERSION_1, &self.data[..self.data_len])
+            }
+            AddressFormat::P2WPKH | AddressFormat::P2WSH => {
+                bech32::segwit::encode(hrp, bech32::segwit::VERSION_0, &self.data[..self.data_len])
+            }
+            _ => return Err(Error::msg("invalid format for bech32")),
         }
         .map_err(|_| Error::InvalidEncoding)?;
 
@@ -248,7 +250,7 @@ impl BtcAddress {
             0x05 => (Network::Mainnet, AddressFormat::P2SH),
             0x6f => (Network::Testnet, AddressFormat::P2PKH),
             0xc4 => (Network::Testnet, AddressFormat::P2SH),
-            _ => return Err(Error::StaticMessage("Unknown address version")),
+            _ => return Err(Error::msg("unknown address version")),
         };
 
         let mut data = [0u8; 32];
@@ -264,40 +266,26 @@ impl BtcAddress {
 
     /// Parse from Bech32/Bech32m encoded address.
     fn from_bech32(s: &str) -> Result<Self> {
-        use bech32::primitives::decode::CheckedHrpstring;
-        use bech32::{Bech32, Bech32m};
-
-        // Try Bech32 first (v0), then Bech32m (v1+)
+        // Use segwit::decode which properly handles witness version and program
         let (hrp, witness_version, witness_program) =
-            if let Ok(checked) = CheckedHrpstring::new::<Bech32>(s) {
-                let hrp = checked.hrp();
-                let mut data_iter = checked.byte_iter();
-                let version = data_iter.next().ok_or(Error::InvalidEncoding)?;
-                let program: Vec<u8> = data_iter.collect();
-                (hrp.to_string(), version, program)
-            } else if let Ok(checked) = CheckedHrpstring::new::<Bech32m>(s) {
-                let hrp = checked.hrp();
-                let mut data_iter = checked.byte_iter();
-                let version = data_iter.next().ok_or(Error::InvalidEncoding)?;
-                let program: Vec<u8> = data_iter.collect();
-                (hrp.to_string(), version, program)
-            } else {
-                return Err(Error::InvalidEncoding);
-            };
+            bech32::segwit::decode(s).map_err(|_| Error::InvalidEncoding)?;
 
         // Parse HRP to determine network
         let network = match hrp.as_str() {
             "bc" => Network::Mainnet,
             "tb" => Network::Testnet,
-            _ => return Err(Error::StaticMessage("Unknown bech32 HRP")),
+            _ => return Err(Error::msg("unknown bech32 HRP")),
         };
 
+        // Get witness version as u8
+        let version = witness_version.to_u8();
+
         // Determine format based on witness version and program length
-        let (format, expected_len) = match (witness_version, witness_program.len()) {
+        let (format, expected_len) = match (version, witness_program.len()) {
             (0, 20) => (AddressFormat::P2WPKH, 20),
             (0, 32) => (AddressFormat::P2WSH, 32),
             (1, 32) => (AddressFormat::P2TR, 32),
-            _ => return Err(Error::StaticMessage("Invalid witness program")),
+            _ => return Err(Error::msg("invalid witness program")),
         };
 
         let mut addr_data = [0u8; 32];
@@ -397,5 +385,36 @@ mod tests {
         let addr = key.address(Network::Testnet, AddressFormat::P2PKH).unwrap();
         let addr_str = addr.to_string();
         assert!(addr_str.starts_with('m') || addr_str.starts_with('n'));
+    }
+
+    #[test]
+    fn test_p2tr_taproot_address() {
+        let bytes =
+            hex_literal::hex!("0c28fca386c7a227600b2fe50b7cae11ec86d3bf1fbe471be89827e19d72aa1d");
+        let key = BtcPrivateKey::from_bytes(&bytes).unwrap();
+        let addr = key.address(Network::Mainnet, AddressFormat::P2TR).unwrap();
+        let addr_str = addr.to_string();
+        // P2TR addresses start with bc1p on mainnet
+        assert!(
+            addr_str.starts_with("bc1p"),
+            "Expected bc1p prefix, got: {}",
+            addr_str
+        );
+        assert_eq!(addr.format(), AddressFormat::P2TR);
+    }
+
+    #[test]
+    fn test_p2tr_roundtrip() {
+        let bytes =
+            hex_literal::hex!("0c28fca386c7a227600b2fe50b7cae11ec86d3bf1fbe471be89827e19d72aa1d");
+        let key = BtcPrivateKey::from_bytes(&bytes).unwrap();
+        let addr = key.address(Network::Mainnet, AddressFormat::P2TR).unwrap();
+        let addr_str = addr.to_string();
+
+        // Parse it back
+        let parsed: BtcAddress = addr_str.parse().unwrap();
+        assert_eq!(parsed.network(), Network::Mainnet);
+        assert_eq!(parsed.format(), AddressFormat::P2TR);
+        assert_eq!(parsed.to_string(), addr_str);
     }
 }

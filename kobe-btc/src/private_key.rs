@@ -111,13 +111,13 @@ impl BtcPrivateKey {
         let network = match decoded[0] {
             0x80 => Network::Mainnet,
             0xef => Network::Testnet,
-            _ => return Err(Error::StaticMessage("Unknown WIF network prefix")),
+            _ => return Err(Error::msg("unknown WIF network prefix")),
         };
 
         // Check compression flag
         let (key_bytes, compressed) = if decoded.len() == 38 {
             if decoded[33] != 0x01 {
-                return Err(Error::StaticMessage("Invalid compression flag"));
+                return Err(Error::msg("invalid compression flag"));
             }
             (&decoded[1..33], true)
         } else {
