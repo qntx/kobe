@@ -243,7 +243,7 @@ impl EthMnemonic {
     }
 
     /// Get the entropy bytes.
-    pub fn entropy_bytes(&self) -> &[u8] {
+    pub fn entropy(&self) -> &[u8] {
         &self.entropy
     }
 
@@ -319,7 +319,7 @@ mod tests {
         let phrase = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
         let mnemonic = EthMnemonic::from_phrase_str(phrase).unwrap();
         assert_eq!(
-            mnemonic.entropy_bytes(),
+            mnemonic.entropy(),
             hex_literal::hex!("00000000000000000000000000000000")
         );
     }

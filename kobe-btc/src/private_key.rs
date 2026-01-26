@@ -11,7 +11,6 @@ use kobe::rand_core::{CryptoRng, RngCore};
 use kobe::{Error, Result, Signature};
 use zeroize::Zeroize;
 
-// Import traits to bring methods into scope
 use kobe::PrivateKey as _;
 
 #[cfg(feature = "alloc")]

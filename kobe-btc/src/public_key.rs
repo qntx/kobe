@@ -7,7 +7,6 @@ use crate::network::Network;
 use k256::ecdsa::{SigningKey, VerifyingKey, signature::hazmat::PrehashVerifier};
 use kobe::{Error, Result, Signature};
 
-// Import traits to bring methods into scope
 use kobe::PublicKey as _;
 
 /// Bitcoin public key based on secp256k1.

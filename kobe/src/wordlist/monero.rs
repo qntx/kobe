@@ -1,13 +1,30 @@
-pub const CHINESE_SIMPLIFIED: &'static str = include_str!("./monero/chinese_simplified.txt");
-pub const DUTCH: &'static str = include_str!("./monero/dutch.txt");
-pub const ENGLISH: &'static str = include_str!("./monero/english.txt");
-pub const ENGLISH_OLD: &'static str = include_str!("./monero/english_old.txt");
-pub const ESPERANTO: &'static str = include_str!("./monero/esperanto.txt");
-pub const FRENCH: &'static str = include_str!("./monero/french.txt");
-pub const GERMAN: &'static str = include_str!("./monero/german.txt");
-pub const ITALIAN: &'static str = include_str!("./monero/italian.txt");
-pub const JAPANESE: &'static str = include_str!("./monero/japanese.txt");
-pub const LOJBAN: &'static str = include_str!("./monero/lojban.txt");
-pub const PORTUGUESE: &'static str = include_str!("./monero/portuguese.txt");
-pub const RUSSIAN: &'static str = include_str!("./monero/russian.txt");
-pub const SPANISH: &'static str = include_str!("./monero/spanish.txt");
+//! Monero wordlists for mnemonic phrase generation.
+//!
+//! These wordlists are used by Monero wallets and differ from BIP-39 wordlists.
+
+/// Chinese Simplified wordlist (1626 words).
+pub const CHINESE_SIMPLIFIED: &str = include_str!("./monero/chinese_simplified.txt");
+/// Dutch wordlist.
+pub const DUTCH: &str = include_str!("./monero/dutch.txt");
+/// English wordlist (1626 words).
+pub const ENGLISH: &str = include_str!("./monero/english.txt");
+/// Legacy English wordlist.
+pub const ENGLISH_OLD: &str = include_str!("./monero/english_old.txt");
+/// Esperanto wordlist.
+pub const ESPERANTO: &str = include_str!("./monero/esperanto.txt");
+/// French wordlist.
+pub const FRENCH: &str = include_str!("./monero/french.txt");
+/// German wordlist.
+pub const GERMAN: &str = include_str!("./monero/german.txt");
+/// Italian wordlist.
+pub const ITALIAN: &str = include_str!("./monero/italian.txt");
+/// Japanese wordlist.
+pub const JAPANESE: &str = include_str!("./monero/japanese.txt");
+/// Lojban wordlist.
+pub const LOJBAN: &str = include_str!("./monero/lojban.txt");
+/// Portuguese wordlist.
+pub const PORTUGUESE: &str = include_str!("./monero/portuguese.txt");
+/// Russian wordlist.
+pub const RUSSIAN: &str = include_str!("./monero/russian.txt");
+/// Spanish wordlist.
+pub const SPANISH: &str = include_str!("./monero/spanish.txt");

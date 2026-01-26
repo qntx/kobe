@@ -16,59 +16,13 @@ use k256::elliptic_curve::ops::Reduce;
 use k256::{Scalar, U256};
 use kobe::{Error, Result};
 
-// Import traits to bring methods into scope
 use kobe::PrivateKey as _;
 use sha2::Sha512;
 use zeroize::Zeroize;
 
 type HmacSha512 = Hmac<Sha512>;
 
-/// Child key index for BIP-32 derivation.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ChildIndex {
-    /// Normal (non-hardened) derivation: 0 to 2^31 - 1
-    Normal(u32),
-    /// Hardened derivation: 2^31 to 2^32 - 1
-    Hardened(u32),
-}
-
-impl ChildIndex {
-    /// Hardened index offset (2^31)
-    pub const HARDENED_OFFSET: u32 = 0x80000000;
-
-    /// Create a normal child index.
-    pub const fn normal(index: u32) -> Self {
-        Self::Normal(index)
-    }
-
-    /// Create a hardened child index.
-    pub const fn hardened(index: u32) -> Self {
-        Self::Hardened(index)
-    }
-
-    /// Convert to the raw u32 value used in derivation.
-    pub const fn to_u32(&self) -> u32 {
-        match self {
-            Self::Normal(i) => *i,
-            Self::Hardened(i) => *i | Self::HARDENED_OFFSET,
-        }
-    }
-
-    /// Check if this is a hardened index.
-    pub const fn is_hardened(&self) -> bool {
-        matches!(self, Self::Hardened(_))
-    }
-}
-
-impl From<u32> for ChildIndex {
-    fn from(value: u32) -> Self {
-        if value >= Self::HARDENED_OFFSET {
-            Self::Hardened(value & !Self::HARDENED_OFFSET)
-        } else {
-            Self::Normal(value)
-        }
-    }
-}
+pub use kobe::ChildIndex;
 
 /// BIP-32 Extended Private Key for Bitcoin.
 #[derive(Clone)]

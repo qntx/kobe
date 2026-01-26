@@ -16,7 +16,6 @@ use k256::ecdsa::SigningKey;
 use kobe::rand_core::{CryptoRng, RngCore};
 use kobe::{Error, Result, Signature};
 
-// Import traits to bring methods into scope
 use kobe::PrivateKey as _;
 use kobe::PublicKey as _;
 use sha3::{Digest, Keccak256};

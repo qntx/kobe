@@ -1,9 +1,10 @@
-//! BIP-39 wordlists for mnemonic phrase generation.
+//! Wordlists for mnemonic phrase generation.
 //!
-//! Supports Chinese (Simplified/Traditional), English, French, Italian,
-//! Japanese, Korean, and Spanish.
+//! - **BIP-39**: Standard wordlists for Bitcoin/Ethereum mnemonics
+//! - **Monero**: Wordlists specific to Monero wallets
 
 pub mod bip39;
+pub mod monero;
 
 pub use self::bip39::Language;
 pub use crate::traits::{Wordlist, WordlistError};
