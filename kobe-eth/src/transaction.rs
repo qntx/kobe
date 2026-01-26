@@ -26,7 +26,7 @@ impl EthTxId {
     }
 }
 
-impl kobe::transaction::TransactionId for EthTxId {
+impl kobe::TransactionId for EthTxId {
     fn as_bytes(&self) -> &[u8] {
         &self.0
     }

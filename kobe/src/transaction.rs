@@ -1,63 +1,10 @@
-//! Transaction traits and types for cryptocurrency transactions.
+//! Transaction-related types for cryptocurrency transactions.
 //!
-//! Provides a generic interface for building, signing, and serializing transactions.
+//! Contains concrete types for Bitcoin and Ethereum transaction parameters.
+//! The `Transaction` and `TransactionId` traits are defined in `traits.rs`.
 
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
-
-use crate::error::Result;
-use core::fmt::{Debug, Display};
-use core::hash::Hash;
-
-/// Transaction identifier (hash).
-pub trait TransactionId: Clone + Debug + Display + PartialEq + Eq + Hash + Send + Sync {
-    /// Get the transaction ID as bytes.
-    fn as_bytes(&self) -> &[u8];
-
-    /// Get the transaction ID as hex string.
-    #[cfg(feature = "alloc")]
-    fn to_hex(&self) -> alloc::string::String {
-        crate::encoding::to_hex(self.as_bytes())
-    }
-}
-
-/// Trait for cryptocurrency transactions.
-///
-/// This trait provides a unified interface for transaction operations across
-/// different blockchain implementations.
-#[cfg(feature = "alloc")]
-pub trait Transaction: Clone + Debug + Send + Sync {
-    /// The private key type used to sign transactions.
-    type PrivateKey: crate::PrivateKey;
-
-    /// The transaction ID type.
-    type TransactionId: TransactionId;
-
-    /// Sign the transaction with the given private key.
-    ///
-    /// Returns a new signed transaction.
-    fn sign(&self, private_key: &Self::PrivateKey) -> Result<Self>;
-
-    /// Check if the transaction is signed.
-    fn is_signed(&self) -> bool;
-
-    /// Serialize the transaction to bytes.
-    fn to_bytes(&self) -> Result<Vec<u8>>;
-
-    /// Deserialize a transaction from bytes.
-    fn from_bytes(bytes: &[u8]) -> Result<Self>;
-
-    /// Get the transaction ID (hash).
-    ///
-    /// For unsigned transactions, this returns the hash used for signing.
-    /// For signed transactions, this returns the final transaction hash.
-    fn transaction_id(&self) -> Result<Self::TransactionId>;
-
-    /// Get the serialized transaction as hex string.
-    fn to_hex(&self) -> Result<alloc::string::String> {
-        Ok(crate::encoding::to_hex(&self.to_bytes()?))
-    }
-}
 
 /// Bitcoin-specific transaction input.
 #[cfg(feature = "alloc")]

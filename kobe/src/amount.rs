@@ -1,50 +1,10 @@
-//! Amount types for cryptocurrency values.
+//! Cryptocurrency amount types and denominations.
 //!
-//! Provides type-safe handling of cryptocurrency amounts with proper unit conversions.
-//!
-//! # Denominations
-//!
-//! Bitcoin denominations: Satoshi, MicroBit (μBTC), MilliBit (mBTC), CentiBit, DeciBit, Bitcoin
-//! Ethereum denominations: Wei, Kwei, Mwei, Gwei, Szabo, Finney, Ether
+//! Provides concrete implementations of the `Amount` trait for Bitcoin and Ethereum.
 
+use crate::traits::Amount;
 use core::fmt;
 use core::ops::{Add, Div, Mul, Sub};
-
-/// Trait for cryptocurrency amount types.
-///
-/// Implementations should provide conversion between base units and display units.
-pub trait Amount:
-    Copy + Clone + fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord + Send + Sync
-{
-    /// The number of decimal places for this currency.
-    const DECIMALS: u8;
-
-    /// The currency symbol or ticker.
-    const SYMBOL: &'static str;
-
-    /// Create from the smallest unit (satoshi, wei, etc.)
-    fn from_base_units(value: u64) -> Self;
-
-    /// Get the value in the smallest unit.
-    fn to_base_units(&self) -> u64;
-
-    /// Create from the main unit (BTC, ETH, etc.)
-    fn from_main_units(value: f64) -> Self {
-        let multiplier = 10u64.pow(Self::DECIMALS as u32);
-        Self::from_base_units((value * multiplier as f64) as u64)
-    }
-
-    /// Get the value in the main unit.
-    fn to_main_units(&self) -> f64 {
-        let multiplier = 10u64.pow(Self::DECIMALS as u32);
-        self.to_base_units() as f64 / multiplier as f64
-    }
-
-    /// Check if the amount is zero.
-    fn is_zero(&self) -> bool {
-        self.to_base_units() == 0
-    }
-}
 
 /// Bitcoin denomination units.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

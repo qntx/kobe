@@ -1,12 +1,16 @@
 //! Core traits defining the wallet interface.
+//!
+//! All wallet-related traits are defined here for easy discovery and consistency.
 
 use crate::error::Result;
-use core::fmt::{Debug, Display};
+use core::fmt::{self, Debug, Display};
 use core::hash::Hash;
 use k256::elliptic_curve::rand_core::{CryptoRng, RngCore};
 
 #[cfg(feature = "alloc")]
 use alloc::string::String;
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
 
 /// A private key that can sign messages and derive public keys.
 ///
@@ -260,3 +264,121 @@ pub trait Mnemonic: Clone + Debug + Sized + zeroize::Zeroize + Send + Sync {
     /// Get entropy bytes
     fn entropy(&self) -> &[u8];
 }
+
+/// Trait for cryptocurrency amount types.
+///
+/// Provides type-safe handling of cryptocurrency amounts with unit conversions.
+pub trait Amount:
+    Copy + Clone + fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord + Send + Sync
+{
+    /// The number of decimal places for this currency.
+    const DECIMALS: u8;
+
+    /// The currency symbol or ticker.
+    const SYMBOL: &'static str;
+
+    /// Create from the smallest unit (satoshi, wei, etc.)
+    fn from_base_units(value: u64) -> Self;
+
+    /// Get the value in the smallest unit.
+    fn to_base_units(&self) -> u64;
+
+    /// Create from the main unit (BTC, ETH, etc.)
+    fn from_main_units(value: f64) -> Self {
+        let multiplier = 10u64.pow(Self::DECIMALS as u32);
+        Self::from_base_units((value * multiplier as f64) as u64)
+    }
+
+    /// Get the value in the main unit.
+    fn to_main_units(&self) -> f64 {
+        let multiplier = 10u64.pow(Self::DECIMALS as u32);
+        self.to_base_units() as f64 / multiplier as f64
+    }
+
+    /// Check if the amount is zero.
+    fn is_zero(&self) -> bool {
+        self.to_base_units() == 0
+    }
+}
+
+/// Transaction identifier (hash).
+pub trait TransactionId: Clone + Debug + Display + PartialEq + Eq + Hash + Send + Sync {
+    /// Get the transaction ID as bytes.
+    fn as_bytes(&self) -> &[u8];
+
+    /// Get the transaction ID as hex string.
+    #[cfg(feature = "alloc")]
+    fn to_hex(&self) -> String {
+        crate::encoding::to_hex(self.as_bytes())
+    }
+}
+
+/// Trait for cryptocurrency transactions.
+#[cfg(feature = "alloc")]
+pub trait Transaction: Clone + Debug + Send + Sync {
+    /// The private key type used to sign transactions.
+    type PrivateKey: PrivateKey;
+
+    /// The transaction ID type.
+    type TransactionId: TransactionId;
+
+    /// Sign the transaction with the given private key.
+    fn sign(&self, private_key: &Self::PrivateKey) -> Result<Self>;
+
+    /// Check if the transaction is signed.
+    fn is_signed(&self) -> bool;
+
+    /// Serialize the transaction to bytes.
+    fn to_bytes(&self) -> Result<Vec<u8>>;
+
+    /// Deserialize a transaction from bytes.
+    fn from_bytes(bytes: &[u8]) -> Result<Self>;
+
+    /// Get the transaction ID (hash).
+    fn transaction_id(&self) -> Result<Self::TransactionId>;
+
+    /// Get the serialized transaction as hex string.
+    fn to_hex(&self) -> Result<String> {
+        Ok(crate::encoding::to_hex(&self.to_bytes()?))
+    }
+}
+
+/// The interface for a BIP-39 wordlist.
+pub trait Wordlist: Copy + Clone + Debug + Send + Sync + 'static + Eq + Sized {
+    /// Get the word at the given index.
+    fn get_word(index: usize) -> Option<&'static str>;
+
+    /// Get the index of the given word.
+    fn get_index(word: &str) -> Option<usize>;
+
+    /// Get all words in the wordlist.
+    fn get_all() -> &'static [&'static str];
+}
+
+/// Errors related to wordlist operations.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum WordlistError {
+    /// Invalid index in wordlist.
+    InvalidIndex(usize),
+    /// Invalid word not found in wordlist.
+    #[cfg(feature = "alloc")]
+    InvalidWord(String),
+    /// Invalid word (static message for no_std).
+    #[cfg(not(feature = "alloc"))]
+    InvalidWord,
+}
+
+impl Display for WordlistError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidIndex(i) => write!(f, "invalid wordlist index: {}", i),
+            #[cfg(feature = "alloc")]
+            Self::InvalidWord(w) => write!(f, "invalid word: {}", w),
+            #[cfg(not(feature = "alloc"))]
+            Self::InvalidWord => write!(f, "invalid word"),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for WordlistError {}

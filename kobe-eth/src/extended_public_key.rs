@@ -239,7 +239,8 @@ mod tests {
 
         // Compare with derivation from xprv
         let xprv_grandchild = xprv_child.derive_child(0).unwrap();
-        let xpub_from_prv = EthExtendedPublicKey::from_extended_private_key_internal(&xprv_grandchild);
+        let xpub_from_prv =
+            EthExtendedPublicKey::from_extended_private_key_internal(&xprv_grandchild);
 
         // Public keys should match
         assert_eq!(

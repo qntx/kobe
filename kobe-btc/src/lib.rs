@@ -29,7 +29,7 @@ mod public_key;
 mod transaction;
 
 pub use address::{AddressFormat, BtcAddress};
-pub use extended_key::{ChildIndex, BtcExtendedPrivateKey};
+pub use extended_key::{BtcExtendedPrivateKey, ChildIndex};
 pub use extended_public_key::BtcExtendedPublicKey;
 pub use mnemonic::BtcMnemonic;
 pub use network::Network;

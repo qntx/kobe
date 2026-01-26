@@ -25,7 +25,7 @@ impl BtcTxId {
     }
 }
 
-impl kobe::transaction::TransactionId for BtcTxId {
+impl kobe::TransactionId for BtcTxId {
     fn as_bytes(&self) -> &[u8] {
         &self.0
     }
