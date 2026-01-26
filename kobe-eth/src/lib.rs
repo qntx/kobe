@@ -54,6 +54,7 @@
 extern crate alloc;
 
 mod address;
+mod eip191;
 mod extended_key;
 mod extended_public_key;
 mod mnemonic;

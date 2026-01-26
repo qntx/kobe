@@ -2,12 +2,12 @@
 //!
 //! Implements `kobe::PublicKey` trait for unified wallet interface.
 
+use k256::ecdsa::{SigningKey, VerifyingKey, signature::hazmat::PrehashVerifier};
+
+use kobe::{Error, PublicKey as _, Result, Signature};
+
 use crate::address::{AddressFormat, BtcAddress};
 use crate::network::Network;
-use k256::ecdsa::{SigningKey, VerifyingKey, signature::hazmat::PrehashVerifier};
-use kobe::{Error, Result, Signature};
-
-use kobe::PublicKey as _;
 
 /// Bitcoin public key based on secp256k1.
 ///

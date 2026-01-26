@@ -7,18 +7,19 @@
 //! - Automatic memory zeroization
 //! - Implements `kobe::PrivateKey` trait
 
-#[cfg(feature = "alloc")]
-use alloc::string::String;
-
-use crate::address::EthAddress;
-use crate::public_key::EthPublicKey;
 use k256::ecdsa::SigningKey;
-use kobe::PrivateKey as _;
-use kobe::PublicKey as _;
-use kobe::rand_core::{CryptoRng, RngCore};
-use kobe::{Error, Result, Signature};
 use sha3::{Digest, Keccak256};
 use zeroize::Zeroize;
+
+use kobe::rand_core::{CryptoRng, RngCore};
+use kobe::{Error, PrivateKey as _, PublicKey as _, Result, Signature};
+
+use crate::address::EthAddress;
+use crate::eip191;
+use crate::public_key::EthPublicKey;
+
+#[cfg(feature = "alloc")]
+use alloc::string::String;
 
 /// Ethereum private key based on secp256k1.
 ///
@@ -97,7 +98,7 @@ impl EthPrivateKey {
 
     /// Sign a message with EIP-191 prefix.
     pub fn sign_message(&self, message: &[u8]) -> Result<Signature> {
-        let hash = eip191_hash_message(message);
+        let hash = eip191::hash_message(message);
         self.sign_prehash(&hash)
     }
 
@@ -164,18 +165,6 @@ impl core::str::FromStr for EthPrivateKey {
     }
 }
 
-/// Compute EIP-191 message hash.
-fn eip191_hash_message(message: &[u8]) -> [u8; 32] {
-    let prefix_start = b"\x19Ethereum Signed Message:\n";
-    let (len_buf, len_used) = format_usize(message.len());
-
-    let mut hasher = Keccak256::new();
-    hasher.update(prefix_start);
-    hasher.update(&len_buf[..len_used]);
-    hasher.update(message);
-    hasher.finalize().into()
-}
-
 /// Compute EIP-712 typed data hash.
 fn eip712_hash(domain_separator: &[u8; 32], struct_hash: &[u8; 32]) -> [u8; 32] {
     let mut hasher = Keccak256::new();
@@ -183,29 +172,6 @@ fn eip712_hash(domain_separator: &[u8; 32], struct_hash: &[u8; 32]) -> [u8; 32] 
     hasher.update(domain_separator);
     hasher.update(struct_hash);
     hasher.finalize().into()
-}
-
-/// Format usize as string (no_std compatible).
-/// Returns (buffer, length_used).
-fn format_usize(mut n: usize) -> ([u8; 20], usize) {
-    let mut buf = [0u8; 20];
-    let mut i = buf.len();
-
-    if n == 0 {
-        i -= 1;
-        buf[i] = b'0';
-    } else {
-        while n > 0 {
-            i -= 1;
-            buf[i] = b'0' + (n % 10) as u8;
-            n /= 10;
-        }
-    }
-
-    // Left-align the result
-    let len = buf.len() - i;
-    buf.copy_within(i.., 0);
-    (buf, len)
 }
 
 #[cfg(test)]

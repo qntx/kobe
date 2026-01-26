@@ -3,17 +3,19 @@
 //! Implements `kobe::ExtendedPublicKey` trait for watch-only wallet support.
 //! Supports non-hardened child derivation and xpub serialization.
 
-#[cfg(feature = "alloc")]
-use alloc::string::String;
+use hmac::{Hmac, Mac};
+use k256::elliptic_curve::sec1::ToEncodedPoint;
+use k256::{ProjectivePoint, PublicKey as K256PublicKey};
+use sha2::Sha512;
+
+use kobe::{Error, Result};
 
 use crate::extended_key::BtcExtendedPrivateKey;
 use crate::network::Network;
 use crate::public_key::BtcPublicKey;
-use hmac::{Hmac, Mac};
-use k256::elliptic_curve::sec1::ToEncodedPoint;
-use k256::{ProjectivePoint, PublicKey as K256PublicKey};
-use kobe::{Error, Result};
-use sha2::Sha512;
+
+#[cfg(feature = "alloc")]
+use alloc::string::String;
 
 type HmacSha512 = Hmac<Sha512>;
 

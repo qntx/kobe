@@ -2,19 +2,20 @@
 //!
 //! Implements `kobe::Mnemonic` trait for unified wallet interface.
 
+use pbkdf2::pbkdf2_hmac;
+use sha2::{Digest, Sha256, Sha512};
+use zeroize::Zeroize;
+
+use kobe::rand_core::{CryptoRng, RngCore};
+use kobe::{Error, Result};
+
+use crate::extended_key::BtcExtendedPrivateKey;
+use crate::network::Network;
+
 #[cfg(feature = "alloc")]
 use alloc::string::String;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
-
-use crate::extended_key::BtcExtendedPrivateKey;
-use crate::network::Network;
-use kobe::rand_core::{CryptoRng, RngCore};
-use kobe::{Error, Result};
-use pbkdf2::pbkdf2_hmac;
-use sha2::Sha512;
-use sha2::{Digest, Sha256};
-use zeroize::Zeroize;
 
 /// Lazy-initialized English wordlist from kobe.
 #[cfg(feature = "alloc")]

@@ -12,19 +12,20 @@
 //! - Korean (한국어)
 //! - Spanish, French, Italian
 
+use pbkdf2::pbkdf2_hmac;
+use sha2::{Digest, Sha256, Sha512};
+use zeroize::Zeroize;
+
+use kobe::rand_core::{CryptoRng, RngCore};
+use kobe::wordlist::bip39::Language;
+use kobe::{Error, Result};
+
+use crate::extended_key::EthExtendedPrivateKey;
+
 #[cfg(feature = "alloc")]
 use alloc::string::String;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
-
-use crate::extended_key::EthExtendedPrivateKey;
-use kobe::rand_core::{CryptoRng, RngCore};
-use kobe::wordlist::bip39::Language;
-use kobe::{Error, Result};
-use pbkdf2::pbkdf2_hmac;
-use sha2::Sha512;
-use sha2::{Digest, Sha256};
-use zeroize::Zeroize;
 
 /// Get wordlist for a specific language.
 #[cfg(feature = "alloc")]

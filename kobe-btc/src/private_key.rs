@@ -2,18 +2,19 @@
 //!
 //! Implements `kobe::PrivateKey` trait for unified wallet interface.
 
-#[cfg(feature = "alloc")]
-use alloc::string::String;
+use k256::ecdsa::SigningKey;
+use zeroize::Zeroize;
+
+use kobe::hash::double_sha256;
+use kobe::rand_core::{CryptoRng, RngCore};
+use kobe::{Error, PrivateKey as _, Result, Signature};
 
 use crate::address::{AddressFormat, BtcAddress};
 use crate::network::Network;
 use crate::public_key::BtcPublicKey;
-use k256::ecdsa::SigningKey;
-use kobe::PrivateKey as _;
-use kobe::hash::double_sha256;
-use kobe::rand_core::{CryptoRng, RngCore};
-use kobe::{Error, Result, Signature};
-use zeroize::Zeroize;
+
+#[cfg(feature = "alloc")]
+use alloc::string::String;
 
 /// Bitcoin private key based on secp256k1.
 ///

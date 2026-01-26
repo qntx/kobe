@@ -2,27 +2,26 @@
 //!
 //! Implements `kobe::ExtendedPrivateKey` trait for unified wallet interface.
 
-#[cfg(feature = "alloc")]
-use alloc::string::String;
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
+use hmac::{Hmac, Mac};
+use k256::elliptic_curve::ops::Reduce;
+use k256::{Scalar, U256};
+use sha2::Sha512;
+use zeroize::Zeroize;
+
+pub use kobe::ChildIndex;
+use kobe::{Error, PrivateKey as _, Result};
 
 use crate::address::{AddressFormat, BtcAddress};
 use crate::network::Network;
 use crate::private_key::BtcPrivateKey;
 use crate::public_key::BtcPublicKey;
-use hmac::{Hmac, Mac};
-use k256::elliptic_curve::ops::Reduce;
-use k256::{Scalar, U256};
-use kobe::{Error, Result};
 
-use kobe::PrivateKey as _;
-use sha2::Sha512;
-use zeroize::Zeroize;
+#[cfg(feature = "alloc")]
+use alloc::string::String;
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
 
 type HmacSha512 = Hmac<Sha512>;
-
-pub use kobe::ChildIndex;
 
 /// BIP-32 Extended Private Key for Bitcoin.
 ///

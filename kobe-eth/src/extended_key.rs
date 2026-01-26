@@ -2,17 +2,17 @@
 //!
 //! Implements `kobe::ExtendedPrivateKey` trait for unified wallet interface.
 
-use crate::address::EthAddress;
-use crate::private_key::EthPrivateKey;
-use crate::public_key::EthPublicKey;
 use hmac::{Hmac, Mac};
 use k256::elliptic_curve::ops::Reduce;
 use k256::{Scalar, U256};
-use kobe::{Error, Result};
 use sha2::Sha512;
 use zeroize::Zeroize;
 
-use kobe::PrivateKey as _;
+use kobe::{Error, PrivateKey as _, Result};
+
+use crate::address::EthAddress;
+use crate::private_key::EthPrivateKey;
+use crate::public_key::EthPublicKey;
 
 type HmacSha512 = Hmac<Sha512>;
 

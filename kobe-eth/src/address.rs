@@ -2,12 +2,14 @@
 //!
 //! Implements `kobe::Address` trait for unified wallet interface.
 
-#[cfg(feature = "alloc")]
-use alloc::string::String;
+use sha3::{Digest, Keccak256};
+
+use kobe::{Error, Result};
 
 use crate::public_key::EthPublicKey;
-use kobe::{Error, Result};
-use sha3::{Digest, Keccak256};
+
+#[cfg(feature = "alloc")]
+use alloc::string::String;
 
 /// Ethereum address (20 bytes).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

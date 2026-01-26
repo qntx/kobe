@@ -2,9 +2,12 @@
 //!
 //! Implements `kobe::PublicKey` trait for unified wallet interface.
 
-use crate::address::EthAddress;
 use k256::ecdsa::{SigningKey, VerifyingKey, signature::hazmat::PrehashVerifier};
+
 use kobe::{Error, Result, Signature};
+
+use crate::address::EthAddress;
+use crate::eip191;
 
 /// Ethereum public key based on secp256k1.
 ///
@@ -104,44 +107,9 @@ impl EthPublicKey {
     ///
     /// Returns an error if the signature is invalid or recovery fails.
     pub fn recover_from_message(message: &[u8], signature: &Signature) -> Result<Self> {
-        let hash = eip191_hash_message(message);
+        let hash = eip191::hash_message(message);
         Self::recover_from_prehash(&hash, signature)
     }
-}
-
-/// Compute EIP-191 message hash (same as in private_key.rs).
-fn eip191_hash_message(message: &[u8]) -> [u8; 32] {
-    use sha3::{Digest, Keccak256};
-
-    let prefix_start = b"\x19Ethereum Signed Message:\n";
-    let (len_buf, len_used) = format_usize(message.len());
-
-    let mut hasher = Keccak256::new();
-    hasher.update(prefix_start);
-    hasher.update(&len_buf[..len_used]);
-    hasher.update(message);
-    hasher.finalize().into()
-}
-
-/// Format usize as string (no_std compatible).
-fn format_usize(mut n: usize) -> ([u8; 20], usize) {
-    let mut buf = [0u8; 20];
-    let mut i = buf.len();
-
-    if n == 0 {
-        i -= 1;
-        buf[i] = b'0';
-    } else {
-        while n > 0 {
-            i -= 1;
-            buf[i] = b'0' + (n % 10) as u8;
-            n /= 10;
-        }
-    }
-
-    let len = buf.len() - i;
-    buf.copy_within(i.., 0);
-    (buf, len)
 }
 
 #[cfg(test)]

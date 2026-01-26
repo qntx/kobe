@@ -3,15 +3,16 @@
 //! Supports P2PKH, P2SH, P2WPKH (native SegWit), and P2TR (Taproot) formats.
 //! Implements `kobe::Address` trait for unified wallet interface.
 
+use kobe::hash::double_sha256;
+use kobe::{Error, Result};
+
+use crate::network::Network;
+use crate::public_key::BtcPublicKey;
+
 #[cfg(feature = "alloc")]
 use alloc::string::String;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
-
-use crate::network::Network;
-use crate::public_key::BtcPublicKey;
-use kobe::hash::double_sha256;
-use kobe::{Error, Result};
 
 /// Bitcoin address format.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
