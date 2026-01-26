@@ -53,18 +53,18 @@
 extern crate alloc;
 
 pub mod amount;
-pub mod derivation_path;
 pub mod encoding;
 pub mod error;
 pub mod hash;
+pub mod hdpath;
 pub mod traits;
 pub mod transaction;
 pub mod types;
 pub mod wordlist;
 
 pub use amount::{BitcoinDenomination, EthereumDenomination, Satoshi, Wei};
-pub use derivation_path::{ChildIndex, DerivationPath};
 pub use error::{Error, Result};
+pub use hdpath::{ChildIndex, DerivationPath};
 pub use traits::*;
 pub use transaction::{Eip1559TxParams, EthTxParams, SigHashType, TxInput, TxOutput};
 pub use types::*;

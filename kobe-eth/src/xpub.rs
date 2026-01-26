@@ -11,8 +11,8 @@ use sha2::Sha512;
 use kobe::{Error, PublicKey as _, Result};
 
 use crate::address::Address;
-use crate::extended_key::ExtendedPrivateKey;
-use crate::public_key::PublicKey;
+use crate::pubkey::PublicKey;
+use crate::xpriv::ExtendedPrivateKey;
 
 type HmacSha512 = Hmac<Sha512>;
 

@@ -55,23 +55,23 @@ extern crate alloc;
 
 mod address;
 mod eip191;
-mod extended_key;
-mod extended_public_key;
 mod mnemonic;
 mod network;
-mod private_key;
-mod public_key;
+mod privkey;
+mod pubkey;
 mod transaction;
+mod xpriv;
+mod xpub;
 
 pub use address::Address;
-pub use extended_key::ExtendedPrivateKey;
-pub use extended_public_key::ExtendedPublicKey;
 pub use kobe::wordlist::bip39::Language;
 pub use mnemonic::Mnemonic;
 pub use network::Network;
-pub use private_key::PrivateKey;
-pub use public_key::PublicKey;
+pub use privkey::PrivateKey;
+pub use pubkey::PublicKey;
 pub use transaction::{Eip1559Transaction, Transaction, TxId};
+pub use xpriv::ExtendedPrivateKey;
+pub use xpub::ExtendedPublicKey;
 
 // Re-export kobe core traits with trait suffix for clarity
 pub use kobe::{

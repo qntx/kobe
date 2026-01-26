@@ -55,22 +55,22 @@
 extern crate alloc;
 
 mod address;
-mod extended_key;
-mod extended_public_key;
 mod mnemonic;
 mod network;
-mod private_key;
-mod public_key;
+mod privkey;
+mod pubkey;
 mod transaction;
+mod xpriv;
+mod xpub;
 
 pub use address::{Address, AddressFormat};
-pub use extended_key::{ChildIndex, ExtendedPrivateKey};
-pub use extended_public_key::ExtendedPublicKey;
 pub use mnemonic::Mnemonic;
 pub use network::Network;
-pub use private_key::PrivateKey;
-pub use public_key::PublicKey;
+pub use privkey::PrivateKey;
+pub use pubkey::PublicKey;
 pub use transaction::{Transaction, TxId, p2pkh_script, p2wpkh_script};
+pub use xpriv::{ChildIndex, ExtendedPrivateKey};
+pub use xpub::ExtendedPublicKey;
 
 // Re-export kobe core traits with trait suffix for clarity
 pub use kobe::{

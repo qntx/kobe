@@ -11,8 +11,8 @@ use zeroize::Zeroize;
 use kobe::{Error, PrivateKey as _, Result};
 
 use crate::address::Address;
-use crate::private_key::PrivateKey;
-use crate::public_key::PublicKey;
+use crate::privkey::PrivateKey;
+use crate::pubkey::PublicKey;
 
 type HmacSha512 = Hmac<Sha512>;
 

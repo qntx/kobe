@@ -9,8 +9,8 @@ use zeroize::Zeroize;
 use kobe::rand_core::{CryptoRng, RngCore};
 use kobe::{Error, Result};
 
-use crate::extended_key::ExtendedPrivateKey;
 use crate::network::Network;
+use crate::xpriv::ExtendedPrivateKey;
 
 #[cfg(feature = "alloc")]
 use alloc::string::String;

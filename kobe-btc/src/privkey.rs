@@ -11,7 +11,7 @@ use kobe::{Error, PrivateKey as _, Result, Signature};
 
 use crate::address::{Address, AddressFormat};
 use crate::network::Network;
-use crate::public_key::PublicKey;
+use crate::pubkey::PublicKey;
 
 #[cfg(feature = "alloc")]
 use alloc::string::String;

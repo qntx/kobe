@@ -7,7 +7,7 @@ use kobe::hash::double_sha256;
 use kobe::{Error, Result};
 
 use crate::network::Network;
-use crate::public_key::PublicKey;
+use crate::pubkey::PublicKey;
 
 #[cfg(feature = "alloc")]
 use alloc::string::String;

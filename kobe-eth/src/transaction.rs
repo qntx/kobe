@@ -4,7 +4,7 @@
 
 use crate::address::Address;
 use crate::network::Network;
-use crate::private_key::PrivateKey;
+use crate::privkey::PrivateKey;
 use alloc::vec::Vec;
 use kobe::hash::keccak256;
 use kobe::transaction::{Eip1559TxParams, EthTxParams};
@@ -252,7 +252,7 @@ impl Transaction {
         };
 
         let sig = kobe::Signature::new(self.r.unwrap(), self.s.unwrap(), recovery_id);
-        let pubkey = crate::public_key::PublicKey::recover_from_prehash(&hash, &sig)?;
+        let pubkey = crate::pubkey::PublicKey::recover_from_prehash(&hash, &sig)?;
 
         Ok(Address::from_public_key(&pubkey))
     }

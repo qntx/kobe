@@ -6,7 +6,7 @@ use sha3::{Digest, Keccak256};
 
 use kobe::{Error, Result};
 
-use crate::public_key::PublicKey;
+use crate::pubkey::PublicKey;
 
 #[cfg(feature = "alloc")]
 use alloc::string::String;

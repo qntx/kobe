@@ -3,7 +3,7 @@
 //! Supports legacy (P2PKH) and SegWit (P2WPKH) transactions.
 
 use crate::network::Network;
-use crate::private_key::PrivateKey;
+use crate::privkey::PrivateKey;
 use alloc::vec::Vec;
 use kobe::hash::double_sha256;
 use kobe::transaction::{SigHashType, TxInput, TxOutput};

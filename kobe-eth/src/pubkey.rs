@@ -113,7 +113,7 @@ impl PublicKey {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::private_key::PrivateKey;
+    use crate::privkey::PrivateKey;
     use kobe::PrivateKey as PrivateKeyTrait;
 
     #[test]

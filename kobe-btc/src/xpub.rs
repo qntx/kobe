@@ -10,9 +10,9 @@ use sha2::Sha512;
 
 use kobe::{Error, Result};
 
-use crate::extended_key::ExtendedPrivateKey;
 use crate::network::Network;
-use crate::public_key::PublicKey;
+use crate::pubkey::PublicKey;
+use crate::xpriv::ExtendedPrivateKey;
 
 #[cfg(feature = "alloc")]
 use alloc::string::String;

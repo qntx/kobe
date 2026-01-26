@@ -13,8 +13,8 @@ use kobe::{Error, PrivateKey as _, Result};
 
 use crate::address::{Address, AddressFormat};
 use crate::network::Network;
-use crate::private_key::PrivateKey;
-use crate::public_key::PublicKey;
+use crate::privkey::PrivateKey;
+use crate::pubkey::PublicKey;
 
 #[cfg(feature = "alloc")]
 use alloc::string::String;
