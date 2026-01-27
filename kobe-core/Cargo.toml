@@ -1,0 +1,12 @@
+[package]
+name = "kobe-core"
+version = "0.1.0"
+edition = "2024"
+description = "Core wallet types for Kobe multi-chain wallet CLI"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/pyor/kobe"
+keywords = ["crypto", "wallet", "bip39", "mnemonic"]
+
+[dependencies]
+bip39.workspace = true
+zeroize.workspace = true

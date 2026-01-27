@@ -2,34 +2,15 @@
 name = "kobe-btc"
 version = "0.1.0"
 edition = "2024"
-description = "Bitcoin wallet support for the Kobe wallet library"
+description = "Bitcoin wallet utilities for Kobe CLI"
 license = "MIT OR Apache-2.0"
-documentation = "https://docs.rs/kobe-btc"
-repository = "https://github.com/pyroth/kobe"
-homepage = "https://github.com/pyroth/kobe"
-keywords = ["bitcoin", "wallet", "crypto", "no_std"]
-categories = ["cryptography", "no-std"]
-
-[features]
-default = ["std"]
-std = ["alloc", "kobe/std", "k256/std", "bip39/std", "bip32/std", "bitcoin/std"]
-alloc = ["kobe/alloc", "k256/alloc", "bip39/alloc", "bip32/alloc"]
+repository = "https://github.com/pyor/kobe"
+keywords = ["bitcoin", "wallet", "crypto"]
 
 [dependencies]
-kobe.workspace = true
+kobe-core.workspace = true
 bitcoin.workspace = true
-k256 = { workspace = true, features = ["arithmetic"] }
-bech32.workspace = true
-bip32.workspace = true
 bip39.workspace = true
-hex.workspace = true
-bs58.workspace = true
-hmac.workspace = true
-rand_core.workspace = true
-sha2.workspace = true
-zeroize.workspace = true
-
-[dev-dependencies]
-hex.workspace = true
-hex-literal.workspace = true
 rand.workspace = true
+hex.workspace = true
+zeroize.workspace = true

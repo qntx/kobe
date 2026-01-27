@@ -2,33 +2,22 @@
 name = "kobe"
 version = "0.1.0"
 edition = "2024"
-description = "A lightweight, no_std compatible multi-chain wallet core library"
+description = "A multi-chain cryptocurrency wallet CLI tool"
 license = "MIT OR Apache-2.0"
-documentation = "https://docs.rs/kobe"
-repository = "https://github.com/pyroth/kobe"
-homepage = "https://github.com/pyroth/kobe"
-keywords = ["crypto", "wallet", "blockchain", "no_std"]
-categories = ["cryptography", "no-std"]
+repository = "https://github.com/pyor/kobe"
+keywords = ["crypto", "wallet", "bitcoin", "ethereum", "cli"]
+categories = ["command-line-utilities", "cryptography"]
 
-
-[features]
-default = ["std"]
-std = ["alloc", "k256/std", "sha3/std", "hmac/std", "pbkdf2/std", "rand/std", "hex/std"]
-alloc = ["k256/alloc", "hex/alloc"]
+[[bin]]
+name = "kobe"
+path = "src/main.rs"
 
 [dependencies]
-hex.workspace = true
-hmac.workspace = true
-k256.workspace = true
-pbkdf2.workspace = true
-rand_core.workspace = true
-rand = { workspace = true, optional = true }
-ripemd.workspace = true
-sha2.workspace = true
-sha3.workspace = true
-subtle.workspace = true
-zeroize.workspace = true
-
-[dev-dependencies]
-hex-literal.workspace = true
+kobe-core.workspace = true
+kobe-btc.workspace = true
+kobe-eth.workspace = true
+clap.workspace = true
+colored.workspace = true
 rand.workspace = true
+hex.workspace = true
+zeroize.workspace = true

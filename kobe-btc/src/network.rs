@@ -1,45 +1,51 @@
 //! Bitcoin network types.
 
-/// Bitcoin network type.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+use bitcoin::Network as BtcNetwork;
+
+/// Supported Bitcoin networks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Network {
-    /// Bitcoin mainnet
+    /// Bitcoin mainnet.
     #[default]
     Mainnet,
-    /// Bitcoin testnet
+    /// Bitcoin testnet.
     Testnet,
 }
 
 impl Network {
-    /// Get the P2PKH address prefix (version byte)
-    pub const fn p2pkh_prefix(&self) -> u8 {
+    /// Convert to bitcoin crate's Network type.
+    #[inline]
+    #[must_use]
+    pub const fn to_bitcoin_network(self) -> BtcNetwork {
         match self {
-            Self::Mainnet => 0x00,
-            Self::Testnet => 0x6f,
+            Self::Mainnet => BtcNetwork::Bitcoin,
+            Self::Testnet => BtcNetwork::Testnet,
         }
     }
 
-    /// Get the P2SH address prefix (version byte)
-    pub const fn p2sh_prefix(&self) -> u8 {
+    /// Get the BIP44 coin type for this network.
+    #[inline]
+    #[must_use]
+    pub const fn coin_type(self) -> u32 {
         match self {
-            Self::Mainnet => 0x05,
-            Self::Testnet => 0xc4,
+            Self::Mainnet => 0,
+            Self::Testnet => 1,
         }
     }
 
-    /// Get the WIF prefix (version byte)
-    pub const fn wif_prefix(&self) -> u8 {
+    /// Get network name as string.
+    #[inline]
+    #[must_use]
+    pub const fn name(self) -> &'static str {
         match self {
-            Self::Mainnet => 0x80,
-            Self::Testnet => 0xef,
+            Self::Mainnet => "mainnet",
+            Self::Testnet => "testnet",
         }
     }
+}
 
-    /// Get the Bech32 human-readable part
-    pub const fn bech32_hrp(&self) -> &'static str {
-        match self {
-            Self::Mainnet => "bc",
-            Self::Testnet => "tb",
-        }
+impl std::fmt::Display for Network {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name())
     }
 }
