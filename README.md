@@ -1,12 +1,7 @@
 # Kobe
 
-A minimal, secure cryptocurrency wallet toolkit for Rust.
-
 [![Crates.io](https://img.shields.io/crates/v/kobe.svg)](https://crates.io/crates/kobe)
-[![Documentation](https://docs.rs/kobe/badge.svg)](https://docs.rs/kobe)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](#license)
-
-## Overview
 
 Kobe is a lightweight cryptocurrency wallet toolkit written in Rust. It provides both a CLI tool and reusable libraries for Bitcoin and Ethereum wallet generation with full `no_std` support for embedded environments.
 
@@ -24,17 +19,6 @@ Kobe is a lightweight cryptocurrency wallet toolkit written in Rust. It provides
 
 ```bash
 cargo install kobe
-```
-
-### Library
-
-Add to your `Cargo.toml`:
-
-```toml
-[dependencies]
-kobe-core = "0.2"  # Core wallet types
-kobe-btc = "0.2"   # Bitcoin support
-kobe-eth = "0.2"   # Ethereum support
 ```
 
 ## Quick Start
@@ -97,41 +81,6 @@ let account = deriver.derive(0, false, 0)?;
 println!("Address: {}", account.address);
 println!("Private Key: 0x{}", account.private_key_hex);
 ```
-
-## Crate Structure
-
-| Crate                        | Description                          |
-| ---------------------------- | ------------------------------------ |
-| [`kobe`](./kobe)             | CLI binary                           |
-| [`kobe-core`](./kobe-core)   | Core wallet types and BIP39 mnemonic |
-| [`kobe-btc`](./kobe-btc)     | Bitcoin address derivation           |
-| [`kobe-eth`](./kobe-eth)     | Ethereum address derivation          |
-
-## no_std Support
-
-All library crates support `no_std` environments:
-
-```toml
-[dependencies]
-kobe-core = { version = "0.2", default-features = false }
-kobe-eth = { version = "0.2", default-features = false }
-```
-
-Feature flags:
-
-| Feature | Description                        |
-| ------- | ---------------------------------- |
-| `std`   | Standard library support (default) |
-| `alloc` | Heap allocation without std        |
-
-## Security
-
-- All sensitive data is zeroized on drop
-- No external network requests
-- Deterministic builds with locked dependencies
-- Minimal attack surface
-
-> **Warning**: Always verify wallet addresses before sending funds. Store mnemonics securely offline.
 
 ## License
 
