@@ -46,6 +46,8 @@ pub struct Deriver<'a> {
 pub struct DerivedAddress {
     /// Derivation path used (e.g., `m/84'/0'/0'/0/0`).
     pub path: DerivationPath,
+    /// Private key in hex format (zeroized on drop).
+    pub private_key_hex: Zeroizing<String>,
     /// Private key in WIF format (zeroized on drop).
     pub private_key_wif: Zeroizing<String>,
     /// Public key in compressed hex format.
@@ -126,8 +128,12 @@ impl<'a> Deriver<'a> {
 
         let address = Self::create_address(&public_key, self.network, address_type);
 
+        // Get raw private key bytes in hex format
+        let private_key_bytes = derived.private_key.secret_bytes();
+
         Ok(DerivedAddress {
             path: path.clone(),
+            private_key_hex: Zeroizing::new(hex::encode(private_key_bytes)),
             private_key_wif: Zeroizing::new(private_key.to_wif()),
             public_key_hex: public_key.to_string(),
             address: address.to_string(),
@@ -136,6 +142,14 @@ impl<'a> Deriver<'a> {
     }
 
     /// Derive multiple addresses in sequence.
+    ///
+    /// # Arguments
+    ///
+    /// * `address_type` - Type of address to derive
+    /// * `account` - Account index (usually 0)
+    /// * `change` - Whether these are change addresses
+    /// * `start_index` - Starting address index
+    /// * `count` - Number of addresses to derive
     ///
     /// # Errors
     ///

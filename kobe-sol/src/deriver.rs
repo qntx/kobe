@@ -82,15 +82,16 @@ impl<'a> Deriver<'a> {
 
     /// Derive multiple addresses in sequence.
     ///
+    /// # Arguments
+    ///
+    /// * `start_index` - Starting account index
+    /// * `count` - Number of addresses to derive
+    ///
     /// # Errors
     ///
     /// Returns an error if any derivation fails.
-    pub fn derive_many(
-        &self,
-        start_account: u32,
-        count: u32,
-    ) -> Result<Vec<DerivedAddress>, Error> {
-        (start_account..start_account + count)
+    pub fn derive_many(&self, start_index: u32, count: u32) -> Result<Vec<DerivedAddress>, Error> {
+        (start_index..start_index + count)
             .map(|account| self.derive(account))
             .collect()
     }

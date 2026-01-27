@@ -104,6 +104,13 @@ impl<'a> Deriver<'a> {
 
     /// Derive multiple addresses in sequence.
     ///
+    /// # Arguments
+    ///
+    /// * `account` - Account index (usually 0)
+    /// * `change` - Whether these are change addresses
+    /// * `start_index` - Starting address index
+    /// * `count` - Number of addresses to derive
+    ///
     /// # Errors
     ///
     /// Returns an error if any derivation fails.
