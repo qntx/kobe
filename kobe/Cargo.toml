@@ -1,6 +1,6 @@
 [package]
 name = "kobe"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2024"
 description = "A multi-chain cryptocurrency wallet CLI tool"
 license = "MIT OR Apache-2.0"

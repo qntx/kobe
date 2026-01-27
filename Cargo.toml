@@ -4,10 +4,10 @@ default-members = ["kobe"]
 resolver = "3"
 
 [workspace.dependencies]
-kobe-core = { version = "0.2.2", path = "./kobe-core", default-features = false }
-kobe-btc = { version = "0.2.2", path = "./kobe-btc", default-features = false }
-kobe-eth = { version = "0.2.2", path = "./kobe-eth", default-features = false }
-kobe-sol = { version = "0.2.2", path = "./kobe-sol", default-features = false }
+kobe-core = { version = "0.2.4", path = "./kobe-core", default-features = false }
+kobe-btc = { version = "0.2.4", path = "./kobe-btc", default-features = false }
+kobe-eth = { version = "0.2.4", path = "./kobe-eth", default-features = false }
+kobe-sol = { version = "0.2.4", path = "./kobe-sol", default-features = false }
 
 # CLI dependencies
 clap = { version = "4.5", features = ["derive"] }

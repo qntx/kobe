@@ -602,7 +602,7 @@ dependencies = [
 
 [[package]]
 name = "kobe"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "clap",
  "colored",
@@ -616,7 +616,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-btc"
-version = "0.2.2"
+version = "0.2.4"
 dependencies = [
  "bip39",
  "bitcoin",
@@ -627,7 +627,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-core"
-version = "0.2.2"
+version = "0.2.4"
 dependencies = [
  "bip39",
  "zeroize",
@@ -635,7 +635,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-eth"
-version = "0.2.2"
+version = "0.2.4"
 dependencies = [
  "alloy-primitives",
  "bip32",
@@ -647,7 +647,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-sol"
-version = "0.2.2"
+version = "0.2.4"
 dependencies = [
  "bs58",
  "ed25519-dalek",
