@@ -1,7 +1,10 @@
 //! Bitcoin address derivation from a unified wallet.
 
 #[cfg(feature = "alloc")]
-use alloc::{string::{String, ToString}, vec::Vec};
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 
 use bitcoin::{Address, PrivateKey, PublicKey, bip32::Xpriv, key::CompressedPublicKey};
 use core::marker::PhantomData;

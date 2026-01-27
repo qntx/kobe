@@ -4,9 +4,9 @@ default-members = ["kobe"]
 resolver = "3"
 
 [workspace.dependencies]
-kobe-core = { path = "./kobe-core" }
-kobe-btc = { path = "./kobe-btc" }
-kobe-eth = { path = "./kobe-eth" }
+kobe-core = { version = "0.2.1", path = "./kobe-core" }
+kobe-btc = { version = "0.2.1", path = "./kobe-btc" }
+kobe-eth = { version = "0.2.1", path = "./kobe-eth" }
 
 # CLI dependencies
 clap = { version = "4.5", features = ["derive"] }

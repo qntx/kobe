@@ -1,7 +1,11 @@
 //! Ethereum address derivation from a unified wallet.
 
 #[cfg(feature = "alloc")]
-use alloc::{format, string::{String, ToString}, vec::Vec};
+use alloc::{
+    format,
+    string::{String, ToString},
+    vec::Vec,
+};
 
 use hmac::{Hmac, Mac};
 use k256::{Scalar, ecdsa::SigningKey, elliptic_curve::PrimeField};
