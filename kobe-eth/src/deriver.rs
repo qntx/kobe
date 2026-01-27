@@ -7,7 +7,7 @@ use alloc::{
     vec::Vec,
 };
 
-use coins_bip32::{path::DerivationPath as Bip32Path, xkeys::XPriv};
+use bip32::{DerivationPath, XPrv};
 use k256::ecdsa::SigningKey;
 use kobe_core::Wallet;
 use zeroize::Zeroizing;
@@ -106,24 +106,19 @@ impl<'a> Deriver<'a> {
             .collect()
     }
 
-    /// Derive a private key at the given path using coins-bip32.
+    /// Derive a private key at the given path using bip32 crate.
     fn derive_key(&self, path: &str) -> Result<SigningKey, Error> {
-        // Create master key from seed
-        let master = XPriv::root_from_seed(self.wallet.seed(), None)
-            .map_err(|e| Error::Derivation(format!("master key derivation failed: {e}")))?;
-
-        // Parse and derive path
-        let derivation_path: Bip32Path = path
+        // Parse derivation path
+        let derivation_path: DerivationPath = path
             .parse()
             .map_err(|e| Error::Derivation(format!("invalid derivation path: {e}")))?;
 
-        let derived = master
-            .derive_path(&derivation_path)
+        // Derive from seed directly using path
+        let derived = XPrv::derive_from_path(self.wallet.seed(), &derivation_path)
             .map_err(|e| Error::Derivation(format!("key derivation failed: {e}")))?;
 
-        // XPriv implements AsRef<SigningKey>, clone the key
-        let signing_key: &SigningKey = derived.as_ref();
-        Ok(signing_key.clone())
+        // Get signing key (XPrv wraps k256::ecdsa::SigningKey)
+        Ok(derived.private_key().clone())
     }
 }
 

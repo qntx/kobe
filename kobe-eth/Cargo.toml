@@ -18,7 +18,7 @@ rand = ["std"]
 [dependencies]
 kobe-core.workspace = true
 alloy-primitives.workspace = true
-coins-bip32.workspace = true
+bip32.workspace = true
 k256.workspace = true
 hex.workspace = true
 zeroize.workspace = true

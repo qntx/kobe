@@ -16,7 +16,7 @@ colored = "3.0"
 alloy-primitives = { version = "1.5", default-features = false, features = ["k256"] }
 bitcoin = { version = "0.32", default-features = false }
 bip39 = { version = "2.1", default-features = false }
-coins-bip32 = { version = "0.13", default-features = false }
+bip32 = { version = "0.5", default-features = false, features = ["secp256k1", "alloc"] }
 k256 = { version = "0.13", default-features = false, features = ["ecdsa"] }
 hmac = { version = "0.12", default-features = false }
 sha2 = { version = "0.10", default-features = false }
