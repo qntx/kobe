@@ -106,7 +106,7 @@ impl ExtendedPublicKey {
             chain_code: xprv.chain_code(),
             depth: xprv.depth(),
             parent_fingerprint: *xprv.parent_fingerprint(),
-            child_index: xprv.child_index().to_u32(),
+            child_index: u32::from(xprv.child_index()),
             network,
         }
     }
@@ -349,7 +349,7 @@ mod tests {
 
         // First derive hardened from xprv, then get xpub
         let xprv_child = xprv
-            .derive_child_index(crate::ChildIndex::Hardened(0))
+            .derive_child_index(crate::ChildNumber::new(0, true).unwrap())
             .unwrap();
         let xpub = ExtendedPublicKey::from_extended_private_key_with_network(
             &xprv_child,
@@ -362,7 +362,7 @@ mod tests {
 
         // Compare with derivation from xprv
         let xprv_grandchild = xprv_child
-            .derive_child_index(crate::ChildIndex::Normal(1))
+            .derive_child_index(crate::ChildNumber::new(1, false).unwrap())
             .unwrap();
         let xpub_from_prv = ExtendedPublicKey::from_extended_private_key_with_network(
             &xprv_grandchild,

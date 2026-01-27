@@ -64,7 +64,7 @@ mod xpriv;
 mod xpub;
 
 pub use address::Address;
-pub use kobe::wordlist::bip39::Language;
+pub use bip39::Language;
 pub use mnemonic::Mnemonic;
 pub use network::Network;
 pub use privkey::PrivateKey;

@@ -69,7 +69,7 @@ pub use network::Network;
 pub use privkey::PrivateKey;
 pub use pubkey::PublicKey;
 pub use transaction::{Transaction, TxId, p2pkh_script, p2wpkh_script};
-pub use xpriv::{ChildIndex, ExtendedPrivateKey};
+pub use xpriv::{ChildNumber, ExtendedPrivateKey};
 pub use xpub::ExtendedPublicKey;
 
 // Re-export kobe core traits with trait suffix for clarity

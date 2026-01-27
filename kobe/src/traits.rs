@@ -309,7 +309,7 @@ pub trait TransactionId: Clone + Debug + Display + PartialEq + Eq + Hash + Send 
     /// Get the transaction ID as hex string.
     #[cfg(feature = "alloc")]
     fn to_hex(&self) -> String {
-        crate::encoding::to_hex(self.as_bytes())
+        hex::encode(self.as_bytes())
     }
 }
 
@@ -339,7 +339,7 @@ pub trait Transaction: Clone + Debug + Send + Sync {
 
     /// Get the serialized transaction as hex string.
     fn to_hex(&self) -> Result<String> {
-        Ok(crate::encoding::to_hex(&self.to_bytes()?))
+        Ok(hex::encode(self.to_bytes()?))
     }
 }
 

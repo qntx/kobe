@@ -8,7 +8,7 @@ use k256::{Scalar, U256};
 use sha2::Sha512;
 use zeroize::Zeroize;
 
-pub use kobe::ChildIndex;
+pub use bip32::ChildNumber;
 use kobe::{Error, PrivateKey as _, Result};
 
 use crate::address::{Address, AddressFormat};
@@ -38,7 +38,7 @@ pub struct ExtendedPrivateKey {
     /// Parent key fingerprint (first 4 bytes of hash160 of parent public key)
     parent_fingerprint: [u8; 4],
     /// Child index that produced this key
-    child_index: ChildIndex,
+    child_index: ChildNumber,
     /// Network (mainnet or testnet)
     network: Network,
 }
@@ -67,11 +67,15 @@ impl kobe::ExtendedPrivateKey for ExtendedPrivateKey {
     }
 
     fn derive_child(&self, index: u32) -> Result<Self> {
-        self.derive_child_index(ChildIndex::Normal(index))
+        self.derive_child_index(
+            ChildNumber::new(index, false).map_err(|_| Error::InvalidDerivationPath)?,
+        )
     }
 
     fn derive_child_hardened(&self, index: u32) -> Result<Self> {
-        self.derive_child_index(ChildIndex::Hardened(index))
+        self.derive_child_index(
+            ChildNumber::new(index, true).map_err(|_| Error::InvalidDerivationPath)?,
+        )
     }
 
     #[cfg(feature = "alloc")]
@@ -128,7 +132,7 @@ impl ExtendedPrivateKey {
             chain_code,
             depth: 0,
             parent_fingerprint: [0u8; 4],
-            child_index: ChildIndex::Normal(0),
+            child_index: ChildNumber::new(0, false).expect("valid index"),
             network,
         })
     }
@@ -137,7 +141,7 @@ impl ExtendedPrivateKey {
     ///
     /// Supports both normal (non-hardened) and hardened derivation.
     /// Hardened keys provide stronger security isolation.
-    pub fn derive_child_index(&self, index: ChildIndex) -> Result<Self> {
+    pub fn derive_child_index(&self, index: ChildNumber) -> Result<Self> {
         if self.depth == 255 {
             return Err(Error::MaxDepthExceeded);
         }
@@ -145,20 +149,17 @@ impl ExtendedPrivateKey {
         let mut mac =
             HmacSha512::new_from_slice(&self.chain_code).map_err(|_| Error::CryptoError)?;
 
-        match index {
-            ChildIndex::Normal(_) => {
-                // For normal derivation: HMAC-SHA512(Key = chainCode, Data = serP(point(kpar)) || ser32(i))
-                let pubkey = self.private_key.public_key();
-                mac.update(&pubkey.to_compressed_bytes());
-            }
-            ChildIndex::Hardened(_) => {
-                // For hardened derivation: HMAC-SHA512(Key = chainCode, Data = 0x00 || ser256(kpar) || ser32(i))
-                mac.update(&[0u8]);
-                mac.update(&self.private_key.to_bytes());
-            }
+        if index.is_hardened() {
+            // For hardened derivation: HMAC-SHA512(Key = chainCode, Data = 0x00 || ser256(kpar) || ser32(i))
+            mac.update(&[0u8]);
+            mac.update(&self.private_key.to_bytes());
+        } else {
+            // For normal derivation: HMAC-SHA512(Key = chainCode, Data = serP(point(kpar)) || ser32(i))
+            let pubkey = self.private_key.public_key();
+            mac.update(&pubkey.to_compressed_bytes());
         }
 
-        mac.update(&index.to_u32().to_be_bytes());
+        mac.update(&u32::from(index).to_be_bytes());
         let result = mac.finalize().into_bytes();
 
         // Parse IL as 256-bit number and add to parent key
@@ -241,11 +242,8 @@ impl ExtendedPrivateKey {
                 .parse()
                 .map_err(|_| Error::InvalidDerivationPath)?;
 
-            let child_index = if hardened {
-                ChildIndex::Hardened(index)
-            } else {
-                ChildIndex::Normal(index)
-            };
+            let child_index =
+                ChildNumber::new(index, hardened).map_err(|_| Error::InvalidDerivationPath)?;
 
             current = current.derive_child_index(child_index)?;
         }
@@ -276,7 +274,7 @@ impl ExtendedPrivateKey {
     /// Get the child index.
     #[inline]
     #[must_use]
-    pub const fn child_index(&self) -> ChildIndex {
+    pub const fn child_index(&self) -> ChildNumber {
         self.child_index
     }
 
@@ -313,7 +311,7 @@ impl ExtendedPrivateKey {
         data.extend_from_slice(&self.parent_fingerprint);
 
         // Child index (4 bytes, big-endian)
-        data.extend_from_slice(&self.child_index.to_u32().to_be_bytes());
+        data.extend_from_slice(&u32::from(self.child_index).to_be_bytes());
 
         // Chain code (32 bytes)
         data.extend_from_slice(&self.chain_code);
@@ -364,7 +362,7 @@ impl ExtendedPrivateKey {
         let mut parent_fingerprint = [0u8; 4];
         parent_fingerprint.copy_from_slice(&decoded[5..9]);
 
-        let child_index = ChildIndex::from(u32::from_be_bytes([
+        let child_index = ChildNumber::from(u32::from_be_bytes([
             decoded[9],
             decoded[10],
             decoded[11],
@@ -434,7 +432,9 @@ mod tests {
     fn test_bip32_vector1_chain_m_0h() {
         let master =
             ExtendedPrivateKey::from_seed_with_network(TEST_SEED_1, Network::Mainnet).unwrap();
-        let child = master.derive_child_index(ChildIndex::Hardened(0)).unwrap();
+        let child = master
+            .derive_child_index(ChildNumber::new(0, true).unwrap())
+            .unwrap();
         assert_eq!(
             child.to_xprv(),
             "xprv9uHRZZhk6KAJC1avXpDAp4MDc3sQKNxDiPvvkX8Br5ngLNv1TxvUxt4cV1rGL5hj6KCesnDYUhd7oWgT11eZG7XnxHrnYeSvkzY7d2bhkJ7"

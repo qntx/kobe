@@ -86,7 +86,8 @@ impl Mnemonic {
     /// Verifies checksum and word validity using the English wordlist.
     #[cfg(feature = "alloc")]
     pub fn parse(phrase: &str) -> Result<Self> {
-        let inner = bip39::Mnemonic::parse_normalized(phrase).map_err(|_| Error::InvalidMnemonic)?;
+        let inner =
+            bip39::Mnemonic::parse_normalized(phrase).map_err(|_| Error::InvalidMnemonic)?;
         Ok(Self { inner })
     }
 

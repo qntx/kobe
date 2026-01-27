@@ -346,34 +346,48 @@ mod tests {
 
         #[test]
         fn p2pkh_mainnet() {
-            let addr = test_key().address(Network::Mainnet, AddressFormat::P2PKH).unwrap();
+            let addr = test_key()
+                .address(Network::Mainnet, AddressFormat::P2PKH)
+                .unwrap();
             assert_eq!(addr.to_string(), "1LoVGDgRs9hTfTNJNuXKSpywcbdvwRXpmK");
         }
 
         #[test]
         fn p2pkh_testnet() {
-            let addr = test_key().address(Network::Testnet, AddressFormat::P2PKH).unwrap();
+            let addr = test_key()
+                .address(Network::Testnet, AddressFormat::P2PKH)
+                .unwrap();
             let addr_str = addr.to_string();
             assert!(addr_str.starts_with('m') || addr_str.starts_with('n'));
         }
 
         #[test]
         fn p2wpkh_mainnet() {
-            let addr = test_key().address(Network::Mainnet, AddressFormat::P2WPKH).unwrap();
+            let addr = test_key()
+                .address(Network::Mainnet, AddressFormat::P2WPKH)
+                .unwrap();
             assert!(addr.to_string().starts_with("bc1q"));
         }
 
         #[test]
         fn p2sh_p2wpkh_mainnet() {
-            let addr = test_key().address(Network::Mainnet, AddressFormat::P2SHP2WPKH).unwrap();
+            let addr = test_key()
+                .address(Network::Mainnet, AddressFormat::P2SHP2WPKH)
+                .unwrap();
             assert!(addr.to_string().starts_with('3'));
         }
 
         #[test]
         fn p2tr_mainnet() {
-            let addr = test_key().address(Network::Mainnet, AddressFormat::P2TR).unwrap();
+            let addr = test_key()
+                .address(Network::Mainnet, AddressFormat::P2TR)
+                .unwrap();
             let addr_str = addr.to_string();
-            assert!(addr_str.starts_with("bc1p"), "Expected bc1p prefix, got: {}", addr_str);
+            assert!(
+                addr_str.starts_with("bc1p"),
+                "Expected bc1p prefix, got: {}",
+                addr_str
+            );
             assert_eq!(addr.format(), AddressFormat::P2TR);
         }
     }
@@ -397,7 +411,9 @@ mod tests {
 
         #[test]
         fn parse_bech32() {
-            let addr = test_key().address(Network::Mainnet, AddressFormat::P2WPKH).unwrap();
+            let addr = test_key()
+                .address(Network::Mainnet, AddressFormat::P2WPKH)
+                .unwrap();
             let addr_str = addr.to_string();
             let parsed: Address = addr_str.parse().unwrap();
             assert_eq!(parsed.network(), Network::Mainnet);
@@ -418,7 +434,9 @@ mod tests {
 
         #[test]
         fn p2tr_roundtrip() {
-            let addr = test_key().address(Network::Mainnet, AddressFormat::P2TR).unwrap();
+            let addr = test_key()
+                .address(Network::Mainnet, AddressFormat::P2TR)
+                .unwrap();
             let addr_str = addr.to_string();
             let parsed: Address = addr_str.parse().unwrap();
             assert_eq!(parsed.network(), Network::Mainnet);

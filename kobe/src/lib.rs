@@ -52,23 +52,17 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-pub mod amount;
 pub mod encoding;
 pub mod error;
 pub mod hash;
-pub mod hdpath;
 pub mod traits;
 pub mod transaction;
 pub mod types;
-pub mod wordlist;
 
-pub use amount::{BitcoinDenomination, EthereumDenomination, Satoshi, Wei};
 pub use error::{Error, Result};
-pub use hdpath::{ChildIndex, DerivationPath};
 pub use traits::*;
 pub use transaction::{Eip1559TxParams, EthTxParams, SigHashType, TxInput, TxOutput};
 pub use types::*;
-pub use wordlist::bip39;
 
 // Re-export rand_core from k256 for consistent RNG trait versions
 pub use k256::elliptic_curve::rand_core;

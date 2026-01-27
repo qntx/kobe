@@ -79,7 +79,8 @@ impl Mnemonic {
     /// Entropy length must be 16, 20, 24, 28, or 32 bytes.
     #[cfg(feature = "alloc")]
     pub fn from_entropy(entropy: &[u8]) -> Result<Self> {
-        let inner = bip39::Mnemonic::from_entropy(entropy).map_err(|_| Error::InvalidEntropyLength)?;
+        let inner =
+            bip39::Mnemonic::from_entropy(entropy).map_err(|_| Error::InvalidEntropyLength)?;
         Ok(Self { inner })
     }
 
@@ -88,7 +89,8 @@ impl Mnemonic {
     /// Verifies checksum and word validity using the English wordlist.
     #[cfg(feature = "alloc")]
     pub fn parse(phrase: &str) -> Result<Self> {
-        let inner = bip39::Mnemonic::parse_normalized(phrase).map_err(|_| Error::InvalidMnemonic)?;
+        let inner =
+            bip39::Mnemonic::parse_normalized(phrase).map_err(|_| Error::InvalidMnemonic)?;
         Ok(Self { inner })
     }
 
@@ -208,8 +210,9 @@ mod tests {
 
         #[test]
         fn word_count_24() {
-            let entropy =
-                hex_literal::hex!("0000000000000000000000000000000000000000000000000000000000000000");
+            let entropy = hex_literal::hex!(
+                "0000000000000000000000000000000000000000000000000000000000000000"
+            );
             let mnemonic = Mnemonic::from_entropy(&entropy).unwrap();
             assert_eq!(mnemonic.word_count(), 24);
         }
