@@ -29,7 +29,9 @@
 extern crate alloc;
 
 mod error;
+#[cfg(feature = "alloc")]
 mod wallet;
 
 pub use error::Error;
+#[cfg(feature = "alloc")]
 pub use wallet::Wallet;

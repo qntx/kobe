@@ -10,7 +10,7 @@
 //!
 //! # Usage
 //!
-//! ```ignore
+//! ```
 //! use kobe_core::Wallet;
 //! use kobe_btc::{Deriver, Network, AddressType};
 //!
@@ -28,14 +28,20 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
+#[cfg(feature = "alloc")]
 mod deriver;
 mod error;
 mod network;
+#[cfg(feature = "alloc")]
 mod standard_wallet;
 mod types;
 
+#[cfg(feature = "alloc")]
 pub use deriver::{DerivedAddress, Deriver};
 pub use error::Error;
 pub use network::Network;
+#[cfg(feature = "alloc")]
 pub use standard_wallet::StandardWallet;
-pub use types::{AddressType, DerivationPath};
+pub use types::AddressType;
+#[cfg(feature = "alloc")]
+pub use types::DerivationPath;

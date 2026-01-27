@@ -5,7 +5,9 @@
 #[cfg(feature = "alloc")]
 use alloc::string::{String, ToString};
 
-use bitcoin::{Address, NetworkKind, PrivateKey, PublicKey, key::CompressedPublicKey};
+use bitcoin::{
+    Address, NetworkKind, PrivateKey, PublicKey, key::CompressedPublicKey, secp256k1::Secp256k1,
+};
 use zeroize::Zeroizing;
 
 use crate::{AddressType, Error, Network};
@@ -99,6 +101,11 @@ impl StandardWallet {
             AddressType::P2pkh => Address::p2pkh(PublicKey::from(*public_key), btc_network),
             AddressType::P2shP2wpkh => Address::p2shwpkh(public_key, btc_network),
             AddressType::P2wpkh => Address::p2wpkh(public_key, btc_network),
+            AddressType::P2tr => {
+                let secp = Secp256k1::verification_only();
+                let internal_key = public_key.0.x_only_public_key().0;
+                Address::p2tr(&secp, internal_key, None, btc_network)
+            }
         }
     }
 
@@ -163,6 +170,13 @@ mod tests {
     fn test_generate_mainnet_p2sh() {
         let wallet = StandardWallet::generate(Network::Mainnet, AddressType::P2shP2wpkh).unwrap();
         assert!(wallet.address_string().starts_with('3'));
+    }
+
+    #[cfg(feature = "rand")]
+    #[test]
+    fn test_generate_mainnet_p2tr() {
+        let wallet = StandardWallet::generate(Network::Mainnet, AddressType::P2tr).unwrap();
+        assert!(wallet.address_string().starts_with("bc1p"));
     }
 
     #[cfg(feature = "rand")]

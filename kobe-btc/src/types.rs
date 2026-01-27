@@ -3,8 +3,10 @@
 #[cfg(feature = "alloc")]
 use alloc::{format, string::ToString};
 
+#[cfg(feature = "alloc")]
 use crate::{Error, Network};
 use core::fmt;
+#[cfg(feature = "alloc")]
 use core::str::FromStr;
 
 /// Bitcoin address types.
@@ -17,6 +19,8 @@ pub enum AddressType {
     /// Pay to Witness Public Key Hash (Native SegWit) - starts with bc1q or tb1q
     #[default]
     P2wpkh,
+    /// Pay to Taproot (Taproot/SegWit v1) - starts with bc1p or tb1p
+    P2tr,
 }
 
 impl AddressType {
@@ -28,6 +32,7 @@ impl AddressType {
             Self::P2pkh => 44,
             Self::P2shP2wpkh => 49,
             Self::P2wpkh => 84,
+            Self::P2tr => 86,
         }
     }
 
@@ -39,6 +44,7 @@ impl AddressType {
             Self::P2pkh => "P2PKH (Legacy)",
             Self::P2shP2wpkh => "P2SH-P2WPKH (SegWit)",
             Self::P2wpkh => "P2WPKH (Native SegWit)",
+            Self::P2tr => "P2TR (Taproot)",
         }
     }
 }
@@ -50,11 +56,13 @@ impl fmt::Display for AddressType {
 }
 
 /// BIP32 derivation path.
+#[cfg(feature = "alloc")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DerivationPath {
     inner: bitcoin::bip32::DerivationPath,
 }
 
+#[cfg(feature = "alloc")]
 impl DerivationPath {
     /// Create a BIP44/49/84 standard path.
     ///
@@ -97,12 +105,14 @@ impl DerivationPath {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl fmt::Display for DerivationPath {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "m/{}", self.inner)
     }
 }
 
+#[cfg(feature = "alloc")]
 impl AsRef<bitcoin::bip32::DerivationPath> for DerivationPath {
     fn as_ref(&self) -> &bitcoin::bip32::DerivationPath {
         &self.inner

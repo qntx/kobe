@@ -6,7 +6,9 @@ use alloc::{
     vec::Vec,
 };
 
-use bitcoin::{Address, PrivateKey, PublicKey, bip32::Xpriv, key::CompressedPublicKey};
+use bitcoin::{
+    Address, PrivateKey, PublicKey, bip32::Xpriv, key::CompressedPublicKey, secp256k1::Secp256k1,
+};
 use core::marker::PhantomData;
 use kobe_core::Wallet;
 use zeroize::Zeroizing;
@@ -145,6 +147,11 @@ impl<'a> Deriver<'a> {
             AddressType::P2pkh => Address::p2pkh(PublicKey::from(*public_key), btc_network),
             AddressType::P2shP2wpkh => Address::p2shwpkh(public_key, btc_network),
             AddressType::P2wpkh => Address::p2wpkh(public_key, btc_network),
+            AddressType::P2tr => {
+                let secp = Secp256k1::verification_only();
+                let internal_key = public_key.0.x_only_public_key().0;
+                Address::p2tr(&secp, internal_key, None, btc_network)
+            }
         }
     }
 
@@ -195,6 +202,16 @@ mod tests {
 
         assert!(addr.address.starts_with('3'));
         assert_eq!(addr.path.to_string(), "m/49'/0'/0'/0/0");
+    }
+
+    #[test]
+    fn test_derive_p2tr() {
+        let wallet = test_wallet();
+        let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
+        let addr = deriver.derive(AddressType::P2tr, 0, false, 0).unwrap();
+
+        assert!(addr.address.starts_with("bc1p"));
+        assert_eq!(addr.path.to_string(), "m/86'/0'/0'/0/0");
     }
 
     #[test]

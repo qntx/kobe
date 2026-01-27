@@ -15,6 +15,7 @@ pub enum Error {
     /// Invalid word count for mnemonic.
     InvalidWordCount(usize),
     /// Invalid derivation path.
+    #[cfg(feature = "alloc")]
     InvalidDerivationPath(String),
     /// Invalid WIF (Wallet Import Format) private key.
     InvalidWif,
@@ -30,6 +31,7 @@ impl fmt::Display for Error {
             Self::InvalidWordCount(n) => {
                 write!(f, "invalid word count {n}, must be 12, 15, 18, 21, or 24")
             }
+            #[cfg(feature = "alloc")]
             Self::InvalidDerivationPath(p) => write!(f, "invalid derivation path: {p}"),
             Self::InvalidWif => write!(f, "invalid WIF format"),
             Self::Secp256k1(e) => write!(f, "secp256k1 error: {e}"),
@@ -44,7 +46,9 @@ impl std::error::Error for Error {
             Self::Mnemonic(e) => Some(e),
             Self::Bip32(e) => Some(e),
             Self::Secp256k1(e) => Some(e),
-            Self::InvalidWordCount(_) | Self::InvalidDerivationPath(_) | Self::InvalidWif => None,
+            Self::InvalidWordCount(_) | Self::InvalidWif => None,
+            #[cfg(feature = "alloc")]
+            Self::InvalidDerivationPath(_) => None,
         }
     }
 }

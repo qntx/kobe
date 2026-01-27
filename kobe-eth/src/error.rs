@@ -11,6 +11,7 @@ pub enum Error {
     /// Invalid private key.
     InvalidPrivateKey,
     /// Key derivation error.
+    #[cfg(feature = "alloc")]
     Derivation(String),
 }
 
@@ -18,6 +19,7 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidPrivateKey => write!(f, "invalid private key"),
+            #[cfg(feature = "alloc")]
             Self::Derivation(msg) => write!(f, "key derivation error: {msg}"),
         }
     }
