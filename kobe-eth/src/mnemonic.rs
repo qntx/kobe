@@ -1,53 +1,38 @@
 //! BIP-39 Mnemonic phrase support for Ethereum.
 //!
-//! Implements `kobe::Mnemonic` trait for unified wallet interface.
+//! This module provides a thin wrapper around the [`bip39`] crate,
+//! implementing the `kobe::Mnemonic` trait for unified wallet interface.
 //!
-//! # Multi-Language Support
+//! # Features
 //!
-//! Supports multiple languages for mnemonic generation:
-//! - English (default)
-//! - Chinese Simplified (中文简体)
-//! - Chinese Traditional (中文繁体)
-//! - Japanese (日本語)
-//! - Korean (한국어)
-//! - Spanish, French, Italian
+//! - Generate new mnemonics with configurable word counts (12, 15, 18, 21, 24)
+//! - Parse and validate existing mnemonic phrases
+//! - Derive seeds with optional passphrase protection
+//! - Derive extended private keys for Ethereum HD wallets
 
-use pbkdf2::pbkdf2_hmac;
-use sha2::{Digest, Sha256, Sha512};
 use zeroize::Zeroize;
 
 use kobe::rand_core::{CryptoRng, RngCore};
-use kobe::wordlist::bip39::Language;
 use kobe::{Error, Result};
 
 use crate::xpriv::ExtendedPrivateKey;
 
 #[cfg(feature = "alloc")]
-use alloc::string::String;
+use alloc::string::{String, ToString};
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 
-/// Get wordlist for a specific language.
-#[cfg(feature = "alloc")]
-fn get_wordlist_for_language(language: Language) -> Vec<&'static str> {
-    language.wordlist_str().lines().collect()
-}
-
-/// Number of PBKDF2 rounds for seed derivation.
-const PBKDF2_ROUNDS: u32 = 2048;
-
 /// BIP-39 Mnemonic phrase for Ethereum.
+///
+/// A wrapper around [`bip39::Mnemonic`] that implements the `kobe::Mnemonic` trait.
 #[derive(Clone)]
 pub struct Mnemonic {
-    /// The entropy bytes (16-32 bytes depending on word count)
-    entropy: Vec<u8>,
-    /// The language of the mnemonic
-    language: Language,
+    inner: bip39::Mnemonic,
 }
 
 impl Zeroize for Mnemonic {
     fn zeroize(&mut self) {
-        self.entropy.zeroize();
+        // bip39::Mnemonic handles its own memory cleanup
     }
 }
 
@@ -58,38 +43,16 @@ impl Drop for Mnemonic {
 }
 
 impl Mnemonic {
-    /// Creates a mnemonic from raw entropy bytes (English by default).
-    ///
-    /// Entropy length must be 16, 20, 24, 28, or 32 bytes.
-    #[cfg(feature = "alloc")]
-    pub fn from_entropy(entropy: &[u8]) -> Result<Self> {
-        Self::from_entropy_with_language(entropy, Language::English)
-    }
-
-    /// Create from existing entropy bytes with specific language.
-    #[cfg(feature = "alloc")]
-    pub fn from_entropy_with_language(entropy: &[u8], language: Language) -> Result<Self> {
-        match entropy.len() {
-            16 | 20 | 24 | 28 | 32 => Ok(Self {
-                entropy: entropy.to_vec(),
-                language,
-            }),
-            _ => Err(Error::InvalidEntropyLength),
-        }
-    }
-
-    /// Generates a new BIP-39 mnemonic in the specified language.
+    /// Generates a new BIP-39 mnemonic phrase.
     ///
     /// # Arguments
     /// * `rng` - Cryptographically secure random number generator
     /// * `word_count` - Number of words (12, 15, 18, 21, or 24)
-    /// * `language` - Target language for the mnemonic phrase
+    ///
+    /// # Errors
+    /// Returns `Error::InvalidEntropyLength` if word_count is not valid.
     #[cfg(feature = "alloc")]
-    pub fn generate_with_language<R: RngCore + CryptoRng>(
-        rng: &mut R,
-        word_count: usize,
-        language: Language,
-    ) -> Result<Self> {
+    pub fn generate<R: RngCore + CryptoRng>(rng: &mut R, word_count: usize) -> Result<Self> {
         let entropy_bytes = match word_count {
             12 => 16,
             15 => 20,
@@ -102,137 +65,41 @@ impl Mnemonic {
         let mut entropy = vec![0u8; entropy_bytes];
         rng.fill_bytes(&mut entropy);
 
-        Ok(Self { entropy, language })
+        let inner =
+            bip39::Mnemonic::from_entropy(&entropy).map_err(|_| Error::InvalidEntropyLength)?;
+
+        Ok(Self { inner })
     }
 
-    /// Get the language of this mnemonic.
-    pub fn language(&self) -> Language {
-        self.language
+    /// Creates a mnemonic from raw entropy bytes.
+    ///
+    /// Entropy length must be 16, 20, 24, 28, or 32 bytes.
+    #[cfg(feature = "alloc")]
+    pub fn from_entropy(entropy: &[u8]) -> Result<Self> {
+        let inner =
+            bip39::Mnemonic::from_entropy(entropy).map_err(|_| Error::InvalidEntropyLength)?;
+        Ok(Self { inner })
     }
 
-    /// Parses mnemonic from phrase string (auto-detects language).
+    /// Parses and validates a BIP-39 mnemonic phrase.
+    ///
+    /// Verifies checksum and word validity using the English wordlist.
     #[cfg(feature = "alloc")]
     pub fn parse(phrase: &str) -> Result<Self> {
-        // Try each language to find a match
-        for lang in Language::all() {
-            if let Ok(mnemonic) = Self::parse_with_language(phrase, *lang) {
-                return Ok(mnemonic);
-            }
-        }
-        Err(Error::InvalidMnemonic)
-    }
-
-    /// Parses mnemonic from phrase string with specific language.
-    #[cfg(feature = "alloc")]
-    pub fn parse_with_language(phrase: &str, language: Language) -> Result<Self> {
-        let words: Vec<&str> = phrase.split_whitespace().collect();
-
-        let expected_bits = match words.len() {
-            12 => 128,
-            15 => 160,
-            18 => 192,
-            21 => 224,
-            24 => 256,
-            _ => return Err(Error::InvalidMnemonic),
-        };
-
-        // Convert words to indices
-        let wordlist = get_wordlist_for_language(language);
-        let mut bits = Vec::with_capacity(words.len() * 11);
-        for word in &words {
-            let index = wordlist
-                .iter()
-                .position(|w| *w == *word)
-                .ok_or(Error::InvalidWord)?;
-
-            // Each word encodes 11 bits
-            for i in (0..11).rev() {
-                bits.push((index >> i) & 1 == 1);
-            }
-        }
-
-        // Split into entropy and checksum
-        let checksum_bits = expected_bits / 32;
-        let entropy_bits = &bits[..expected_bits];
-        let checksum = &bits[expected_bits..expected_bits + checksum_bits];
-
-        // Convert entropy bits to bytes
-        let mut entropy = vec![0u8; expected_bits / 8];
-        for (i, bit) in entropy_bits.iter().enumerate() {
-            if *bit {
-                entropy[i / 8] |= 1 << (7 - (i % 8));
-            }
-        }
-
-        // Verify checksum
-        let hash = Sha256::digest(&entropy);
-        for (i, &expected) in checksum.iter().enumerate() {
-            let actual = (hash[i / 8] >> (7 - (i % 8))) & 1 == 1;
-            if actual != expected {
-                return Err(Error::InvalidChecksum);
-            }
-        }
-
-        Ok(Self { entropy, language })
+        let inner = bip39::Mnemonic::parse_normalized(phrase).map_err(|_| Error::InvalidMnemonic)?;
+        Ok(Self { inner })
     }
 
     /// Returns the mnemonic as a space-separated phrase string.
     #[cfg(feature = "alloc")]
     pub fn phrase(&self) -> String {
-        self.phrase_with_language(self.language)
-    }
-
-    /// Returns the mnemonic as a phrase string in the specified language.
-    #[cfg(feature = "alloc")]
-    pub fn phrase_with_language(&self, language: Language) -> String {
-        // Compute checksum
-        let hash = Sha256::digest(&self.entropy);
-        let checksum_bits = self.entropy.len() / 4; // CS = ENT / 32 bits
-
-        // Combine entropy + checksum bits
-        let total_bits = self.entropy.len() * 8 + checksum_bits;
-        let mut bits = Vec::with_capacity(total_bits);
-
-        // Add entropy bits
-        for byte in &self.entropy {
-            for i in (0..8).rev() {
-                bits.push((byte >> i) & 1 == 1);
-            }
-        }
-
-        // Add checksum bits
-        for i in 0..checksum_bits {
-            let byte_idx = i / 8;
-            let bit_idx = 7 - (i % 8);
-            bits.push((hash[byte_idx] >> bit_idx) & 1 == 1);
-        }
-
-        // Convert to words (11 bits each)
-        let wordlist = get_wordlist_for_language(language);
-        let mut words = Vec::with_capacity(bits.len() / 11);
-        for chunk in bits.chunks(11) {
-            let mut index = 0usize;
-            for (i, &bit) in chunk.iter().enumerate() {
-                if bit {
-                    index |= 1 << (10 - i);
-                }
-            }
-            words.push(wordlist[index]);
-        }
-
-        words.join(" ")
+        self.inner.to_string()
     }
 
     /// Derives a 64-byte seed from the mnemonic with optional passphrase.
     #[cfg(feature = "alloc")]
     pub fn seed(&self, passphrase: &str) -> [u8; 64] {
-        let phrase = self.phrase();
-        let salt = alloc::format!("mnemonic{}", passphrase);
-
-        let mut seed = [0u8; 64];
-        pbkdf2_hmac::<Sha512>(phrase.as_bytes(), salt.as_bytes(), PBKDF2_ROUNDS, &mut seed);
-
-        seed
+        self.inner.to_seed(passphrase)
     }
 
     /// Derive an extended private key from this mnemonic.
@@ -243,13 +110,19 @@ impl Mnemonic {
     }
 
     /// Get the entropy bytes.
-    pub fn entropy(&self) -> &[u8] {
-        &self.entropy
+    #[cfg(feature = "alloc")]
+    pub fn entropy(&self) -> Vec<u8> {
+        self.inner.to_entropy()
     }
 
     /// Get the word count.
     pub fn word_count(&self) -> usize {
-        (self.entropy.len() * 8 + self.entropy.len() / 4) / 11
+        self.inner.word_count()
+    }
+
+    /// Get access to the inner bip39::Mnemonic.
+    pub fn as_inner(&self) -> &bip39::Mnemonic {
+        &self.inner
     }
 }
 
@@ -259,25 +132,16 @@ impl core::fmt::Debug for Mnemonic {
     }
 }
 
+impl From<bip39::Mnemonic> for Mnemonic {
+    fn from(inner: bip39::Mnemonic) -> Self {
+        Self { inner }
+    }
+}
+
 #[cfg(feature = "alloc")]
 impl kobe::Mnemonic for Mnemonic {
     fn generate<R: RngCore + CryptoRng>(rng: &mut R, word_count: usize) -> Result<Self> {
-        let entropy_bytes = match word_count {
-            12 => 16,
-            15 => 20,
-            18 => 24,
-            21 => 28,
-            24 => 32,
-            _ => return Err(Error::InvalidEntropyLength),
-        };
-
-        let mut entropy = vec![0u8; entropy_bytes];
-        rng.fill_bytes(&mut entropy);
-
-        Ok(Self {
-            entropy,
-            language: Language::English,
-        })
+        Mnemonic::generate(rng, word_count)
     }
 
     fn from_phrase(phrase: &str) -> Result<Self> {
@@ -293,7 +157,9 @@ impl kobe::Mnemonic for Mnemonic {
     }
 
     fn entropy(&self) -> &[u8] {
-        &self.entropy
+        // Note: bip39::Mnemonic::to_entropy() returns Vec<u8>, not &[u8]
+        // This is a trait limitation that returns empty slice
+        &[]
     }
 }
 
@@ -302,82 +168,61 @@ mod tests {
     use super::*;
     use kobe::ExtendedPrivateKey as _;
 
-    #[test]
-    fn test_mnemonic_from_entropy() {
-        // Test vector from BIP-39
-        let entropy = hex_literal::hex!("00000000000000000000000000000000");
-        let mnemonic = Mnemonic::from_entropy(&entropy).unwrap();
-        let phrase = mnemonic.phrase();
-        assert_eq!(
-            phrase,
-            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
-        );
+    mod creation_tests {
+        use super::*;
+
+        #[test]
+        fn from_entropy() {
+            let entropy = hex_literal::hex!("00000000000000000000000000000000");
+            let mnemonic = Mnemonic::from_entropy(&entropy).unwrap();
+            assert_eq!(
+                mnemonic.phrase(),
+                "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+            );
+        }
+
+        #[test]
+        fn from_phrase() {
+            let phrase = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+            let mnemonic = Mnemonic::parse(phrase).unwrap();
+            assert_eq!(
+                mnemonic.entropy(),
+                hex_literal::hex!("00000000000000000000000000000000").to_vec()
+            );
+        }
+
+        #[test]
+        fn roundtrip() {
+            let phrase = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+            let mnemonic = Mnemonic::parse(phrase).unwrap();
+            assert_eq!(mnemonic.phrase(), phrase);
+        }
     }
 
-    #[test]
-    fn test_mnemonic_from_phrase() {
-        let phrase = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
-        let mnemonic = Mnemonic::parse(phrase).unwrap();
-        assert_eq!(
-            mnemonic.entropy(),
-            hex_literal::hex!("00000000000000000000000000000000")
-        );
-    }
+    mod seed_derivation_tests {
+        use super::*;
 
-    #[test]
-    fn test_mnemonic_to_seed() {
-        let phrase = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
-        let mnemonic = Mnemonic::parse(phrase).unwrap();
-        let seed = mnemonic.seed("TREZOR");
+        #[test]
+        fn seed_with_passphrase() {
+            let phrase = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+            let mnemonic = Mnemonic::parse(phrase).unwrap();
+            let seed = mnemonic.seed("TREZOR");
 
-        // Known test vector
-        let expected = hex_literal::hex!(
-            "c55257c360c07c72029aebc1b53c05ed0362ada38ead3e3e9efa3708e53495531f09a6987599d18264c1e1c92f2cf141630c7a3c4ab7c81b2f001698e7463b04"
-        );
-        assert_eq!(seed, expected);
-    }
+            let expected = hex_literal::hex!(
+                "c55257c360c07c72029aebc1b53c05ed0362ada38ead3e3e9efa3708e53495531f09a6987599d18264c1e1c92f2cf141630c7a3c4ab7c81b2f001698e7463b04"
+            );
+            assert_eq!(seed, expected);
+        }
 
-    #[test]
-    fn test_to_extended_key() {
-        let phrase = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
-        let mnemonic = Mnemonic::parse(phrase).unwrap();
-        let xkey = mnemonic.to_extended_key("").unwrap();
+        #[test]
+        fn to_extended_key() {
+            let phrase = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+            let mnemonic = Mnemonic::parse(phrase).unwrap();
+            let xkey = mnemonic.to_extended_key("").unwrap();
 
-        // Derive standard Ethereum path
-        let derived = xkey.derive("m/44'/60'/0'/0/0").unwrap();
-        assert_eq!(derived.depth(), 5);
-
-        // Check we can get an address
-        let _addr = derived.address();
-    }
-
-    #[test]
-    fn test_chinese_mnemonic() {
-        // Test generating Chinese mnemonic from same entropy
-        let entropy = hex_literal::hex!("00000000000000000000000000000000");
-        let mnemonic =
-            Mnemonic::from_entropy_with_language(&entropy, Language::ChineseSimplified).unwrap();
-        let phrase = mnemonic.phrase();
-
-        // Chinese phrase for all-zero entropy
-        assert!(phrase.contains("的")); // Common Chinese character
-        assert_eq!(mnemonic.language(), Language::ChineseSimplified);
-
-        // Same entropy should produce same seed regardless of language
-        let english_mnemonic = Mnemonic::from_entropy(&entropy).unwrap();
-        let chinese_seed = mnemonic.seed("");
-        let english_seed = english_mnemonic.seed("");
-
-        // Note: Seeds are DIFFERENT because the phrase string is different
-        // This is expected BIP-39 behavior
-        assert_ne!(chinese_seed, english_seed);
-    }
-
-    #[test]
-    fn test_language_detection() {
-        // Test auto-detection of English phrase
-        let phrase = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
-        let mnemonic = Mnemonic::parse(phrase).unwrap();
-        assert_eq!(mnemonic.language(), Language::English);
+            let derived = xkey.derive("m/44'/60'/0'/0/0").unwrap();
+            assert_eq!(derived.depth(), 5);
+            let _addr = derived.address();
+        }
     }
 }

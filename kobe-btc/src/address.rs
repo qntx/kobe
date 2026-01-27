@@ -49,7 +49,7 @@ impl Address {
     ///
     /// # Example
     /// ```ignore
-    /// let addr = BtcAddress::from_public_key(&pubkey, Network::Mainnet, AddressFormat::P2WPKH)?;
+    /// let addr = Address::from_public_key(&pubkey, Network::Mainnet, AddressFormat::P2WPKH)?;
     /// println!("{}", addr); // bc1q...
     /// ```
     pub fn from_public_key(

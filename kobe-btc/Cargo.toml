@@ -12,16 +12,16 @@ categories = ["cryptography", "no-std"]
 
 [features]
 default = ["std"]
-std = ["alloc", "kobe/std", "k256/std"]
-alloc = ["kobe/alloc", "k256/alloc"]
+std = ["alloc", "kobe/std", "k256/std", "bip39/std"]
+alloc = ["kobe/alloc", "k256/alloc", "bip39/alloc"]
 
 [dependencies]
 kobe.workspace = true
 k256 = { workspace = true, features = ["arithmetic"] }
 bech32.workspace = true
+bip39.workspace = true
 bs58.workspace = true
 hmac.workspace = true
-pbkdf2.workspace = true
 rand_core.workspace = true
 sha2.workspace = true
 zeroize.workspace = true
