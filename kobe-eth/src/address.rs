@@ -1,8 +1,9 @@
 //! Ethereum address with EIP-55 checksum encoding.
 //!
+//! Uses `alloy_primitives::Address` as the underlying implementation.
 //! Implements `kobe::Address` trait for unified wallet interface.
 
-use sha3::{Digest, Keccak256};
+use alloy_primitives::Address as AlloyAddress;
 
 use kobe::{Error, Result};
 
@@ -12,69 +13,39 @@ use crate::pubkey::PublicKey;
 use alloc::string::String;
 
 /// Ethereum address (20 bytes).
+///
+/// Wraps `alloy_primitives::Address` for EIP-55 checksum support.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct Address([u8; 20]);
+pub struct Address(AlloyAddress);
 
 impl Address {
     /// Create from raw 20-byte address.
     pub const fn from_bytes(bytes: [u8; 20]) -> Self {
-        Self(bytes)
+        Self(AlloyAddress::new(bytes))
     }
 
     /// Create from a public key.
     pub fn from_public_key(public_key: &PublicKey) -> Self {
         let raw = public_key.to_raw_bytes();
-        let hash = Keccak256::digest(raw);
-        let mut addr = [0u8; 20];
-        addr.copy_from_slice(&hash[12..]);
-        Self(addr)
+        // alloy_primitives computes keccak256 and takes last 20 bytes
+        Self(AlloyAddress::from_raw_public_key(&raw))
     }
 
     /// Get the raw bytes.
-    pub const fn as_bytes(&self) -> &[u8; 20] {
-        &self.0
+    pub fn as_bytes(&self) -> &[u8; 20] {
+        self.0.as_ref()
     }
 
     /// Convert to EIP-55 checksummed string.
     #[cfg(feature = "alloc")]
     pub fn to_checksum_string(&self) -> String {
-        let hex_addr = to_hex_lower(&self.0);
-        let hash = Keccak256::digest(hex_addr.as_bytes());
-
-        let mut result = String::with_capacity(42);
-        result.push_str("0x");
-
-        for (i, c) in hex_addr.chars().enumerate() {
-            if c.is_ascii_alphabetic() {
-                let hash_nibble = if i % 2 == 0 {
-                    hash[i / 2] >> 4
-                } else {
-                    hash[i / 2] & 0x0f
-                };
-
-                if hash_nibble >= 8 {
-                    result.push(c.to_ascii_uppercase());
-                } else {
-                    result.push(c.to_ascii_lowercase());
-                }
-            } else {
-                result.push(c);
-            }
-        }
-
-        result
+        self.0.to_checksum(None)
     }
-}
 
-#[cfg(feature = "alloc")]
-fn to_hex_lower(bytes: &[u8]) -> String {
-    const HEX_CHARS: &[u8; 16] = b"0123456789abcdef";
-    let mut result = String::with_capacity(bytes.len() * 2);
-    for &byte in bytes {
-        result.push(HEX_CHARS[(byte >> 4) as usize] as char);
-        result.push(HEX_CHARS[(byte & 0x0f) as usize] as char);
+    /// Get the inner alloy Address.
+    pub const fn inner(&self) -> &AlloyAddress {
+        &self.0
     }
-    result
 }
 
 impl core::fmt::Display for Address {
@@ -86,7 +57,7 @@ impl core::fmt::Display for Address {
         #[cfg(not(feature = "alloc"))]
         {
             write!(f, "0x")?;
-            for byte in &self.0 {
+            for byte in self.0.as_ref() {
                 write!(f, "{:02x}", byte)?;
             }
             Ok(())
@@ -122,7 +93,7 @@ impl kobe::Address for Address {
             .map_err(|_| Error::InvalidEncoding)?;
         }
 
-        Ok(Self(bytes))
+        Ok(Self(AlloyAddress::new(bytes)))
     }
 
     #[cfg(feature = "alloc")]
@@ -131,25 +102,31 @@ impl kobe::Address for Address {
     }
 
     fn as_bytes(&self) -> &[u8] {
-        &self.0
+        self.0.as_ref()
     }
 }
 
 impl AsRef<[u8]> for Address {
     fn as_ref(&self) -> &[u8] {
-        &self.0
+        self.0.as_ref()
     }
 }
 
 impl From<[u8; 20]> for Address {
     fn from(bytes: [u8; 20]) -> Self {
-        Self(bytes)
+        Self(AlloyAddress::new(bytes))
+    }
+}
+
+impl From<AlloyAddress> for Address {
+    fn from(addr: AlloyAddress) -> Self {
+        Self(addr)
     }
 }
 
 impl From<Address> for [u8; 20] {
     fn from(addr: Address) -> Self {
-        addr.0
+        *addr.0.as_ref()
     }
 }
 

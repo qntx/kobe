@@ -10,9 +10,11 @@ kobe-btc = { path = "./kobe-btc", default-features = false }
 kobe-eth = { path = "./kobe-eth", default-features = false }
 kobe-xmr = { path = "./kobe-xmr", default-features = false }
 
+alloy-primitives = { version = "1.5", default-features = false }
 bech32 = { version = "0.11", default-features = false, features = ["alloc"] }
 bip32 = { version = "0.5", default-features = false, features = ["secp256k1", "alloc"] }
 bip39 = { version = "2.1", default-features = false, features = ["alloc"] }
+bitcoin = { version = "0.32", default-features = false }
 bs58 = { version = "0.5", default-features = false, features = ["alloc", "check"] }
 hex = { version = "0.4", default-features = false, features = ["alloc"] }
 hex-literal = "1.1.0"
