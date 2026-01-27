@@ -2,9 +2,11 @@
 
 mod bitcoin;
 mod ethereum;
+mod solana;
 
 pub use bitcoin::BitcoinCommand;
 pub use ethereum::EthereumCommand;
+pub use solana::SolanaCommand;
 
 use clap::{Parser, Subcommand};
 
@@ -28,4 +30,8 @@ pub enum Commands {
     /// Ethereum wallet operations.
     #[command(name = "eth", alias = "ethereum")]
     Ethereum(EthereumCommand),
+
+    /// Solana wallet operations.
+    #[command(name = "sol", alias = "solana")]
+    Solana(SolanaCommand),
 }

@@ -16,6 +16,7 @@ path = "src/main.rs"
 kobe-core = { workspace = true, features = ["std", "rand"] }
 kobe-btc = { workspace = true, features = ["std", "rand"] }
 kobe-eth = { workspace = true, features = ["std", "rand"] }
+kobe-sol = { workspace = true, features = ["std", "rand"] }
 clap.workspace = true
 colored.workspace = true
 hex.workspace = true

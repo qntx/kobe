@@ -1,5 +1,5 @@
 [workspace]
-members = ["kobe", "kobe-core", "kobe-btc", "kobe-eth"]
+members = ["kobe", "kobe-core", "kobe-btc", "kobe-eth", "kobe-sol"]
 default-members = ["kobe"]
 resolver = "3"
 
@@ -7,6 +7,7 @@ resolver = "3"
 kobe-core = { version = "0.2.2", path = "./kobe-core", default-features = false }
 kobe-btc = { version = "0.2.2", path = "./kobe-btc", default-features = false }
 kobe-eth = { version = "0.2.2", path = "./kobe-eth", default-features = false }
+kobe-sol = { version = "0.2.2", path = "./kobe-sol", default-features = false }
 
 # CLI dependencies
 clap = { version = "4.5", features = ["derive"] }
@@ -17,10 +18,12 @@ alloy-primitives = { version = "1.5", default-features = false, features = ["k25
 bitcoin = { version = "0.32", default-features = false }
 bip39 = { version = "2.1", default-features = false }
 bip32 = { version = "0.5", default-features = false, features = ["secp256k1", "alloc"] }
+bs58 = { version = "0.5", default-features = false, features = ["alloc"] }
+ed25519-dalek = { version = "2.1", default-features = false }
 k256 = { version = "0.13", default-features = false, features = ["ecdsa"] }
 hmac = { version = "0.12", default-features = false }
 sha2 = { version = "0.10", default-features = false }
-rand = { version = "0.9", default-features = false }
+rand = { version = "0.9", default-features = false, features = ["os_rng"] }
 hex = { version = "0.4", default-features = false }
 zeroize = { version = "1.7", default-features = false, features = ["derive"] }
 

@@ -1,0 +1,26 @@
+[package]
+name = "kobe-sol"
+version = "0.2.2"
+edition = "2024"
+description = "Solana wallet utilities for Kobe CLI"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/pyor/kobe"
+keywords = ["solana", "wallet", "crypto", "no_std"]
+categories = ["cryptography", "no-std"]
+
+[features]
+default = ["std"]
+std = ["alloc", "kobe-core/std", "ed25519-dalek/std", "hex/std", "zeroize/std"]
+alloc = ["kobe-core/alloc", "hex/alloc", "zeroize/alloc"]
+# Enable random key generation for StandardWallet (requires std)
+rand = ["std", "ed25519-dalek/rand_core"]
+
+[dependencies]
+kobe-core.workspace = true
+ed25519-dalek.workspace = true
+bs58.workspace = true
+hmac.workspace = true
+sha2.workspace = true
+hex.workspace = true
+rand_core = { version = "0.6", features = ["getrandom"] }
+zeroize.workspace = true

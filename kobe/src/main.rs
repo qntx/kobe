@@ -20,6 +20,7 @@ fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     match cli.command {
         Commands::Bitcoin(cmd) => cmd.execute()?,
         Commands::Ethereum(cmd) => cmd.execute()?,
+        Commands::Solana(cmd) => cmd.execute()?,
     }
     Ok(())
 }
