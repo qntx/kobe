@@ -12,7 +12,7 @@
 //!
 //! ```
 //! use kobe_core::Wallet;
-//! use kobe_eth::Deriver;
+//! use kobe_eth::{Deriver, DerivationStyle};
 //!
 //! // Create a wallet from mnemonic
 //! let wallet = Wallet::from_mnemonic(
@@ -24,6 +24,10 @@
 //! let deriver = Deriver::new(&wallet);
 //! let addr = deriver.derive(0, false, 0).unwrap();
 //! println!("Address: {}", addr.address);
+//!
+//! // Derive using Ledger Live style
+//! let addr = deriver.derive_with_style(DerivationStyle::LedgerLive, 0).unwrap();
+//! println!("Ledger Live Address: {}", addr.address);
 //! ```
 
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -32,6 +36,8 @@
 extern crate alloc;
 
 #[cfg(feature = "alloc")]
+mod derivation_style;
+#[cfg(feature = "alloc")]
 mod deriver;
 mod error;
 #[cfg(feature = "alloc")]
@@ -39,6 +45,8 @@ mod standard_wallet;
 #[cfg(feature = "alloc")]
 mod utils;
 
+#[cfg(feature = "alloc")]
+pub use derivation_style::{DerivationStyle, ParseDerivationStyleError};
 #[cfg(feature = "alloc")]
 pub use deriver::{DerivedAddress, Deriver};
 pub use error::Error;

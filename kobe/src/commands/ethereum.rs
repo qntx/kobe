@@ -1,15 +1,39 @@
 //! Ethereum wallet CLI commands.
 
-use clap::{Args, Subcommand};
+use clap::{Args, Subcommand, ValueEnum};
 use colored::Colorize;
 use kobe_core::Wallet;
-use kobe_eth::{Deriver, StandardWallet};
+use kobe_eth::{DerivationStyle, Deriver, StandardWallet};
 
 /// Ethereum wallet operations.
 #[derive(Args)]
 pub struct EthereumCommand {
     #[command(subcommand)]
     command: EthereumSubcommand,
+}
+
+/// CLI-compatible derivation style enum.
+#[derive(Debug, Clone, Copy, Default, ValueEnum)]
+pub enum CliDerivationStyle {
+    /// Standard BIP-44 path (MetaMask/Trezor): m/44'/60'/0'/0/{index}
+    #[default]
+    Standard,
+    /// Ledger Live path: m/44'/60'/{index}'/0/0
+    #[value(name = "ledger-live")]
+    LedgerLive,
+    /// Ledger Legacy path (MEW/MyCrypto): m/44'/60'/0'/{index}
+    #[value(name = "ledger-legacy")]
+    LedgerLegacy,
+}
+
+impl From<CliDerivationStyle> for DerivationStyle {
+    fn from(style: CliDerivationStyle) -> Self {
+        match style {
+            CliDerivationStyle::Standard => DerivationStyle::Standard,
+            CliDerivationStyle::LedgerLive => DerivationStyle::LedgerLive,
+            CliDerivationStyle::LedgerLegacy => DerivationStyle::LedgerLegacy,
+        }
+    }
 }
 
 #[derive(Subcommand)]
@@ -27,6 +51,10 @@ enum EthereumSubcommand {
         /// Number of addresses to derive.
         #[arg(short, long, default_value = "1")]
         count: u32,
+
+        /// Derivation path style for hardware wallet compatibility.
+        #[arg(short, long, default_value = "standard")]
+        style: CliDerivationStyle,
     },
 
     /// Generate a random single-key wallet (no mnemonic).
@@ -45,6 +73,10 @@ enum EthereumSubcommand {
         /// Number of addresses to derive.
         #[arg(short, long, default_value = "1")]
         count: u32,
+
+        /// Derivation path style for hardware wallet compatibility.
+        #[arg(short, long, default_value = "standard")]
+        style: CliDerivationStyle,
     },
 
     /// Import wallet from private key.
@@ -63,10 +95,11 @@ impl EthereumCommand {
                 words,
                 passphrase,
                 count,
+                style,
             } => {
                 let wallet = Wallet::generate(words, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet);
-                print_wallet(&wallet, &deriver, count)?;
+                print_wallet(&wallet, &deriver, count, style.into())?;
             }
             EthereumSubcommand::Random => {
                 let wallet = StandardWallet::generate()?;
@@ -76,10 +109,11 @@ impl EthereumCommand {
                 mnemonic,
                 passphrase,
                 count,
+                style,
             } => {
                 let wallet = Wallet::from_mnemonic(&mnemonic, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet);
-                print_wallet(&wallet, &deriver, count)?;
+                print_wallet(&wallet, &deriver, count, style.into())?;
             }
             EthereumSubcommand::ImportKey { key } => {
                 let wallet = StandardWallet::from_private_key_hex(&key)?;
@@ -95,14 +129,16 @@ fn print_wallet(
     wallet: &Wallet,
     deriver: &Deriver,
     count: u32,
+    style: DerivationStyle,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let addresses = deriver.derive_many(0, false, 0, count)?;
+    let addresses = deriver.derive_many_with_style(style, 0, count)?;
 
     println!();
     println!("      {}     {}", "Mnemonic".cyan().bold(), wallet.mnemonic());
     if wallet.has_passphrase() {
         println!("      {}   {}", "Passphrase".cyan().bold(), "(set)".dimmed());
     }
+    println!("      {}        {}", "Style".cyan().bold(), style.name().dimmed());
     println!();
 
     for (i, addr) in addresses.iter().enumerate() {
