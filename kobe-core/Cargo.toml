@@ -1,6 +1,6 @@
 [package]
 name = "kobe-core"
-version = "0.2.6"
+version = "0.2.7"
 edition = "2024"
 description = "Core wallet types for Kobe multi-chain wallet CLI"
 license = "MIT OR Apache-2.0"

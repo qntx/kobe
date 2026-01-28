@@ -1,6 +1,6 @@
 [package]
 name = "kobe-sol"
-version = "0.2.6"
+version = "0.2.7"
 edition = "2024"
 description = "Solana wallet utilities for Kobe CLI"
 license = "MIT OR Apache-2.0"
