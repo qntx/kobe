@@ -4,7 +4,7 @@ version = "0.2.7"
 edition = "2024"
 description = "Ethereum wallet utilities for Kobe CLI"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/pyor/kobe"
+repository = "https://github.com/pyroth/kobe"
 keywords = ["ethereum", "wallet", "crypto", "no_std"]
 categories = ["cryptography", "no-std"]
 
