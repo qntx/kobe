@@ -70,6 +70,17 @@ enum BitcoinSubcommand {
         #[arg(short, long, default_value = "1")]
         count: u32,
     },
+
+    /// Import wallet from private key (WIF format).
+    ImportKey {
+        /// Private key in WIF format.
+        #[arg(short, long)]
+        key: String,
+
+        /// Address type to generate.
+        #[arg(short, long, value_enum, default_value = "native-segwit")]
+        address_type: CliAddressType,
+    },
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -145,6 +156,11 @@ impl BitcoinCommand {
                 let wallet = Wallet::from_mnemonic(&mnemonic, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet, network)?;
                 print_wallet(&wallet, &deriver, addr_type, count)?;
+            }
+            BitcoinSubcommand::ImportKey { key, address_type } => {
+                let addr_type = AddressType::from(address_type);
+                let wallet = StandardWallet::from_wif(&key, addr_type)?;
+                print_standard_wallet(&wallet);
             }
         }
         Ok(())
