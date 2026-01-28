@@ -1,10 +1,10 @@
 [package]
 name = "kobe-core"
-version = "0.2.7"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
 description = "Core wallet types for Kobe multi-chain wallet CLI"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/pyroth/kobe"
+license.workspace = true
+repository.workspace = true
 keywords = ["crypto", "wallet", "bip39", "mnemonic", "no_std"]
 categories = ["cryptography", "no-std"]
 

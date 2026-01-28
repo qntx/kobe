@@ -1,10 +1,10 @@
 [package]
 name = "kobe-btc"
-version = "0.2.7"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
 description = "Bitcoin wallet utilities for Kobe CLI"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/pyroth/kobe"
+license.workspace = true
+repository.workspace = true
 keywords = ["bitcoin", "wallet", "crypto", "no_std"]
 categories = ["cryptography", "no-std"]
 

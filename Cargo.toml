@@ -3,11 +3,17 @@ members = ["kobe", "kobe-core", "kobe-btc", "kobe-eth", "kobe-sol"]
 default-members = ["kobe"]
 resolver = "3"
 
+[workspace.package]
+version = "0.2.8"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/pyroth/kobe"
+
 [workspace.dependencies]
-kobe-core = { version = "0.2.7", path = "./kobe-core", default-features = false }
-kobe-btc = { version = "0.2.7", path = "./kobe-btc", default-features = false }
-kobe-eth = { version = "0.2.7", path = "./kobe-eth", default-features = false }
-kobe-sol = { version = "0.2.7", path = "./kobe-sol", default-features = false }
+kobe-core = { version = "0.2.8", path = "./kobe-core", default-features = false }
+kobe-btc = { version = "0.2.8", path = "./kobe-btc", default-features = false }
+kobe-eth = { version = "0.2.8", path = "./kobe-eth", default-features = false }
+kobe-sol = { version = "0.2.8", path = "./kobe-sol", default-features = false }
 
 # CLI dependencies
 clap = { version = "4.5", features = ["derive"] }

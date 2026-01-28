@@ -1,11 +1,11 @@
 [package]
 name = "kobe"
-version = "0.2.7"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
 description = "A multi-chain cryptocurrency wallet CLI tool"
-license = "MIT OR Apache-2.0"
+license.workspace = true
 readme = "../README.md"
-repository = "https://github.com/pyroth/kobe"
+repository.workspace = true
 keywords = ["crypto", "wallet", "bitcoin", "ethereum", "cli"]
 categories = ["command-line-utilities", "cryptography"]
 
