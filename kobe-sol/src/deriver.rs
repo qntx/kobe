@@ -80,9 +80,7 @@ impl<'a> Deriver<'a> {
             DerivationStyle::Standard => {
                 DerivedKey::derive_standard_path(self.wallet.seed(), index)?
             }
-            DerivationStyle::LedgerNative => {
-                DerivedKey::derive_ledger_native_path(self.wallet.seed(), index)?
-            }
+            DerivationStyle::Trust => DerivedKey::derive_trust_path(self.wallet.seed(), index)?,
             DerivationStyle::LedgerLive => {
                 DerivedKey::derive_ledger_live_path(self.wallet.seed(), index)?
             }
@@ -180,11 +178,11 @@ mod tests {
     }
 
     #[test]
-    fn test_derive_with_ledger_native_style() {
+    fn test_derive_with_trust_style() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet);
         let addr = deriver
-            .derive_with_style(DerivationStyle::LedgerNative, 0)
+            .derive_with_style(DerivationStyle::Trust, 0)
             .unwrap();
 
         assert_eq!(addr.path, "m/44'/501'/0'");
@@ -211,8 +209,8 @@ mod tests {
         let standard = deriver
             .derive_with_style(DerivationStyle::Standard, 0)
             .unwrap();
-        let ledger_native = deriver
-            .derive_with_style(DerivationStyle::LedgerNative, 0)
+        let trust = deriver
+            .derive_with_style(DerivationStyle::Trust, 0)
             .unwrap();
         let ledger_live = deriver
             .derive_with_style(DerivationStyle::LedgerLive, 0)
@@ -222,9 +220,9 @@ mod tests {
             .unwrap();
 
         // All styles should produce different addresses
-        assert_ne!(standard.address, ledger_native.address);
+        assert_ne!(standard.address, trust.address);
         assert_ne!(standard.address, ledger_live.address);
         assert_ne!(standard.address, legacy.address);
-        assert_ne!(ledger_native.address, ledger_live.address);
+        assert_ne!(trust.address, ledger_live.address);
     }
 }

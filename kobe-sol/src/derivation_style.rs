@@ -16,7 +16,7 @@ use core::str::FromStr;
 /// # Path Specifications (as of 2026)
 ///
 /// - **Standard (Phantom/Backpack)**: `m/44'/501'/{index}'/0'`
-/// - **Ledger Native**: `m/44'/501'/{index}'`
+/// - **Trust**: `m/44'/501'/{index}'`
 /// - **Ledger Live**: `m/44'/501'/{index}'/0'/0'`
 /// - **Legacy**: `m/501'/{index}'/0/0` (deprecated)
 ///
@@ -29,8 +29,8 @@ use core::str::FromStr;
 /// assert_eq!(style.path(0), "m/44'/501'/0'/0'");
 /// assert_eq!(style.path(1), "m/44'/501'/1'/0'");
 ///
-/// let ledger = DerivationStyle::LedgerNative;
-/// assert_eq!(ledger.path(0), "m/44'/501'/0'");
+/// let trust = DerivationStyle::Trust;
+/// assert_eq!(trust.path(0), "m/44'/501'/0'");
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
@@ -49,17 +49,17 @@ pub enum DerivationStyle {
     #[default]
     Standard,
 
-    /// Ledger native derivation path.
+    /// Trust Wallet / Ledger native derivation path.
     ///
     /// Path format: `m/44'/501'/{index}'`
     ///
-    /// Used by Ledger hardware wallets natively:
+    /// BIP-44 path without change component:
     /// - Purpose: 44' (BIP-44)
     /// - Coin type: 501' (Solana)
     /// - Account: variable (hardened)
     ///
-    /// Also used by: Trust Wallet, Keystone
-    LedgerNative,
+    /// Used by: Trust Wallet, Ledger (native), Keystone
+    Trust,
 
     /// Ledger Live derivation path (account-based).
     ///
@@ -100,7 +100,7 @@ impl DerivationStyle {
     pub fn path(self, index: u32) -> String {
         match self {
             Self::Standard => format!("m/44'/501'/{index}'/0'"),
-            Self::LedgerNative => format!("m/44'/501'/{index}'"),
+            Self::Trust => format!("m/44'/501'/{index}'"),
             Self::LedgerLive => format!("m/44'/501'/{index}'/0'/0'"),
             Self::Legacy => format!("m/501'/{index}'/0/0"),
         }
@@ -112,7 +112,7 @@ impl DerivationStyle {
     pub const fn name(self) -> &'static str {
         match self {
             Self::Standard => "Standard (Phantom/Backpack)",
-            Self::LedgerNative => "Ledger Native (Trust Wallet)",
+            Self::Trust => "Trust (Ledger/Keystone)",
             Self::LedgerLive => "Ledger Live",
             Self::Legacy => "Legacy (deprecated)",
         }
@@ -124,7 +124,7 @@ impl DerivationStyle {
     pub const fn id(self) -> &'static str {
         match self {
             Self::Standard => "standard",
-            Self::LedgerNative => "ledger-native",
+            Self::Trust => "trust",
             Self::LedgerLive => "ledger-live",
             Self::Legacy => "legacy",
         }
@@ -134,12 +134,7 @@ impl DerivationStyle {
     #[must_use]
     #[allow(deprecated)]
     pub const fn all() -> &'static [Self] {
-        &[
-            Self::Standard,
-            Self::LedgerNative,
-            Self::LedgerLive,
-            Self::Legacy,
-        ]
+        &[Self::Standard, Self::Trust, Self::LedgerLive, Self::Legacy]
     }
 }
 
@@ -157,7 +152,7 @@ impl fmt::Display for ParseDerivationStyleError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "invalid derivation style '{}', expected one of: standard, ledger-native, ledger-live, legacy",
+            "invalid derivation style '{}', expected one of: standard, trust, ledger-live, legacy",
             self.0
         )
     }
@@ -174,9 +169,9 @@ impl FromStr for DerivationStyle {
         match s.to_lowercase().as_str() {
             // Standard (Phantom, Backpack, etc.)
             "standard" | "phantom" | "backpack" | "solflare" | "trezor" => Ok(Self::Standard),
-            // Ledger Native (Trust Wallet, Keystone)
-            "ledger-native" | "ledgernative" | "ledger" | "trust" | "trustwallet" | "keystone" => {
-                Ok(Self::LedgerNative)
+            // Trust (Ledger native, Keystone)
+            "trust" | "trustwallet" | "ledger" | "ledger-native" | "ledgernative" | "keystone" => {
+                Ok(Self::Trust)
             }
             // Ledger Live
             "ledger-live" | "ledgerlive" | "live" => Ok(Self::LedgerLive),
@@ -201,8 +196,8 @@ mod tests {
     }
 
     #[test]
-    fn test_ledger_native_paths() {
-        let style = DerivationStyle::LedgerNative;
+    fn test_trust_paths() {
+        let style = DerivationStyle::Trust;
         assert_eq!(style.path(0), "m/44'/501'/0'");
         assert_eq!(style.path(1), "m/44'/501'/1'");
         assert_eq!(style.path(10), "m/44'/501'/10'");
@@ -240,18 +235,18 @@ mod tests {
             DerivationStyle::Standard
         );
 
-        // Ledger Native aliases
+        // Trust aliases
         assert_eq!(
-            "ledger-native".parse::<DerivationStyle>().unwrap(),
-            DerivationStyle::LedgerNative
+            "trust".parse::<DerivationStyle>().unwrap(),
+            DerivationStyle::Trust
         );
         assert_eq!(
             "ledger".parse::<DerivationStyle>().unwrap(),
-            DerivationStyle::LedgerNative
+            DerivationStyle::Trust
         );
         assert_eq!(
-            "trust".parse::<DerivationStyle>().unwrap(),
-            DerivationStyle::LedgerNative
+            "keystone".parse::<DerivationStyle>().unwrap(),
+            DerivationStyle::Trust
         );
 
         // Ledger Live

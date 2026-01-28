@@ -84,10 +84,10 @@ impl DerivedKey {
             .derive_hardened(0)
     }
 
-    /// Derive key at Ledger Native path: m/44'/501'/index'
+    /// Derive key at Trust path: m/44'/501'/index'
     ///
-    /// Used by Ledger (native), Trust Wallet, Keystone.
-    pub fn derive_ledger_native_path(seed: &[u8], index: u32) -> Result<Self, Error> {
+    /// Used by Trust Wallet, Ledger (native), Keystone.
+    pub fn derive_trust_path(seed: &[u8], index: u32) -> Result<Self, Error> {
         let master = Self::from_seed(seed)?;
 
         // m/44'/501'/index'
@@ -155,9 +155,9 @@ mod tests {
     }
 
     #[test]
-    fn test_ledger_native_path_derivation() {
+    fn test_trust_path_derivation() {
         let seed = [0u8; 64];
-        let derived = DerivedKey::derive_ledger_native_path(&seed, 0).unwrap();
+        let derived = DerivedKey::derive_trust_path(&seed, 0).unwrap();
         assert_eq!(derived.private_key.len(), 32);
     }
 

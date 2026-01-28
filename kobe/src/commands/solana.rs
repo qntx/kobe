@@ -15,9 +15,9 @@ pub enum CliDerivationStyle {
     #[value(alias = "phantom", alias = "backpack")]
     Standard,
 
-    /// Ledger Native: m/44'/501'/{index}' (Ledger, Trust Wallet, Keystone)
-    #[value(alias = "ledger", alias = "trust")]
-    LedgerNative,
+    /// Trust: m/44'/501'/{index}' (Trust Wallet, Ledger, Keystone)
+    #[value(alias = "ledger", alias = "keystone")]
+    Trust,
 
     /// Ledger Live: m/44'/501'/{index}'/0'/0'
     LedgerLive,
@@ -32,7 +32,7 @@ impl From<CliDerivationStyle> for DerivationStyle {
     fn from(style: CliDerivationStyle) -> Self {
         match style {
             CliDerivationStyle::Standard => DerivationStyle::Standard,
-            CliDerivationStyle::LedgerNative => DerivationStyle::LedgerNative,
+            CliDerivationStyle::Trust => DerivationStyle::Trust,
             CliDerivationStyle::LedgerLive => DerivationStyle::LedgerLive,
             CliDerivationStyle::Legacy => DerivationStyle::Legacy,
         }
