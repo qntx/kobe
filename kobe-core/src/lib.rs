@@ -35,3 +35,6 @@ mod wallet;
 pub use error::Error;
 #[cfg(feature = "alloc")]
 pub use wallet::Wallet;
+
+/// A convenient Result type alias for kobe-core operations.
+pub type Result<T> = core::result::Result<T, Error>;

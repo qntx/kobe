@@ -6,13 +6,12 @@ use alloc::{
     vec::Vec,
 };
 
-use bitcoin::{
-    Address, PrivateKey, PublicKey, bip32::Xpriv, key::CompressedPublicKey, secp256k1::Secp256k1,
-};
+use bitcoin::{PrivateKey, bip32::Xpriv, key::CompressedPublicKey};
 use core::marker::PhantomData;
 use kobe_core::Wallet;
 use zeroize::Zeroizing;
 
+use crate::address::create_address;
 use crate::{AddressType, DerivationPath, Error, Network};
 
 /// Bitcoin address deriver from a unified wallet seed.
@@ -22,7 +21,7 @@ use crate::{AddressType, DerivationPath, Error, Network};
 ///
 /// # Example
 ///
-/// ```ignore
+/// ```
 /// use kobe_core::Wallet;
 /// use kobe_btc::{Deriver, Network, AddressType};
 ///
@@ -126,7 +125,7 @@ impl<'a> Deriver<'a> {
         let public_key = CompressedPublicKey::from_private_key(&secp, &private_key)
             .expect("valid private key always produces valid public key");
 
-        let address = Self::create_address(&public_key, self.network, address_type);
+        let address = create_address(&public_key, self.network, address_type);
 
         // Get raw private key bytes in hex format
         let private_key_bytes = derived.private_key.secret_bytes();
@@ -165,26 +164,6 @@ impl<'a> Deriver<'a> {
         (start_index..start_index + count)
             .map(|index| self.derive(address_type, account, change, index))
             .collect()
-    }
-
-    /// Create an address from a public key.
-    fn create_address(
-        public_key: &CompressedPublicKey,
-        network: Network,
-        address_type: AddressType,
-    ) -> Address {
-        let btc_network = network.to_bitcoin_network();
-
-        match address_type {
-            AddressType::P2pkh => Address::p2pkh(PublicKey::from(*public_key), btc_network),
-            AddressType::P2shP2wpkh => Address::p2shwpkh(public_key, btc_network),
-            AddressType::P2wpkh => Address::p2wpkh(public_key, btc_network),
-            AddressType::P2tr => {
-                let secp = Secp256k1::verification_only();
-                let internal_key = public_key.0.x_only_public_key().0;
-                Address::p2tr(&secp, internal_key, None, btc_network)
-            }
-        }
     }
 
     /// Get the network.

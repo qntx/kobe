@@ -22,3 +22,6 @@ bip32.workspace = true
 k256.workspace = true
 hex.workspace = true
 zeroize.workspace = true
+
+[lints]
+workspace = true

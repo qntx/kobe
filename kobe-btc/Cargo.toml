@@ -20,3 +20,6 @@ bitcoin.workspace = true
 bip39.workspace = true
 hex.workspace = true
 zeroize.workspace = true
+
+[lints]
+workspace = true

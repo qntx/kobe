@@ -6,11 +6,10 @@
 #[cfg(feature = "alloc")]
 use alloc::string::{String, ToString};
 
-use bitcoin::{
-    Address, NetworkKind, PrivateKey, PublicKey, key::CompressedPublicKey, secp256k1::Secp256k1,
-};
+use bitcoin::{Address, NetworkKind, PrivateKey, key::CompressedPublicKey};
 use zeroize::Zeroizing;
 
+use crate::address::create_address;
 use crate::{AddressType, Error, Network};
 
 /// A standard Bitcoin wallet with a single private key.
@@ -25,7 +24,7 @@ use crate::{AddressType, Error, Network};
 ///
 /// let wallet = StandardWallet::generate(Network::Mainnet, AddressType::P2wpkh).unwrap();
 /// println!("Address: {}", wallet.address_string());
-/// println!("Private Key (WIF): {}", wallet.private_key_wif());
+/// println!("Private Key (WIF): {}", wallet.private_key_wif().as_str());
 /// ```
 #[derive(Debug)]
 pub struct StandardWallet {
@@ -65,7 +64,7 @@ impl StandardWallet {
         let public_key = CompressedPublicKey::from_private_key(&secp, &private_key)
             .expect("valid private key always produces valid public key");
 
-        let address = Self::create_address(&public_key, network, address_type);
+        let address = create_address(&public_key, network, address_type);
 
         Ok(Self {
             private_key,
@@ -99,7 +98,7 @@ impl StandardWallet {
         let public_key = CompressedPublicKey::from_private_key(&secp, &private_key)
             .expect("valid private key always produces valid public key");
 
-        let address = Self::create_address(&public_key, network, address_type);
+        let address = create_address(&public_key, network, address_type);
 
         Ok(Self {
             private_key,
@@ -108,26 +107,6 @@ impl StandardWallet {
             network,
             address_type,
         })
-    }
-
-    /// Create an address from a public key.
-    fn create_address(
-        public_key: &CompressedPublicKey,
-        network: Network,
-        address_type: AddressType,
-    ) -> Address {
-        let btc_network = network.to_bitcoin_network();
-
-        match address_type {
-            AddressType::P2pkh => Address::p2pkh(PublicKey::from(*public_key), btc_network),
-            AddressType::P2shP2wpkh => Address::p2shwpkh(public_key, btc_network),
-            AddressType::P2wpkh => Address::p2wpkh(public_key, btc_network),
-            AddressType::P2tr => {
-                let secp = Secp256k1::verification_only();
-                let internal_key = public_key.0.x_only_public_key().0;
-                Address::p2tr(&secp, internal_key, None, btc_network)
-            }
-        }
     }
 
     /// Get the private key in WIF format (zeroized on drop).

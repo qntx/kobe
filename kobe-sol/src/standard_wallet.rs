@@ -21,7 +21,7 @@ use crate::Error;
 ///
 /// let wallet = StandardWallet::generate().unwrap();
 /// println!("Address: {}", wallet.address_string());
-/// println!("Private Key: {}", wallet.private_key_hex());
+/// println!("Private Key: {}", wallet.private_key_hex().as_str());
 /// ```
 #[derive(Debug)]
 pub struct StandardWallet {

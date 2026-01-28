@@ -29,6 +29,8 @@
 extern crate alloc;
 
 #[cfg(feature = "alloc")]
+mod address;
+#[cfg(feature = "alloc")]
 mod deriver;
 mod error;
 mod network;
@@ -45,3 +47,6 @@ pub use standard_wallet::StandardWallet;
 pub use types::AddressType;
 #[cfg(feature = "alloc")]
 pub use types::DerivationPath;
+
+/// A convenient Result type alias for kobe-btc operations.
+pub type Result<T> = core::result::Result<T, Error>;

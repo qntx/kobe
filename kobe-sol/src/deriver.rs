@@ -22,6 +22,22 @@ pub struct DerivedAddress {
     pub address: String,
 }
 
+/// Solana address deriver from a unified wallet seed.
+///
+/// This deriver takes a seed from [`kobe_core::Wallet`] and derives
+/// Solana addresses following BIP44/SLIP-0010 standards.
+///
+/// # Example
+///
+/// ```
+/// use kobe_core::Wallet;
+/// use kobe_sol::Deriver;
+///
+/// let wallet = Wallet::generate(12, None).unwrap();
+/// let deriver = Deriver::new(&wallet);
+/// let addr = deriver.derive(0).unwrap();
+/// println!("Address: {}", addr.address);
+/// ```
 #[derive(Debug)]
 pub struct Deriver<'a> {
     /// Reference to the wallet for seed access.

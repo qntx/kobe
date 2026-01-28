@@ -24,3 +24,6 @@ hmac.workspace = true
 sha2.workspace = true
 hex.workspace = true
 zeroize.workspace = true
+
+[lints]
+workspace = true

@@ -11,7 +11,7 @@ use k256::ecdsa::SigningKey;
 use zeroize::Zeroizing;
 
 use crate::Error;
-use crate::utils::{public_key_to_address, to_checksum_address};
+use crate::address::{public_key_to_address, to_checksum_address};
 
 /// A standard Ethereum wallet with a single private key.
 ///
@@ -25,7 +25,7 @@ use crate::utils::{public_key_to_address, to_checksum_address};
 ///
 /// let wallet = StandardWallet::generate().unwrap();
 /// println!("Address: {}", wallet.address_string());
-/// println!("Private Key: 0x{}", wallet.private_key_hex());
+/// println!("Private Key: 0x{}", wallet.private_key_hex().as_str());
 /// ```
 #[derive(Debug)]
 pub struct StandardWallet {
@@ -61,10 +61,10 @@ impl StandardWallet {
     ///
     /// # Errors
     ///
-    /// Returns an error if the private key is invalid.
+    /// Returns an error if the hex string is invalid or the private key is invalid.
     pub fn from_private_key_hex(hex_str: &str) -> Result<Self, Error> {
         let hex_str = hex_str.strip_prefix("0x").unwrap_or(hex_str);
-        let bytes = hex::decode(hex_str).map_err(|_| Error::InvalidPrivateKey)?;
+        let bytes = hex::decode(hex_str).map_err(|_| Error::InvalidHex)?;
 
         let private_key = SigningKey::from_slice(&bytes).map_err(|_| Error::InvalidPrivateKey)?;
         let address = Self::derive_address(&private_key);

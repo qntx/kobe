@@ -12,9 +12,9 @@ use k256::ecdsa::SigningKey;
 use kobe_core::Wallet;
 use zeroize::Zeroizing;
 
-use crate::derivation_style::DerivationStyle;
 use crate::Error;
-use crate::utils::{public_key_to_address, to_checksum_address};
+use crate::address::{public_key_to_address, to_checksum_address};
+use crate::derivation_style::DerivationStyle;
 
 /// Ethereum address deriver from a unified wallet seed.
 ///
@@ -23,7 +23,7 @@ use crate::utils::{public_key_to_address, to_checksum_address};
 ///
 /// # Example
 ///
-/// ```ignore
+/// ```
 /// use kobe_core::Wallet;
 /// use kobe_eth::Deriver;
 ///
@@ -151,10 +151,10 @@ impl<'a> Deriver<'a> {
     /// let deriver = Deriver::new(&wallet);
     ///
     /// // Standard (MetaMask/Trezor) path
-    /// let addr = deriver.derive_with_style(DerivationStyle::Standard, 0)?;
+    /// let addr = deriver.derive_with_style(DerivationStyle::Standard, 0).unwrap();
     ///
     /// // Ledger Live path
-    /// let addr = deriver.derive_with_style(DerivationStyle::LedgerLive, 0)?;
+    /// let addr = deriver.derive_with_style(DerivationStyle::LedgerLive, 0).unwrap();
     /// ```
     #[inline]
     pub fn derive_with_style(

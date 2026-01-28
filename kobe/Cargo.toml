@@ -22,3 +22,6 @@ clap.workspace = true
 colored.workspace = true
 hex.workspace = true
 zeroize.workspace = true
+
+[lints]
+workspace = true

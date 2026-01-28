@@ -36,14 +36,14 @@
 extern crate alloc;
 
 #[cfg(feature = "alloc")]
+mod address;
+#[cfg(feature = "alloc")]
 mod derivation_style;
 #[cfg(feature = "alloc")]
 mod deriver;
 mod error;
 #[cfg(feature = "alloc")]
 mod standard_wallet;
-#[cfg(feature = "alloc")]
-mod utils;
 
 #[cfg(feature = "alloc")]
 pub use derivation_style::{DerivationStyle, ParseDerivationStyleError};
@@ -52,3 +52,6 @@ pub use deriver::{DerivedAddress, Deriver};
 pub use error::Error;
 #[cfg(feature = "alloc")]
 pub use standard_wallet::StandardWallet;
+
+/// A convenient Result type alias for kobe-eth operations.
+pub type Result<T> = core::result::Result<T, Error>;
