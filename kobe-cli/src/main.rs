@@ -1,8 +1,9 @@
 //! Kobe - A multi-chain cryptocurrency wallet CLI tool.
 //!
-//! Easily generate and manage wallets for Bitcoin and Ethereum.
+//! Easily generate and manage wallets for Bitcoin, Ethereum, and Solana.
 
 mod commands;
+pub mod qr;
 
 use clap::Parser;
 use commands::{Cli, Commands};

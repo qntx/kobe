@@ -4,16 +4,16 @@ default-members = ["kobe"]
 resolver = "3"
 
 [workspace.package]
-version = "0.4.1"
+version = "0.4.2"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/pyroth/kobe"
 
 [workspace.dependencies]
-kobe = { version = "0.4.1", path = "./kobe", default-features = false }
-kobe-btc = { version = "0.4.1", path = "./kobe-btc", default-features = false }
-kobe-eth = { version = "0.4.1", path = "./kobe-eth", default-features = false }
-kobe-sol = { version = "0.4.1", path = "./kobe-sol", default-features = false }
+kobe = { version = "0.4.2", path = "./kobe", default-features = false }
+kobe-btc = { version = "0.4.2", path = "./kobe-btc", default-features = false }
+kobe-eth = { version = "0.4.2", path = "./kobe-eth", default-features = false }
+kobe-sol = { version = "0.4.2", path = "./kobe-sol", default-features = false }
 
 alloy-primitives = { version = "1.5", default-features = false, features = ["k256"] }
 bip32 = { version = "0.5", default-features = false, features = ["secp256k1", "alloc"] }
@@ -21,11 +21,12 @@ bip39 = { version = "2.1", default-features = false }
 bitcoin = { version = "0.32", default-features = false }
 bs58 = { version = "0.5", default-features = false, features = ["alloc"] }
 clap = { version = "4.5", features = ["derive"] }
-colored = "3.0"
+colored = { version = "3.0" }
 ed25519-dalek = { version = "2.2", default-features = false }
 hex = { version = "0.4", default-features = false }
 hmac = { version = "0.12", default-features = false }
 k256 = { version = "0.13", default-features = false, features = ["ecdsa"] }
+qrcode = { version = "0.14"}
 rand_core = { version = "0.6", default-features = false, features = ["getrandom"] }
 sha2 = { version = "0.10", default-features = false }
 zeroize = { version = "1.7", default-features = false, features = ["derive"] }

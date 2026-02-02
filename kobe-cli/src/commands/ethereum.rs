@@ -55,10 +55,18 @@ enum EthereumSubcommand {
         /// Derivation path style for hardware wallet compatibility.
         #[arg(short, long, default_value = "standard")]
         style: CliDerivationStyle,
+
+        /// Display QR code for each address.
+        #[arg(long)]
+        qr: bool,
     },
 
     /// Generate a random single-key wallet (no mnemonic).
-    Random,
+    Random {
+        /// Display QR code for the address.
+        #[arg(long)]
+        qr: bool,
+    },
 
     /// Import wallet from mnemonic phrase.
     Import {
@@ -77,6 +85,10 @@ enum EthereumSubcommand {
         /// Derivation path style for hardware wallet compatibility.
         #[arg(short, long, default_value = "standard")]
         style: CliDerivationStyle,
+
+        /// Display QR code for each address.
+        #[arg(long)]
+        qr: bool,
     },
 
     /// Import wallet from private key.
@@ -84,6 +96,10 @@ enum EthereumSubcommand {
         /// Private key in hex format (with or without 0x prefix).
         #[arg(short, long)]
         key: String,
+
+        /// Display QR code for the address.
+        #[arg(long)]
+        qr: bool,
     },
 }
 
@@ -96,28 +112,30 @@ impl EthereumCommand {
                 passphrase,
                 count,
                 style,
+                qr,
             } => {
                 let wallet = Wallet::generate(words, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet);
-                print_wallet(&wallet, &deriver, count, style.into())?;
+                print_wallet(&wallet, &deriver, count, style.into(), qr)?;
             }
-            EthereumSubcommand::Random => {
+            EthereumSubcommand::Random { qr } => {
                 let wallet = StandardWallet::generate()?;
-                print_standard_wallet(&wallet);
+                print_standard_wallet(&wallet, qr);
             }
             EthereumSubcommand::Import {
                 mnemonic,
                 passphrase,
                 count,
                 style,
+                qr,
             } => {
                 let wallet = Wallet::from_mnemonic(&mnemonic, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet);
-                print_wallet(&wallet, &deriver, count, style.into())?;
+                print_wallet(&wallet, &deriver, count, style.into(), qr)?;
             }
-            EthereumSubcommand::ImportKey { key } => {
+            EthereumSubcommand::ImportKey { key, qr } => {
                 let wallet = StandardWallet::from_hex(&key)?;
-                print_standard_wallet(&wallet);
+                print_standard_wallet(&wallet, qr);
             }
         }
         Ok(())
@@ -130,6 +148,7 @@ fn print_wallet(
     deriver: &Deriver<'_>,
     count: u32,
     style: DerivationStyle,
+    show_qr: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let addresses = deriver.derive_many_with(style, 0, count)?;
 
@@ -148,6 +167,9 @@ fn print_wallet(
         println!("      {}         {}", "Path".cyan().bold(), addr.path);
         println!("      {}      {}", "Address".cyan().bold(), addr.address.green());
         println!("      {}  0x{}", "Private Key".cyan().bold(), addr.private_key_hex.as_str());
+        if show_qr {
+            crate::qr::render_to_terminal(&addr.address);
+        }
         if i < addresses.len() - 1 {
             println!();
         }
@@ -158,10 +180,13 @@ fn print_wallet(
 }
 
 #[rustfmt::skip]
-fn print_standard_wallet(wallet: &StandardWallet) {
+fn print_standard_wallet(wallet: &StandardWallet, show_qr: bool) {
     println!();
     println!("      {}      {}", "Address".cyan().bold(), wallet.address().green());
     println!("      {}  0x{}", "Private Key".cyan().bold(), wallet.secret_hex().as_str());
     println!("      {}   0x{}", "Public Key".cyan().bold(), wallet.pubkey_hex().dimmed());
+    if show_qr {
+        crate::qr::render_to_terminal(&wallet.address());
+    }
     println!();
 }

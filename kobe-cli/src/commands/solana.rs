@@ -65,10 +65,18 @@ enum SolanaSubcommand {
         /// Derivation path style for wallet compatibility.
         #[arg(short, long, default_value = "standard")]
         style: CliDerivationStyle,
+
+        /// Display QR code for each address.
+        #[arg(long)]
+        qr: bool,
     },
 
     /// Generate a random single-key wallet (no mnemonic).
-    Random,
+    Random {
+        /// Display QR code for the address.
+        #[arg(long)]
+        qr: bool,
+    },
 
     /// Import wallet from mnemonic phrase.
     Import {
@@ -87,6 +95,10 @@ enum SolanaSubcommand {
         /// Derivation path style for wallet compatibility.
         #[arg(short, long, default_value = "standard")]
         style: CliDerivationStyle,
+
+        /// Display QR code for each address.
+        #[arg(long)]
+        qr: bool,
     },
 
     /// Import wallet from private key.
@@ -94,6 +106,10 @@ enum SolanaSubcommand {
         /// Private key in hex format.
         #[arg(short, long)]
         key: String,
+
+        /// Display QR code for the address.
+        #[arg(long)]
+        qr: bool,
     },
 }
 
@@ -106,29 +122,31 @@ impl SolanaCommand {
                 passphrase,
                 count,
                 style,
+                qr,
             } => {
                 let wallet = Wallet::generate(words, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet);
-                print_wallet(&wallet, &deriver, count, style.into())?;
+                print_wallet(&wallet, &deriver, count, style.into(), qr)?;
             }
-            SolanaSubcommand::Random => {
+            SolanaSubcommand::Random { qr } => {
                 let wallet = StandardWallet::generate();
-                print_standard_wallet(&wallet);
+                print_standard_wallet(&wallet, qr);
             }
             SolanaSubcommand::Import {
                 mnemonic,
                 passphrase,
                 count,
                 style,
+                qr,
             } => {
                 let wallet = Wallet::from_mnemonic(&mnemonic, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet);
-                print_wallet(&wallet, &deriver, count, style.into())?;
+                print_wallet(&wallet, &deriver, count, style.into(), qr)?;
             }
-            SolanaSubcommand::ImportKey { key } => {
+            SolanaSubcommand::ImportKey { key, qr } => {
                 let key = key.strip_prefix("0x").unwrap_or(&key);
                 let wallet = StandardWallet::from_hex(key)?;
-                print_standard_wallet(&wallet);
+                print_standard_wallet(&wallet, qr);
             }
         }
         Ok(())
@@ -141,6 +159,7 @@ fn print_wallet(
     deriver: &Deriver<'_>,
     count: u32,
     style: DerivationStyle,
+    show_qr: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let addresses = deriver.derive_many_with(style, 0, count)?;
 
@@ -159,6 +178,9 @@ fn print_wallet(
         println!("      {}         {}", "Path".cyan().bold(), addr.path);
         println!("      {}      {}", "Address".cyan().bold(), addr.address.green());
         println!("      {}  {}", "Private Key".cyan().bold(), addr.private_key_hex.as_str());
+        if show_qr {
+            crate::qr::render_to_terminal(&addr.address);
+        }
         if i < addresses.len() - 1 {
             println!();
         }
@@ -169,10 +191,13 @@ fn print_wallet(
 }
 
 #[rustfmt::skip]
-fn print_standard_wallet(wallet: &StandardWallet) {
+fn print_standard_wallet(wallet: &StandardWallet, show_qr: bool) {
     println!();
     println!("      {}      {}", "Address".cyan().bold(), wallet.address().green());
     println!("      {}  {}", "Private Key".cyan().bold(), wallet.secret_hex().as_str());
     println!("      {}   {}", "Public Key".cyan().bold(), wallet.pubkey_hex().dimmed());
+    if show_qr {
+        crate::qr::render_to_terminal(&wallet.address());
+    }
     println!();
 }

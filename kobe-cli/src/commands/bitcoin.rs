@@ -35,6 +35,10 @@ enum BitcoinSubcommand {
         /// Number of addresses to derive.
         #[arg(short, long, default_value = "1")]
         count: u32,
+
+        /// Display QR code for each address.
+        #[arg(long)]
+        qr: bool,
     },
 
     /// Generate a random single-key wallet (no mnemonic).
@@ -46,6 +50,10 @@ enum BitcoinSubcommand {
         /// Address type to generate.
         #[arg(short, long, value_enum, default_value = "native-segwit")]
         address_type: CliAddressType,
+
+        /// Display QR code for the address.
+        #[arg(long)]
+        qr: bool,
     },
 
     /// Import wallet from mnemonic phrase.
@@ -69,6 +77,10 @@ enum BitcoinSubcommand {
         /// Number of addresses to derive.
         #[arg(short, long, default_value = "1")]
         count: u32,
+
+        /// Display QR code for each address.
+        #[arg(long)]
+        qr: bool,
     },
 
     /// Import wallet from private key (WIF format).
@@ -80,6 +92,10 @@ enum BitcoinSubcommand {
         /// Address type to generate.
         #[arg(short, long, value_enum, default_value = "native-segwit")]
         address_type: CliAddressType,
+
+        /// Display QR code for the address.
+        #[arg(long)]
+        qr: bool,
     },
 }
 
@@ -116,6 +132,7 @@ impl BitcoinCommand {
                 passphrase,
                 address_type,
                 count,
+                qr,
             } => {
                 let network = if testnet {
                     Network::Testnet
@@ -125,11 +142,12 @@ impl BitcoinCommand {
                 let addr_type = AddressType::from(address_type);
                 let wallet = Wallet::generate(words, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet, network)?;
-                print_wallet(&wallet, &deriver, addr_type, count)?;
+                print_wallet(&wallet, &deriver, addr_type, count, qr)?;
             }
             BitcoinSubcommand::Random {
                 testnet,
                 address_type,
+                qr,
             } => {
                 let network = if testnet {
                     Network::Testnet
@@ -138,7 +156,7 @@ impl BitcoinCommand {
                 };
                 let addr_type = AddressType::from(address_type);
                 let wallet = StandardWallet::generate(network, addr_type)?;
-                print_standard_wallet(&wallet);
+                print_standard_wallet(&wallet, qr);
             }
             BitcoinSubcommand::Import {
                 mnemonic,
@@ -146,6 +164,7 @@ impl BitcoinCommand {
                 testnet,
                 address_type,
                 count,
+                qr,
             } => {
                 let network = if testnet {
                     Network::Testnet
@@ -155,12 +174,16 @@ impl BitcoinCommand {
                 let addr_type = AddressType::from(address_type);
                 let wallet = Wallet::from_mnemonic(&mnemonic, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet, network)?;
-                print_wallet(&wallet, &deriver, addr_type, count)?;
+                print_wallet(&wallet, &deriver, addr_type, count, qr)?;
             }
-            BitcoinSubcommand::ImportKey { key, address_type } => {
+            BitcoinSubcommand::ImportKey {
+                key,
+                address_type,
+                qr,
+            } => {
                 let addr_type = AddressType::from(address_type);
                 let wallet = StandardWallet::from_wif(&key, addr_type)?;
-                print_standard_wallet(&wallet);
+                print_standard_wallet(&wallet, qr);
             }
         }
         Ok(())
@@ -173,6 +196,7 @@ fn print_wallet(
     deriver: &Deriver<'_>,
     address_type: AddressType,
     count: u32,
+    show_qr: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let network_str = match deriver.network() {
         Network::Mainnet => "mainnet",
@@ -196,6 +220,9 @@ fn print_wallet(
         println!("      {}         {}", "Path".cyan().bold(), addr.path);
         println!("      {}      {}", "Address".cyan().bold(), addr.address.green());
         println!("      {}  {}", "Private Key".cyan().bold(), addr.private_key_wif.as_str());
+        if show_qr {
+            crate::qr::render_to_terminal(&addr.address);
+        }
         if i < addresses.len() - 1 {
             println!();
         }
@@ -206,7 +233,7 @@ fn print_wallet(
 }
 
 #[rustfmt::skip]
-fn print_standard_wallet(wallet: &StandardWallet) {
+fn print_standard_wallet(wallet: &StandardWallet, show_qr: bool) {
     let network_str = match wallet.network() {
         Network::Mainnet => "mainnet",
         Network::Testnet => "testnet",
@@ -218,5 +245,8 @@ fn print_standard_wallet(wallet: &StandardWallet) {
     println!("      {}      {}", "Address".cyan().bold(), wallet.address().green());
     println!("      {}  {}", "Private Key".cyan().bold(), wallet.to_wif().as_str());
     println!("      {}   {}", "Public Key".cyan().bold(), wallet.pubkey_hex().dimmed());
+    if show_qr {
+        crate::qr::render_to_terminal(&wallet.address());
+    }
     println!();
 }
