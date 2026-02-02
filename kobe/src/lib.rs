@@ -42,5 +42,10 @@ pub use error::Error;
 #[cfg(feature = "alloc")]
 pub use wallet::Wallet;
 
+pub use bip39::Language;
+
+#[cfg(feature = "rand_core")]
+pub use bip39::rand_core;
+
 /// A convenient Result type alias for kobe-core operations.
 pub type Result<T> = core::result::Result<T, Error>;

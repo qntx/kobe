@@ -127,6 +127,46 @@ impl DerivedKey {
             .derive_hardened(0)
     }
 
+    /// Derive key at a custom path.
+    ///
+    /// Path format: `m/44'/501'/0'/0'` (all components must be hardened for Ed25519)
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the path is invalid or derivation fails.
+    pub fn derive_path(seed: &[u8], path: &str) -> Result<Self, Error> {
+        let path = path.trim();
+        if !path.starts_with("m/") && !path.starts_with("m") {
+            return Err(Error::Derivation(alloc::format!(
+                "invalid path: must start with 'm'"
+            )));
+        }
+
+        let components = path
+            .trim_start_matches("m/")
+            .trim_start_matches('m')
+            .split('/')
+            .filter(|s| !s.is_empty());
+
+        let mut current = Self::from_seed(seed)?;
+
+        for component in components {
+            let index = Self::parse_path_component(component)?;
+            current = current.derive_hardened(index)?;
+        }
+
+        Ok(current)
+    }
+
+    /// Parse a path component like "44'" or "501'" to an index.
+    fn parse_path_component(component: &str) -> Result<u32, Error> {
+        // Ed25519 only supports hardened derivation
+        let component = component.trim_end_matches('\'').trim_end_matches('h');
+        component
+            .parse::<u32>()
+            .map_err(|_| Error::Derivation(alloc::format!("invalid path component: {component}")))
+    }
+
     /// Convert to Ed25519 signing key.
     pub fn to_signing_key(&self) -> SigningKey {
         SigningKey::from_bytes(&self.private_key)

@@ -178,7 +178,7 @@ fn print_wallet(
         Network::Mainnet => "mainnet",
         Network::Testnet => "testnet",
     };
-    let addresses = deriver.derive_many(address_type, 0, false, 0, count)?;
+    let addresses = deriver.derive_many_with(address_type, 0, count)?;
 
     println!();
     println!("      {}      {}", "Network".cyan().bold(), network_str);

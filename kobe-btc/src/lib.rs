@@ -19,8 +19,11 @@
 //!
 //! // Derive Bitcoin addresses from the wallet
 //! let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-//! let addr = deriver.derive(AddressType::P2wpkh, 0, false, 0).unwrap();
+//! let addr = deriver.derive(0).unwrap();  // P2WPKH by default
 //! println!("Address: {}", addr.address);
+//!
+//! // Or with specific address type
+//! let addr = deriver.derive_with(AddressType::P2pkh, 0).unwrap();
 //! ```
 
 #![cfg_attr(not(feature = "std"), no_std)]

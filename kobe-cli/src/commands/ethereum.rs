@@ -131,7 +131,7 @@ fn print_wallet(
     count: u32,
     style: DerivationStyle,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let addresses = deriver.derive_many_with_style(style, 0, count)?;
+    let addresses = deriver.derive_many_with(style, 0, count)?;
 
     println!();
     println!("      {}     {}", "Mnemonic".cyan().bold(), wallet.mnemonic());

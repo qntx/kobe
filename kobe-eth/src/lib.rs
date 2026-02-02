@@ -22,11 +22,11 @@
 //!
 //! // Derive Ethereum addresses from the wallet
 //! let deriver = Deriver::new(&wallet);
-//! let addr = deriver.derive(0, false, 0).unwrap();
+//! let addr = deriver.derive(0).unwrap();  // Standard style by default
 //! println!("Address: {}", addr.address);
 //!
 //! // Derive using Ledger Live style
-//! let addr = deriver.derive_with_style(DerivationStyle::LedgerLive, 0).unwrap();
+//! let addr = deriver.derive_with(DerivationStyle::LedgerLive, 0).unwrap();
 //! println!("Ledger Live Address: {}", addr.address);
 //! ```
 

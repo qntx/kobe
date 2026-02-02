@@ -57,6 +57,21 @@ impl StandardWallet {
         })
     }
 
+    /// Create a wallet from a raw 32-byte private key.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the private key is invalid.
+    pub fn from_private_key(private_key: &[u8; 32]) -> Result<Self, Error> {
+        let private_key = SigningKey::from_slice(private_key).map_err(|_| Error::InvalidPrivateKey)?;
+        let address = Self::derive_address(&private_key);
+
+        Ok(Self {
+            private_key,
+            address,
+        })
+    }
+
     /// Import a wallet from a private key hex string.
     ///
     /// # Errors

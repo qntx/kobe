@@ -109,6 +109,55 @@ impl StandardWallet {
         })
     }
 
+    /// Import a wallet from a hex-encoded private key.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the hex is invalid.
+    ///
+    /// # Panics
+    ///
+    /// This function will not panic under normal circumstances.
+    /// The internal `expect` is guaranteed to succeed for valid private keys.
+    pub fn from_private_key_hex(
+        hex_str: &str,
+        network: Network,
+        address_type: AddressType,
+    ) -> Result<Self, Error> {
+        let hex_str = hex_str.strip_prefix("0x").unwrap_or(hex_str);
+        let bytes = hex::decode(hex_str).map_err(|_| Error::InvalidHex)?;
+
+        if bytes.len() != 32 {
+            return Err(Error::InvalidPrivateKey);
+        }
+
+        let secret_key = bitcoin::secp256k1::SecretKey::from_slice(&bytes)
+            .map_err(|_| Error::InvalidPrivateKey)?;
+
+        let private_key = PrivateKey::new(secret_key, network.to_bitcoin_network());
+
+        let secp = bitcoin::secp256k1::Secp256k1::new();
+        let public_key = CompressedPublicKey::from_private_key(&secp, &private_key)
+            .expect("valid private key always produces valid public key");
+
+        let address = create_address(&public_key, network, address_type);
+
+        Ok(Self {
+            private_key,
+            public_key,
+            address,
+            network,
+            address_type,
+        })
+    }
+
+    /// Get the private key in hex format (zeroized on drop).
+    #[inline]
+    #[must_use]
+    pub fn private_key_hex(&self) -> Zeroizing<String> {
+        Zeroizing::new(hex::encode(self.private_key.inner.secret_bytes()))
+    }
+
     /// Get the private key in WIF format (zeroized on drop).
     #[inline]
     #[must_use]

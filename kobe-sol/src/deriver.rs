@@ -1,6 +1,6 @@
 //! Solana address derivation from HD wallet.
 
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use ed25519_dalek::VerifyingKey;
 use zeroize::Zeroizing;
@@ -38,6 +38,10 @@ pub struct DerivedAddress {
 /// let deriver = Deriver::new(&wallet);
 /// let addr = deriver.derive(0).unwrap();
 /// println!("Address: {}", addr.address);
+///
+/// // With specific derivation style
+/// use kobe_sol::DerivationStyle;
+/// let addr = deriver.derive_with(DerivationStyle::LedgerLive, 0).unwrap();
 /// ```
 #[derive(Debug)]
 pub struct Deriver<'a> {
@@ -53,29 +57,40 @@ impl<'a> Deriver<'a> {
         Self { wallet }
     }
 
-    /// Derive a Solana address using the default Standard style.
+    /// Derive a Solana address using the Standard derivation style.
     ///
     /// Uses path: `m/44'/501'/index'/0'` (Phantom, Backpack, etc.)
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - The address index
     ///
     /// # Errors
     ///
     /// Returns an error if derivation fails.
     #[inline]
     pub fn derive(&self, index: u32) -> Result<DerivedAddress, Error> {
-        self.derive_with_style(DerivationStyle::Standard, index)
+        self.derive_with(DerivationStyle::Standard, index)
     }
 
     /// Derive a Solana address with a specific derivation style.
+    ///
+    /// This method supports different wallet path formats:
+    /// - **Standard** (Phantom/Backpack): `m/44'/501'/index'/0'`
+    /// - **Trust**: `m/44'/501'/index'`
+    /// - **Ledger Live**: `m/44'/501'/index'/0'/0'`
+    /// - **Legacy**: `m/44'/501'/0'/index'`
+    ///
+    /// # Arguments
+    ///
+    /// * `style` - The derivation style to use
+    /// * `index` - The address/account index
     ///
     /// # Errors
     ///
     /// Returns an error if derivation fails.
     #[allow(deprecated)]
-    pub fn derive_with_style(
-        &self,
-        style: DerivationStyle,
-        index: u32,
-    ) -> Result<DerivedAddress, Error> {
+    pub fn derive_with(&self, style: DerivationStyle, index: u32) -> Result<DerivedAddress, Error> {
         let derived = match style {
             DerivationStyle::Standard => {
                 DerivedKey::derive_standard_path(self.wallet.seed(), index)?
@@ -99,29 +114,71 @@ impl<'a> Deriver<'a> {
         })
     }
 
-    /// Derive multiple addresses using the default Standard style.
+    /// Derive multiple addresses using the Standard derivation style.
+    ///
+    /// # Arguments
+    ///
+    /// * `start` - Starting address index
+    /// * `count` - Number of addresses to derive
     ///
     /// # Errors
     ///
     /// Returns an error if any derivation fails.
-    pub fn derive_many(&self, start_index: u32, count: u32) -> Result<Vec<DerivedAddress>, Error> {
-        self.derive_many_with_style(DerivationStyle::Standard, start_index, count)
+    #[inline]
+    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAddress>, Error> {
+        self.derive_many_with(DerivationStyle::Standard, start, count)
     }
 
     /// Derive multiple addresses with a specific derivation style.
     ///
+    /// # Arguments
+    ///
+    /// * `style` - The derivation style to use
+    /// * `start` - Starting index
+    /// * `count` - Number of addresses to derive
+    ///
     /// # Errors
     ///
     /// Returns an error if any derivation fails.
-    pub fn derive_many_with_style(
+    pub fn derive_many_with(
         &self,
         style: DerivationStyle,
-        start_index: u32,
+        start: u32,
         count: u32,
     ) -> Result<Vec<DerivedAddress>, Error> {
-        (start_index..start_index + count)
-            .map(|account| self.derive_with_style(style, account))
+        (start..start + count)
+            .map(|index| self.derive_with(style, index))
             .collect()
+    }
+
+    /// Derive an address at a custom derivation path.
+    ///
+    /// This is the lowest-level derivation method, allowing full control
+    /// over the derivation path.
+    ///
+    /// **Note**: Ed25519 (Solana) only supports hardened derivation.
+    /// All path components will be treated as hardened.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - SLIP-0010 derivation path (e.g., `m/44'/501'/0'/0'`)
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if derivation fails.
+    pub fn derive_path(&self, path: &str) -> Result<DerivedAddress, Error> {
+        let derived = DerivedKey::derive_path(self.wallet.seed(), path)?;
+
+        let signing_key = derived.to_signing_key();
+        let verifying_key: VerifyingKey = signing_key.verifying_key();
+        let public_key_bytes = verifying_key.as_bytes();
+
+        Ok(DerivedAddress {
+            path: path.to_string(),
+            private_key_hex: Zeroizing::new(hex::encode(derived.private_key.as_slice())),
+            public_key_hex: hex::encode(public_key_bytes),
+            address: bs58::encode(public_key_bytes).into_string(),
+        })
     }
 }
 
@@ -178,24 +235,20 @@ mod tests {
     }
 
     #[test]
-    fn test_derive_with_trust_style() {
+    fn test_derive_with_trust() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet);
-        let addr = deriver
-            .derive_with_style(DerivationStyle::Trust, 0)
-            .unwrap();
+        let addr = deriver.derive_with(DerivationStyle::Trust, 0).unwrap();
 
         assert_eq!(addr.path, "m/44'/501'/0'");
         assert!(addr.address.len() >= 32 && addr.address.len() <= 44);
     }
 
     #[test]
-    fn test_derive_with_ledger_live_style() {
+    fn test_derive_with_ledger_live() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet);
-        let addr = deriver
-            .derive_with_style(DerivationStyle::LedgerLive, 0)
-            .unwrap();
+        let addr = deriver.derive_with(DerivationStyle::LedgerLive, 0).unwrap();
 
         assert_eq!(addr.path, "m/44'/501'/0'/0'/0'");
         assert!(addr.address.len() >= 32 && addr.address.len() <= 44);
@@ -206,18 +259,10 @@ mod tests {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet);
 
-        let standard = deriver
-            .derive_with_style(DerivationStyle::Standard, 0)
-            .unwrap();
-        let trust = deriver
-            .derive_with_style(DerivationStyle::Trust, 0)
-            .unwrap();
-        let ledger_live = deriver
-            .derive_with_style(DerivationStyle::LedgerLive, 0)
-            .unwrap();
-        let legacy = deriver
-            .derive_with_style(DerivationStyle::Legacy, 0)
-            .unwrap();
+        let standard = deriver.derive_with(DerivationStyle::Standard, 0).unwrap();
+        let trust = deriver.derive_with(DerivationStyle::Trust, 0).unwrap();
+        let ledger_live = deriver.derive_with(DerivationStyle::LedgerLive, 0).unwrap();
+        let legacy = deriver.derive_with(DerivationStyle::Legacy, 0).unwrap();
 
         // All styles should produce different addresses
         assert_ne!(standard.address, trust.address);

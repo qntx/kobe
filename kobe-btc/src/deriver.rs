@@ -27,8 +27,11 @@ use crate::{AddressType, DerivationPath, Error, Network};
 ///
 /// let wallet = Wallet::generate(12, None).unwrap();
 /// let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-/// let addr = deriver.derive(AddressType::P2wpkh, 0, false, 0).unwrap();
+/// let addr = deriver.derive(0).unwrap();  // P2WPKH by default
 /// println!("Address: {}", addr.address);
+///
+/// // With specific address type
+/// let addr = deriver.derive_with(AddressType::P2pkh, 0).unwrap();
 /// ```
 #[derive(Debug)]
 pub struct Deriver<'a> {
@@ -74,36 +77,94 @@ impl<'a> Deriver<'a> {
         })
     }
 
-    /// Derive an address using BIP44/49/84 standard path.
+    /// Derive a Bitcoin address using P2WPKH (Native SegWit) by default.
+    ///
+    /// Uses path: `m/84'/0'/0'/0/{index}` for mainnet
     ///
     /// # Arguments
     ///
-    /// * `address_type` - Type of address (determines BIP purpose: 44/49/84)
-    /// * `account` - Account index (usually 0)
-    /// * `change` - Whether this is a change address
-    /// * `address_index` - Address index within the account
+    /// * `index` - The address index
     ///
     /// # Errors
     ///
     /// Returns an error if derivation fails.
-    pub fn derive(
+    #[inline]
+    pub fn derive(&self, index: u32) -> Result<DerivedAddress, Error> {
+        self.derive_with(AddressType::P2wpkh, index)
+    }
+
+    /// Derive a Bitcoin address with a specific address type.
+    ///
+    /// This method supports different address formats:
+    /// - **P2pkh** (Legacy): `m/44'/coin'/0'/0/{index}`
+    /// - **P2shP2wpkh** (Nested SegWit): `m/49'/coin'/0'/0/{index}`
+    /// - **P2wpkh** (Native SegWit): `m/84'/coin'/0'/0/{index}`
+    /// - **P2tr** (Taproot): `m/86'/coin'/0'/0/{index}`
+    ///
+    /// # Arguments
+    ///
+    /// * `address_type` - Type of address (determines BIP purpose: 44/49/84/86)
+    /// * `index` - The address index
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if derivation fails.
+    #[inline]
+    pub fn derive_with(
         &self,
         address_type: AddressType,
-        account: u32,
-        change: bool,
-        address_index: u32,
+        index: u32,
     ) -> Result<DerivedAddress, Error> {
-        let path = DerivationPath::bip_standard(
-            address_type,
-            self.network,
-            account,
-            change,
-            address_index,
-        );
-        self.derive_at_path(&path, address_type)
+        let path = DerivationPath::bip_standard(address_type, self.network, 0, false, index);
+        self.derive_path(&path, address_type)
+    }
+
+    /// Derive multiple addresses using P2WPKH (Native SegWit) by default.
+    ///
+    /// # Arguments
+    ///
+    /// * `start` - Starting address index
+    /// * `count` - Number of addresses to derive
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if any derivation fails.
+    #[inline]
+    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAddress>, Error> {
+        self.derive_many_with(AddressType::P2wpkh, start, count)
+    }
+
+    /// Derive multiple addresses with a specific address type.
+    ///
+    /// # Arguments
+    ///
+    /// * `address_type` - Type of address to derive
+    /// * `start` - Starting index
+    /// * `count` - Number of addresses to derive
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if any derivation fails.
+    pub fn derive_many_with(
+        &self,
+        address_type: AddressType,
+        start: u32,
+        count: u32,
+    ) -> Result<Vec<DerivedAddress>, Error> {
+        (start..start + count)
+            .map(|index| self.derive_with(address_type, index))
+            .collect()
     }
 
     /// Derive an address at a custom derivation path.
+    ///
+    /// This is the lowest-level derivation method, allowing full control
+    /// over the derivation path.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - BIP-32 derivation path
+    /// * `address_type` - Type of address to generate
     ///
     /// # Errors
     ///
@@ -113,7 +174,7 @@ impl<'a> Deriver<'a> {
     ///
     /// This function will not panic under normal circumstances.
     /// The internal `expect` is guaranteed to succeed for valid private keys.
-    pub fn derive_at_path(
+    pub fn derive_path(
         &self,
         path: &DerivationPath,
         address_type: AddressType,
@@ -140,32 +201,6 @@ impl<'a> Deriver<'a> {
         })
     }
 
-    /// Derive multiple addresses in sequence.
-    ///
-    /// # Arguments
-    ///
-    /// * `address_type` - Type of address to derive
-    /// * `account` - Account index (usually 0)
-    /// * `change` - Whether these are change addresses
-    /// * `start_index` - Starting address index
-    /// * `count` - Number of addresses to derive
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if any derivation fails.
-    pub fn derive_many(
-        &self,
-        address_type: AddressType,
-        account: u32,
-        change: bool,
-        start_index: u32,
-        count: u32,
-    ) -> Result<Vec<DerivedAddress>, Error> {
-        (start_index..start_index + count)
-            .map(|index| self.derive(address_type, account, change, index))
-            .collect()
-    }
-
     /// Get the network.
     #[must_use]
     pub const fn network(&self) -> Network {
@@ -184,42 +219,51 @@ mod tests {
     }
 
     #[test]
-    fn test_derive_p2wpkh() {
+    fn test_derive_default() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-        let addr = deriver.derive(AddressType::P2wpkh, 0, false, 0).unwrap();
+        let addr = deriver.derive(0).unwrap();
+
+        // Default is P2WPKH
+        assert!(addr.address.starts_with("bc1q"));
+        assert_eq!(addr.path.to_string(), "m/84'/0'/0'/0/0");
+    }
+
+    #[test]
+    fn test_derive_with_p2wpkh() {
+        let wallet = test_wallet();
+        let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
+        let addr = deriver.derive_with(AddressType::P2wpkh, 0).unwrap();
 
         assert!(addr.address.starts_with("bc1q"));
         assert_eq!(addr.path.to_string(), "m/84'/0'/0'/0/0");
     }
 
     #[test]
-    fn test_derive_p2pkh() {
+    fn test_derive_with_p2pkh() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-        let addr = deriver.derive(AddressType::P2pkh, 0, false, 0).unwrap();
+        let addr = deriver.derive_with(AddressType::P2pkh, 0).unwrap();
 
         assert!(addr.address.starts_with('1'));
         assert_eq!(addr.path.to_string(), "m/44'/0'/0'/0/0");
     }
 
     #[test]
-    fn test_derive_p2sh() {
+    fn test_derive_with_p2sh() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-        let addr = deriver
-            .derive(AddressType::P2shP2wpkh, 0, false, 0)
-            .unwrap();
+        let addr = deriver.derive_with(AddressType::P2shP2wpkh, 0).unwrap();
 
         assert!(addr.address.starts_with('3'));
         assert_eq!(addr.path.to_string(), "m/49'/0'/0'/0/0");
     }
 
     #[test]
-    fn test_derive_p2tr() {
+    fn test_derive_with_p2tr() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-        let addr = deriver.derive(AddressType::P2tr, 0, false, 0).unwrap();
+        let addr = deriver.derive_with(AddressType::P2tr, 0).unwrap();
 
         assert!(addr.address.starts_with("bc1p"));
         assert_eq!(addr.path.to_string(), "m/86'/0'/0'/0/0");
@@ -229,19 +273,17 @@ mod tests {
     fn test_derive_testnet() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet, Network::Testnet).unwrap();
-        let addr = deriver.derive(AddressType::P2wpkh, 0, false, 0).unwrap();
+        let addr = deriver.derive(0).unwrap();
 
         assert!(addr.address.starts_with("tb1q"));
         assert_eq!(addr.path.to_string(), "m/84'/1'/0'/0/0");
     }
 
     #[test]
-    fn test_derive_multiple() {
+    fn test_derive_many() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-        let addrs = deriver
-            .derive_many(AddressType::P2wpkh, 0, false, 0, 5)
-            .unwrap();
+        let addrs = deriver.derive_many(0, 5).unwrap();
 
         assert_eq!(addrs.len(), 5);
 
@@ -255,6 +297,18 @@ mod tests {
     }
 
     #[test]
+    fn test_derive_many_with() {
+        let wallet = test_wallet();
+        let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
+        let addrs = deriver.derive_many_with(AddressType::P2pkh, 0, 3).unwrap();
+
+        assert_eq!(addrs.len(), 3);
+        for addr in &addrs {
+            assert!(addr.address.starts_with('1'));
+        }
+    }
+
+    #[test]
     fn test_passphrase_changes_addresses() {
         let wallet1 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
         let wallet2 = Wallet::from_mnemonic(TEST_MNEMONIC, Some("password")).unwrap();
@@ -262,8 +316,8 @@ mod tests {
         let deriver1 = Deriver::new(&wallet1, Network::Mainnet).unwrap();
         let deriver2 = Deriver::new(&wallet2, Network::Mainnet).unwrap();
 
-        let addr1 = deriver1.derive(AddressType::P2wpkh, 0, false, 0).unwrap();
-        let addr2 = deriver2.derive(AddressType::P2wpkh, 0, false, 0).unwrap();
+        let addr1 = deriver1.derive(0).unwrap();
+        let addr2 = deriver2.derive(0).unwrap();
 
         // Same mnemonic with different passphrase should produce different addresses
         assert_ne!(addr1.address, addr2.address);

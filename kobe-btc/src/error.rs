@@ -23,6 +23,10 @@ pub enum Error {
     InvalidDerivationPath(String),
     /// Invalid WIF (Wallet Import Format) private key.
     InvalidWif,
+    /// Invalid hex string.
+    InvalidHex,
+    /// Invalid private key.
+    InvalidPrivateKey,
     /// Secp256k1 error.
     Secp256k1(bitcoin::secp256k1::Error),
 }
@@ -38,6 +42,8 @@ impl fmt::Display for Error {
             #[cfg(feature = "alloc")]
             Self::InvalidDerivationPath(p) => write!(f, "invalid derivation path: {p}"),
             Self::InvalidWif => write!(f, "invalid WIF format"),
+            Self::InvalidHex => write!(f, "invalid hex string"),
+            Self::InvalidPrivateKey => write!(f, "invalid private key"),
             Self::Secp256k1(e) => write!(f, "secp256k1 error: {e}"),
         }
     }
@@ -50,7 +56,7 @@ impl std::error::Error for Error {
             Self::Mnemonic(e) => Some(e),
             Self::Bip32(e) => Some(e),
             Self::Secp256k1(e) => Some(e),
-            Self::InvalidWordCount(_) | Self::InvalidWif => None,
+            Self::InvalidWordCount(_) | Self::InvalidWif | Self::InvalidHex | Self::InvalidPrivateKey => None,
             #[cfg(feature = "alloc")]
             Self::InvalidDerivationPath(_) => None,
         }
