@@ -2,6 +2,9 @@
 //!
 //! A standard wallet uses a single randomly generated private key,
 //! without mnemonic or HD derivation.
+//!
+#[cfg(feature = "rand")]
+use rand_core::OsRng;
 
 use alloc::string::String;
 use ed25519_dalek::{SigningKey, VerifyingKey};
@@ -32,18 +35,12 @@ pub struct StandardWallet {
 impl StandardWallet {
     /// Generate a new random wallet.
     ///
-    /// # Errors
-    ///
-    /// Returns an error if random generation fails.
+    /// Uses the operating system's cryptographically secure random number generator.
     #[cfg(feature = "rand")]
-    pub fn generate() -> Result<Self, Error> {
-        let mut bytes = [0u8; 32];
-        getrandom::fill(&mut bytes)
-            .map_err(|e| Error::Derivation(alloc::format!("random generation failed: {e}")))?;
-        let signing_key = SigningKey::from_bytes(&bytes);
-        // Zeroize the temporary buffer
-        bytes.fill(0);
-        Ok(Self { signing_key })
+    #[must_use]
+    pub fn generate() -> Self {
+        let signing_key = SigningKey::generate(&mut OsRng);
+        Self { signing_key }
     }
 
     /// Create a wallet from raw 32-byte secret key.
@@ -111,7 +108,7 @@ mod tests {
     #[cfg(feature = "rand")]
     #[test]
     fn test_generate() {
-        let wallet = StandardWallet::generate().unwrap();
+        let wallet = StandardWallet::generate();
         let address = wallet.address();
 
         // Solana addresses are 32-44 characters in Base58

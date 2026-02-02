@@ -112,7 +112,7 @@ impl SolanaCommand {
                 print_wallet(&wallet, &deriver, count, style.into())?;
             }
             SolanaSubcommand::Random => {
-                let wallet = StandardWallet::generate()?;
+                let wallet = StandardWallet::generate();
                 print_standard_wallet(&wallet);
             }
             SolanaSubcommand::Import {
