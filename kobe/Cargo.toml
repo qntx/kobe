@@ -2,25 +2,21 @@
 name = "kobe"
 version.workspace = true
 edition.workspace = true
-description = "A multi-chain cryptocurrency wallet CLI tool"
+description = "Core wallet types for Kobe multi-chain wallet CLI"
 license.workspace = true
-readme = "../README.md"
 repository.workspace = true
-keywords = ["crypto", "wallet", "bitcoin", "ethereum", "cli"]
-categories = ["command-line-utilities", "cryptography"]
+keywords = ["crypto", "wallet", "bip39", "mnemonic", "no_std"]
+categories = ["cryptography", "no-std"]
 
-[[bin]]
-name = "kobe"
-path = "src/main.rs"
+[features]
+default = ["std"]
+std = ["alloc", "bip39/std", "zeroize/std"]
+alloc = ["bip39/alloc", "zeroize/alloc"]
+# Enable random mnemonic generation (requires std or custom RNG)
+rand = ["bip39/rand"]
 
 [dependencies]
-kobe-core = { workspace = true, features = ["std", "rand"] }
-kobe-btc = { workspace = true, features = ["std", "rand"] }
-kobe-eth = { workspace = true, features = ["std", "rand"] }
-kobe-sol = { workspace = true, features = ["std", "rand"] }
-clap.workspace = true
-colored.workspace = true
-hex.workspace = true
+bip39.workspace = true
 zeroize.workspace = true
 
 [lints]

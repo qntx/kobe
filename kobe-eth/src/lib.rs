@@ -1,6 +1,6 @@
 //! Ethereum wallet utilities for Kobe CLI.
 //!
-//! Provides Ethereum address derivation from a unified [`kobe_core::Wallet`].
+//! Provides Ethereum address derivation from a unified [`kobe::Wallet`].
 //!
 //! # Features
 //!
@@ -11,7 +11,7 @@
 //! # Usage
 //!
 //! ```
-//! use kobe_core::Wallet;
+//! use kobe::Wallet;
 //! use kobe_eth::{Deriver, DerivationStyle};
 //!
 //! // Create a wallet from mnemonic

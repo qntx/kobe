@@ -9,7 +9,7 @@ use alloc::{
 
 use bip32::{DerivationPath, XPrv};
 use k256::ecdsa::SigningKey;
-use kobe_core::Wallet;
+use kobe::Wallet;
 use zeroize::Zeroizing;
 
 use crate::Error;
@@ -18,13 +18,13 @@ use crate::derivation_style::DerivationStyle;
 
 /// Ethereum address deriver from a unified wallet seed.
 ///
-/// This deriver takes a seed from [`kobe_core::Wallet`] and derives
+/// This deriver takes a seed from [`kobe::Wallet`] and derives
 /// Ethereum addresses following BIP32/44 standards.
 ///
 /// # Example
 ///
 /// ```
-/// use kobe_core::Wallet;
+/// use kobe::Wallet;
 /// use kobe_eth::Deriver;
 ///
 /// let wallet = Wallet::generate(12, None).unwrap();

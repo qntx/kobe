@@ -1,0 +1,27 @@
+[package]
+name = "kobe-cli"
+version.workspace = true
+edition.workspace = true
+description = "A multi-chain cryptocurrency wallet CLI tool"
+license.workspace = true
+readme = "../README.md"
+repository.workspace = true
+keywords = ["crypto", "wallet", "bitcoin", "ethereum", "cli"]
+categories = ["command-line-utilities", "cryptography"]
+
+[[bin]]
+name = "kobe"
+path = "src/main.rs"
+
+[dependencies]
+kobe = { workspace = true, features = ["std", "rand"] }
+kobe-btc = { workspace = true, features = ["std", "rand"] }
+kobe-eth = { workspace = true, features = ["std", "rand"] }
+kobe-sol = { workspace = true, features = ["std", "rand"] }
+clap.workspace = true
+colored.workspace = true
+hex.workspace = true
+zeroize.workspace = true
+
+[lints]
+workspace = true

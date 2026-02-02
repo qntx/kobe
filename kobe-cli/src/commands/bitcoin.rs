@@ -2,8 +2,8 @@
 
 use clap::{Args, Subcommand, ValueEnum};
 use colored::Colorize;
+use kobe::Wallet;
 use kobe_btc::{AddressType, Deriver, Network, StandardWallet};
-use kobe_core::Wallet;
 
 /// Bitcoin wallet operations.
 #[derive(Args)]

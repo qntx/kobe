@@ -1,6 +1,6 @@
 //! Bitcoin wallet utilities for Kobe CLI.
 //!
-//! Provides Bitcoin address derivation from a unified [`kobe_core::Wallet`].
+//! Provides Bitcoin address derivation from a unified [`kobe::Wallet`].
 //!
 //! # Features
 //!
@@ -11,7 +11,7 @@
 //! # Usage
 //!
 //! ```
-//! use kobe_core::Wallet;
+//! use kobe::Wallet;
 //! use kobe_btc::{Deriver, Network, AddressType};
 //!
 //! // Create a wallet from kobe-core

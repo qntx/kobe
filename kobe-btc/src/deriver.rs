@@ -8,7 +8,7 @@ use alloc::{
 
 use bitcoin::{PrivateKey, bip32::Xpriv, key::CompressedPublicKey};
 use core::marker::PhantomData;
-use kobe_core::Wallet;
+use kobe::Wallet;
 use zeroize::Zeroizing;
 
 use crate::address::create_address;
@@ -16,13 +16,13 @@ use crate::{AddressType, DerivationPath, Error, Network};
 
 /// Bitcoin address deriver from a unified wallet seed.
 ///
-/// This deriver takes a seed from [`kobe_core::Wallet`] and derives
+/// This deriver takes a seed from [`kobe::Wallet`] and derives
 /// Bitcoin addresses following BIP32/44/49/84 standards.
 ///
 /// # Example
 ///
 /// ```
-/// use kobe_core::Wallet;
+/// use kobe::Wallet;
 /// use kobe_btc::{Deriver, Network, AddressType};
 ///
 /// let wallet = Wallet::generate(12, None).unwrap();

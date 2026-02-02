@@ -8,7 +8,7 @@ use zeroize::Zeroizing;
 use crate::Error;
 use crate::derivation_style::DerivationStyle;
 use crate::slip10::DerivedKey;
-use kobe_core::Wallet;
+use kobe::Wallet;
 
 /// A derived Solana address with associated keys.
 #[derive(Debug, Clone)]
@@ -25,13 +25,13 @@ pub struct DerivedAddress {
 
 /// Solana address deriver from a unified wallet seed.
 ///
-/// This deriver takes a seed from [`kobe_core::Wallet`] and derives
+/// This deriver takes a seed from [`kobe::Wallet`] and derives
 /// Solana addresses following BIP44/SLIP-0010 standards.
 ///
 /// # Example
 ///
 /// ```
-/// use kobe_core::Wallet;
+/// use kobe::Wallet;
 /// use kobe_sol::Deriver;
 ///
 /// let wallet = Wallet::generate(12, None).unwrap();

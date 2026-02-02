@@ -613,59 +613,59 @@ dependencies = [
 
 [[package]]
 name = "kobe"
-version = "0.2.7"
+version = "0.3.0"
+dependencies = [
+ "bip39",
+ "zeroize",
+]
+
+[[package]]
+name = "kobe-btc"
+version = "0.3.0"
+dependencies = [
+ "bip39",
+ "bitcoin",
+ "hex",
+ "kobe",
+ "zeroize",
+]
+
+[[package]]
+name = "kobe-cli"
+version = "0.3.0"
 dependencies = [
  "clap",
  "colored",
  "hex",
+ "kobe",
  "kobe-btc",
- "kobe-core",
  "kobe-eth",
  "kobe-sol",
  "zeroize",
 ]
 
 [[package]]
-name = "kobe-btc"
-version = "0.2.7"
-dependencies = [
- "bip39",
- "bitcoin",
- "hex",
- "kobe-core",
- "zeroize",
-]
-
-[[package]]
-name = "kobe-core"
-version = "0.2.7"
-dependencies = [
- "bip39",
- "zeroize",
-]
-
-[[package]]
 name = "kobe-eth"
-version = "0.2.7"
+version = "0.3.0"
 dependencies = [
  "alloy-primitives",
  "bip32",
  "hex",
  "k256",
- "kobe-core",
+ "kobe",
  "zeroize",
 ]
 
 [[package]]
 name = "kobe-sol"
-version = "0.2.7"
+version = "0.3.0"
 dependencies = [
  "bs58",
  "ed25519-dalek",
  "getrandom 0.3.4",
  "hex",
  "hmac",
- "kobe-core",
+ "kobe",
  "sha2",
  "zeroize",
 ]

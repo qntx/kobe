@@ -2,7 +2,7 @@
 
 use clap::{Args, Subcommand, ValueEnum};
 use colored::Colorize;
-use kobe_core::Wallet;
+use kobe::Wallet;
 use kobe_eth::{DerivationStyle, Deriver, StandardWallet};
 
 /// Ethereum wallet operations.

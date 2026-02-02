@@ -11,7 +11,7 @@
 //! # Example
 //!
 //! ```
-//! use kobe_core::Wallet;
+//! use kobe::Wallet;
 //!
 //! // Generate a new wallet (requires std or alloc feature with RNG)
 //! let wallet = Wallet::generate(12, None).unwrap();

@@ -10,12 +10,12 @@ categories = ["cryptography", "no-std"]
 
 [features]
 default = ["std"]
-std = ["alloc", "kobe-core/std", "bitcoin/std", "bip39/std", "hex/std", "zeroize/std"]
-alloc = ["kobe-core/alloc", "bip39/alloc", "hex/alloc", "zeroize/alloc"]
+std = ["alloc", "kobe/std", "bitcoin/std", "bip39/std", "hex/std", "zeroize/std"]
+alloc = ["kobe/alloc", "bip39/alloc", "hex/alloc", "zeroize/alloc"]
 rand = ["std", "bitcoin/rand-std"]
 
 [dependencies]
-kobe-core.workspace = true
+kobe.workspace = true
 bitcoin.workspace = true
 bip39.workspace = true
 hex.workspace = true

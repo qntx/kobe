@@ -1,6 +1,6 @@
 //! Solana wallet utilities for Kobe CLI.
 //!
-//! Provides Solana address derivation from a unified [`kobe_core::Wallet`].
+//! Provides Solana address derivation from a unified [`kobe::Wallet`].
 //!
 //! # Features
 //!
@@ -11,7 +11,7 @@
 //! # Usage
 //!
 //! ```
-//! use kobe_core::Wallet;
+//! use kobe::Wallet;
 //! use kobe_sol::Deriver;
 //!
 //! // Create a wallet from mnemonic
