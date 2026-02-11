@@ -9,7 +9,7 @@ edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/qntx/kobe"
 description = "A multi-chain cryptocurrency wallet library and CLI tool"
-keywords = ["crypto", "wallet", "bitcoin", "ethereum", "solana", "cli"]
+keywords = ["crypto", "wallet", "bitcoin", "ethereum", "solana"]
 categories = ["cryptography::cryptocurrencies"]
 
 [workspace.dependencies]
