@@ -1,6 +1,6 @@
-//! Bitcoin wallet utilities for Kobe CLI.
+//! Solana wallet utilities for Kobe CLI.
 //!
-//! Provides Bitcoin address derivation from a unified [`kobe::Wallet`].
+//! Provides Solana address derivation from a unified [`kobe::Wallet`].
 //!
 //! # Features
 //!
@@ -14,24 +14,22 @@
 extern crate alloc;
 
 #[cfg(feature = "alloc")]
-mod address;
+mod derivation_style;
 #[cfg(feature = "alloc")]
 mod deriver;
 mod error;
-mod network;
+#[cfg(feature = "alloc")]
+mod slip10;
 #[cfg(feature = "alloc")]
 mod standard_wallet;
-mod types;
 
+#[cfg(feature = "alloc")]
+pub use derivation_style::{DerivationStyle, ParseDerivationStyleError};
 #[cfg(feature = "alloc")]
 pub use deriver::{DerivedAddress, Deriver};
 pub use error::Error;
-pub use network::{Network, ParseNetworkError};
 #[cfg(feature = "alloc")]
 pub use standard_wallet::StandardWallet;
-#[cfg(feature = "alloc")]
-pub use types::DerivationPath;
-pub use types::{AddressType, ParseAddressTypeError};
 
-/// A convenient Result type alias for kobe-btc operations.
+/// A convenient Result type alias for kobe-svm operations.
 pub type Result<T> = core::result::Result<T, Error>;

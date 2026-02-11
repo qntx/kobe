@@ -3,7 +3,7 @@
 use clap::{Args, Subcommand, ValueEnum};
 use colored::Colorize;
 use kobe::Wallet;
-use kobe_eth::{DerivationStyle, Deriver, StandardWallet};
+use kobe_evm::{DerivationStyle, Deriver, StandardWallet};
 
 /// Ethereum wallet operations.
 #[derive(Args)]

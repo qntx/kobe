@@ -629,7 +629,7 @@ dependencies = [
 
 [[package]]
 name = "kobe"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "bip39",
  "zeroize",
@@ -637,7 +637,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-btc"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "bip39",
  "bitcoin",
@@ -648,22 +648,22 @@ dependencies = [
 
 [[package]]
 name = "kobe-cli"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "clap",
  "colored",
  "hex",
  "kobe",
  "kobe-btc",
- "kobe-eth",
- "kobe-sol",
+ "kobe-evm",
+ "kobe-svm",
  "qrcode",
  "zeroize",
 ]
 
 [[package]]
-name = "kobe-eth"
-version = "0.4.2"
+name = "kobe-evm"
+version = "0.4.3"
 dependencies = [
  "alloy-primitives",
  "bip32",
@@ -674,8 +674,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "kobe-sol"
-version = "0.4.2"
+name = "kobe-sui"
+version = "0.4.3"
+
+[[package]]
+name = "kobe-svm"
+version = "0.4.3"
 dependencies = [
  "bs58",
  "ed25519-dalek",
@@ -686,6 +690,14 @@ dependencies = [
  "sha2",
  "zeroize",
 ]
+
+[[package]]
+name = "kobe-xmr"
+version = "0.4.3"
+
+[[package]]
+name = "kobe-zec"
+version = "0.4.3"
 
 [[package]]
 name = "libc"

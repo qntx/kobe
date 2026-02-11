@@ -1,5 +1,5 @@
 [package]
-name = "kobe-eth"
+name = "kobe-evm"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

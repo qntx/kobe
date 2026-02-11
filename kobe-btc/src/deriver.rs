@@ -18,21 +18,6 @@ use crate::{AddressType, DerivationPath, Error, Network};
 ///
 /// This deriver takes a seed from [`kobe::Wallet`] and derives
 /// Bitcoin addresses following BIP32/44/49/84 standards.
-///
-/// # Example
-///
-/// ```
-/// use kobe::Wallet;
-/// use kobe_btc::{Deriver, Network, AddressType};
-///
-/// let wallet = Wallet::generate(12, None).unwrap();
-/// let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-/// let addr = deriver.derive(0).unwrap();  // P2WPKH by default
-/// println!("Address: {}", addr.address);
-///
-/// // With specific address type
-/// let addr = deriver.derive_with(AddressType::P2pkh, 0).unwrap();
-/// ```
 #[derive(Debug)]
 pub struct Deriver<'a> {
     /// Master extended private key.

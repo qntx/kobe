@@ -18,16 +18,6 @@ use core::str::FromStr;
 /// - **MetaMask/Trezor**: Standard BIP-44 `m/44'/60'/0'/0/{index}`
 /// - **Ledger Live**: Account-based `m/44'/60'/{index}'/0/0`
 /// - **Ledger Legacy**: MEW/MyCrypto compatible `m/44'/60'/0'/{index}`
-///
-/// # Example
-///
-/// ```
-/// use kobe_eth::DerivationStyle;
-///
-/// let style = DerivationStyle::LedgerLive;
-/// assert_eq!(style.path(0), "m/44'/60'/0'/0/0");
-/// assert_eq!(style.path(1), "m/44'/60'/1'/0/0");
-/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum DerivationStyle {

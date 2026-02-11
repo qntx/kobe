@@ -16,16 +16,6 @@ use crate::{AddressType, Error, Network};
 ///
 /// This wallet type generates a random private key directly,
 /// without using a mnemonic or HD derivation.
-///
-/// # Example
-///
-/// ```ignore
-/// use kobe_btc::{StandardWallet, Network, AddressType};
-///
-/// let wallet = StandardWallet::generate(Network::Mainnet, AddressType::P2wpkh).unwrap();
-/// println!("Address: {}", wallet.address_string());
-/// println!("Private Key (WIF): {}", wallet.private_key_wif().as_str());
-/// ```
 #[derive(Debug)]
 pub struct StandardWallet {
     /// Bitcoin private key.

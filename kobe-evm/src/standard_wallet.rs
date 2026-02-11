@@ -17,16 +17,6 @@ use crate::address::{public_key_to_address, to_checksum_address};
 ///
 /// This wallet type generates a random private key directly,
 /// without using a mnemonic or HD derivation.
-///
-/// # Example
-///
-/// ```ignore
-/// use kobe_eth::StandardWallet;
-///
-/// let wallet = StandardWallet::generate().unwrap();
-/// println!("Address: {}", wallet.address_string());
-/// println!("Private Key: 0x{}", wallet.private_key_hex().as_str());
-/// ```
 #[derive(Debug)]
 pub struct StandardWallet {
     /// ECDSA signing key (secp256k1).

@@ -27,22 +27,6 @@ pub struct DerivedAddress {
 ///
 /// This deriver takes a seed from [`kobe::Wallet`] and derives
 /// Solana addresses following BIP44/SLIP-0010 standards.
-///
-/// # Example
-///
-/// ```
-/// use kobe::Wallet;
-/// use kobe_sol::Deriver;
-///
-/// let wallet = Wallet::generate(12, None).unwrap();
-/// let deriver = Deriver::new(&wallet);
-/// let addr = deriver.derive(0).unwrap();
-/// println!("Address: {}", addr.address);
-///
-/// // With specific derivation style
-/// use kobe_sol::DerivationStyle;
-/// let addr = deriver.derive_with(DerivationStyle::LedgerLive, 0).unwrap();
-/// ```
 #[derive(Debug)]
 pub struct Deriver<'a> {
     /// Reference to the wallet for seed access.

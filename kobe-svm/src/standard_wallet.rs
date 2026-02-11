@@ -16,16 +16,6 @@ use crate::Error;
 ///
 /// This wallet type generates a random private key directly,
 /// without using a mnemonic or HD derivation.
-///
-/// # Example
-///
-/// ```ignore
-/// use kobe_sol::StandardWallet;
-///
-/// let wallet = StandardWallet::generate().unwrap();
-/// println!("Address: {}", wallet.address_string());
-/// println!("Private Key: {}", wallet.private_key_hex().as_str());
-/// ```
 #[derive(Debug)]
 pub struct StandardWallet {
     /// Ed25519 signing key.

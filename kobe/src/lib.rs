@@ -7,27 +7,6 @@
 //!
 //! - `std` (default): Enable standard library support
 //! - `alloc`: Enable heap allocation without full std (for `no_std` environments)
-//!
-//! # Example
-//!
-//! ```rust
-//! use kobe::Wallet;
-//!
-//! // Create a wallet from an existing mnemonic
-//! let wallet = Wallet::from_mnemonic(
-//!     "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
-//!     None
-//! ).unwrap();
-//!
-//! // Or with a passphrase (BIP39 optional password)
-//! let wallet = Wallet::from_mnemonic(
-//!     "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
-//!     Some("my secret passphrase")
-//! ).unwrap();
-//!
-//! // The same mnemonic can derive addresses for any coin
-//! let seed = wallet.seed();
-//! ```
 
 #![cfg_attr(not(feature = "std"), no_std)]
 

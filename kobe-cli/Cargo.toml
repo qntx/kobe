@@ -16,8 +16,8 @@ path = "src/main.rs"
 [dependencies]
 kobe = { workspace = true, features = ["std", "rand"] }
 kobe-btc = { workspace = true, features = ["std", "rand"] }
-kobe-eth = { workspace = true, features = ["std", "rand"] }
-kobe-sol = { workspace = true, features = ["std", "rand"] }
+kobe-evm = { workspace = true, features = ["std", "rand"] }
+kobe-svm = { workspace = true, features = ["std", "rand"] }
 clap.workspace = true
 colored.workspace = true
 hex.workspace = true

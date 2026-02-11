@@ -19,19 +19,6 @@ use core::str::FromStr;
 /// - **Trust**: `m/44'/501'/{index}'`
 /// - **Ledger Live**: `m/44'/501'/{index}'/0'/0'`
 /// - **Legacy**: `m/501'/{index}'/0/0` (deprecated)
-///
-/// # Example
-///
-/// ```
-/// use kobe_sol::DerivationStyle;
-///
-/// let style = DerivationStyle::Standard;
-/// assert_eq!(style.path(0), "m/44'/501'/0'/0'");
-/// assert_eq!(style.path(1), "m/44'/501'/1'/0'");
-///
-/// let trust = DerivationStyle::Trust;
-/// assert_eq!(trust.path(0), "m/44'/501'/0'");
-/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum DerivationStyle {

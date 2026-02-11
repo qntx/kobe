@@ -3,11 +3,11 @@
 use clap::{Args, Subcommand, ValueEnum};
 use colored::Colorize;
 use kobe::Wallet;
-use kobe_sol::{DerivationStyle, Deriver, StandardWallet};
+use kobe_svm::{DerivationStyle, Deriver, StandardWallet};
 
 /// CLI-compatible derivation style enum.
 ///
-/// Maps to `kobe_sol::DerivationStyle` variants.
+/// Maps to `kobe_svm::DerivationStyle` variants.
 #[derive(Debug, Clone, Copy, Default, ValueEnum)]
 pub enum CliDerivationStyle {
     /// Standard: m/44'/501'/{index}'/0' (Phantom, Backpack, Solflare)

@@ -20,18 +20,6 @@ use crate::derivation_style::DerivationStyle;
 ///
 /// This deriver takes a seed from [`kobe::Wallet`] and derives
 /// Ethereum addresses following BIP32/44 standards.
-///
-/// # Example
-///
-/// ```
-/// use kobe::Wallet;
-/// use kobe_eth::Deriver;
-///
-/// let wallet = Wallet::generate(12, None).unwrap();
-/// let deriver = Deriver::new(&wallet);
-/// let addr = deriver.derive(0).unwrap();
-/// println!("Address: {}", addr.address);
-/// ```
 #[derive(Debug)]
 pub struct Deriver<'a> {
     /// Reference to the wallet for seed access.
@@ -89,20 +77,6 @@ impl<'a> Deriver<'a> {
     /// # Errors
     ///
     /// Returns an error if derivation fails.
-    ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// use kobe_eth::{Deriver, DerivationStyle};
-    ///
-    /// let deriver = Deriver::new(&wallet);
-    ///
-    /// // Standard (MetaMask/Trezor) path
-    /// let addr = deriver.derive_with(DerivationStyle::Standard, 0).unwrap();
-    ///
-    /// // Ledger Live path
-    /// let addr = deriver.derive_with(DerivationStyle::LedgerLive, 0).unwrap();
-    /// ```
     #[inline]
     pub fn derive_with(&self, style: DerivationStyle, index: u32) -> Result<DerivedAddress, Error> {
         self.derive_path(&style.path(index))
