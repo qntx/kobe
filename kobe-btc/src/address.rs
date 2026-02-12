@@ -43,8 +43,9 @@ pub fn create_address(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use bitcoin::secp256k1::Secp256k1;
+
+    use super::*;
 
     #[test]
     fn test_create_address_p2wpkh() {

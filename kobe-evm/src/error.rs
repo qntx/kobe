@@ -5,7 +5,6 @@
 
 #[cfg(feature = "alloc")]
 use alloc::string::String;
-
 use core::fmt;
 
 /// Errors that can occur during Ethereum wallet operations.

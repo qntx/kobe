@@ -2,11 +2,11 @@
 
 #[cfg(feature = "alloc")]
 use alloc::{format, string::ToString};
+use core::fmt;
+use core::str::FromStr;
 
 #[cfg(feature = "alloc")]
 use crate::{Error, Network};
-use core::fmt;
-use core::str::FromStr;
 
 /// Bitcoin address types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

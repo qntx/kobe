@@ -177,7 +177,7 @@ fn print_wallet(
         }
         println!("      {}         {}", "Path".cyan().bold(), addr.path);
         println!("      {}      {}", "Address".cyan().bold(), addr.address.green());
-        println!("      {}  {}", "Private Key".cyan().bold(), addr.private_key_hex.as_str());
+        println!("      {}  {}", "Private Key".cyan().bold(), addr.keypair_base58.as_str());
         if show_qr {
             crate::qr::render_to_terminal(&addr.address);
         }
@@ -194,7 +194,7 @@ fn print_wallet(
 fn print_standard_wallet(wallet: &StandardWallet, show_qr: bool) {
     println!();
     println!("      {}      {}", "Address".cyan().bold(), wallet.address().green());
-    println!("      {}  {}", "Private Key".cyan().bold(), wallet.secret_hex().as_str());
+    println!("      {}  {}", "Private Key".cyan().bold(), wallet.keypair_base58().as_str());
     println!("      {}   {}", "Public Key".cyan().bold(), wallet.pubkey_hex().dimmed());
     if show_qr {
         crate::qr::render_to_terminal(&wallet.address());

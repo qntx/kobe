@@ -1,6 +1,7 @@
 //! Unified wallet type for multi-chain key derivation.
 
 use alloc::string::{String, ToString};
+
 use bip39::{Language, Mnemonic};
 use zeroize::Zeroizing;
 

@@ -5,9 +5,9 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
+use core::marker::PhantomData;
 
 use bitcoin::{PrivateKey, bip32::Xpriv, key::CompressedPublicKey};
-use core::marker::PhantomData;
 use kobe::Wallet;
 use zeroize::Zeroizing;
 

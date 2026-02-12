@@ -1,8 +1,9 @@
 //! Bitcoin network types.
 
-use bitcoin::Network as BtcNetwork;
 use core::fmt;
 use core::str::FromStr;
+
+use bitcoin::Network as BtcNetwork;
 
 /// Supported Bitcoin networks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]

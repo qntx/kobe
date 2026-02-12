@@ -5,10 +5,9 @@ mod ethereum;
 mod solana;
 
 pub use bitcoin::BitcoinCommand;
+use clap::{Parser, Subcommand};
 pub use ethereum::EthereumCommand;
 pub use solana::SolanaCommand;
-
-use clap::{Parser, Subcommand};
 
 /// Kobe - A multi-chain cryptocurrency wallet CLI tool.
 #[derive(Parser)]

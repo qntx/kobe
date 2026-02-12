@@ -4,7 +4,7 @@ default-members = ["kobe"]
 resolver = "3"
 
 [workspace.package]
-version = "0.4.4"
+version = "0.4.5"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/qntx/kobe"
@@ -15,8 +15,8 @@ categories = ["cryptography::cryptocurrencies"]
 [workspace.dependencies]
 kobe = { version = "0.4", path = "./kobe", default-features = false }
 kobe-btc = { version = "0.4", path = "./kobe-btc", default-features = false }
-kobe-evm = { version = "0.4.2", path = "./kobe-evm", default-features = false }
-kobe-svm = { version = "0.4.2", path = "./kobe-svm", default-features = false }
+kobe-evm = { version = "0.4", path = "./kobe-evm", default-features = false }
+kobe-svm = { version = "0.4", path = "./kobe-svm", default-features = false }
 
 alloy-primitives = { version = "1.5", default-features = false, features = ["k256"] }
 bip32 = { version = "0.5", default-features = false, features = ["secp256k1", "alloc"] }

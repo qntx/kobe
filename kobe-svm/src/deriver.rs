@@ -2,13 +2,14 @@
 
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
+
 use ed25519_dalek::VerifyingKey;
+use kobe::Wallet;
 use zeroize::Zeroizing;
 
 use crate::Error;
 use crate::derivation_style::DerivationStyle;
 use crate::slip10::DerivedKey;
-use kobe::Wallet;
 
 /// A derived Solana address with associated keys.
 #[derive(Debug, Clone)]
@@ -17,6 +18,10 @@ pub struct DerivedAddress {
     pub path: String,
     /// Private key in hex format (zeroized on drop).
     pub private_key_hex: Zeroizing<String>,
+    /// Full keypair in base58 format (64 bytes: secret 32B + public 32B, zeroized on drop).
+    ///
+    /// This is the standard format used by Phantom, Backpack, Solflare wallets.
+    pub keypair_base58: Zeroizing<String>,
     /// Public key in hex format.
     pub public_key_hex: String,
     /// Solana address (Base58 encoded public key).
@@ -90,9 +95,17 @@ impl<'a> Deriver<'a> {
         let verifying_key: VerifyingKey = signing_key.verifying_key();
         let public_key_bytes = verifying_key.as_bytes();
 
+        // Build base58-encoded 64-byte keypair (secret 32B + public 32B)
+        let mut keypair_bytes = [0u8; 64];
+        keypair_bytes[..32].copy_from_slice(derived.private_key.as_slice());
+        keypair_bytes[32..].copy_from_slice(public_key_bytes);
+        let keypair_b58 = bs58::encode(&keypair_bytes).into_string();
+        keypair_bytes.fill(0);
+
         Ok(DerivedAddress {
             path: style.path(index),
             private_key_hex: Zeroizing::new(hex::encode(derived.private_key.as_slice())),
+            keypair_base58: Zeroizing::new(keypair_b58),
             public_key_hex: hex::encode(public_key_bytes),
             address: bs58::encode(public_key_bytes).into_string(),
         })
@@ -157,9 +170,17 @@ impl<'a> Deriver<'a> {
         let verifying_key: VerifyingKey = signing_key.verifying_key();
         let public_key_bytes = verifying_key.as_bytes();
 
+        // Build base58-encoded 64-byte keypair (secret 32B + public 32B)
+        let mut keypair_bytes = [0u8; 64];
+        keypair_bytes[..32].copy_from_slice(derived.private_key.as_slice());
+        keypair_bytes[32..].copy_from_slice(public_key_bytes);
+        let keypair_b58 = bs58::encode(&keypair_bytes).into_string();
+        keypair_bytes.fill(0);
+
         Ok(DerivedAddress {
             path: path.to_string(),
             private_key_hex: Zeroizing::new(hex::encode(derived.private_key.as_slice())),
+            keypair_base58: Zeroizing::new(keypair_b58),
             public_key_hex: hex::encode(public_key_bytes),
             address: bs58::encode(public_key_bytes).into_string(),
         })

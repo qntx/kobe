@@ -3,11 +3,11 @@
 //! A standard wallet uses a single randomly generated private key,
 //! without mnemonic or HD derivation.
 //!
+use alloc::string::String;
+
+use ed25519_dalek::{SigningKey, VerifyingKey};
 #[cfg(feature = "rand")]
 use rand_core::OsRng;
-
-use alloc::string::String;
-use ed25519_dalek::{SigningKey, VerifyingKey};
 use zeroize::Zeroizing;
 
 use crate::Error;
@@ -80,6 +80,23 @@ impl StandardWallet {
     #[must_use]
     pub fn secret_hex(&self) -> Zeroizing<String> {
         Zeroizing::new(hex::encode(self.signing_key.as_bytes()))
+    }
+
+    /// Get the full keypair as base58-encoded string (64 bytes: secret 32B + public 32B).
+    ///
+    /// This is the standard format used by Phantom, Backpack, Solflare and other
+    /// Solana wallets for private key export/import.
+    #[inline]
+    #[must_use]
+    pub fn keypair_base58(&self) -> Zeroizing<String> {
+        let verifying_key: VerifyingKey = self.signing_key.verifying_key();
+        let mut keypair_bytes = [0u8; 64];
+        keypair_bytes[..32].copy_from_slice(self.signing_key.as_bytes());
+        keypair_bytes[32..].copy_from_slice(verifying_key.as_bytes());
+        let encoded = bs58::encode(&keypair_bytes).into_string();
+        // Zero out the temporary buffer
+        keypair_bytes.fill(0);
+        Zeroizing::new(encoded)
     }
 
     /// Get the public key in hex format.
