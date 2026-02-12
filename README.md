@@ -17,7 +17,7 @@ kobe provides a unified [`Wallet`] seed from a single mnemonic, then delegates t
 
 ## Crates
 
-| Crate | | Description |
+| Kobe Crate | | Description |
 | --- | --- | --- |
 | **[`kobe`](kobe/)** | [![crates.io][kobe-crate]][kobe-crate-url] [![docs.rs][kobe-doc]][kobe-doc-url] | Core library — BIP39 mnemonic, seed derivation, `no_std` wallet type |
 | **[`kobe-btc`](kobe-btc/)** | [![crates.io][kobe-btc-crate]][kobe-btc-crate-url] [![docs.rs][kobe-btc-doc]][kobe-btc-doc-url] | Bitcoin — P2PKH, P2SH-P2WPKH, P2WPKH, P2TR address derivation |
