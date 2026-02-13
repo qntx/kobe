@@ -27,10 +27,10 @@ pub enum Commands {
     Bitcoin(BitcoinCommand),
 
     /// Ethereum wallet operations.
-    #[command(name = "eth", alias = "ethereum")]
+    #[command(name = "evm", alias = "eth", alias = "ethereum")]
     Ethereum(EthereumCommand),
 
     /// Solana wallet operations.
-    #[command(name = "sol", alias = "solana")]
+    #[command(name = "svm", alias = "sol", alias = "solana")]
     Solana(SolanaCommand),
 }
