@@ -65,6 +65,11 @@ pub fn encrypt(phrase: &str, password: &str) -> Result<Zeroizing<String>, Error>
 /// Encrypt a mnemonic phrase in the specified language.
 ///
 /// See [`encrypt`] for details.
+///
+/// # Errors
+///
+/// Returns an error if the mnemonic is invalid, the password is empty,
+/// or key derivation fails.
 pub fn encrypt_in(
     language: Language,
     phrase: &str,
@@ -93,6 +98,11 @@ pub fn decrypt(camouflaged: &str, password: &str) -> Result<Zeroizing<String>, E
 /// Decrypt a camouflaged mnemonic in the specified language.
 ///
 /// See [`decrypt`] for details.
+///
+/// # Errors
+///
+/// Returns an error if the mnemonic is invalid, the password is empty,
+/// or key derivation fails.
 pub fn decrypt_in(
     language: Language,
     camouflaged: &str,

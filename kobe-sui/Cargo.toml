@@ -4,9 +4,10 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description.workspace = true
-keywords.workspace = true
-categories.workspace = true
+readme = "../README.md"
+description = "Sui wallet for Kobe (planned)"
+keywords = ["sui", "wallet", "crypto", "no_std"]
+categories = ["cryptography", "no-std"]
 
 [dependencies]
 
