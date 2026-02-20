@@ -113,16 +113,14 @@ cargo install kobe-cli
 
 ## Design
 
-| | Description |
-| --- | --- |
-| **Multi-chain** | Bitcoin (4 address types), Ethereum, Solana — from one BIP39 seed |
-| **HD standards** | BIP32, BIP39, BIP44 / 49 / 84 / 86, SLIP-10 |
-| **Derivation styles** | Standard, Ledger Live, Ledger Legacy, Trust Wallet, Legacy (Solana) |
-| **`no_std` + `alloc`** | All library crates compile without `std`; suitable for embedded / WASM |
-| **Zeroizing** | Private keys and seeds wrapped in `Zeroizing<T>` — cleared on drop |
-| **CSPRNG** | Random generation via OS-provided `rand_core::OsRng` |
-| **Linting** | `pedantic` + `nursery` + `correctness` (deny) — strict Clippy across workspace |
-| **Edition** | Rust **2024** — RPITIT, `no_std` ergonomics |
+- **Multi-chain** — Bitcoin (4 address types), Ethereum, Solana — from one BIP39 seed
+- **HD standards** — BIP32, BIP39, BIP44 / 49 / 84 / 86, SLIP-10
+- **Derivation styles** — Standard, Ledger Live, Ledger Legacy, Trust Wallet, Legacy (Solana)
+- **`no_std` + `alloc`** — All library crates compile without `std`; suitable for embedded / WASM
+- **Zeroizing** — Private keys and seeds wrapped in `Zeroizing<T>` — cleared on drop
+- **CSPRNG** — Random generation via OS-provided `rand_core::OsRng`
+- **Linting** — `pedantic` + `nursery` + `correctness` (deny) — strict Clippy across workspace
+- **Edition** — Rust **2024** — RPITIT, `no_std` ergonomics
 
 ## Feature Flags
 
