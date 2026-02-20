@@ -1,5 +1,7 @@
 //! Error types for core wallet operations.
 
+#[cfg(feature = "alloc")]
+use alloc::{string::String, vec::Vec};
 use core::fmt;
 
 /// Errors that can occur during wallet operations.
@@ -16,6 +18,25 @@ pub enum Error {
     /// PBKDF2 key derivation failed.
     #[cfg(feature = "camouflage")]
     KeyDerivation,
+    /// Mnemonic prefix is too short for unambiguous expansion.
+    #[cfg(feature = "alloc")]
+    PrefixTooShort {
+        /// The prefix that was too short.
+        prefix: String,
+        /// Minimum required prefix length.
+        min_len: usize,
+    },
+    /// Mnemonic prefix does not match any word in the wordlist.
+    #[cfg(feature = "alloc")]
+    UnknownPrefix(String),
+    /// Mnemonic prefix matches multiple words in the wordlist.
+    #[cfg(feature = "alloc")]
+    AmbiguousPrefix {
+        /// The ambiguous prefix.
+        prefix: String,
+        /// Words that match the prefix.
+        candidates: Vec<String>,
+    },
 }
 
 impl fmt::Display for Error {
@@ -29,6 +50,18 @@ impl fmt::Display for Error {
             Self::EmptyPassword => write!(f, "password must not be empty"),
             #[cfg(feature = "camouflage")]
             Self::KeyDerivation => write!(f, "PBKDF2 key derivation failed"),
+            #[cfg(feature = "alloc")]
+            Self::PrefixTooShort { prefix, min_len } => {
+                write!(f, "prefix \"{prefix}\" is too short (minimum {min_len} characters)")
+            }
+            #[cfg(feature = "alloc")]
+            Self::UnknownPrefix(prefix) => {
+                write!(f, "prefix \"{prefix}\" does not match any BIP-39 word")
+            }
+            #[cfg(feature = "alloc")]
+            Self::AmbiguousPrefix { prefix, candidates } => {
+                write!(f, "prefix \"{prefix}\" is ambiguous, matches: {}", candidates.join(", "))
+            }
         }
     }
 }
@@ -43,6 +76,12 @@ impl std::error::Error for Error {
             Self::EmptyPassword => None,
             #[cfg(feature = "camouflage")]
             Self::KeyDerivation => None,
+            #[cfg(feature = "alloc")]
+            Self::PrefixTooShort { .. } => None,
+            #[cfg(feature = "alloc")]
+            Self::UnknownPrefix(_) => None,
+            #[cfg(feature = "alloc")]
+            Self::AmbiguousPrefix { .. } => None,
         }
     }
 }

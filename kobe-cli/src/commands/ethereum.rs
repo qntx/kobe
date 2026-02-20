@@ -129,6 +129,7 @@ impl EthereumCommand {
                 style,
                 qr,
             } => {
+                let mnemonic = kobe::mnemonic::expand(&mnemonic)?;
                 let wallet = Wallet::from_mnemonic(&mnemonic, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet);
                 print_wallet(&wallet, &deriver, count, style.into(), qr)?;

@@ -19,6 +19,8 @@ mod wallet;
 
 #[cfg(feature = "camouflage")]
 pub mod camouflage;
+#[cfg(feature = "alloc")]
+pub mod mnemonic;
 
 pub use bip39::Language;
 #[cfg(feature = "rand_core")]

@@ -46,6 +46,7 @@ impl MnemonicCommand {
     pub fn execute(self) -> Result<(), Box<dyn std::error::Error>> {
         match self.command {
             MnemonicSubcommand::Encrypt { mnemonic, password } => {
+                let mnemonic = kobe::mnemonic::expand(&mnemonic)?;
                 let camouflaged = kobe::camouflage::encrypt(&mnemonic, &password)?;
                 print_encrypt_result(&mnemonic, &camouflaged);
             }
@@ -53,6 +54,7 @@ impl MnemonicCommand {
                 camouflaged,
                 password,
             } => {
+                let camouflaged = kobe::mnemonic::expand(&camouflaged)?;
                 let original = kobe::camouflage::decrypt(&camouflaged, &password)?;
                 print_decrypt_result(&camouflaged, &original);
             }

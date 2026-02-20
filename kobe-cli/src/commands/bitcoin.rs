@@ -172,6 +172,7 @@ impl BitcoinCommand {
                     Network::Mainnet
                 };
                 let addr_type = AddressType::from(address_type);
+                let mnemonic = kobe::mnemonic::expand(&mnemonic)?;
                 let wallet = Wallet::from_mnemonic(&mnemonic, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet, network)?;
                 print_wallet(&wallet, &deriver, addr_type, count, qr)?;
