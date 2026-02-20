@@ -14,7 +14,7 @@ name = "kobe"
 path = "src/main.rs"
 
 [dependencies]
-kobe = { workspace = true, features = ["std", "rand"] }
+kobe = { workspace = true, features = ["std", "rand", "camouflage"] }
 kobe-btc = { workspace = true, features = ["std", "rand"] }
 kobe-evm = { workspace = true, features = ["std", "rand"] }
 kobe-svm = { workspace = true, features = ["std", "rand"] }

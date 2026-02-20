@@ -22,6 +22,7 @@ fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
         Commands::Bitcoin(cmd) => cmd.execute()?,
         Commands::Ethereum(cmd) => cmd.execute()?,
         Commands::Solana(cmd) => cmd.execute()?,
+        Commands::Mnemonic(cmd) => cmd.execute()?,
     }
     Ok(())
 }

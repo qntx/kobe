@@ -2,11 +2,13 @@
 
 mod bitcoin;
 mod ethereum;
+mod mnemonic;
 mod solana;
 
 pub use bitcoin::BitcoinCommand;
 use clap::{Parser, Subcommand};
 pub use ethereum::EthereumCommand;
+pub use mnemonic::MnemonicCommand;
 pub use solana::SolanaCommand;
 
 /// Kobe - A multi-chain cryptocurrency wallet CLI tool.
@@ -33,4 +35,8 @@ pub enum Commands {
     /// Solana wallet operations.
     #[command(name = "svm", alias = "sol", alias = "solana")]
     Solana(SolanaCommand),
+
+    /// Mnemonic utilities (camouflage encrypt/decrypt).
+    #[command(name = "mnemonic", alias = "mn")]
+    Mnemonic(MnemonicCommand),
 }

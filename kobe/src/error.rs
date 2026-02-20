@@ -10,6 +10,12 @@ pub enum Error {
     Mnemonic(bip39::Error),
     /// Invalid word count for mnemonic.
     InvalidWordCount(usize),
+    /// Empty password provided for camouflage operation.
+    #[cfg(feature = "camouflage")]
+    EmptyPassword,
+    /// PBKDF2 key derivation failed.
+    #[cfg(feature = "camouflage")]
+    KeyDerivation,
 }
 
 impl fmt::Display for Error {
@@ -19,6 +25,10 @@ impl fmt::Display for Error {
             Self::InvalidWordCount(n) => {
                 write!(f, "invalid word count {n}, must be 12, 15, 18, 21, or 24")
             }
+            #[cfg(feature = "camouflage")]
+            Self::EmptyPassword => write!(f, "password must not be empty"),
+            #[cfg(feature = "camouflage")]
+            Self::KeyDerivation => write!(f, "PBKDF2 key derivation failed"),
         }
     }
 }
@@ -29,6 +39,10 @@ impl std::error::Error for Error {
         match self {
             Self::Mnemonic(e) => Some(e),
             Self::InvalidWordCount(_) => None,
+            #[cfg(feature = "camouflage")]
+            Self::EmptyPassword => None,
+            #[cfg(feature = "camouflage")]
+            Self::KeyDerivation => None,
         }
     }
 }

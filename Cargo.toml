@@ -4,7 +4,7 @@ default-members = ["kobe"]
 resolver = "3"
 
 [workspace.package]
-version = "0.4.6"
+version = "0.5.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/qntx/kobe"
@@ -13,10 +13,10 @@ keywords = ["crypto", "wallet", "bitcoin", "ethereum", "solana"]
 categories = ["cryptography::cryptocurrencies"]
 
 [workspace.dependencies]
-kobe = { version = "0.4", path = "./kobe", default-features = false }
-kobe-btc = { version = "0.4", path = "./kobe-btc", default-features = false }
-kobe-evm = { version = "0.4", path = "./kobe-evm", default-features = false }
-kobe-svm = { version = "0.4", path = "./kobe-svm", default-features = false }
+kobe = { version = "0.5", path = "./kobe", default-features = false }
+kobe-btc = { version = "0.5", path = "./kobe-btc", default-features = false }
+kobe-evm = { version = "0.5", path = "./kobe-evm", default-features = false }
+kobe-svm = { version = "0.5", path = "./kobe-svm", default-features = false }
 
 alloy-primitives = { version = "1.5", default-features = false, features = ["k256"] }
 bip32 = { version = "0.5", default-features = false, features = ["secp256k1", "alloc"] }
@@ -29,6 +29,7 @@ ed25519-dalek = { version = "2.2", default-features = false }
 hex = { version = "0.4", default-features = false }
 hmac = { version = "0.12", default-features = false }
 k256 = { version = "0.13", default-features = false, features = ["ecdsa"] }
+pbkdf2 = { version = "0.12", default-features = false }
 qrcode = { version = "0.14"}
 rand_core = { version = "0.6", default-features = false, features = ["getrandom"] }
 sha2 = { version = "0.10", default-features = false }

@@ -629,15 +629,18 @@ dependencies = [
 
 [[package]]
 name = "kobe"
-version = "0.4.6"
+version = "0.5.0"
 dependencies = [
  "bip39",
+ "hmac",
+ "pbkdf2",
+ "sha2",
  "zeroize",
 ]
 
 [[package]]
 name = "kobe-btc"
-version = "0.4.6"
+version = "0.5.0"
 dependencies = [
  "bip39",
  "bitcoin",
@@ -648,7 +651,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-cli"
-version = "0.4.6"
+version = "0.5.0"
 dependencies = [
  "clap",
  "colored",
@@ -663,7 +666,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-evm"
-version = "0.4.6"
+version = "0.5.0"
 dependencies = [
  "alloy-primitives",
  "bip32",
@@ -675,11 +678,11 @@ dependencies = [
 
 [[package]]
 name = "kobe-sui"
-version = "0.4.6"
+version = "0.5.0"
 
 [[package]]
 name = "kobe-svm"
-version = "0.4.6"
+version = "0.5.0"
 dependencies = [
  "bs58",
  "ed25519-dalek",
@@ -693,11 +696,11 @@ dependencies = [
 
 [[package]]
 name = "kobe-xmr"
-version = "0.4.6"
+version = "0.5.0"
 
 [[package]]
 name = "kobe-zec"
-version = "0.4.6"
+version = "0.5.0"
 
 [[package]]
 name = "libc"
@@ -748,6 +751,15 @@ name = "paste"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
+
+[[package]]
+name = "pbkdf2"
+version = "0.12.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8ed6a7761f76e3b9f92dfb0a60a6a6477c61024b775147ff0973a02653abaf2"
+dependencies = [
+ "digest",
+]
 
 [[package]]
 name = "pkcs8"

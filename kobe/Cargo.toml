@@ -17,9 +17,14 @@ alloc = ["bip39/alloc", "zeroize/alloc"]
 rand = ["bip39/rand"]
 # Enable custom RNG support for no_std environments
 rand_core = ["bip39/rand_core"]
+# Enable mnemonic camouflage (entropy-layer XOR encryption)
+camouflage = ["dep:hmac", "dep:pbkdf2", "dep:sha2", "alloc"]
 
 [dependencies]
 bip39.workspace = true
+hmac = { workspace = true, optional = true }
+pbkdf2 = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
 zeroize.workspace = true
 
 [lints]

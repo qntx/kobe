@@ -17,6 +17,9 @@ mod error;
 #[cfg(feature = "alloc")]
 mod wallet;
 
+#[cfg(feature = "camouflage")]
+pub mod camouflage;
+
 pub use bip39::Language;
 #[cfg(feature = "rand_core")]
 pub use bip39::rand_core;
