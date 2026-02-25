@@ -48,6 +48,26 @@ Planned: **`kobe-sui`** (Sui), **`kobe-xmr`** (Monero), **`kobe-zec`** (Zcash).
 
 ## Quick Start
 
+### Install the CLI
+
+**Shell** (macOS / Linux):
+
+```sh
+curl -fsSL https://sh.qntx.fun/kobe | sh
+```
+
+**PowerShell** (Windows):
+
+```powershell
+irm https://sh.qntx.fun/kobe/ps | iex
+```
+
+Or via Cargo:
+
+```bash
+cargo install kobe-cli
+```
+
 ### Derive an Ethereum Address (Library)
 
 ```rust
@@ -103,12 +123,6 @@ kobe mnemonic encrypt --mnemonic "real mnemonic ..." --password "strong-password
 
 # Recover the original mnemonic from a camouflaged one
 kobe mnemonic decrypt --camouflaged "decoy mnemonic ..." --password "strong-password"
-```
-
-Install via Cargo:
-
-```bash
-cargo install kobe-cli
 ```
 
 ## Design
