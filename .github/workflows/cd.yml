@@ -1,0 +1,16 @@
+name: CD
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  call-cd:
+    uses: qntx/workflows/.github/workflows/rust-cd.yml@main
+    with:
+      bin: kobe
+      package: kobe-cli
