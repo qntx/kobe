@@ -72,14 +72,14 @@ cargo install kobe-cli
 
 ```rust
 use kobe::Wallet;
-use kobe_evm::{DerivationStyle, Deriver};
+use kobe_evm::Deriver;
 
 let wallet = Wallet::from_mnemonic(
     "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
     None,
 )?;
 
-let deriver = Deriver::new(wallet.seed(), DerivationStyle::Standard);
+let deriver = Deriver::new(&wallet);
 let addr = deriver.derive(0)?;
 
 println!("Address: {}", addr.address);  // 0x9858EfFD232B4033E47d90003D41EC34EcaEda94
@@ -89,11 +89,11 @@ println!("Address: {}", addr.address);  // 0x9858EfFD232B4033E47d90003D41EC34Eca
 
 ```rust
 use kobe::Wallet;
-use kobe_btc::{AddressType, Deriver, Network};
+use kobe_btc::{Deriver, Network};
 
 let wallet = Wallet::generate(12, None)?;
 
-let deriver = Deriver::new(wallet.seed(), AddressType::P2wpkh, Network::Mainnet);
+let deriver = Deriver::new(&wallet, Network::Mainnet)?;
 let addr = deriver.derive(0)?;
 
 println!("Address: {}", addr.address);
@@ -109,14 +109,14 @@ kobe btc new
 # Generate 5 Taproot addresses with a 24-word mnemonic
 kobe btc new --words 24 --address-type taproot --count 5
 
-# Generate a new Ethereum wallet (Ledger Live style)
-kobe eth new --derivation-style ledger-live --count 3
+# Generate a new Ethereum wallet (Ledger Live style, 3 accounts)
+kobe evm new --style ledger-live --count 3
 
-# Generate a new Solana wallet (Phantom style)
-kobe sol new --derivation-style standard
+# Generate a new Solana wallet (Phantom-compatible)
+kobe svm new --style standard
 
 # Import from an existing mnemonic
-kobe eth import --mnemonic "abandon abandon ... about"
+kobe evm import --mnemonic "abandon abandon ... about"
 
 # Camouflage a mnemonic (encrypt into a decoy mnemonic)
 kobe mnemonic encrypt --mnemonic "real mnemonic ..." --password "strong-password"
