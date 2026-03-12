@@ -629,7 +629,7 @@ dependencies = [
 
 [[package]]
 name = "kobe"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "bip39",
  "hmac",
@@ -641,7 +641,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-btc"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "bip39",
  "bitcoin",
@@ -653,7 +653,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-cli"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "clap",
  "colored",
@@ -670,7 +670,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-evm"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "alloy-primitives",
  "bip32",
@@ -683,7 +683,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-svm"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "bs58",
  "ed25519-dalek",

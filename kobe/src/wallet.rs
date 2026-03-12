@@ -76,7 +76,7 @@ impl Wallet {
         }
 
         let mnemonic = Mnemonic::generate_in(language, word_count)?;
-        Self::from_mnemonic_in(language, mnemonic.to_string().as_str(), passphrase)
+        Ok(Self::from_parts(&mnemonic, language, passphrase))
     }
 
     /// Generate a new wallet with a custom random number generator.
@@ -113,7 +113,7 @@ impl Wallet {
         }
 
         let mnemonic = Mnemonic::generate_in_with(rng, language, word_count)?;
-        Self::from_mnemonic_in(language, mnemonic.to_string().as_str(), passphrase)
+        Ok(Self::from_parts(&mnemonic, language, passphrase))
     }
 
     /// Create a wallet from raw entropy bytes (English by default).
@@ -153,7 +153,7 @@ impl Wallet {
         passphrase: Option<&str>,
     ) -> Result<Self, Error> {
         let mnemonic = Mnemonic::from_entropy_in(language, entropy)?;
-        Self::from_mnemonic_in(language, mnemonic.to_string().as_str(), passphrase)
+        Ok(Self::from_parts(&mnemonic, language, passphrase))
     }
 
     /// Create a wallet from an existing mnemonic phrase.
@@ -171,7 +171,7 @@ impl Wallet {
     pub fn from_mnemonic(phrase: &str, passphrase: Option<&str>) -> Result<Self, Error> {
         let mnemonic: Mnemonic = phrase.parse()?;
         let language = mnemonic.language();
-        Ok(Self::from_parts(mnemonic, language, passphrase))
+        Ok(Self::from_parts(&mnemonic, language, passphrase))
     }
 
     /// Create a wallet from an existing mnemonic phrase in the specified language.
@@ -191,11 +191,11 @@ impl Wallet {
         passphrase: Option<&str>,
     ) -> Result<Self, Error> {
         let mnemonic = Mnemonic::parse_in(language, phrase)?;
-        Ok(Self::from_parts(mnemonic, language, passphrase))
+        Ok(Self::from_parts(&mnemonic, language, passphrase))
     }
 
     /// Build a wallet from a validated mnemonic, deriving the seed.
-    fn from_parts(mnemonic: Mnemonic, language: Language, passphrase: Option<&str>) -> Self {
+    fn from_parts(mnemonic: &Mnemonic, language: Language, passphrase: Option<&str>) -> Self {
         let passphrase_str = passphrase.unwrap_or("");
         let seed_bytes = mnemonic.to_seed(passphrase_str);
         Self {
