@@ -32,6 +32,8 @@ k256 = { version = "0.13", default-features = false, features = ["ecdsa"] }
 pbkdf2 = { version = "0.12", default-features = false }
 qrcode = { version = "0.14"}
 rand_core = { version = "0.6", default-features = false, features = ["getrandom"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1" }
 sha2 = { version = "0.10", default-features = false }
 zeroize = { version = "1.7", default-features = false, features = ["derive"] }
 

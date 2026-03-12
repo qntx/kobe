@@ -137,7 +137,8 @@ mod tests {
 
     #[test]
     fn mixed_full_and_abbreviated() {
-        let input = "abandon aban abandon aban abandon aban abandon aban abandon aban abandon about";
+        let input =
+            "abandon aban abandon aban abandon aban abandon aban abandon aban abandon about";
         let result = expand(input).unwrap();
         assert_eq!(result, FULL_12);
     }
@@ -145,7 +146,8 @@ mod tests {
     #[test]
     fn longer_prefix_works() {
         // "abando" is a longer prefix that still uniquely matches "abandon".
-        let input = "abando abando abando abando abando abando abando abando abando abando abando about";
+        let input =
+            "abando abando abando abando abando abando abando abando abando abando abando about";
         let result = expand(input).unwrap();
         assert_eq!(result, FULL_12);
     }

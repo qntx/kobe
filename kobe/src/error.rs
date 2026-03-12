@@ -52,7 +52,10 @@ impl fmt::Display for Error {
             Self::KeyDerivation => write!(f, "PBKDF2 key derivation failed"),
             #[cfg(feature = "alloc")]
             Self::PrefixTooShort { prefix, min_len } => {
-                write!(f, "prefix \"{prefix}\" is too short (minimum {min_len} characters)")
+                write!(
+                    f,
+                    "prefix \"{prefix}\" is too short (minimum {min_len} characters)"
+                )
             }
             #[cfg(feature = "alloc")]
             Self::UnknownPrefix(prefix) => {
@@ -60,7 +63,11 @@ impl fmt::Display for Error {
             }
             #[cfg(feature = "alloc")]
             Self::AmbiguousPrefix { prefix, candidates } => {
-                write!(f, "prefix \"{prefix}\" is ambiguous, matches: {}", candidates.join(", "))
+                write!(
+                    f,
+                    "prefix \"{prefix}\" is ambiguous, matches: {}",
+                    candidates.join(", ")
+                )
             }
         }
     }

@@ -5,6 +5,8 @@ use colored::Colorize;
 use kobe::Wallet;
 use kobe_svm::{DerivationStyle, Deriver, StandardWallet};
 
+use crate::output;
+
 /// CLI-compatible derivation style enum.
 ///
 /// Maps to `kobe_svm::DerivationStyle` variants.
@@ -115,7 +117,7 @@ enum SolanaSubcommand {
 
 impl SolanaCommand {
     /// Execute the Solana command.
-    pub fn execute(self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
         match self.command {
             SolanaSubcommand::New {
                 words,
@@ -126,11 +128,19 @@ impl SolanaCommand {
             } => {
                 let wallet = Wallet::generate(words, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet);
-                print_wallet(&wallet, &deriver, count, style.into(), qr)?;
+                if json {
+                    print_wallet_json(&wallet, &deriver, count, style.into())?;
+                } else {
+                    print_wallet(&wallet, &deriver, count, style.into(), qr)?;
+                }
             }
             SolanaSubcommand::Random { qr } => {
                 let wallet = StandardWallet::generate();
-                print_standard_wallet(&wallet, qr);
+                if json {
+                    print_standard_wallet_json(&wallet)?;
+                } else {
+                    print_standard_wallet(&wallet, qr);
+                }
             }
             SolanaSubcommand::Import {
                 mnemonic,
@@ -142,18 +152,27 @@ impl SolanaCommand {
                 let mnemonic = kobe::mnemonic::expand(&mnemonic)?;
                 let wallet = Wallet::from_mnemonic(&mnemonic, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet);
-                print_wallet(&wallet, &deriver, count, style.into(), qr)?;
+                if json {
+                    print_wallet_json(&wallet, &deriver, count, style.into())?;
+                } else {
+                    print_wallet(&wallet, &deriver, count, style.into(), qr)?;
+                }
             }
             SolanaSubcommand::ImportKey { key, qr } => {
                 let key = key.strip_prefix("0x").unwrap_or(&key);
                 let wallet = StandardWallet::from_hex(key)?;
-                print_standard_wallet(&wallet, qr);
+                if json {
+                    print_standard_wallet_json(&wallet)?;
+                } else {
+                    print_standard_wallet(&wallet, qr);
+                }
             }
         }
         Ok(())
     }
 }
 
+/// Display HD wallet info as formatted text.
 #[rustfmt::skip]
 fn print_wallet(
     wallet: &Wallet,
@@ -191,6 +210,39 @@ fn print_wallet(
     Ok(())
 }
 
+/// Output HD wallet info as JSON.
+fn print_wallet_json(
+    wallet: &Wallet,
+    deriver: &Deriver<'_>,
+    count: u32,
+    style: DerivationStyle,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let addresses = deriver.derive_many_with(style, 0, count)?;
+
+    let out = output::HdWalletOutput {
+        chain: "solana",
+        network: None,
+        address_type: None,
+        mnemonic: wallet.mnemonic().to_string(),
+        passphrase_protected: wallet.has_passphrase(),
+        derivation_style: Some(style.name()),
+        accounts: addresses
+            .iter()
+            .enumerate()
+            .map(|(i, addr)| output::AccountOutput {
+                index: i as u32,
+                derivation_path: addr.path.clone(),
+                address: addr.address.clone(),
+                private_key: addr.keypair_base58.to_string(),
+            })
+            .collect(),
+    };
+
+    output::print_json(&out)?;
+    Ok(())
+}
+
+/// Display standard wallet info as formatted text.
 #[rustfmt::skip]
 fn print_standard_wallet(wallet: &StandardWallet, show_qr: bool) {
     println!();
@@ -201,4 +253,19 @@ fn print_standard_wallet(wallet: &StandardWallet, show_qr: bool) {
         crate::qr::render_to_terminal(&wallet.address());
     }
     println!();
+}
+
+/// Output standard wallet info as JSON.
+fn print_standard_wallet_json(wallet: &StandardWallet) -> Result<(), Box<dyn std::error::Error>> {
+    let out = output::SingleKeyOutput {
+        chain: "solana",
+        network: None,
+        address_type: None,
+        address: wallet.address(),
+        private_key: wallet.keypair_base58().to_string(),
+        public_key: wallet.pubkey_hex(),
+    };
+
+    output::print_json(&out)?;
+    Ok(())
 }

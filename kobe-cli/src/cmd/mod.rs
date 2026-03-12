@@ -17,6 +17,10 @@ pub use solana::SolanaCommand;
 #[command(version, about, long_about = None)]
 #[command(propagate_version = true)]
 pub struct Cli {
+    /// Output results in JSON format for programmatic/agent consumption.
+    #[arg(long, global = true)]
+    pub json: bool,
+
     #[command(subcommand)]
     pub command: Commands,
 }

@@ -23,6 +23,8 @@ colored.workspace = true
 hex.workspace = true
 zeroize.workspace = true
 qrcode.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 
 [lints]
 workspace = true

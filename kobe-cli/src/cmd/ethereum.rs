@@ -5,6 +5,8 @@ use colored::Colorize;
 use kobe::Wallet;
 use kobe_evm::{DerivationStyle, Deriver, StandardWallet};
 
+use crate::output;
+
 /// Ethereum wallet operations.
 #[derive(Args)]
 pub struct EthereumCommand {
@@ -105,7 +107,7 @@ enum EthereumSubcommand {
 
 impl EthereumCommand {
     /// Execute the Ethereum command.
-    pub fn execute(self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
         match self.command {
             EthereumSubcommand::New {
                 words,
@@ -116,11 +118,19 @@ impl EthereumCommand {
             } => {
                 let wallet = Wallet::generate(words, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet);
-                print_wallet(&wallet, &deriver, count, style.into(), qr)?;
+                if json {
+                    print_wallet_json(&wallet, &deriver, count, style.into())?;
+                } else {
+                    print_wallet(&wallet, &deriver, count, style.into(), qr)?;
+                }
             }
             EthereumSubcommand::Random { qr } => {
                 let wallet = StandardWallet::generate()?;
-                print_standard_wallet(&wallet, qr);
+                if json {
+                    print_standard_wallet_json(&wallet)?;
+                } else {
+                    print_standard_wallet(&wallet, qr);
+                }
             }
             EthereumSubcommand::Import {
                 mnemonic,
@@ -132,17 +142,26 @@ impl EthereumCommand {
                 let mnemonic = kobe::mnemonic::expand(&mnemonic)?;
                 let wallet = Wallet::from_mnemonic(&mnemonic, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet);
-                print_wallet(&wallet, &deriver, count, style.into(), qr)?;
+                if json {
+                    print_wallet_json(&wallet, &deriver, count, style.into())?;
+                } else {
+                    print_wallet(&wallet, &deriver, count, style.into(), qr)?;
+                }
             }
             EthereumSubcommand::ImportKey { key, qr } => {
                 let wallet = StandardWallet::from_hex(&key)?;
-                print_standard_wallet(&wallet, qr);
+                if json {
+                    print_standard_wallet_json(&wallet)?;
+                } else {
+                    print_standard_wallet(&wallet, qr);
+                }
             }
         }
         Ok(())
     }
 }
 
+/// Display HD wallet info as formatted text.
 #[rustfmt::skip]
 fn print_wallet(
     wallet: &Wallet,
@@ -180,6 +199,39 @@ fn print_wallet(
     Ok(())
 }
 
+/// Output HD wallet info as JSON.
+fn print_wallet_json(
+    wallet: &Wallet,
+    deriver: &Deriver<'_>,
+    count: u32,
+    style: DerivationStyle,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let addresses = deriver.derive_many_with(style, 0, count)?;
+
+    let out = output::HdWalletOutput {
+        chain: "ethereum",
+        network: None,
+        address_type: None,
+        mnemonic: wallet.mnemonic().to_string(),
+        passphrase_protected: wallet.has_passphrase(),
+        derivation_style: Some(style.name()),
+        accounts: addresses
+            .iter()
+            .enumerate()
+            .map(|(i, addr)| output::AccountOutput {
+                index: i as u32,
+                derivation_path: addr.path.clone(),
+                address: addr.address.clone(),
+                private_key: format!("0x{}", addr.private_key_hex.as_str()),
+            })
+            .collect(),
+    };
+
+    output::print_json(&out)?;
+    Ok(())
+}
+
+/// Display standard wallet info as formatted text.
 #[rustfmt::skip]
 fn print_standard_wallet(wallet: &StandardWallet, show_qr: bool) {
     println!();
@@ -190,4 +242,19 @@ fn print_standard_wallet(wallet: &StandardWallet, show_qr: bool) {
         crate::qr::render_to_terminal(&wallet.address());
     }
     println!();
+}
+
+/// Output standard wallet info as JSON.
+fn print_standard_wallet_json(wallet: &StandardWallet) -> Result<(), Box<dyn std::error::Error>> {
+    let out = output::SingleKeyOutput {
+        chain: "ethereum",
+        network: None,
+        address_type: None,
+        address: wallet.address(),
+        private_key: format!("0x{}", wallet.secret_hex().as_str()),
+        public_key: format!("0x{}", wallet.pubkey_hex()),
+    };
+
+    output::print_json(&out)?;
+    Ok(())
 }
