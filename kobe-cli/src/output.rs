@@ -1,8 +1,10 @@
-//! Structured output types for JSON serialization.
+//! Structured output types and unified rendering.
 //!
-//! These types provide machine-readable JSON output when the `--json` flag
-//! is used, enabling agent and programmatic consumption of wallet data.
+//! These types serve as the single source of truth for both JSON and
+//! human-readable output. Chain-specific code builds these structs,
+//! then calls the shared render functions.
 
+use colored::Colorize;
 use serde::Serialize;
 
 /// Output for HD wallet operations (new, import).
@@ -77,6 +79,118 @@ pub struct CamouflageOutput {
 pub struct ErrorOutput {
     /// Error message.
     pub error: String,
+}
+
+// ---------------------------------------------------------------------------
+// Unified render functions
+// ---------------------------------------------------------------------------
+
+/// Render an HD wallet result as JSON or colored text.
+#[rustfmt::skip]
+pub fn render_hd_wallet(
+    out: &HdWalletOutput,
+    json: bool,
+    show_qr: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if json {
+        return Ok(print_json(out)?);
+    }
+
+    println!();
+    if let Some(network) = out.network {
+        println!("      {}      {}", "Network".cyan().bold(), network);
+    }
+    if let Some(addr_type) = out.address_type {
+        println!("      {} {}", "Address Type".cyan().bold(), addr_type);
+    }
+    println!("      {}     {}", "Mnemonic".cyan().bold(), out.mnemonic);
+    if out.passphrase_protected {
+        println!("      {}   {}", "Passphrase".cyan().bold(), "(set)".dimmed());
+    }
+    if let Some(style) = out.derivation_style {
+        println!("      {}        {}", "Style".cyan().bold(), style.dimmed());
+    }
+    println!();
+
+    let multi = out.accounts.len() > 1;
+    for (i, acct) in out.accounts.iter().enumerate() {
+        if multi {
+            println!("      {}        {}", "Index".cyan().bold(), format!("[{}]", acct.index).dimmed());
+        }
+        println!("      {}         {}", "Path".cyan().bold(), acct.derivation_path);
+        println!("      {}      {}", "Address".cyan().bold(), acct.address.green());
+        println!("      {}  {}", "Private Key".cyan().bold(), acct.private_key);
+        if show_qr {
+            crate::qr::render_to_terminal(&acct.address);
+        }
+        if i < out.accounts.len() - 1 {
+            println!();
+        }
+    }
+    println!();
+    Ok(())
+}
+
+/// Render a single-key wallet result as JSON or colored text.
+#[rustfmt::skip]
+pub fn render_single_key(
+    out: &SingleKeyOutput,
+    json: bool,
+    show_qr: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if json {
+        return Ok(print_json(out)?);
+    }
+
+    println!();
+    if let Some(network) = out.network {
+        println!("      {}      {}", "Network".cyan().bold(), network);
+    }
+    if let Some(addr_type) = out.address_type {
+        println!("      {} {}", "Address Type".cyan().bold(), addr_type);
+    }
+    println!("      {}      {}", "Address".cyan().bold(), out.address.green());
+    println!("      {}  {}", "Private Key".cyan().bold(), out.private_key);
+    println!("      {}   {}", "Public Key".cyan().bold(), out.public_key.dimmed());
+    if show_qr {
+        crate::qr::render_to_terminal(&out.address);
+    }
+    println!();
+    Ok(())
+}
+
+/// Render a camouflage result as JSON or colored text.
+#[rustfmt::skip]
+pub fn render_camouflage(
+    out: &CamouflageOutput,
+    json: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if json {
+        return Ok(print_json(out)?);
+    }
+
+    let mode_label = if out.mode == "encrypt" { "Encrypt" } else { "Decrypt" };
+    let (in_label, out_label) = if out.mode == "encrypt" {
+        ("Original", "Camouflaged")
+    } else {
+        ("Camouflaged", "Recovered")
+    };
+
+    println!();
+    println!("      {}         {}", "Mode".cyan().bold(), mode_label);
+    println!("      {}        {} words", "Words".cyan().bold(), out.words);
+    match out.mode {
+        "encrypt" => {
+            println!("      {}     {}", in_label.cyan().bold(), out.input);
+            println!("      {}  {}", out_label.cyan().bold(), out.output.green());
+        }
+        _ => {
+            println!("      {}  {}", in_label.cyan().bold(), out.input);
+            println!("      {}    {}", out_label.cyan().bold(), out.output.green());
+        }
+    }
+    println!();
+    Ok(())
 }
 
 /// Serialize a value as pretty-printed JSON and write to stdout.

@@ -20,6 +20,7 @@ kobe.workspace = true
 bitcoin.workspace = true
 bip39.workspace = true
 hex.workspace = true
+thiserror.workspace = true
 zeroize.workspace = true
 
 [lints]

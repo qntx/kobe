@@ -1,9 +1,8 @@
 //! Mnemonic utility CLI commands (camouflage encrypt/decrypt).
 
 use clap::{Args, Subcommand};
-use colored::Colorize;
 
-use crate::output;
+use crate::output::{self, CamouflageOutput};
 
 /// Mnemonic utility operations.
 #[derive(Args)]
@@ -50,11 +49,13 @@ impl MnemonicCommand {
             MnemonicSubcommand::Encrypt { mnemonic, password } => {
                 let mnemonic = kobe::mnemonic::expand(&mnemonic)?;
                 let camouflaged = kobe::camouflage::encrypt(&mnemonic, &password)?;
-                if json {
-                    print_json("encrypt", &mnemonic, &camouflaged)?;
-                } else {
-                    print_encrypt_result(&mnemonic, &camouflaged);
-                }
+                let out = CamouflageOutput {
+                    mode: "encrypt",
+                    words: mnemonic.split_whitespace().count(),
+                    input: mnemonic,
+                    output: camouflaged.to_string(),
+                };
+                output::render_camouflage(&out, json)?;
             }
             MnemonicSubcommand::Decrypt {
                 camouflaged,
@@ -62,58 +63,15 @@ impl MnemonicCommand {
             } => {
                 let camouflaged = kobe::mnemonic::expand(&camouflaged)?;
                 let original = kobe::camouflage::decrypt(&camouflaged, &password)?;
-                if json {
-                    print_json("decrypt", &camouflaged, &original)?;
-                } else {
-                    print_decrypt_result(&camouflaged, &original);
-                }
+                let out = CamouflageOutput {
+                    mode: "decrypt",
+                    words: camouflaged.split_whitespace().count(),
+                    input: camouflaged.to_string(),
+                    output: original.to_string(),
+                };
+                output::render_camouflage(&out, json)?;
             }
         }
         Ok(())
     }
-}
-
-/// Display the encrypt (camouflage) result.
-#[rustfmt::skip]
-fn print_encrypt_result(original: &str, camouflaged: &str) {
-    let words = original.split_whitespace().count();
-
-    println!();
-    println!("      {}         {}", "Mode".cyan().bold(), "Encrypt");
-    println!("      {}        {words} words", "Words".cyan().bold());
-    println!("      {}     {}", "Original".cyan().bold(), original);
-    println!("      {}  {}", "Camouflaged".cyan().bold(), camouflaged.green());
-    println!();
-}
-
-/// Display the decrypt (recover) result.
-#[rustfmt::skip]
-fn print_decrypt_result(camouflaged: &str, recovered: &str) {
-    let words = camouflaged.split_whitespace().count();
-
-    println!();
-    println!("      {}         {}", "Mode".cyan().bold(), "Decrypt");
-    println!("      {}        {words} words", "Words".cyan().bold());
-    println!("      {}  {}", "Camouflaged".cyan().bold(), camouflaged);
-    println!("      {}    {}", "Recovered".cyan().bold(), recovered.green());
-    println!();
-}
-
-/// Output camouflage result as JSON.
-fn print_json(
-    mode: &'static str,
-    input: &str,
-    result: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let words = input.split_whitespace().count();
-
-    let out = output::CamouflageOutput {
-        mode,
-        words,
-        input: input.to_string(),
-        output: result.to_string(),
-    };
-
-    output::print_json(&out)?;
-    Ok(())
 }

@@ -1,4 +1,4 @@
-//! Solana wallet utilities for Kobe CLI.
+//! Solana wallet utilities for the Kobe multi-chain wallet.
 //!
 //! Provides Solana address derivation from a unified [`kobe::Wallet`].
 //!

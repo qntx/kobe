@@ -31,38 +31,32 @@ pub struct StandardWallet {
 }
 
 impl StandardWallet {
-    /// Generate a new standard wallet with a random private key.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if key generation fails.
-    ///
-    /// # Panics
-    ///
-    /// This function will not panic under normal circumstances.
-    /// The internal `expect` is guaranteed to succeed for valid private keys.
-    ///
-    /// # Note
-    ///
-    /// This function requires the `rand` feature to be enabled.
-    #[cfg(feature = "rand")]
-    pub fn generate(network: Network, address_type: AddressType) -> Result<Self, Error> {
+    /// Construct wallet from a validated private key, deriving public key and address.
+    fn from_parts(private_key: PrivateKey, network: Network, address_type: AddressType) -> Self {
         let secp = bitcoin::secp256k1::Secp256k1::new();
-        let (secret_key, _) = secp.generate_keypair(&mut bitcoin::secp256k1::rand::thread_rng());
-
-        let private_key = PrivateKey::new(secret_key, network.to_bitcoin_network());
         let public_key = CompressedPublicKey::from_private_key(&secp, &private_key)
-            .expect("valid private key always produces valid public key");
-
+            .expect("valid secp256k1 key");
         let address = create_address(&public_key, network, address_type);
-
-        Ok(Self {
+        Self {
             private_key,
             public_key,
             address,
             network,
             address_type,
-        })
+        }
+    }
+
+    /// Generate a new standard wallet with a random private key.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key generation fails.
+    #[cfg(feature = "rand")]
+    pub fn generate(network: Network, address_type: AddressType) -> Result<Self, Error> {
+        let secp = bitcoin::secp256k1::Secp256k1::new();
+        let (secret_key, _) = secp.generate_keypair(&mut bitcoin::secp256k1::rand::thread_rng());
+        let private_key = PrivateKey::new(secret_key, network.to_bitcoin_network());
+        Ok(Self::from_parts(private_key, network, address_type))
     }
 
     /// Import a wallet from a WIF (Wallet Import Format) private key.
@@ -70,45 +64,21 @@ impl StandardWallet {
     /// # Errors
     ///
     /// Returns an error if the WIF is invalid.
-    ///
-    /// # Panics
-    ///
-    /// This function will not panic under normal circumstances.
-    /// The internal `expect` is guaranteed to succeed for valid private keys.
     pub fn from_wif(wif: &str, address_type: AddressType) -> Result<Self, Error> {
         let private_key: PrivateKey = wif.parse().map_err(|_| Error::InvalidWif)?;
-
         let network = if private_key.network == NetworkKind::Main {
             Network::Mainnet
         } else {
             Network::Testnet
         };
-
-        let secp = bitcoin::secp256k1::Secp256k1::new();
-        let public_key = CompressedPublicKey::from_private_key(&secp, &private_key)
-            .expect("valid private key always produces valid public key");
-
-        let address = create_address(&public_key, network, address_type);
-
-        Ok(Self {
-            private_key,
-            public_key,
-            address,
-            network,
-            address_type,
-        })
+        Ok(Self::from_parts(private_key, network, address_type))
     }
 
     /// Import a wallet from a hex-encoded secret key.
     ///
     /// # Errors
     ///
-    /// Returns an error if the hex is invalid.
-    ///
-    /// # Panics
-    ///
-    /// This function will not panic under normal circumstances.
-    /// The internal `expect` is guaranteed to succeed for valid private keys.
+    /// Returns an error if the hex is invalid or key length is wrong.
     pub fn from_hex(
         hex_str: &str,
         network: Network,
@@ -116,29 +86,13 @@ impl StandardWallet {
     ) -> Result<Self, Error> {
         let hex_str = hex_str.strip_prefix("0x").unwrap_or(hex_str);
         let bytes = hex::decode(hex_str).map_err(|_| Error::InvalidHex)?;
-
         if bytes.len() != 32 {
             return Err(Error::InvalidPrivateKey);
         }
-
         let secret_key = bitcoin::secp256k1::SecretKey::from_slice(&bytes)
             .map_err(|_| Error::InvalidPrivateKey)?;
-
         let private_key = PrivateKey::new(secret_key, network.to_bitcoin_network());
-
-        let secp = bitcoin::secp256k1::Secp256k1::new();
-        let public_key = CompressedPublicKey::from_private_key(&secp, &private_key)
-            .expect("valid private key always produces valid public key");
-
-        let address = create_address(&public_key, network, address_type);
-
-        Ok(Self {
-            private_key,
-            public_key,
-            address,
-            network,
-            address_type,
-        })
+        Ok(Self::from_parts(private_key, network, address_type))
     }
 
     /// Get the secret key as raw bytes (zeroized on drop).

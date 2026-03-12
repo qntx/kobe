@@ -84,9 +84,8 @@ pub fn expand_in(language: Language, phrase: &str) -> Result<String, Error> {
 /// Returns the full word if the token is an exact match or a unique prefix.
 fn resolve_token<'a>(word_list: &'a [&'a str; 2048], token: &str) -> Result<&'a str, Error> {
     // Fast path: exact match via binary search (wordlist is sorted).
-    if word_list.binary_search(&token).is_ok() {
-        // Find the actual reference from the list for lifetime correctness.
-        return Ok(word_list[word_list.binary_search(&token).unwrap_or(0)]);
+    if let Ok(idx) = word_list.binary_search(&token) {
+        return Ok(word_list[idx]);
     }
 
     // Token is not an exact word — treat as prefix.

@@ -18,7 +18,7 @@ use core::str::FromStr;
 /// - **Standard (Phantom/Backpack)**: `m/44'/501'/{index}'/0'`
 /// - **Trust**: `m/44'/501'/{index}'`
 /// - **Ledger Live**: `m/44'/501'/{index}'/0'/0'`
-/// - **Legacy**: `m/501'/{index}'/0/0` (deprecated)
+/// - **Legacy**: `m/501'/{index}'/0'/0'` (deprecated)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum DerivationStyle {
@@ -62,7 +62,7 @@ pub enum DerivationStyle {
 
     /// Legacy derivation path (deprecated).
     ///
-    /// Path format: `m/501'/{index}'/0/0`
+    /// Path format: `m/501'/{index}'/0'/0'`
     ///
     /// Used by older versions of Phantom and Sollet.
     /// Only use for recovering old wallets.
@@ -89,7 +89,7 @@ impl DerivationStyle {
             Self::Standard => format!("m/44'/501'/{index}'/0'"),
             Self::Trust => format!("m/44'/501'/{index}'"),
             Self::LedgerLive => format!("m/44'/501'/{index}'/0'/0'"),
-            Self::Legacy => format!("m/501'/{index}'/0/0"),
+            Self::Legacy => format!("m/501'/{index}'/0'/0'"),
         }
     }
 
@@ -201,9 +201,9 @@ mod tests {
     #[test]
     fn test_legacy_paths() {
         let style = DerivationStyle::Legacy;
-        assert_eq!(style.path(0), "m/501'/0'/0/0");
-        assert_eq!(style.path(1), "m/501'/1'/0/0");
-        assert_eq!(style.path(10), "m/501'/10'/0/0");
+        assert_eq!(style.path(0), "m/501'/0'/0'/0'");
+        assert_eq!(style.path(1), "m/501'/1'/0'/0'");
+        assert_eq!(style.path(10), "m/501'/10'/0'/0'");
     }
 
     #[test]

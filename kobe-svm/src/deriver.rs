@@ -90,25 +90,7 @@ impl<'a> Deriver<'a> {
             }
             DerivationStyle::Legacy => DerivedKey::derive_legacy_path(self.wallet.seed(), index)?,
         };
-
-        let signing_key = derived.to_signing_key();
-        let verifying_key: VerifyingKey = signing_key.verifying_key();
-        let public_key_bytes = verifying_key.as_bytes();
-
-        // Build base58-encoded 64-byte keypair (secret 32B + public 32B)
-        let mut keypair_bytes = [0u8; 64];
-        keypair_bytes[..32].copy_from_slice(derived.private_key.as_slice());
-        keypair_bytes[32..].copy_from_slice(public_key_bytes);
-        let keypair_b58 = bs58::encode(&keypair_bytes).into_string();
-        keypair_bytes.fill(0);
-
-        Ok(DerivedAddress {
-            path: style.path(index),
-            private_key_hex: Zeroizing::new(hex::encode(derived.private_key.as_slice())),
-            keypair_base58: Zeroizing::new(keypair_b58),
-            public_key_hex: hex::encode(public_key_bytes),
-            address: bs58::encode(public_key_bytes).into_string(),
-        })
+        Ok(build_derived_address(derived, style.path(index)))
     }
 
     /// Derive multiple addresses using the Standard derivation style.
@@ -165,25 +147,28 @@ impl<'a> Deriver<'a> {
     /// Returns an error if derivation fails.
     pub fn derive_path(&self, path: &str) -> Result<DerivedAddress, Error> {
         let derived = DerivedKey::derive_path(self.wallet.seed(), path)?;
+        Ok(build_derived_address(derived, path.to_string()))
+    }
+}
 
-        let signing_key = derived.to_signing_key();
-        let verifying_key: VerifyingKey = signing_key.verifying_key();
-        let public_key_bytes = verifying_key.as_bytes();
+/// Build a [`DerivedAddress`] from a raw [`DerivedKey`] and path string.
+fn build_derived_address(derived: DerivedKey, path: String) -> DerivedAddress {
+    let signing_key = derived.to_signing_key();
+    let verifying_key: VerifyingKey = signing_key.verifying_key();
+    let public_key_bytes = verifying_key.as_bytes();
 
-        // Build base58-encoded 64-byte keypair (secret 32B + public 32B)
-        let mut keypair_bytes = [0u8; 64];
-        keypair_bytes[..32].copy_from_slice(derived.private_key.as_slice());
-        keypair_bytes[32..].copy_from_slice(public_key_bytes);
-        let keypair_b58 = bs58::encode(&keypair_bytes).into_string();
-        keypair_bytes.fill(0);
+    let mut keypair_bytes = [0u8; 64];
+    keypair_bytes[..32].copy_from_slice(derived.private_key.as_slice());
+    keypair_bytes[32..].copy_from_slice(public_key_bytes);
+    let keypair_b58 = bs58::encode(&keypair_bytes).into_string();
+    keypair_bytes.fill(0);
 
-        Ok(DerivedAddress {
-            path: path.to_string(),
-            private_key_hex: Zeroizing::new(hex::encode(derived.private_key.as_slice())),
-            keypair_base58: Zeroizing::new(keypair_b58),
-            public_key_hex: hex::encode(public_key_bytes),
-            address: bs58::encode(public_key_bytes).into_string(),
-        })
+    DerivedAddress {
+        path,
+        private_key_hex: Zeroizing::new(hex::encode(derived.private_key.as_slice())),
+        keypair_base58: Zeroizing::new(keypair_b58),
+        public_key_hex: hex::encode(public_key_bytes),
+        address: bs58::encode(public_key_bytes).into_string(),
     }
 }
 

@@ -35,7 +35,7 @@ pub struct DerivedAddress {
     pub private_key_hex: Zeroizing<String>,
     /// Public key in uncompressed hex format.
     pub public_key_hex: String,
-    /// Checksummed Ethereum address (EIP-55)..
+    /// Checksummed Ethereum address (EIP-55).
     pub address: String,
 }
 

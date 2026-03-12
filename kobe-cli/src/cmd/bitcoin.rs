@@ -1,11 +1,10 @@
 //! Bitcoin wallet CLI commands.
 
 use clap::{Args, Subcommand, ValueEnum};
-use colored::Colorize;
 use kobe::Wallet;
 use kobe_btc::{AddressType, Deriver, Network, StandardWallet};
 
-use crate::output;
+use crate::output::{self, AccountOutput, HdWalletOutput, SingleKeyOutput};
 
 /// Bitcoin wallet operations.
 #[derive(Args)]
@@ -124,6 +123,23 @@ impl From<CliAddressType> for AddressType {
     }
 }
 
+/// Map bool to Network.
+fn network(testnet: bool) -> Network {
+    if testnet {
+        Network::Testnet
+    } else {
+        Network::Mainnet
+    }
+}
+
+/// Map Network to display string.
+fn network_str(n: Network) -> &'static str {
+    match n {
+        Network::Mainnet => "mainnet",
+        Network::Testnet => "testnet",
+    }
+}
+
 impl BitcoinCommand {
     /// Execute the Bitcoin command.
     pub fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
@@ -136,37 +152,24 @@ impl BitcoinCommand {
                 count,
                 qr,
             } => {
-                let network = if testnet {
-                    Network::Testnet
-                } else {
-                    Network::Mainnet
-                };
+                let net = network(testnet);
                 let addr_type = AddressType::from(address_type);
                 let wallet = Wallet::generate(words, passphrase.as_deref())?;
-                let deriver = Deriver::new(&wallet, network)?;
-                if json {
-                    print_wallet_json(&wallet, &deriver, addr_type, count)?;
-                } else {
-                    print_wallet(&wallet, &deriver, addr_type, count, qr)?;
-                }
+                let deriver = Deriver::new(&wallet, net)?;
+                let addresses = deriver.derive_many_with(addr_type, 0, count)?;
+                let out = build_hd(&wallet, net, addr_type, &addresses);
+                output::render_hd_wallet(&out, json, qr)?;
             }
             BitcoinSubcommand::Random {
                 testnet,
                 address_type,
                 qr,
             } => {
-                let network = if testnet {
-                    Network::Testnet
-                } else {
-                    Network::Mainnet
-                };
+                let net = network(testnet);
                 let addr_type = AddressType::from(address_type);
-                let wallet = StandardWallet::generate(network, addr_type)?;
-                if json {
-                    print_standard_wallet_json(&wallet)?;
-                } else {
-                    print_standard_wallet(&wallet, qr);
-                }
+                let wallet = StandardWallet::generate(net, addr_type)?;
+                let out = build_single_key(&wallet);
+                output::render_single_key(&out, json, qr)?;
             }
             BitcoinSubcommand::Import {
                 mnemonic,
@@ -176,20 +179,14 @@ impl BitcoinCommand {
                 count,
                 qr,
             } => {
-                let network = if testnet {
-                    Network::Testnet
-                } else {
-                    Network::Mainnet
-                };
+                let net = network(testnet);
                 let addr_type = AddressType::from(address_type);
                 let mnemonic = kobe::mnemonic::expand(&mnemonic)?;
                 let wallet = Wallet::from_mnemonic(&mnemonic, passphrase.as_deref())?;
-                let deriver = Deriver::new(&wallet, network)?;
-                if json {
-                    print_wallet_json(&wallet, &deriver, addr_type, count)?;
-                } else {
-                    print_wallet(&wallet, &deriver, addr_type, count, qr)?;
-                }
+                let deriver = Deriver::new(&wallet, net)?;
+                let addresses = deriver.derive_many_with(addr_type, 0, count)?;
+                let out = build_hd(&wallet, net, addr_type, &addresses);
+                output::render_hd_wallet(&out, json, qr)?;
             }
             BitcoinSubcommand::ImportKey {
                 key,
@@ -198,132 +195,49 @@ impl BitcoinCommand {
             } => {
                 let addr_type = AddressType::from(address_type);
                 let wallet = StandardWallet::from_wif(&key, addr_type)?;
-                if json {
-                    print_standard_wallet_json(&wallet)?;
-                } else {
-                    print_standard_wallet(&wallet, qr);
-                }
+                let out = build_single_key(&wallet);
+                output::render_single_key(&out, json, qr)?;
             }
         }
         Ok(())
     }
 }
 
-/// Display HD wallet info as formatted text.
-#[rustfmt::skip]
-fn print_wallet(
+/// Build HD wallet output struct from BTC-specific types.
+fn build_hd(
     wallet: &Wallet,
-    deriver: &Deriver<'_>,
-    address_type: AddressType,
-    count: u32,
-    show_qr: bool,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let network_str = match deriver.network() {
-        Network::Mainnet => "mainnet",
-        Network::Testnet => "testnet",
-    };
-    let addresses = deriver.derive_many_with(address_type, 0, count)?;
-
-    println!();
-    println!("      {}      {}", "Network".cyan().bold(), network_str);
-    println!("      {} {}", "Address Type".cyan().bold(), address_type.name());
-    println!("      {}     {}", "Mnemonic".cyan().bold(), wallet.mnemonic());
-    if wallet.has_passphrase() {
-        println!("      {}   {}", "Passphrase".cyan().bold(), "(set)".dimmed());
-    }
-    println!();
-
-    for (i, addr) in addresses.iter().enumerate() {
-        if count > 1 {
-            println!("      {}        {}", "Index".cyan().bold(), format!("[{i}]").dimmed());
-        }
-        println!("      {}         {}", "Path".cyan().bold(), addr.path);
-        println!("      {}      {}", "Address".cyan().bold(), addr.address.green());
-        println!("      {}  {}", "Private Key".cyan().bold(), addr.private_key_wif.as_str());
-        if show_qr {
-            crate::qr::render_to_terminal(&addr.address);
-        }
-        if i < addresses.len() - 1 {
-            println!();
-        }
-    }
-    println!();
-
-    Ok(())
-}
-
-/// Output HD wallet info as JSON.
-fn print_wallet_json(
-    wallet: &Wallet,
-    deriver: &Deriver<'_>,
-    address_type: AddressType,
-    count: u32,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let network_str = match deriver.network() {
-        Network::Mainnet => "mainnet",
-        Network::Testnet => "testnet",
-    };
-    let addresses = deriver.derive_many_with(address_type, 0, count)?;
-
-    let out = output::HdWalletOutput {
+    net: Network,
+    addr_type: AddressType,
+    addresses: &[kobe_btc::DerivedAddress],
+) -> HdWalletOutput {
+    HdWalletOutput {
         chain: "bitcoin",
-        network: Some(network_str),
-        address_type: Some(address_type.name()),
+        network: Some(network_str(net)),
+        address_type: Some(addr_type.name()),
         mnemonic: wallet.mnemonic().to_string(),
         passphrase_protected: wallet.has_passphrase(),
         derivation_style: None,
         accounts: addresses
             .iter()
             .enumerate()
-            .map(|(i, addr)| output::AccountOutput {
+            .map(|(i, a)| AccountOutput {
                 index: i as u32,
-                derivation_path: addr.path.to_string(),
-                address: addr.address.clone(),
-                private_key: addr.private_key_wif.to_string(),
+                derivation_path: a.path.to_string(),
+                address: a.address.clone(),
+                private_key: a.private_key_wif.to_string(),
             })
             .collect(),
-    };
-
-    output::print_json(&out)?;
-    Ok(())
-}
-
-/// Display standard wallet info as formatted text.
-#[rustfmt::skip]
-fn print_standard_wallet(wallet: &StandardWallet, show_qr: bool) {
-    let network_str = match wallet.network() {
-        Network::Mainnet => "mainnet",
-        Network::Testnet => "testnet",
-    };
-
-    println!();
-    println!("      {}      {}", "Network".cyan().bold(), network_str);
-    println!("      {} {}", "Address Type".cyan().bold(), wallet.address_type().name());
-    println!("      {}      {}", "Address".cyan().bold(), wallet.address().green());
-    println!("      {}  {}", "Private Key".cyan().bold(), wallet.to_wif().as_str());
-    println!("      {}   {}", "Public Key".cyan().bold(), wallet.pubkey_hex().dimmed());
-    if show_qr {
-        crate::qr::render_to_terminal(&wallet.address());
     }
-    println!();
 }
 
-/// Output standard wallet info as JSON.
-fn print_standard_wallet_json(wallet: &StandardWallet) -> Result<(), Box<dyn std::error::Error>> {
-    let network_str = match wallet.network() {
-        Network::Mainnet => "mainnet",
-        Network::Testnet => "testnet",
-    };
-
-    let out = output::SingleKeyOutput {
+/// Build single-key output struct from BTC StandardWallet.
+fn build_single_key(wallet: &StandardWallet) -> SingleKeyOutput {
+    SingleKeyOutput {
         chain: "bitcoin",
-        network: Some(network_str),
+        network: Some(network_str(wallet.network())),
         address_type: Some(wallet.address_type().name()),
         address: wallet.address(),
         private_key: wallet.to_wif().to_string(),
         public_key: wallet.pubkey_hex(),
-    };
-
-    output::print_json(&out)?;
-    Ok(())
+    }
 }

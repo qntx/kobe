@@ -7,7 +7,7 @@ use alloy_primitives::{Address, keccak256};
 
 /// Convert address to checksummed format (EIP-55).
 pub fn to_checksum_address(address: &Address) -> String {
-    let addr_hex = hex::encode::<&[u8]>(address.as_slice());
+    let addr_hex = hex::encode(address.as_slice());
     let hash = keccak256(addr_hex.as_bytes());
 
     let mut result = String::with_capacity(42);

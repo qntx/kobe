@@ -1,1 +1,0 @@
-//! Zcash wallet utilities for Kobe CLI.

@@ -112,7 +112,7 @@ impl DerivedKey {
             .derive_hardened(0)
     }
 
-    /// Derive key at Legacy path: m/501'/index'/0/0 (deprecated)
+    /// Derive key at Legacy path: m/501'/index'/0'/0' (deprecated)
     ///
     /// Used by old Phantom/Sollet versions.
     /// Note: Ed25519 requires hardened derivation, so final components are hardened.

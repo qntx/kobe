@@ -1,11 +1,10 @@
 //! Solana wallet CLI commands.
 
 use clap::{Args, Subcommand, ValueEnum};
-use colored::Colorize;
 use kobe::Wallet;
 use kobe_svm::{DerivationStyle, Deriver, StandardWallet};
 
-use crate::output;
+use crate::output::{self, AccountOutput, HdWalletOutput, SingleKeyOutput};
 
 /// CLI-compatible derivation style enum.
 ///
@@ -24,7 +23,7 @@ pub enum CliDerivationStyle {
     /// Ledger Live: m/44'/501'/{index}'/0'/0'
     LedgerLive,
 
-    /// Legacy: m/501'/{index}'/0/0 (deprecated, old Phantom/Sollet)
+    /// Legacy: m/501'/{index}'/0'/0' (deprecated, old Phantom/Sollet)
     #[value(alias = "old")]
     Legacy,
 }
@@ -126,21 +125,17 @@ impl SolanaCommand {
                 style,
                 qr,
             } => {
+                let style = DerivationStyle::from(style);
                 let wallet = Wallet::generate(words, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet);
-                if json {
-                    print_wallet_json(&wallet, &deriver, count, style.into())?;
-                } else {
-                    print_wallet(&wallet, &deriver, count, style.into(), qr)?;
-                }
+                let addresses = deriver.derive_many_with(style, 0, count)?;
+                let out = build_hd(&wallet, style, &addresses);
+                output::render_hd_wallet(&out, json, qr)?;
             }
             SolanaSubcommand::Random { qr } => {
                 let wallet = StandardWallet::generate();
-                if json {
-                    print_standard_wallet_json(&wallet)?;
-                } else {
-                    print_standard_wallet(&wallet, qr);
-                }
+                let out = build_single_key(&wallet);
+                output::render_single_key(&out, json, qr)?;
             }
             SolanaSubcommand::Import {
                 mnemonic,
@@ -149,77 +144,32 @@ impl SolanaCommand {
                 style,
                 qr,
             } => {
+                let style = DerivationStyle::from(style);
                 let mnemonic = kobe::mnemonic::expand(&mnemonic)?;
                 let wallet = Wallet::from_mnemonic(&mnemonic, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet);
-                if json {
-                    print_wallet_json(&wallet, &deriver, count, style.into())?;
-                } else {
-                    print_wallet(&wallet, &deriver, count, style.into(), qr)?;
-                }
+                let addresses = deriver.derive_many_with(style, 0, count)?;
+                let out = build_hd(&wallet, style, &addresses);
+                output::render_hd_wallet(&out, json, qr)?;
             }
             SolanaSubcommand::ImportKey { key, qr } => {
                 let key = key.strip_prefix("0x").unwrap_or(&key);
                 let wallet = StandardWallet::from_hex(key)?;
-                if json {
-                    print_standard_wallet_json(&wallet)?;
-                } else {
-                    print_standard_wallet(&wallet, qr);
-                }
+                let out = build_single_key(&wallet);
+                output::render_single_key(&out, json, qr)?;
             }
         }
         Ok(())
     }
 }
 
-/// Display HD wallet info as formatted text.
-#[rustfmt::skip]
-fn print_wallet(
+/// Build HD wallet output struct from SVM-specific types.
+fn build_hd(
     wallet: &Wallet,
-    deriver: &Deriver<'_>,
-    count: u32,
     style: DerivationStyle,
-    show_qr: bool,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let addresses = deriver.derive_many_with(style, 0, count)?;
-
-    println!();
-    println!("      {}     {}", "Mnemonic".cyan().bold(), wallet.mnemonic());
-    if wallet.has_passphrase() {
-        println!("      {}   {}", "Passphrase".cyan().bold(), "(set)".dimmed());
-    }
-    println!("      {}        {}", "Style".cyan().bold(), style.name().dimmed());
-    println!();
-
-    for (i, addr) in addresses.iter().enumerate() {
-        if count > 1 {
-            println!("      {}      {}", "Account".cyan().bold(), format!("[{i}]").dimmed());
-        }
-        println!("      {}         {}", "Path".cyan().bold(), addr.path);
-        println!("      {}      {}", "Address".cyan().bold(), addr.address.green());
-        println!("      {}  {}", "Private Key".cyan().bold(), addr.keypair_base58.as_str());
-        if show_qr {
-            crate::qr::render_to_terminal(&addr.address);
-        }
-        if i < addresses.len() - 1 {
-            println!();
-        }
-    }
-    println!();
-
-    Ok(())
-}
-
-/// Output HD wallet info as JSON.
-fn print_wallet_json(
-    wallet: &Wallet,
-    deriver: &Deriver<'_>,
-    count: u32,
-    style: DerivationStyle,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let addresses = deriver.derive_many_with(style, 0, count)?;
-
-    let out = output::HdWalletOutput {
+    addresses: &[kobe_svm::DerivedAddress],
+) -> HdWalletOutput {
+    HdWalletOutput {
         chain: "solana",
         network: None,
         address_type: None,
@@ -229,43 +179,24 @@ fn print_wallet_json(
         accounts: addresses
             .iter()
             .enumerate()
-            .map(|(i, addr)| output::AccountOutput {
+            .map(|(i, a)| AccountOutput {
                 index: i as u32,
-                derivation_path: addr.path.clone(),
-                address: addr.address.clone(),
-                private_key: addr.keypair_base58.to_string(),
+                derivation_path: a.path.clone(),
+                address: a.address.clone(),
+                private_key: a.keypair_base58.to_string(),
             })
             .collect(),
-    };
-
-    output::print_json(&out)?;
-    Ok(())
-}
-
-/// Display standard wallet info as formatted text.
-#[rustfmt::skip]
-fn print_standard_wallet(wallet: &StandardWallet, show_qr: bool) {
-    println!();
-    println!("      {}      {}", "Address".cyan().bold(), wallet.address().green());
-    println!("      {}  {}", "Private Key".cyan().bold(), wallet.keypair_base58().as_str());
-    println!("      {}   {}", "Public Key".cyan().bold(), wallet.pubkey_hex().dimmed());
-    if show_qr {
-        crate::qr::render_to_terminal(&wallet.address());
     }
-    println!();
 }
 
-/// Output standard wallet info as JSON.
-fn print_standard_wallet_json(wallet: &StandardWallet) -> Result<(), Box<dyn std::error::Error>> {
-    let out = output::SingleKeyOutput {
+/// Build single-key output struct from SVM StandardWallet.
+fn build_single_key(wallet: &StandardWallet) -> SingleKeyOutput {
+    SingleKeyOutput {
         chain: "solana",
         network: None,
         address_type: None,
         address: wallet.address(),
         private_key: wallet.keypair_base58().to_string(),
         public_key: wallet.pubkey_hex(),
-    };
-
-    output::print_json(&out)?;
-    Ok(())
+    }
 }
