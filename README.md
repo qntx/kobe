@@ -132,7 +132,7 @@ kobe mnemonic decrypt --camouflaged "decoy mnemonic ..." --password "strong-pass
 - **Derivation styles** — Standard, Ledger Live, Ledger Legacy, Trust Wallet, Legacy (Solana)
 - **`no_std` + `alloc`** — All library crates compile without `std`; suitable for embedded / WASM
 - **Zeroizing** — Private keys and seeds wrapped in `Zeroizing<T>` — cleared on drop
-- **CSPRNG** — Random generation via OS-provided `rand_core::OsRng`
+- **CSPRNG** — Random generation via OS-provided entropy ([`getrandom`](https://docs.rs/getrandom))
 - **Linting** — `pedantic` + `nursery` + `correctness` (deny) — strict Clippy across workspace
 - **Edition** — Rust **2024** — RPITIT, `no_std` ergonomics
 
@@ -140,12 +140,12 @@ kobe mnemonic decrypt --camouflaged "decoy mnemonic ..." --password "strong-pass
 
 Each crate uses feature flags to minimize compile-time dependencies:
 
-| Crate | `std` | `alloc` | `rand` | `rand_core` | `camouflage` |
-| --- | --- | --- | --- | --- | --- |
-| `kobe` | Full std support (default) | Heap allocation for `no_std` | Random mnemonic via OS RNG | Custom RNG for `no_std` | Mnemonic camouflage (XOR + PBKDF2) |
-| `kobe-btc` | Full std support (default) | Heap allocation for `no_std` | Random key generation | — | — |
-| `kobe-evm` | Full std support (default) | Heap allocation for `no_std` | Random key generation | — | — |
-| `kobe-svm` | Full std support (default) | Heap allocation for `no_std` | Ed25519 key generation | — | — |
+| Crate | `std` | `alloc` | `rand` | `camouflage` |
+| --- | --- | --- | --- | --- |
+| `kobe` | Full std support (default) | Heap allocation for `no_std` | Random mnemonic via OS entropy | Mnemonic camouflage (XOR + PBKDF2) |
+| `kobe-btc` | Full std support (default) | Heap allocation for `no_std` | Random key generation | — |
+| `kobe-evm` | Full std support (default) | Heap allocation for `no_std` | Random key generation | — |
+| `kobe-svm` | Full std support (default) | Heap allocation for `no_std` | Ed25519 key generation | — |
 
 ## Mnemonic Camouflage
 
@@ -203,7 +203,7 @@ This library has **not** been independently audited. Use at your own risk.
 
 - Private keys and seeds use [`zeroize`](https://docs.rs/zeroize) for secure memory cleanup
 - No key material is logged or persisted by the library
-- Random generation uses OS-provided CSPRNG via `rand_core::OsRng`
+- Random generation uses OS-provided CSPRNG via [`getrandom`](https://docs.rs/getrandom)
 - Camouflage operations zeroize all intermediate entropy and key material on drop
 - Environment variable manipulation is disallowed at the lint level
 
