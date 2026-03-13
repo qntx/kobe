@@ -5,6 +5,8 @@ use alloc::string::String;
 
 use alloy_primitives::{Address, keccak256};
 
+use crate::Error;
+
 /// Convert address to checksummed format (EIP-55).
 pub fn to_checksum_address(address: &Address) -> String {
     let addr_hex = hex::encode(address.as_slice());
@@ -30,16 +32,22 @@ pub fn to_checksum_address(address: &Address) -> String {
 }
 
 /// Convert public key bytes to Ethereum address.
-pub fn public_key_to_address(public_key_bytes: &[u8]) -> Address {
-    // Skip the first byte (0x04 prefix for uncompressed key) if present
-    let key_bytes = if public_key_bytes.len() == 65 && public_key_bytes[0] == 0x04 {
-        &public_key_bytes[1..]
-    } else {
-        public_key_bytes
+///
+/// Accepts either a 65-byte uncompressed key (with `0x04` prefix) or a
+/// 64-byte raw key.
+///
+/// # Errors
+///
+/// Returns [`Error::InvalidPrivateKey`] if the input length is not 64 or 65 bytes.
+pub fn public_key_to_address(public_key_bytes: &[u8]) -> Result<Address, Error> {
+    let key_bytes = match public_key_bytes.len() {
+        65 if public_key_bytes[0] == 0x04 => &public_key_bytes[1..],
+        64 => public_key_bytes,
+        _ => return Err(Error::InvalidPrivateKey),
     };
 
     let hash = keccak256(key_bytes);
-    Address::from_slice(&hash[12..])
+    Ok(Address::from_slice(&hash[12..]))
 }
 
 #[cfg(test)]
@@ -102,7 +110,7 @@ mod tests {
         let pubkey_hex = "04e68acfc0253a10620dff706b0a1b1f1f5833ea3beb3bde2250d5f271f3563606672ebc45e0b7ea2e816ecb70ca03137b1c9476eec63d4632e990020b7b6fba39";
         let pubkey = hex::decode(pubkey_hex).unwrap();
 
-        let address = public_key_to_address(&pubkey);
+        let address = public_key_to_address(&pubkey).unwrap();
         let checksummed = to_checksum_address(&address);
 
         // Verified address for this public key
@@ -116,7 +124,7 @@ mod tests {
         let pubkey_hex = "e68acfc0253a10620dff706b0a1b1f1f5833ea3beb3bde2250d5f271f3563606672ebc45e0b7ea2e816ecb70ca03137b1c9476eec63d4632e990020b7b6fba39";
         let pubkey = hex::decode(pubkey_hex).unwrap();
 
-        let address = public_key_to_address(&pubkey);
+        let address = public_key_to_address(&pubkey).unwrap();
         let checksummed = to_checksum_address(&address);
 
         // Same address as with prefix

@@ -13,6 +13,7 @@ use crate::slip10::DerivedKey;
 
 /// A derived Solana address with associated keys.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct DerivedAddress {
     /// Derivation path used (e.g., `m/44'/501'/0'/0'`).
     pub path: String,
@@ -68,7 +69,7 @@ impl<'a> Deriver<'a> {
     /// - **Standard** (Phantom/Backpack): `m/44'/501'/index'/0'`
     /// - **Trust**: `m/44'/501'/index'`
     /// - **Ledger Live**: `m/44'/501'/index'/0'/0'`
-    /// - **Legacy**: `m/44'/501'/0'/index'`
+    /// - **Legacy**: `m/501'/{index}'/0'/0'`
     ///
     /// # Arguments
     ///
@@ -90,7 +91,7 @@ impl<'a> Deriver<'a> {
             }
             DerivationStyle::Legacy => DerivedKey::derive_legacy_path(self.wallet.seed(), index)?,
         };
-        Ok(build_derived_address(derived, style.path(index)))
+        Ok(build_derived_address(&derived, style.path(index)))
     }
 
     /// Derive multiple addresses using the Standard derivation style.
@@ -125,7 +126,10 @@ impl<'a> Deriver<'a> {
         start: u32,
         count: u32,
     ) -> Result<Vec<DerivedAddress>, Error> {
-        (start..start + count)
+        let end = start.checked_add(count).ok_or_else(|| {
+            Error::Derivation("index overflow: start + count exceeds u32::MAX".into())
+        })?;
+        (start..end)
             .map(|index| self.derive_with(style, index))
             .collect()
     }
@@ -147,21 +151,20 @@ impl<'a> Deriver<'a> {
     /// Returns an error if derivation fails.
     pub fn derive_path(&self, path: &str) -> Result<DerivedAddress, Error> {
         let derived = DerivedKey::derive_path(self.wallet.seed(), path)?;
-        Ok(build_derived_address(derived, path.to_string()))
+        Ok(build_derived_address(&derived, path.to_string()))
     }
 }
 
 /// Build a [`DerivedAddress`] from a raw [`DerivedKey`] and path string.
-fn build_derived_address(derived: DerivedKey, path: String) -> DerivedAddress {
+fn build_derived_address(derived: &DerivedKey, path: String) -> DerivedAddress {
     let signing_key = derived.to_signing_key();
     let verifying_key: VerifyingKey = signing_key.verifying_key();
     let public_key_bytes = verifying_key.as_bytes();
 
-    let mut keypair_bytes = [0u8; 64];
+    let mut keypair_bytes = Zeroizing::new([0u8; 64]);
     keypair_bytes[..32].copy_from_slice(derived.private_key.as_slice());
     keypair_bytes[32..].copy_from_slice(public_key_bytes);
-    let keypair_b58 = bs58::encode(&keypair_bytes).into_string();
-    keypair_bytes.fill(0);
+    let keypair_b58 = bs58::encode(&*keypair_bytes).into_string();
 
     DerivedAddress {
         path,

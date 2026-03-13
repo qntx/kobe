@@ -28,8 +28,9 @@ pub struct Deriver<'a> {
     _wallet: PhantomData<&'a Wallet>,
 }
 
-/// A derived Bitcoin address with associated keys.
+/// A derived Bitcoin address with associated keys and metadata.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct DerivedAddress {
     /// Derivation path used (e.g., `m/84'/0'/0'/0/0`).
     pub path: DerivationPath,
@@ -100,7 +101,7 @@ impl<'a> Deriver<'a> {
         address_type: AddressType,
         index: u32,
     ) -> Result<DerivedAddress, Error> {
-        let path = DerivationPath::bip_standard(address_type, self.network, 0, false, index);
+        let path = DerivationPath::bip_standard(address_type, self.network, 0, false, index)?;
         self.derive_path(&path, address_type)
     }
 
@@ -136,7 +137,10 @@ impl<'a> Deriver<'a> {
         start: u32,
         count: u32,
     ) -> Result<Vec<DerivedAddress>, Error> {
-        (start..start + count)
+        let end = start.checked_add(count).ok_or_else(|| {
+            Error::InvalidDerivationPath("index overflow: start + count exceeds u32::MAX".into())
+        })?;
+        (start..end)
             .map(|index| self.derive_with(address_type, index))
             .collect()
     }
@@ -169,7 +173,7 @@ impl<'a> Deriver<'a> {
 
         let private_key = PrivateKey::new(derived.private_key, self.network.to_bitcoin_network());
         let public_key = CompressedPublicKey::from_private_key(&secp, &private_key)
-            .expect("valid private key always produces valid public key");
+            .map_err(|_| Error::InvalidPrivateKey)?;
 
         let address = create_address(&public_key, self.network, address_type);
 

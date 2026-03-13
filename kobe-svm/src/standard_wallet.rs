@@ -6,9 +6,7 @@
 use alloc::string::String;
 
 use ed25519_dalek::{SigningKey, VerifyingKey};
-#[cfg(feature = "rand")]
-use rand_core::OsRng;
-use zeroize::Zeroizing;
+use zeroize::{Zeroize, Zeroizing};
 
 use crate::Error;
 
@@ -25,12 +23,19 @@ pub struct StandardWallet {
 impl StandardWallet {
     /// Generate a new random wallet.
     ///
-    /// Uses the operating system's cryptographically secure random number generator.
+    /// Uses the operating system's cryptographically secure random number generator
+    /// via [`getrandom`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the system RNG is unavailable.
     #[cfg(feature = "rand")]
-    #[must_use]
-    pub fn generate() -> Self {
-        let signing_key = SigningKey::generate(&mut OsRng);
-        Self { signing_key }
+    pub fn generate() -> Result<Self, Error> {
+        let mut bytes = Zeroizing::new([0u8; 32]);
+        getrandom::fill(&mut *bytes)
+            .map_err(|_| Error::Derivation("system random number generator unavailable".into()))?;
+        let signing_key = SigningKey::from_bytes(&bytes);
+        Ok(Self { signing_key })
     }
 
     /// Create a wallet from raw 32-byte secret key.
@@ -46,17 +51,19 @@ impl StandardWallet {
     ///
     /// Returns an error if the hex is invalid or key length is wrong.
     pub fn from_hex(hex_key: &str) -> Result<Self, Error> {
-        let bytes = hex::decode(hex_key).map_err(|_| Error::InvalidHex)?;
+        let mut bytes = hex::decode(hex_key).map_err(|_| Error::InvalidHex)?;
 
         if bytes.len() != 32 {
+            bytes.zeroize();
             return Err(Error::Derivation(alloc::format!(
                 "expected 32 bytes, got {}",
                 bytes.len()
             )));
         }
 
-        let mut key_bytes = [0u8; 32];
+        let mut key_bytes = Zeroizing::new([0u8; 32]);
         key_bytes.copy_from_slice(&bytes);
+        bytes.zeroize();
         Ok(Self::from_bytes(&key_bytes))
     }
 
@@ -115,7 +122,7 @@ mod tests {
     #[cfg(feature = "rand")]
     #[test]
     fn test_generate() {
-        let wallet = StandardWallet::generate();
+        let wallet = StandardWallet::generate().unwrap();
         let address = wallet.address();
 
         // Solana addresses are 32-44 characters in Base58

@@ -54,13 +54,10 @@ pub fn render_to_terminal(data: &str) {
     println!();
     for y in (0..height).step_by(2) {
         print!("{indent}");
-        for x in 0..total_width {
-            let top = matrix[y][x];
-            let bottom = if y + 1 < height {
-                matrix[y + 1][x]
-            } else {
-                false
-            };
+        let top_row = &matrix[y];
+        let bottom_row = matrix.get(y + 1);
+        for (idx, &top) in top_row.iter().enumerate().take(total_width) {
+            let bottom = bottom_row.is_some_and(|row| row[idx]);
 
             // ▀ = top half, ▄ = bottom half, █ = full, ' ' = empty
             let ch = match (top, bottom) {

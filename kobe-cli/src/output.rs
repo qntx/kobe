@@ -9,6 +9,7 @@ use serde::Serialize;
 
 /// Output for HD wallet operations (new, import).
 #[derive(Debug, Serialize)]
+#[non_exhaustive]
 pub struct HdWalletOutput {
     /// Blockchain identifier (bitcoin, ethereum, solana).
     pub chain: &'static str,
@@ -31,6 +32,7 @@ pub struct HdWalletOutput {
 
 /// A single derived account/address.
 #[derive(Debug, Serialize)]
+#[non_exhaustive]
 pub struct AccountOutput {
     /// Account index in the derivation sequence.
     pub index: u32,
@@ -44,6 +46,7 @@ pub struct AccountOutput {
 
 /// Output for random/import-key operations (no mnemonic).
 #[derive(Debug, Serialize)]
+#[non_exhaustive]
 pub struct SingleKeyOutput {
     /// Blockchain identifier.
     pub chain: &'static str,
@@ -63,6 +66,7 @@ pub struct SingleKeyOutput {
 
 /// Output for mnemonic camouflage operations.
 #[derive(Debug, Serialize)]
+#[non_exhaustive]
 pub struct CamouflageOutput {
     /// Operation mode ("encrypt" or "decrypt").
     pub mode: &'static str,
@@ -76,6 +80,7 @@ pub struct CamouflageOutput {
 
 /// Structured error output for JSON mode.
 #[derive(Debug, Serialize)]
+#[non_exhaustive]
 pub struct ErrorOutput {
     /// Error message.
     pub error: String,
@@ -179,15 +184,12 @@ pub fn render_camouflage(
     println!();
     println!("      {}         {}", "Mode".cyan().bold(), mode_label);
     println!("      {}        {} words", "Words".cyan().bold(), out.words);
-    match out.mode {
-        "encrypt" => {
-            println!("      {}     {}", in_label.cyan().bold(), out.input);
-            println!("      {}  {}", out_label.cyan().bold(), out.output.green());
-        }
-        _ => {
-            println!("      {}  {}", in_label.cyan().bold(), out.input);
-            println!("      {}    {}", out_label.cyan().bold(), out.output.green());
-        }
+    if out.mode == "encrypt" {
+        println!("      {}     {}", in_label.cyan().bold(), out.input);
+        println!("      {}  {}", out_label.cyan().bold(), out.output.green());
+    } else {
+        println!("      {}  {}", in_label.cyan().bold(), out.input);
+        println!("      {}    {}", out_label.cyan().bold(), out.output.green());
     }
     println!();
     Ok(())

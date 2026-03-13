@@ -9,6 +9,7 @@ use crate::output::{self, AccountOutput, HdWalletOutput, SingleKeyOutput};
 /// Ethereum wallet operations.
 #[derive(Args)]
 pub struct EthereumCommand {
+    /// The subcommand to execute.
     #[command(subcommand)]
     command: EthereumSubcommand,
 }
@@ -30,13 +31,14 @@ pub enum CliDerivationStyle {
 impl From<CliDerivationStyle> for DerivationStyle {
     fn from(style: CliDerivationStyle) -> Self {
         match style {
-            CliDerivationStyle::Standard => DerivationStyle::Standard,
-            CliDerivationStyle::LedgerLive => DerivationStyle::LedgerLive,
-            CliDerivationStyle::LedgerLegacy => DerivationStyle::LedgerLegacy,
+            CliDerivationStyle::Standard => Self::Standard,
+            CliDerivationStyle::LedgerLive => Self::LedgerLive,
+            CliDerivationStyle::LedgerLegacy => Self::LedgerLegacy,
         }
     }
 }
 
+/// Ethereum wallet subcommands.
 #[derive(Subcommand)]
 enum EthereumSubcommand {
     /// Generate a new wallet (with mnemonic).
@@ -115,11 +117,11 @@ impl EthereumCommand {
                 style,
                 qr,
             } => {
-                let style = DerivationStyle::from(style);
+                let derivation_style = DerivationStyle::from(style);
                 let wallet = Wallet::generate(words, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet);
-                let addresses = deriver.derive_many_with(style, 0, count)?;
-                let out = build_hd(&wallet, style, &addresses);
+                let addresses = deriver.derive_many_with(derivation_style, 0, count)?;
+                let out = build_hd(&wallet, derivation_style, &addresses);
                 output::render_hd_wallet(&out, json, qr)?;
             }
             EthereumSubcommand::Random { qr } => {
@@ -134,12 +136,12 @@ impl EthereumCommand {
                 style,
                 qr,
             } => {
-                let style = DerivationStyle::from(style);
-                let mnemonic = kobe::mnemonic::expand(&mnemonic)?;
-                let wallet = Wallet::from_mnemonic(&mnemonic, passphrase.as_deref())?;
+                let derivation_style = DerivationStyle::from(style);
+                let expanded = kobe::mnemonic::expand(&mnemonic)?;
+                let wallet = Wallet::from_mnemonic(&expanded, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet);
-                let addresses = deriver.derive_many_with(style, 0, count)?;
-                let out = build_hd(&wallet, style, &addresses);
+                let addresses = deriver.derive_many_with(derivation_style, 0, count)?;
+                let out = build_hd(&wallet, derivation_style, &addresses);
                 output::render_hd_wallet(&out, json, qr)?;
             }
             EthereumSubcommand::ImportKey { key, qr } => {
@@ -169,7 +171,7 @@ fn build_hd(
             .iter()
             .enumerate()
             .map(|(i, a)| AccountOutput {
-                index: i as u32,
+                index: u32::try_from(i).unwrap_or(u32::MAX),
                 derivation_path: a.path.clone(),
                 address: a.address.clone(),
                 private_key: format!("0x{}", a.private_key_hex.as_str()),

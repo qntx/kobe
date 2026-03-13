@@ -8,7 +8,7 @@ use alloc::string::String;
 
 use alloy_primitives::Address;
 use k256::ecdsa::SigningKey;
-use zeroize::Zeroizing;
+use zeroize::{Zeroize, Zeroizing};
 
 use crate::Error;
 use crate::address::{public_key_to_address, to_checksum_address};
@@ -39,7 +39,7 @@ impl StandardWallet {
     pub fn generate() -> Result<Self, Error> {
         use k256::elliptic_curve::rand_core::OsRng;
         let private_key = SigningKey::random(&mut OsRng);
-        let address = Self::derive_address(&private_key);
+        let address = Self::derive_address(&private_key)?;
 
         Ok(Self {
             private_key,
@@ -54,7 +54,7 @@ impl StandardWallet {
     /// Returns an error if the secret key is invalid.
     pub fn from_bytes(bytes: &[u8; 32]) -> Result<Self, Error> {
         let private_key = SigningKey::from_slice(bytes).map_err(|_| Error::InvalidPrivateKey)?;
-        let address = Self::derive_address(&private_key);
+        let address = Self::derive_address(&private_key)?;
 
         Ok(Self {
             private_key,
@@ -68,11 +68,13 @@ impl StandardWallet {
     ///
     /// Returns an error if the hex string is invalid or the secret key is invalid.
     pub fn from_hex(hex_str: &str) -> Result<Self, Error> {
-        let hex_str = hex_str.strip_prefix("0x").unwrap_or(hex_str);
-        let bytes = hex::decode(hex_str).map_err(|_| Error::InvalidHex)?;
+        let stripped = hex_str.strip_prefix("0x").unwrap_or(hex_str);
+        let mut bytes = hex::decode(stripped).map_err(|_| Error::InvalidHex)?;
 
-        let private_key = SigningKey::from_slice(&bytes).map_err(|_| Error::InvalidPrivateKey)?;
-        let address = Self::derive_address(&private_key);
+        let result = SigningKey::from_slice(&bytes).map_err(|_| Error::InvalidPrivateKey);
+        bytes.zeroize();
+        let private_key = result?;
+        let address = Self::derive_address(&private_key)?;
 
         Ok(Self {
             private_key,
@@ -81,7 +83,11 @@ impl StandardWallet {
     }
 
     /// Derive address from private key.
-    fn derive_address(private_key: &SigningKey) -> Address {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the public key conversion fails.
+    fn derive_address(private_key: &SigningKey) -> Result<Address, Error> {
         let public_key = private_key.verifying_key();
         let public_key_bytes = public_key.to_encoded_point(false);
         public_key_to_address(public_key_bytes.as_bytes())

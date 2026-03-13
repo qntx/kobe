@@ -7,6 +7,7 @@ use bitcoin::Network as BtcNetwork;
 
 /// Supported Bitcoin networks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
+#[allow(clippy::exhaustive_enums)]
 pub enum Network {
     /// Bitcoin mainnet.
     #[default]
@@ -54,7 +55,8 @@ impl fmt::Display for Network {
 }
 
 /// Error returned when parsing an invalid network string.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct ParseNetworkError;
 
 impl fmt::Display for ParseNetworkError {

@@ -22,6 +22,7 @@ pub struct Cli {
     pub json: bool,
 
     #[command(subcommand)]
+    /// The blockchain command to execute.
     pub command: Commands,
 }
 

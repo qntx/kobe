@@ -10,6 +10,7 @@ use crate::{Error, Network};
 
 /// Bitcoin address types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[allow(clippy::exhaustive_enums)]
 pub enum AddressType {
     /// Pay to Public Key Hash (Legacy) - starts with 1 or m/n
     P2pkh,
@@ -56,6 +57,7 @@ impl fmt::Display for AddressType {
 
 /// Error returned when parsing an invalid address type string.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct ParseAddressTypeError;
 
 impl fmt::Display for ParseAddressTypeError {
@@ -88,6 +90,7 @@ impl FromStr for AddressType {
 #[cfg(feature = "alloc")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DerivationPath {
+    /// Wrapped BIP-32 derivation path.
     inner: bitcoin::bip32::DerivationPath,
 }
 
@@ -97,26 +100,25 @@ impl DerivationPath {
     ///
     /// Format: `m/purpose'/coin_type'/account'/change/address_index`
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// This function will not panic as the path format is always valid.
-    #[must_use]
+    /// Returns an error if the path string cannot be parsed.
     pub fn bip_standard(
         address_type: AddressType,
         network: Network,
         account: u32,
         change: bool,
         address_index: u32,
-    ) -> Self {
+    ) -> Result<Self, Error> {
         let purpose = address_type.purpose();
         let coin_type = network.coin_type();
         let change_val = i32::from(change);
 
         let path_str = format!("m/{purpose}'/{coin_type}'/{account}'/{change_val}/{address_index}");
 
-        Self {
-            inner: path_str.parse().expect("valid BIP standard path"),
-        }
+        let inner = bitcoin::bip32::DerivationPath::from_str(&path_str)
+            .map_err(|e| Error::InvalidDerivationPath(e.to_string()))?;
+        Ok(Self { inner })
     }
 
     /// Create from a custom path string.

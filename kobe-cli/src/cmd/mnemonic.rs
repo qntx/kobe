@@ -7,10 +7,12 @@ use crate::output::{self, CamouflageOutput};
 /// Mnemonic utility operations.
 #[derive(Args)]
 pub struct MnemonicCommand {
+    /// The subcommand to execute.
     #[command(subcommand)]
     command: MnemonicSubcommand,
 }
 
+/// Mnemonic utility subcommands.
 #[derive(Subcommand)]
 enum MnemonicSubcommand {
     /// Encrypt a mnemonic into a camouflaged (but valid) BIP-39 mnemonic.
@@ -47,12 +49,12 @@ impl MnemonicCommand {
     pub fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
         match self.command {
             MnemonicSubcommand::Encrypt { mnemonic, password } => {
-                let mnemonic = kobe::mnemonic::expand(&mnemonic)?;
-                let camouflaged = kobe::camouflage::encrypt(&mnemonic, &password)?;
+                let expanded = kobe::mnemonic::expand(&mnemonic)?;
+                let camouflaged = kobe::camouflage::encrypt(&expanded, &password)?;
                 let out = CamouflageOutput {
                     mode: "encrypt",
-                    words: mnemonic.split_whitespace().count(),
-                    input: mnemonic,
+                    words: expanded.split_whitespace().count(),
+                    input: expanded,
                     output: camouflaged.to_string(),
                 };
                 output::render_camouflage(&out, json)?;
@@ -61,12 +63,12 @@ impl MnemonicCommand {
                 camouflaged,
                 password,
             } => {
-                let camouflaged = kobe::mnemonic::expand(&camouflaged)?;
-                let original = kobe::camouflage::decrypt(&camouflaged, &password)?;
+                let expanded = kobe::mnemonic::expand(&camouflaged)?;
+                let original = kobe::camouflage::decrypt(&expanded, &password)?;
                 let out = CamouflageOutput {
                     mode: "decrypt",
-                    words: camouflaged.split_whitespace().count(),
-                    input: camouflaged.to_string(),
+                    words: expanded.split_whitespace().count(),
+                    input: expanded.clone(),
                     output: original.to_string(),
                 };
                 output::render_camouflage(&out, json)?;

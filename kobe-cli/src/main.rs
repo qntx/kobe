@@ -1,3 +1,4 @@
+#![allow(clippy::print_stdout, clippy::print_stderr)]
 //! Kobe - A multi-chain cryptocurrency wallet CLI tool.
 //!
 //! Easily generate and manage wallets for Bitcoin, Ethereum, and Solana.
@@ -26,6 +27,7 @@ fn main() {
     }
 }
 
+/// Dispatch CLI commands and propagate errors.
 fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     let json = cli.json;
     match cli.command {

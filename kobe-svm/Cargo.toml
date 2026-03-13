@@ -13,12 +13,12 @@ categories = ["cryptography", "no-std"]
 default = ["std"]
 std = ["alloc", "kobe/std", "ed25519-dalek/std", "hex/std", "zeroize/std"]
 alloc = ["kobe/alloc", "hex/alloc", "zeroize/alloc"]
-rand = ["ed25519-dalek/rand_core", "dep:rand_core"]
+rand = ["dep:getrandom"]
 
 [dependencies]
 kobe.workspace = true
 ed25519-dalek.workspace = true
-rand_core = { workspace = true, optional = true }
+getrandom = { workspace = true, optional = true }
 bs58.workspace = true
 hmac.workspace = true
 sha2.workspace = true

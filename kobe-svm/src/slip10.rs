@@ -10,8 +10,10 @@ use zeroize::Zeroizing;
 
 use crate::Error;
 
+/// HMAC-SHA512 type alias used for SLIP-0010 key derivation.
 type HmacSha512 = Hmac<Sha512>;
 
+/// The curve identifier used as HMAC key for Ed25519 master key derivation.
 const ED25519_CURVE: &[u8] = b"ed25519 seed";
 
 /// SLIP-0010 derived key pair.
@@ -135,18 +137,19 @@ impl DerivedKey {
     ///
     /// Returns an error if the path is invalid or derivation fails.
     pub fn derive_path(seed: &[u8], path: &str) -> Result<Self, Error> {
-        let path = path.trim();
-        if !path.starts_with("m/") && !path.starts_with("m") {
-            return Err(Error::Derivation(alloc::format!(
-                "invalid path: must start with 'm'"
-            )));
-        }
+        let trimmed = path.trim();
 
-        let components = path
-            .trim_start_matches("m/")
-            .trim_start_matches('m')
-            .split('/')
-            .filter(|s| !s.is_empty());
+        let remainder = if trimmed == "m" {
+            ""
+        } else if let Some(rest) = trimmed.strip_prefix("m/") {
+            rest
+        } else {
+            return Err(Error::Derivation(
+                "invalid path: must start with 'm/' or be exactly 'm'".into(),
+            ));
+        };
+
+        let components = remainder.split('/').filter(|s| !s.is_empty());
 
         let mut current = Self::from_seed(seed)?;
 
@@ -161,8 +164,8 @@ impl DerivedKey {
     /// Parse a path component like "44'" or "501'" to an index.
     fn parse_path_component(component: &str) -> Result<u32, Error> {
         // Ed25519 only supports hardened derivation
-        let component = component.trim_end_matches('\'').trim_end_matches('h');
-        component
+        let stripped = component.trim_end_matches('\'').trim_end_matches('h');
+        stripped
             .parse::<u32>()
             .map_err(|_| Error::Derivation(alloc::format!("invalid path component: {component}")))
     }

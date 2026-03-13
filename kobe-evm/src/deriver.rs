@@ -28,6 +28,7 @@ pub struct Deriver<'a> {
 
 /// A derived Ethereum address with associated keys.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct DerivedAddress {
     /// Derivation path used (e.g., `m/44'/60'/0'/0/0`).
     pub path: String,
@@ -114,7 +115,10 @@ impl<'a> Deriver<'a> {
         start: u32,
         count: u32,
     ) -> Result<Vec<DerivedAddress>, Error> {
-        (start..start + count)
+        let end = start.checked_add(count).ok_or_else(|| {
+            Error::Derivation("index overflow: start + count exceeds u32::MAX".into())
+        })?;
+        (start..end)
             .map(|index| self.derive_with(style, index))
             .collect()
     }
@@ -136,7 +140,7 @@ impl<'a> Deriver<'a> {
 
         let public_key = private_key.verifying_key();
         let public_key_bytes = public_key.to_encoded_point(false);
-        let address = public_key_to_address(public_key_bytes.as_bytes());
+        let address = public_key_to_address(public_key_bytes.as_bytes())?;
 
         Ok(DerivedAddress {
             path: path.to_string(),

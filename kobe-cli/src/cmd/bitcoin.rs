@@ -10,9 +10,11 @@ use crate::output::{self, AccountOutput, HdWalletOutput, SingleKeyOutput};
 #[derive(Args)]
 pub struct BitcoinCommand {
     #[command(subcommand)]
+    /// The subcommand to execute.
     command: BitcoinSubcommand,
 }
 
+/// Bitcoin wallet subcommands.
 #[derive(Subcommand)]
 enum BitcoinSubcommand {
     /// Generate a new wallet (with mnemonic).
@@ -100,6 +102,7 @@ enum BitcoinSubcommand {
     },
 }
 
+/// CLI-compatible address type enum.
 #[derive(Clone, Copy, ValueEnum)]
 enum CliAddressType {
     /// Legacy P2PKH (starts with 1)
@@ -124,7 +127,7 @@ impl From<CliAddressType> for AddressType {
 }
 
 /// Map bool to Network.
-fn network(testnet: bool) -> Network {
+const fn network(testnet: bool) -> Network {
     if testnet {
         Network::Testnet
     } else {
@@ -133,7 +136,7 @@ fn network(testnet: bool) -> Network {
 }
 
 /// Map Network to display string.
-fn network_str(n: Network) -> &'static str {
+const fn network_str(n: Network) -> &'static str {
     match n {
         Network::Mainnet => "mainnet",
         Network::Testnet => "testnet",
@@ -181,8 +184,8 @@ impl BitcoinCommand {
             } => {
                 let net = network(testnet);
                 let addr_type = AddressType::from(address_type);
-                let mnemonic = kobe::mnemonic::expand(&mnemonic)?;
-                let wallet = Wallet::from_mnemonic(&mnemonic, passphrase.as_deref())?;
+                let expanded = kobe::mnemonic::expand(&mnemonic)?;
+                let wallet = Wallet::from_mnemonic(&expanded, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet, net)?;
                 let addresses = deriver.derive_many_with(addr_type, 0, count)?;
                 let out = build_hd(&wallet, net, addr_type, &addresses);
@@ -221,7 +224,7 @@ fn build_hd(
             .iter()
             .enumerate()
             .map(|(i, a)| AccountOutput {
-                index: i as u32,
+                index: u32::try_from(i).unwrap_or(u32::MAX),
                 derivation_path: a.path.to_string(),
                 address: a.address.clone(),
                 private_key: a.private_key_wif.to_string(),

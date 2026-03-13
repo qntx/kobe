@@ -32,10 +32,10 @@ pub enum CliDerivationStyle {
 impl From<CliDerivationStyle> for DerivationStyle {
     fn from(style: CliDerivationStyle) -> Self {
         match style {
-            CliDerivationStyle::Standard => DerivationStyle::Standard,
-            CliDerivationStyle::Trust => DerivationStyle::Trust,
-            CliDerivationStyle::LedgerLive => DerivationStyle::LedgerLive,
-            CliDerivationStyle::Legacy => DerivationStyle::Legacy,
+            CliDerivationStyle::Standard => Self::Standard,
+            CliDerivationStyle::Trust => Self::Trust,
+            CliDerivationStyle::LedgerLive => Self::LedgerLive,
+            CliDerivationStyle::Legacy => Self::Legacy,
         }
     }
 }
@@ -43,10 +43,12 @@ impl From<CliDerivationStyle> for DerivationStyle {
 /// Solana wallet operations.
 #[derive(Args)]
 pub struct SolanaCommand {
+    /// The subcommand to execute.
     #[command(subcommand)]
     command: SolanaSubcommand,
 }
 
+/// Solana wallet subcommands.
 #[derive(Subcommand)]
 enum SolanaSubcommand {
     /// Generate a new wallet (with mnemonic).
@@ -125,15 +127,15 @@ impl SolanaCommand {
                 style,
                 qr,
             } => {
-                let style = DerivationStyle::from(style);
+                let derivation_style = DerivationStyle::from(style);
                 let wallet = Wallet::generate(words, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet);
-                let addresses = deriver.derive_many_with(style, 0, count)?;
-                let out = build_hd(&wallet, style, &addresses);
+                let addresses = deriver.derive_many_with(derivation_style, 0, count)?;
+                let out = build_hd(&wallet, derivation_style, &addresses);
                 output::render_hd_wallet(&out, json, qr)?;
             }
             SolanaSubcommand::Random { qr } => {
-                let wallet = StandardWallet::generate();
+                let wallet = StandardWallet::generate()?;
                 let out = build_single_key(&wallet);
                 output::render_single_key(&out, json, qr)?;
             }
@@ -144,17 +146,17 @@ impl SolanaCommand {
                 style,
                 qr,
             } => {
-                let style = DerivationStyle::from(style);
-                let mnemonic = kobe::mnemonic::expand(&mnemonic)?;
-                let wallet = Wallet::from_mnemonic(&mnemonic, passphrase.as_deref())?;
+                let derivation_style = DerivationStyle::from(style);
+                let expanded = kobe::mnemonic::expand(&mnemonic)?;
+                let wallet = Wallet::from_mnemonic(&expanded, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet);
-                let addresses = deriver.derive_many_with(style, 0, count)?;
-                let out = build_hd(&wallet, style, &addresses);
+                let addresses = deriver.derive_many_with(derivation_style, 0, count)?;
+                let out = build_hd(&wallet, derivation_style, &addresses);
                 output::render_hd_wallet(&out, json, qr)?;
             }
             SolanaSubcommand::ImportKey { key, qr } => {
-                let key = key.strip_prefix("0x").unwrap_or(&key);
-                let wallet = StandardWallet::from_hex(key)?;
+                let hex_key = key.strip_prefix("0x").unwrap_or(&key);
+                let wallet = StandardWallet::from_hex(hex_key)?;
                 let out = build_single_key(&wallet);
                 output::render_single_key(&out, json, qr)?;
             }
@@ -180,7 +182,7 @@ fn build_hd(
             .iter()
             .enumerate()
             .map(|(i, a)| AccountOutput {
-                index: i as u32,
+                index: u32::try_from(i).unwrap_or(u32::MAX),
                 derivation_path: a.path.clone(),
                 address: a.address.clone(),
                 private_key: a.keypair_base58.to_string(),

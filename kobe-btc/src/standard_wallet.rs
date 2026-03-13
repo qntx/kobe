@@ -7,7 +7,7 @@
 use alloc::string::{String, ToString};
 
 use bitcoin::{Address, NetworkKind, PrivateKey, key::CompressedPublicKey};
-use zeroize::Zeroizing;
+use zeroize::{Zeroize, Zeroizing};
 
 use crate::address::create_address;
 use crate::{AddressType, Error, Network};
@@ -32,18 +32,26 @@ pub struct StandardWallet {
 
 impl StandardWallet {
     /// Construct wallet from a validated private key, deriving public key and address.
-    fn from_parts(private_key: PrivateKey, network: Network, address_type: AddressType) -> Self {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the public key derivation fails.
+    fn from_parts(
+        private_key: PrivateKey,
+        network: Network,
+        address_type: AddressType,
+    ) -> Result<Self, Error> {
         let secp = bitcoin::secp256k1::Secp256k1::new();
         let public_key = CompressedPublicKey::from_private_key(&secp, &private_key)
-            .expect("valid secp256k1 key");
+            .map_err(|_| Error::InvalidPrivateKey)?;
         let address = create_address(&public_key, network, address_type);
-        Self {
+        Ok(Self {
             private_key,
             public_key,
             address,
             network,
             address_type,
-        }
+        })
     }
 
     /// Generate a new standard wallet with a random private key.
@@ -56,7 +64,7 @@ impl StandardWallet {
         let secp = bitcoin::secp256k1::Secp256k1::new();
         let (secret_key, _) = secp.generate_keypair(&mut bitcoin::secp256k1::rand::thread_rng());
         let private_key = PrivateKey::new(secret_key, network.to_bitcoin_network());
-        Ok(Self::from_parts(private_key, network, address_type))
+        Self::from_parts(private_key, network, address_type)
     }
 
     /// Import a wallet from a WIF (Wallet Import Format) private key.
@@ -71,7 +79,7 @@ impl StandardWallet {
         } else {
             Network::Testnet
         };
-        Ok(Self::from_parts(private_key, network, address_type))
+        Self::from_parts(private_key, network, address_type)
     }
 
     /// Import a wallet from a hex-encoded secret key.
@@ -84,15 +92,18 @@ impl StandardWallet {
         network: Network,
         address_type: AddressType,
     ) -> Result<Self, Error> {
-        let hex_str = hex_str.strip_prefix("0x").unwrap_or(hex_str);
-        let bytes = hex::decode(hex_str).map_err(|_| Error::InvalidHex)?;
+        let stripped = hex_str.strip_prefix("0x").unwrap_or(hex_str);
+        let mut bytes = hex::decode(stripped).map_err(|_| Error::InvalidHex)?;
         if bytes.len() != 32 {
+            bytes.zeroize();
             return Err(Error::InvalidPrivateKey);
         }
-        let secret_key = bitcoin::secp256k1::SecretKey::from_slice(&bytes)
-            .map_err(|_| Error::InvalidPrivateKey)?;
+        let result =
+            bitcoin::secp256k1::SecretKey::from_slice(&bytes).map_err(|_| Error::InvalidPrivateKey);
+        bytes.zeroize();
+        let secret_key = result?;
         let private_key = PrivateKey::new(secret_key, network.to_bitcoin_network());
-        Ok(Self::from_parts(private_key, network, address_type))
+        Self::from_parts(private_key, network, address_type)
     }
 
     /// Get the secret key as raw bytes (zeroized on drop).
