@@ -143,6 +143,7 @@ impl fmt::Display for ParseDerivationStyleError {
 impl std::error::Error for ParseDerivationStyleError {}
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

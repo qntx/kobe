@@ -42,6 +42,7 @@ pub fn create_address(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use bitcoin::secp256k1::Secp256k1;
 

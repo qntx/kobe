@@ -1,62 +1,55 @@
-# Makefile for Kobe multi-chain wallet
+# Makefile for Rust project using Cargo
 
-.PHONY: all
-all: pre-commit
+.PHONY: all build check run test bench clippy clippy-fix fmt doc update
 
-.PHONY: build
+all: fmt clippy-fix
+
+# Build the project with all features enabled in release mode
 build:
-	cargo build --release --all-features
+	cargo build --workspace --release --all-features
 
-.PHONY: update
+# Check the project for compilation errors without producing binaries
+check:
+	cargo check --workspace --all-features
+
+# Update dependencies to their latest compatible versions
 update:
 	cargo update
 
-.PHONY: run
+# Run the project with all features enabled in release mode
 run:
 	cargo run --release --all-features
 
-.PHONY: test
+# Run all tests with all features enabled
 test:
-	cargo test --all-features
+	cargo test --workspace --all-features
 
-.PHONY: bench
+# Run benchmarks with all features enabled
 bench:
 	cargo bench --all-features
 
-.PHONY: clippy
+# Run Clippy linter with nightly toolchain (check only, for CI)
+# Uses workspace lints from Cargo.toml
 clippy:
-	cargo +nightly clippy --fix \
+	cargo +nightly clippy --workspace \
+		--all-targets \
+		--all-features \
+		-- -D warnings
+
+# Run Clippy linter with auto-fix (for development)
+clippy-fix:
+	cargo +nightly clippy --workspace \
+		--fix \
 		--all-targets \
 		--all-features \
 		--allow-dirty \
 		--allow-staged \
 		-- -D warnings
 
-.PHONY: fmt
+# Format the code using rustfmt with nightly toolchain
 fmt:
 	cargo +nightly fmt
 
-.PHONY: doc
+# Generate documentation for all crates and open it in the browser
 doc:
 	cargo +nightly doc --all-features --no-deps --open
-
-.PHONY: cliff
-cliff:
-	git-cliff
-	git cliff --output CHANGELOG.md
-
-.PHONY: udeps
-udeps:
-	cargo +nightly udeps --all-features
-
-.PHONY: udeps-check
-udeps-check:
-	cargo update
-	cargo +nightly udeps --all-features
-
-.PHONY: pre-commit
-pre-commit:
-	$(MAKE) build
-	$(MAKE) test
-	$(MAKE) clippy
-	$(MAKE) fmt

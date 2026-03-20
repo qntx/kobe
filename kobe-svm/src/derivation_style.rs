@@ -170,7 +170,7 @@ impl FromStr for DerivationStyle {
 }
 
 #[cfg(test)]
-#[allow(deprecated)]
+#[allow(deprecated, clippy::unwrap_used)]
 mod tests {
     use super::*;
 

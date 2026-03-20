@@ -155,6 +155,7 @@ impl AsRef<bitcoin::bip32::DerivationPath> for DerivationPath {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

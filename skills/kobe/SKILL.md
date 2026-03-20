@@ -1,5 +1,5 @@
 ---
-name: kobe-cli
+name: kobe
 description: >-
   Multi-chain cryptocurrency wallet CLI tool for generating, importing, and
   managing HD wallets across Bitcoin, Ethereum, and Solana. Use when the user
@@ -38,7 +38,7 @@ kobe --version
 
 ## CLI Structure
 
-```
+```text
 kobe [--json] <chain> <subcommand> [options]
 ```
 

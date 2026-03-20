@@ -176,7 +176,7 @@ fn build_derived_address(derived: &DerivedKey, path: String) -> DerivedAddress {
 }
 
 #[cfg(test)]
-#[allow(deprecated)]
+#[allow(deprecated, clippy::unwrap_used)]
 mod tests {
     use super::*;
 

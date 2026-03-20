@@ -1,4 +1,6 @@
-# kobe
+<!-- markdownlint-disable MD033 MD041 MD036 -->
+
+# Kobe
 
 [![CI][ci-badge]][ci-url]
 [![License][license-badge]][license-url]

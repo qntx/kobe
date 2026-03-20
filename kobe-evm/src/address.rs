@@ -51,6 +51,7 @@ pub fn public_key_to_address(public_key_bytes: &[u8]) -> Result<Address, Error> 
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

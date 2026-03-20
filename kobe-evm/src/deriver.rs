@@ -167,6 +167,7 @@ impl<'a> Deriver<'a> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::shadow_unrelated)]
 mod tests {
     use super::*;
 
