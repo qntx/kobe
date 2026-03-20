@@ -3,12 +3,12 @@
 //!
 //! Easily generate and manage wallets for Bitcoin, Ethereum, and Solana.
 
-mod cmd;
+mod commands;
 pub mod output;
 pub mod qr;
 
 use clap::Parser;
-use cmd::{Cli, Commands};
+use commands::{Cli, Commands};
 
 fn main() {
     let cli = Cli::parse();
