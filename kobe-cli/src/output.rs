@@ -44,26 +44,6 @@ pub struct AccountOutput {
     pub private_key: String,
 }
 
-/// Output for random/import-key operations (no mnemonic).
-#[derive(Debug, Serialize)]
-#[non_exhaustive]
-pub struct SingleKeyOutput {
-    /// Blockchain identifier.
-    pub chain: &'static str,
-    /// Network name, if applicable.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub network: Option<&'static str>,
-    /// Address type description (Bitcoin only).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub address_type: Option<&'static str>,
-    /// Blockchain address.
-    pub address: String,
-    /// Private key (format depends on chain).
-    pub private_key: String,
-    /// Public key in hex format.
-    pub public_key: String,
-}
-
 /// Output for mnemonic camouflage operations.
 #[derive(Debug, Serialize)]
 #[non_exhaustive]
@@ -85,10 +65,6 @@ pub struct ErrorOutput {
     /// Error message.
     pub error: String,
 }
-
-// ---------------------------------------------------------------------------
-// Unified render functions
-// ---------------------------------------------------------------------------
 
 /// Render an HD wallet result as JSON or colored text.
 #[rustfmt::skip]
@@ -131,34 +107,6 @@ pub fn render_hd_wallet(
         if i < out.accounts.len() - 1 {
             println!();
         }
-    }
-    println!();
-    Ok(())
-}
-
-/// Render a single-key wallet result as JSON or colored text.
-#[rustfmt::skip]
-pub fn render_single_key(
-    out: &SingleKeyOutput,
-    json: bool,
-    show_qr: bool,
-) -> Result<(), Box<dyn std::error::Error>> {
-    if json {
-        return Ok(print_json(out)?);
-    }
-
-    println!();
-    if let Some(network) = out.network {
-        println!("      {}      {}", "Network".cyan().bold(), network);
-    }
-    if let Some(addr_type) = out.address_type {
-        println!("      {} {}", "Address Type".cyan().bold(), addr_type);
-    }
-    println!("      {}      {}", "Address".cyan().bold(), out.address.green());
-    println!("      {}  {}", "Private Key".cyan().bold(), out.private_key);
-    println!("      {}   {}", "Public Key".cyan().bold(), out.public_key.dimmed());
-    if show_qr {
-        crate::qr::render_to_terminal(&out.address);
     }
     println!();
     Ok(())
