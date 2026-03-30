@@ -24,13 +24,21 @@ const ED25519_CURVE: &[u8] = b"ed25519 seed";
 ///
 /// Contains a 32-byte private key and chain code. All sensitive fields
 /// are wrapped in [`Zeroizing`] for automatic secure cleanup on drop.
-#[derive(Debug)]
 #[non_exhaustive]
 pub struct DerivedKey {
     /// 32-byte Ed25519 private key.
     pub private_key: Zeroizing<[u8; 32]>,
     /// 32-byte chain code for further derivation.
     pub chain_code: Zeroizing<[u8; 32]>,
+}
+
+impl core::fmt::Debug for DerivedKey {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let pk = self.to_signing_key().verifying_key();
+        f.debug_struct("DerivedKey")
+            .field("public_key", &hex::encode(pk.as_bytes()))
+            .finish_non_exhaustive()
+    }
 }
 
 impl DerivedKey {

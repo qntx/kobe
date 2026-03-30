@@ -1,12 +1,12 @@
 [package]
-name = "kobe-sui"
+name = "kobe-ton"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-readme = "../README.md"
-description = "Sui wallet for Kobe"
-keywords = ["sui", "wallet", "crypto", "no_std"]
+readme = "../../README.md"
+description = "TON wallet for Kobe"
+keywords = ["ton", "wallet", "crypto", "no_std"]
 categories = ["cryptography", "no-std"]
 
 [features]
@@ -20,7 +20,8 @@ ed25519-dalek.workspace = true
 hex.workspace = true
 thiserror.workspace = true
 zeroize.workspace = true
-blake2.workspace = true
+sha2.workspace = true
+base64.workspace = true
 
 [lints]
 workspace = true

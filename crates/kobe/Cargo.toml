@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-readme = "../README.md"
+readme = "../../README.md"
 description = "Multi-chain HD wallet derivation — umbrella crate"
 keywords = ["crypto", "wallet", "bitcoin", "ethereum", "solana"]
 categories = ["cryptography::cryptocurrencies"]
@@ -20,14 +20,14 @@ slip10 = ["kobe-core/slip10"]
 bip32 = ["kobe-core/bip32"]
 
 btc = ["dep:kobe-btc"]
-evm = ["dep:kobe-evm"]
-svm = ["dep:kobe-svm"]
-cosmos = ["dep:kobe-cosmos"]
-tron = ["dep:kobe-tron"]
-spark = ["dep:kobe-spark"]
-fil = ["dep:kobe-fil"]
-ton = ["dep:kobe-ton"]
-sui = ["dep:kobe-sui"]
+evm = ["dep:kobe-evm", "bip32"]
+svm = ["dep:kobe-svm", "slip10"]
+cosmos = ["dep:kobe-cosmos", "bip32"]
+tron = ["dep:kobe-tron", "bip32"]
+spark = ["dep:kobe-spark", "bip32"]
+fil = ["dep:kobe-fil", "bip32"]
+ton = ["dep:kobe-ton", "slip10"]
+sui = ["dep:kobe-sui", "slip10"]
 all-chains = ["btc", "evm", "svm", "cosmos", "tron", "spark", "fil", "ton", "sui"]
 
 [dependencies]

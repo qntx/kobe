@@ -1,27 +1,25 @@
 [package]
-name = "kobe-ton"
+name = "kobe-btc"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-readme = "../README.md"
-description = "TON wallet for Kobe"
-keywords = ["ton", "wallet", "crypto", "no_std"]
+readme = "../../README.md"
+description = "Bitcoin HD wallet derivation for Kobe"
+keywords = ["bitcoin", "wallet", "crypto", "no_std"]
 categories = ["cryptography", "no-std"]
 
 [features]
 default = ["std"]
-std = ["alloc", "kobe-core/std", "ed25519-dalek/std", "hex/std", "zeroize/std"]
+std = ["alloc", "kobe-core/std", "bitcoin/std", "hex/std", "zeroize/std"]
 alloc = ["kobe-core/alloc", "hex/alloc", "zeroize/alloc"]
 
 [dependencies]
-kobe-core = { workspace = true, features = ["slip10"] }
-ed25519-dalek.workspace = true
+kobe-core.workspace = true
+bitcoin.workspace = true
 hex.workspace = true
 thiserror.workspace = true
 zeroize.workspace = true
-sha2.workspace = true
-base64.workspace = true
 
 [lints]
 workspace = true
