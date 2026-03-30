@@ -131,4 +131,12 @@ mod tests {
         let a2 = Deriver::new(&w2).derive(0).unwrap();
         assert_ne!(a1.address, a2.address);
     }
+
+    #[test]
+    fn kat_tron_index0() {
+        // Cross-verified with Python coincurve + keccak256 + base58check(0x41 prefix)
+        let wallet = test_wallet();
+        let a = Deriver::new(&wallet).derive(0).unwrap();
+        assert_eq!(a.address, "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH");
+    }
 }

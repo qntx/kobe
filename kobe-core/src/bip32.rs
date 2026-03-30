@@ -104,64 +104,58 @@ impl core::fmt::Debug for DerivedSecp256k1Key {
 mod tests {
     use super::*;
 
-    fn test_seed() -> [u8; 64] {
-        let mut seed = [0u8; 64];
-        seed[0] = 1;
-        seed
+    // BIP-39 "abandon...about" seed (Python cross-verified)
+    fn kat_seed() -> [u8; 64] {
+        let wallet = crate::Wallet::from_mnemonic(
+            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+            None,
+        ).unwrap();
+        let mut out = [0u8; 64];
+        out.copy_from_slice(wallet.seed());
+        out
     }
 
     #[test]
-    fn derive_ethereum_path() {
-        let seed = test_seed();
+    fn kat_ethereum_path() {
+        let seed = kat_seed();
         let key = DerivedSecp256k1Key::derive(&seed, "m/44'/60'/0'/0/0").unwrap();
-        assert_eq!(key.compressed_pubkey().len(), 33);
-        assert_eq!(key.uncompressed_pubkey().len(), 65);
+        assert_eq!(
+            key.private_key_hex().as_str(),
+            "1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727"
+        );
+        assert_eq!(
+            key.compressed_pubkey_hex(),
+            "0237b0bb7a8288d38ed49a524b5dc98cff3eb5ca824c9f9dc0dfdb3d9cd600f299"
+        );
+    }
+
+    #[test]
+    fn uncompressed_pubkey_starts_with_04() {
+        let seed = kat_seed();
+        let key = DerivedSecp256k1Key::derive(&seed, "m/44'/60'/0'/0/0").unwrap();
         assert_eq!(key.uncompressed_pubkey()[0], 0x04);
-    }
-
-    #[test]
-    fn derive_cosmos_path() {
-        let seed = test_seed();
-        let key = DerivedSecp256k1Key::derive(&seed, "m/44'/118'/0'/0/0").unwrap();
-        let compressed = key.compressed_pubkey();
-        assert!(compressed[0] == 0x02 || compressed[0] == 0x03);
-    }
-
-    #[test]
-    fn private_key_is_32_bytes() {
-        let seed = test_seed();
-        let key = DerivedSecp256k1Key::derive(&seed, "m/44'/60'/0'/0/0").unwrap();
-        assert_eq!(key.private_key_bytes().len(), 32);
-    }
-
-    #[test]
-    fn hex_representations_match() {
-        let seed = test_seed();
-        let key = DerivedSecp256k1Key::derive(&seed, "m/44'/60'/0'/0/0").unwrap();
-        assert_eq!(key.private_key_hex().len(), 64);
-        assert_eq!(key.compressed_pubkey_hex().len(), 66);
-        assert_eq!(key.uncompressed_pubkey_hex().len(), 130);
+        assert_eq!(key.uncompressed_pubkey().len(), 65);
     }
 
     #[test]
     fn different_paths_produce_different_keys() {
-        let seed = test_seed();
+        let seed = kat_seed();
         let k0 = DerivedSecp256k1Key::derive(&seed, "m/44'/60'/0'/0/0").unwrap();
         let k1 = DerivedSecp256k1Key::derive(&seed, "m/44'/60'/0'/0/1").unwrap();
         assert_ne!(*k0.private_key_bytes(), *k1.private_key_bytes());
     }
 
     #[test]
-    fn invalid_path_rejected() {
-        let seed = test_seed();
-        assert!(DerivedSecp256k1Key::derive(&seed, "bad").is_err());
-    }
-
-    #[test]
     fn deterministic() {
-        let seed = test_seed();
+        let seed = kat_seed();
         let a = DerivedSecp256k1Key::derive(&seed, "m/44'/60'/0'/0/0").unwrap();
         let b = DerivedSecp256k1Key::derive(&seed, "m/44'/60'/0'/0/0").unwrap();
         assert_eq!(*a.private_key_bytes(), *b.private_key_bytes());
+    }
+
+    #[test]
+    fn invalid_path_rejected() {
+        let seed = kat_seed();
+        assert!(DerivedSecp256k1Key::derive(&seed, "bad").is_err());
     }
 }

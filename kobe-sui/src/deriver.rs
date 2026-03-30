@@ -110,15 +110,6 @@ mod tests {
     }
 
     #[test]
-    fn deterministic() {
-        let w1 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
-        let w2 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
-        let a1 = Deriver::new(&w1).derive(0).unwrap();
-        let a2 = Deriver::new(&w2).derive(0).unwrap();
-        assert_eq!(a1.address, a2.address);
-    }
-
-    #[test]
     fn different_indices_differ() {
         let wallet = test_wallet();
         let d = Deriver::new(&wallet);
@@ -126,24 +117,13 @@ mod tests {
     }
 
     #[test]
-    fn address_correctness() {
+    fn kat_sui_index0() {
+        // Cross-verified with Python SLIP-10 + nacl + BLAKE2b-256(0x00||pubkey)
         let wallet = test_wallet();
-        let derived = Deriver::new(&wallet).derive(0).unwrap();
-
-        // Manually compute: BLAKE2b-256(0x00 || pubkey)
-        let pubkey_bytes = hex::decode(&derived.public_key).unwrap();
-        let mut buf = vec![ED25519_FLAG];
-        buf.extend_from_slice(&pubkey_bytes);
-        let expected = blake2b_256(&buf);
-        assert_eq!(derived.address, format!("0x{}", hex::encode(expected)));
-    }
-
-    #[test]
-    fn passphrase_changes_address() {
-        let w1 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
-        let w2 = Wallet::from_mnemonic(TEST_MNEMONIC, Some("pass")).unwrap();
-        let a1 = Deriver::new(&w1).derive(0).unwrap();
-        let a2 = Deriver::new(&w2).derive(0).unwrap();
-        assert_ne!(a1.address, a2.address);
+        let a = Deriver::new(&wallet).derive(0).unwrap();
+        assert_eq!(
+            a.address,
+            "0x5e93a736d04fbb25737aa40bee40171ef79f65fae833749e3c089fe7cc2161f1"
+        );
     }
 }

@@ -252,4 +252,23 @@ mod tests {
             "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
         );
     }
+
+    #[test]
+    fn kat_evm_standard_index0() {
+        // Cross-verified with Python coincurve + keccak256 + EIP-55
+        let w = wallet();
+        let a = Deriver::new(&w).derive(0).unwrap();
+        assert_eq!(a.address, "0x9858EfFD232B4033E47d90003D41EC34EcaEda94");
+        assert_eq!(
+            a.private_key.as_str(),
+            "1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727"
+        );
+    }
+
+    #[test]
+    fn kat_evm_standard_index1() {
+        let w = wallet();
+        let a = Deriver::new(&w).derive(1).unwrap();
+        assert_eq!(a.address, "0x6Fac4D18c912343BF86fa7049364Dd4E424Ab9C0");
+    }
 }

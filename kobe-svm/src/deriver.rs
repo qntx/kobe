@@ -279,4 +279,12 @@ mod tests {
         assert_ne!(standard.address, legacy.address);
         assert_ne!(trust.address, ledger_live.address);
     }
+
+    #[test]
+    fn kat_solana_standard_index0() {
+        // Cross-verified with Python SLIP-10 + nacl.signing + base58
+        let wallet = test_wallet();
+        let addr = Deriver::new(&wallet).derive(0).unwrap();
+        assert_eq!(addr.address, "HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk");
+    }
 }

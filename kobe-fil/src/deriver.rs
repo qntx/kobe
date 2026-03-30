@@ -170,4 +170,16 @@ mod tests {
         let a2 = Deriver::new(&w2).derive(0).unwrap();
         assert_ne!(a1.address, a2.address);
     }
+
+    #[test]
+    fn kat_filecoin_index0_privkey() {
+        // Cross-verified with Python coincurve at BIP-44 m/44'/461'/0'/0/0
+        let wallet = test_wallet();
+        let a = Deriver::new(&wallet).derive(0).unwrap();
+        assert_eq!(
+            a.private_key.as_str(),
+            "e1808079c6734eff9a187c917455dc1b2c70385e13f1cd6cecc94978e57f7f76"
+        );
+        assert!(a.address.starts_with("f1"));
+    }
 }

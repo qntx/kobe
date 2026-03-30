@@ -133,18 +133,100 @@ fn parse_path_component(component: &str) -> Result<u32, Error> {
 mod tests {
     use super::*;
 
+    // SLIP-0010 Test Vector 1 for Ed25519
+    // Reference: https://github.com/satoshilabs/slips/blob/master/slip-0010.md
+    const TV1_SEED: &str = "000102030405060708090a0b0c0d0e0f";
+
     #[test]
-    fn master_key_derivation() {
-        let seed = hex::decode("000102030405060708090a0b0c0d0e0f").unwrap();
+    fn slip10_vector1_chain_m() {
+        let seed = hex::decode(TV1_SEED).unwrap();
         let master = DerivedKey::from_seed(&seed).unwrap();
-        assert_eq!(master.private_key.len(), 32);
-        assert_eq!(master.chain_code.len(), 32);
+        assert_eq!(
+            hex::encode(*master.private_key),
+            "2b4be7f19ee27bbf30c667b642d5f4aa69fd169872f8fc3059c08ebae2eb19e7"
+        );
+        assert_eq!(
+            hex::encode(*master.chain_code),
+            "90046a93de5380a72b5e45010748567d5ea02bbf6522f979e05c0d8d8ca9fffb"
+        );
     }
 
     #[test]
-    fn slip10_test_vector2_ed25519_master() {
-        // SLIP-0010 Test vector 2 for ed25519 — Chain m
-        let seed = hex::decode("fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542").unwrap();
+    fn slip10_vector1_chain_m_0h() {
+        let seed = hex::decode(TV1_SEED).unwrap();
+        let derived = DerivedKey::derive_path(&seed, "m/0'").unwrap();
+        assert_eq!(
+            hex::encode(*derived.private_key),
+            "68e0fe46dfb67e368c75379acec591dad19df3cde26e63b93a8e704f1dade7a3"
+        );
+        assert_eq!(
+            hex::encode(*derived.chain_code),
+            "8b59aa11380b624e81507a27fedda59fea6d0b779a778918a2fd3590e16e9c69"
+        );
+    }
+
+    #[test]
+    fn slip10_vector1_chain_m_0h_1h() {
+        let seed = hex::decode(TV1_SEED).unwrap();
+        let derived = DerivedKey::derive_path(&seed, "m/0'/1'").unwrap();
+        assert_eq!(
+            hex::encode(*derived.private_key),
+            "b1d0bad404bf35da785a64ca1ac54b2617211d2777696fbffaf208f746ae84f2"
+        );
+        assert_eq!(
+            hex::encode(*derived.chain_code),
+            "a320425f77d1b5c2505a6b1b27382b37368ee640e3557c315416801243552f14"
+        );
+    }
+
+    #[test]
+    fn slip10_vector1_chain_m_0h_1h_2h() {
+        let seed = hex::decode(TV1_SEED).unwrap();
+        let derived = DerivedKey::derive_path(&seed, "m/0'/1'/2'").unwrap();
+        assert_eq!(
+            hex::encode(*derived.private_key),
+            "92a5b23c0b8a99e37d07df3fb9966917f5d06e02ddbd909c7e184371463e9fc9"
+        );
+        assert_eq!(
+            hex::encode(*derived.chain_code),
+            "2e69929e00b5ab250f49c3fb1c12f252de4fed2c1db88387094a0f8c4c9ccd6c"
+        );
+    }
+
+    #[test]
+    fn slip10_vector1_chain_m_0h_1h_2h_2h() {
+        let seed = hex::decode(TV1_SEED).unwrap();
+        let derived = DerivedKey::derive_path(&seed, "m/0'/1'/2'/2'").unwrap();
+        assert_eq!(
+            hex::encode(*derived.private_key),
+            "30d1dc7e5fc04c31219ab25a27ae00b50f6fd66622f6e9c913253d6511d1e662"
+        );
+        assert_eq!(
+            hex::encode(*derived.chain_code),
+            "8f6d87f93d750e0efccda017d662a1b31a266e4a6f5993b15f5c1f07f74dd5cc"
+        );
+    }
+
+    #[test]
+    fn slip10_vector1_chain_m_0h_1h_2h_2h_1000000000h() {
+        let seed = hex::decode(TV1_SEED).unwrap();
+        let derived = DerivedKey::derive_path(&seed, "m/0'/1'/2'/2'/1000000000'").unwrap();
+        assert_eq!(
+            hex::encode(*derived.private_key),
+            "8f94d394a8e8fd6b1bc2f3f49f5c47e385281d5c17e65324b0f62483e37e8793"
+        );
+        assert_eq!(
+            hex::encode(*derived.chain_code),
+            "68789923a0cac2cd5a29172a475fe9e0fb14cd6adb5ad98a3fa70333e7afa230"
+        );
+    }
+
+    // SLIP-0010 Test Vector 2 for Ed25519
+    const TV2_SEED: &str = "fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542";
+
+    #[test]
+    fn slip10_vector2_chain_m() {
+        let seed = hex::decode(TV2_SEED).unwrap();
         let master = DerivedKey::from_seed(&seed).unwrap();
         assert_eq!(
             hex::encode(*master.private_key),
@@ -157,9 +239,8 @@ mod tests {
     }
 
     #[test]
-    fn slip10_test_vector2_ed25519_chain_m_0h() {
-        // SLIP-0010 Test vector 2 for ed25519 — Chain m/0H
-        let seed = hex::decode("fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542").unwrap();
+    fn slip10_vector2_chain_m_0h() {
+        let seed = hex::decode(TV2_SEED).unwrap();
         let derived = DerivedKey::derive_path(&seed, "m/0'").unwrap();
         assert_eq!(
             hex::encode(*derived.private_key),
@@ -172,37 +253,25 @@ mod tests {
     }
 
     #[test]
-    fn standard_solana_path() {
-        let seed = [0u8; 64];
-        let derived = DerivedKey::derive_path(&seed, "m/44'/501'/0'/0'").unwrap();
-        assert_eq!(derived.private_key.len(), 32);
-    }
-
-    #[test]
-    fn sui_path() {
-        let seed = [0u8; 64];
-        let derived = DerivedKey::derive_path(&seed, "m/44'/784'/0'/0'/0'").unwrap();
-        assert_eq!(derived.private_key.len(), 32);
-    }
-
-    #[test]
-    fn ton_path() {
-        let seed = [0u8; 64];
-        let derived = DerivedKey::derive_path(&seed, "m/44'/607'/0'").unwrap();
-        assert_eq!(derived.private_key.len(), 32);
-    }
-
-    #[test]
     fn master_only_path() {
-        let seed = [0u8; 64];
+        let seed = hex::decode(TV1_SEED).unwrap();
         let m = DerivedKey::from_seed(&seed).unwrap();
         let m2 = DerivedKey::derive_path(&seed, "m").unwrap();
         assert_eq!(*m.private_key, *m2.private_key);
+        assert_eq!(*m.chain_code, *m2.chain_code);
+    }
+
+    #[test]
+    fn h_suffix_accepted() {
+        let seed = hex::decode(TV1_SEED).unwrap();
+        let a = DerivedKey::derive_path(&seed, "m/0'").unwrap();
+        let b = DerivedKey::derive_path(&seed, "m/0h").unwrap();
+        assert_eq!(*a.private_key, *b.private_key);
     }
 
     #[test]
     fn different_indices_produce_different_keys() {
-        let seed = [1u8; 64];
+        let seed = hex::decode(TV1_SEED).unwrap();
         let k0 = DerivedKey::derive_path(&seed, "m/44'/501'/0'").unwrap();
         let k1 = DerivedKey::derive_path(&seed, "m/44'/501'/1'").unwrap();
         assert_ne!(*k0.private_key, *k1.private_key);
@@ -210,8 +279,16 @@ mod tests {
 
     #[test]
     fn invalid_path_rejected() {
-        let seed = [0u8; 64];
+        let seed = hex::decode(TV1_SEED).unwrap();
         assert!(DerivedKey::derive_path(&seed, "bad/path").is_err());
         assert!(DerivedKey::derive_path(&seed, "m/abc").is_err());
+    }
+
+    #[test]
+    fn signing_key_roundtrip() {
+        let seed = hex::decode(TV1_SEED).unwrap();
+        let derived = DerivedKey::from_seed(&seed).unwrap();
+        let sk = derived.to_signing_key();
+        assert_eq!(sk.to_bytes(), *derived.private_key);
     }
 }

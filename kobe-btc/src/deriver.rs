@@ -240,107 +240,75 @@ mod tests {
     }
 
     #[test]
-    fn test_derive_default() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-        let addr = deriver.derive(0).unwrap();
-
-        // Default is P2WPKH
-        assert!(addr.address.starts_with("bc1q"));
-        assert_eq!(addr.path.to_string(), "m/84'/0'/0'/0/0");
-    }
-
-    #[test]
-    fn test_derive_with_p2wpkh() {
+    fn kat_p2wpkh() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
         let addr = deriver.derive_with(AddressType::P2wpkh, 0).unwrap();
-
-        assert!(addr.address.starts_with("bc1q"));
+        assert_eq!(addr.address, "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu");
         assert_eq!(addr.path.to_string(), "m/84'/0'/0'/0/0");
     }
 
     #[test]
-    fn test_derive_with_p2pkh() {
+    fn kat_p2pkh() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
         let addr = deriver.derive_with(AddressType::P2pkh, 0).unwrap();
-
-        assert!(addr.address.starts_with('1'));
+        assert_eq!(addr.address, "1LqBGSKuX5yYUonjxT5qGfpUsXKYYWeabA");
         assert_eq!(addr.path.to_string(), "m/44'/0'/0'/0/0");
     }
 
     #[test]
-    fn test_derive_with_p2sh() {
+    fn kat_p2sh_p2wpkh() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
         let addr = deriver.derive_with(AddressType::P2shP2wpkh, 0).unwrap();
-
-        assert!(addr.address.starts_with('3'));
+        assert_eq!(addr.address, "37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf");
         assert_eq!(addr.path.to_string(), "m/49'/0'/0'/0/0");
     }
 
     #[test]
-    fn test_derive_with_p2tr() {
+    fn p2tr_prefix() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
         let addr = deriver.derive_with(AddressType::P2tr, 0).unwrap();
-
         assert!(addr.address.starts_with("bc1p"));
         assert_eq!(addr.path.to_string(), "m/86'/0'/0'/0/0");
     }
 
     #[test]
-    fn test_derive_testnet() {
+    fn derive_default_is_p2wpkh() {
+        let wallet = test_wallet();
+        let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
+        let def = deriver.derive(0).unwrap();
+        let explicit = deriver.derive_with(AddressType::P2wpkh, 0).unwrap();
+        assert_eq!(def.address, explicit.address);
+    }
+
+    #[test]
+    fn testnet_prefix() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet, Network::Testnet).unwrap();
         let addr = deriver.derive(0).unwrap();
-
         assert!(addr.address.starts_with("tb1q"));
         assert_eq!(addr.path.to_string(), "m/84'/1'/0'/0/0");
     }
 
     #[test]
-    fn test_derive_many() {
+    fn derive_many_unique() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
         let addrs = deriver.derive_many(0, 5).unwrap();
-
         assert_eq!(addrs.len(), 5);
-
-        // All addresses should be unique
-        let mut seen = Vec::new();
-        for addr in &addrs {
-            assert!(!seen.contains(&addr.address));
-            seen.push(addr.address.clone());
-        }
-        assert_eq!(seen.len(), 5);
+        let set: std::collections::HashSet<_> = addrs.iter().map(|a| &a.address).collect();
+        assert_eq!(set.len(), 5);
     }
 
     #[test]
-    fn test_derive_many_with() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-        let addrs = deriver.derive_many_with(AddressType::P2pkh, 0, 3).unwrap();
-
-        assert_eq!(addrs.len(), 3);
-        for addr in &addrs {
-            assert!(addr.address.starts_with('1'));
-        }
-    }
-
-    #[test]
-    fn test_passphrase_changes_addresses() {
+    fn passphrase_changes_addresses() {
         let wallet1 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
         let wallet2 = Wallet::from_mnemonic(TEST_MNEMONIC, Some("password")).unwrap();
-
-        let deriver1 = Deriver::new(&wallet1, Network::Mainnet).unwrap();
-        let deriver2 = Deriver::new(&wallet2, Network::Mainnet).unwrap();
-
-        let addr1 = deriver1.derive(0).unwrap();
-        let addr2 = deriver2.derive(0).unwrap();
-
-        // Same mnemonic with different passphrase should produce different addresses
-        assert_ne!(addr1.address, addr2.address);
+        let d1 = Deriver::new(&wallet1, Network::Mainnet).unwrap();
+        let d2 = Deriver::new(&wallet2, Network::Mainnet).unwrap();
+        assert_ne!(d1.derive(0).unwrap().address, d2.derive(0).unwrap().address);
     }
 }

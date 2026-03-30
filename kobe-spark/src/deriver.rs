@@ -99,4 +99,15 @@ mod tests {
         let spark = Deriver::new(&wallet).derive(0).unwrap();
         assert_eq!(spark.path, "m/84'/0'/0'/0/0");
     }
+
+    #[test]
+    fn kat_spark_index0() {
+        // Cross-verified with Python coincurve compressed pubkey at BIP-84 path
+        let wallet = test_wallet();
+        let a = Deriver::new(&wallet).derive(0).unwrap();
+        assert_eq!(
+            a.address,
+            "spark:0330d54fd0dd420a6e5f8d3624f5f3482cae350f79d5f0753bf5beef9c2d91af3c"
+        );
+    }
 }

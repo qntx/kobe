@@ -13,9 +13,9 @@
 [rust-badge]: https://img.shields.io/badge/rust-edition%202024-orange.svg
 [rust-url]: https://doc.rust-lang.org/edition-guide/
 
-**Modular, `no_std`-compatible Rust toolkit for HD wallet derivation — BIP39 mnemonic management, multi-chain address generation, and a batteries-included CLI.**
+**Modular, `no_std`-compatible Rust toolkit for multi-chain HD wallet derivation — 10 chains, one seed, zero hand-written cryptography.**
 
-kobe provides a unified [`Wallet`] seed from a single mnemonic, then delegates to per-chain crates for standards-compliant key derivation (BIP32/44/49/84/86 for Bitcoin, BIP-44 for Ethereum, SLIP-10 for Solana). All library crates compile under `no_std + alloc` and zeroize sensitive material on drop.
+Kobe derives standards-compliant addresses for Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, and Spark from a single BIP-39 mnemonic. All library crates compile under `no_std + alloc` and zeroize sensitive material on drop.
 
 ## Crates
 
@@ -70,6 +70,31 @@ Or via Cargo:
 cargo install kobe-cli
 ```
 
+### CLI Usage
+
+```bash
+# Generate a new Bitcoin wallet (Native SegWit)
+kobe btc new
+
+# Generate 5 Taproot addresses with a 24-word mnemonic
+kobe btc new --words 24 --address-type taproot --count 5
+
+# Generate a new Ethereum wallet (Ledger Live style, 3 accounts)
+kobe evm new --style ledger-live --count 3
+
+# Generate a new Solana wallet (Phantom-compatible)
+kobe svm new --style standard
+
+# Import from an existing mnemonic
+kobe evm import --mnemonic "abandon abandon ... about"
+
+# Camouflage a mnemonic (encrypt into a decoy mnemonic)
+kobe mnemonic encrypt --mnemonic "real mnemonic ..." --password "strong-password"
+
+# Recover the original mnemonic from a camouflaged one
+kobe mnemonic decrypt --camouflaged "decoy mnemonic ..." --password "strong-password"
+```
+
 ### Derive an Ethereum Address (Library)
 
 ```rust
@@ -102,41 +127,16 @@ println!("Address: {}", addr.address);
 println!("Path:    {}", addr.path);
 ```
 
-### CLI Usage
-
-```bash
-# Generate a new Bitcoin wallet (Native SegWit)
-kobe btc new
-
-# Generate 5 Taproot addresses with a 24-word mnemonic
-kobe btc new --words 24 --address-type taproot --count 5
-
-# Generate a new Ethereum wallet (Ledger Live style, 3 accounts)
-kobe evm new --style ledger-live --count 3
-
-# Generate a new Solana wallet (Phantom-compatible)
-kobe svm new --style standard
-
-# Import from an existing mnemonic
-kobe evm import --mnemonic "abandon abandon ... about"
-
-# Camouflage a mnemonic (encrypt into a decoy mnemonic)
-kobe mnemonic encrypt --mnemonic "real mnemonic ..." --password "strong-password"
-
-# Recover the original mnemonic from a camouflaged one
-kobe mnemonic decrypt --camouflaged "decoy mnemonic ..." --password "strong-password"
-```
-
 ## Design
 
-- **Multi-chain** — Bitcoin (4 address types), Ethereum, Solana — from one BIP39 seed
-- **HD standards** — BIP32, BIP39, BIP44 / 49 / 84 / 86, SLIP-10
-- **Derivation styles** — Standard, Ledger Live, Ledger Legacy, Trust Wallet, Legacy (Solana)
-- **`no_std` + `alloc`** — All library crates compile without `std`; suitable for embedded / WASM
-- **Zeroizing** — Private keys and seeds wrapped in `Zeroizing<T>` — cleared on drop
-- **CSPRNG** — Random generation via OS-provided entropy ([`getrandom`](https://docs.rs/getrandom))
-- **Linting** — `pedantic` + `nursery` + `correctness` (deny) — strict Clippy across workspace
-- **Edition** — Rust **2024** — RPITIT, `no_std` ergonomics
+- **10 chains** — Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark — one BIP-39 seed
+- **HD standards** — BIP-32, BIP-39, BIP-44/49/84/86, SLIP-10
+- **Derivation styles** — Standard, Ledger Live, Ledger Legacy, Trust, Phantom, Backpack
+- **`no_std` + `alloc`** — All library crates compile without `std`; embedded / WASM ready
+- **Zeroizing** — Private keys, seeds, and intermediate material wrapped in `Zeroizing<T>`
+- **Shared infrastructure** — SLIP-10 Ed25519 and BIP-32 secp256k1 derivation in `kobe-core`
+- **KAT-verified** — Every chain has Known Answer Tests cross-verified with Python
+- **Strict linting** — Clippy `pedantic` + `nursery` + `correctness` (deny), zero warnings
 
 ## Feature Flags
 
@@ -204,9 +204,9 @@ kobe mnemonic decrypt -c "decoy abandon ... xyz"   -p "strong-password"
 This library has **not** been independently audited. Use at your own risk.
 
 - Private keys and seeds use [`zeroize`](https://docs.rs/zeroize) for secure memory cleanup
-- No key material is logged or persisted by the library
+- No key material is logged or persisted
 - Random generation uses OS-provided CSPRNG via [`getrandom`](https://docs.rs/getrandom)
-- Camouflage operations zeroize all intermediate entropy and key material on drop
+- Secp256k1 contexts are cached to avoid repeated allocations
 - Environment variable manipulation is disallowed at the lint level
 
 ## License

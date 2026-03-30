@@ -310,8 +310,24 @@ mod tests {
     fn test_deterministic_seed() {
         let wallet1 = Wallet::from_mnemonic(TEST_MNEMONIC, Some("test")).unwrap();
         let wallet2 = Wallet::from_mnemonic(TEST_MNEMONIC, Some("test")).unwrap();
-
-        // Same mnemonic + passphrase should produce identical seeds
         assert_eq!(wallet1.seed(), wallet2.seed());
+    }
+
+    #[test]
+    fn kat_bip39_seed_vector() {
+        // BIP-39 reference: "abandon...about" with empty passphrase
+        // Verified against Python pbkdf2_hmac + iancoleman.io
+        let wallet = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
+        assert_eq!(
+            hex::encode(wallet.seed()),
+            "5eb00bbddcf069084889a8ab9155568165f5c453ccb85e70811aaed6f6da5fc1\
+             9a5ac40b389cd370d086206dec8aa6c43daea6690f20ad3d8d48b2d2ce9e38e4"
+        );
+    }
+
+    #[test]
+    fn kat_all_zero_entropy_produces_abandon_about() {
+        let wallet = Wallet::from_entropy(&[0u8; 16], None).unwrap();
+        assert_eq!(wallet.mnemonic(), TEST_MNEMONIC);
     }
 }

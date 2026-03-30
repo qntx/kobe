@@ -180,4 +180,12 @@ mod tests {
             Deriver::new(&w2).derive(0).unwrap().address,
         );
     }
+
+    #[test]
+    fn kat_cosmos_index0() {
+        // Cross-verified with Python coincurve + SHA256 + RIPEMD160 + bech32
+        let w = wallet();
+        let a = Deriver::new(&w).derive(0).unwrap();
+        assert_eq!(a.address, "cosmos19rl4cm2hmr8afy4kldpxz3fka4jguq0auqdal4");
+    }
 }

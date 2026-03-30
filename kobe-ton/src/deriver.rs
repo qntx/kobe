@@ -299,17 +299,21 @@ mod tests {
     }
 
     #[test]
-    fn crc16_known_vector() {
-        assert_eq!(crc16_ccitt(b"123456789"), 0x31C3);
+    fn kat_known_keys_index0() {
+        let wallet = test_wallet();
+        let derived = Deriver::new(&wallet).derive(0).unwrap();
+        assert_eq!(
+            derived.private_key.as_str(),
+            "b477ef5ed17fb8a2b8faddd7a9835a227243a82c70b190c7af4896155aa7df9f"
+        );
+        assert_eq!(
+            derived.public_key,
+            "7952e94118f34607c75e23258dd9220d66ccac5a3ee074125c25068e8107bfbf"
+        );
     }
 
     #[test]
-    fn data_cell_hash_null_pubkey() {
-        let null_pubkey = [0u8; 32];
-        let hash = data_cell_hash(&null_pubkey);
-        assert_eq!(
-            hex::encode(hash),
-            "0f80a4e3e2630cba3f6f37d12dbcf6afaaa015cd889eeb681a334a4fbe84cf31"
-        );
+    fn crc16_known_vector() {
+        assert_eq!(crc16_ccitt(b"123456789"), 0x31C3);
     }
 }
