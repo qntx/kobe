@@ -2,7 +2,7 @@
 
 use clap::{Args, Subcommand, ValueEnum};
 use kobe::Wallet;
-use kobe_svm::{DerivationStyle, Deriver};
+use kobe::svm::{DerivationStyle, Deriver};
 
 use crate::output::{self, AccountOutput, HdWalletOutput};
 
@@ -107,7 +107,7 @@ impl SolanaCommand {
 fn build_hd(
     wallet: &Wallet,
     style: DerivationStyle,
-    addresses: &[kobe_svm::DerivedAddress],
+    addresses: &[kobe::svm::DerivedAddress],
 ) -> HdWalletOutput {
     HdWalletOutput {
         chain: "solana",

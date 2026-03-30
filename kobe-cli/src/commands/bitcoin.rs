@@ -2,7 +2,7 @@
 
 use clap::{Args, Subcommand, ValueEnum};
 use kobe::Wallet;
-use kobe_btc::{AddressType, Deriver, Network};
+use kobe::btc::{AddressType, Deriver, Network};
 
 use crate::output::{self, AccountOutput, HdWalletOutput};
 
@@ -156,7 +156,7 @@ fn build_hd(
     wallet: &Wallet,
     net: Network,
     addr_type: AddressType,
-    addresses: &[kobe_btc::DerivedAddress],
+    addresses: &[kobe::btc::DerivedAddress],
 ) -> HdWalletOutput {
     HdWalletOutput {
         chain: "bitcoin",

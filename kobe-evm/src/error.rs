@@ -6,5 +6,5 @@
 pub enum Error {
     /// Core kobe error (index overflow, BIP-32 derivation, etc.).
     #[error(transparent)]
-    Core(#[from] kobe::Error),
+    Core(#[from] kobe_core::Error),
 }

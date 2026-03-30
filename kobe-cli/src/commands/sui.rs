@@ -1,8 +1,8 @@
 //! Sui wallet CLI commands.
 
 use clap::{Args, Subcommand};
+use kobe::sui::Deriver;
 use kobe::{DeriveExt, Wallet};
-use kobe_sui::Deriver;
 
 use crate::output::{self, AccountOutput, HdWalletOutput};
 

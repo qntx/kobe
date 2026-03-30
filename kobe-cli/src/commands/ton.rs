@@ -1,8 +1,8 @@
 //! TON wallet CLI commands.
 
 use clap::{Args, Subcommand};
+use kobe::ton::Deriver;
 use kobe::{DeriveExt, Wallet};
-use kobe_ton::Deriver;
 
 use crate::output::{self, AccountOutput, HdWalletOutput};
 

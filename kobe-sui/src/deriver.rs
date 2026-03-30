@@ -6,9 +6,9 @@ use alloc::{format, vec::Vec};
 use blake2::Blake2bVar;
 use blake2::digest::{Update, VariableOutput};
 use ed25519_dalek::VerifyingKey;
-pub use kobe::DerivedAccount;
-use kobe::slip10::DerivedKey;
-use kobe::{Derive, Wallet};
+pub use kobe_core::DerivedAccount;
+use kobe_core::slip10::DerivedKey;
+use kobe_core::{Derive, Wallet};
 use zeroize::Zeroizing;
 
 use crate::Error;

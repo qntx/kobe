@@ -2,7 +2,7 @@
 
 use clap::{Args, Subcommand, ValueEnum};
 use kobe::Wallet;
-use kobe_evm::{DerivationStyle, Deriver};
+use kobe::evm::{DerivationStyle, Deriver};
 
 use crate::output::{self, AccountOutput, HdWalletOutput};
 

@@ -679,6 +679,46 @@ dependencies = [
 name = "kobe"
 version = "0.7.0"
 dependencies = [
+ "kobe-btc",
+ "kobe-core",
+ "kobe-cosmos",
+ "kobe-evm",
+ "kobe-fil",
+ "kobe-spark",
+ "kobe-sui",
+ "kobe-svm",
+ "kobe-ton",
+ "kobe-tron",
+]
+
+[[package]]
+name = "kobe-btc"
+version = "0.7.0"
+dependencies = [
+ "bitcoin",
+ "hex",
+ "kobe-core",
+ "thiserror",
+ "zeroize",
+]
+
+[[package]]
+name = "kobe-cli"
+version = "0.7.0"
+dependencies = [
+ "clap",
+ "colored",
+ "kobe",
+ "qrcode",
+ "serde",
+ "serde_json",
+ "zeroize",
+]
+
+[[package]]
+name = "kobe-core"
+version = "0.7.0"
+dependencies = [
  "bip32",
  "bip39",
  "ed25519-dalek",
@@ -692,44 +732,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "kobe-btc"
-version = "0.7.0"
-dependencies = [
- "bitcoin",
- "hex",
- "kobe",
- "thiserror",
- "zeroize",
-]
-
-[[package]]
-name = "kobe-cli"
-version = "0.7.0"
-dependencies = [
- "clap",
- "colored",
- "kobe",
- "kobe-btc",
- "kobe-cosmos",
- "kobe-evm",
- "kobe-fil",
- "kobe-spark",
- "kobe-sui",
- "kobe-svm",
- "kobe-ton",
- "kobe-tron",
- "qrcode",
- "serde",
- "serde_json",
- "zeroize",
-]
-
-[[package]]
 name = "kobe-cosmos"
 version = "0.7.0"
 dependencies = [
  "bech32",
- "kobe",
+ "kobe-core",
  "ripemd 0.2.0",
  "sha2",
  "thiserror",
@@ -741,7 +748,7 @@ name = "kobe-evm"
 version = "0.7.0"
 dependencies = [
  "alloy-primitives",
- "kobe",
+ "kobe-core",
  "thiserror",
  "zeroize",
 ]
@@ -751,7 +758,7 @@ name = "kobe-fil"
 version = "0.7.0"
 dependencies = [
  "blake2",
- "kobe",
+ "kobe-core",
  "thiserror",
  "zeroize",
 ]
@@ -760,7 +767,7 @@ dependencies = [
 name = "kobe-spark"
 version = "0.7.0"
 dependencies = [
- "kobe",
+ "kobe-core",
  "thiserror",
  "zeroize",
 ]
@@ -772,7 +779,7 @@ dependencies = [
  "blake2",
  "ed25519-dalek",
  "hex",
- "kobe",
+ "kobe-core",
  "thiserror",
  "zeroize",
 ]
@@ -784,7 +791,7 @@ dependencies = [
  "bs58",
  "ed25519-dalek",
  "hex",
- "kobe",
+ "kobe-core",
  "thiserror",
  "zeroize",
 ]
@@ -796,7 +803,7 @@ dependencies = [
  "base64",
  "ed25519-dalek",
  "hex",
- "kobe",
+ "kobe-core",
  "sha2",
  "thiserror",
  "zeroize",
@@ -807,7 +814,7 @@ name = "kobe-tron"
 version = "0.7.0"
 dependencies = [
  "bs58",
- "kobe",
+ "kobe-core",
  "sha3",
  "thiserror",
  "zeroize",

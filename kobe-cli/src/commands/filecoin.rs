@@ -1,8 +1,8 @@
 //! Filecoin wallet CLI commands.
 
 use clap::{Args, Subcommand};
+use kobe::fil::Deriver;
 use kobe::{DeriveExt, Wallet};
-use kobe_fil::Deriver;
 
 use crate::output::{self, AccountOutput, HdWalletOutput};
 

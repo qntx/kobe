@@ -9,8 +9,8 @@ use core::fmt;
 use core::str::FromStr;
 
 use alloy_primitives::{Address, keccak256};
-pub use kobe::DerivedAccount;
-use kobe::{Derive, Wallet};
+pub use kobe_core::DerivedAccount;
+use kobe_core::{Derive, Wallet};
 
 use crate::Error;
 
@@ -66,7 +66,9 @@ impl FromStr for DerivationStyle {
             "standard" | "metamask" | "trezor" | "bip44" => Ok(Self::Standard),
             "ledger-live" | "ledgerlive" | "live" => Ok(Self::LedgerLive),
             "ledger-legacy" | "ledgerlegacy" | "legacy" | "mew" => Ok(Self::LedgerLegacy),
-            _ => Err(kobe::Error::Bip32Derivation(format!("unknown derivation style: {s}")).into()),
+            _ => Err(
+                kobe_core::Error::Bip32Derivation(format!("unknown derivation style: {s}")).into(),
+            ),
         }
     }
 }
@@ -97,13 +99,15 @@ impl<'a> Deriver<'a> {
         start: u32,
         count: u32,
     ) -> Result<Vec<DerivedAccount>, Error> {
-        let end = start.checked_add(count).ok_or(kobe::Error::IndexOverflow)?;
+        let end = start
+            .checked_add(count)
+            .ok_or(kobe_core::Error::IndexOverflow)?;
         (start..end).map(|i| self.derive_with(style, i)).collect()
     }
 
     /// Internal: derive at an arbitrary path.
     fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
-        let key = kobe::bip32::DerivedSecp256k1Key::derive(self.wallet.seed(), path)?;
+        let key = kobe_core::bip32::DerivedSecp256k1Key::derive(self.wallet.seed(), path)?;
         let uncompressed = key.uncompressed_pubkey();
 
         let addr_hash = keccak256(&uncompressed[1..]);
@@ -133,7 +137,7 @@ impl Derive for Deriver<'_> {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use kobe::DeriveExt;
+    use kobe_core::DeriveExt;
 
     use super::*;
 

@@ -1,8 +1,8 @@
 //! Tron wallet CLI commands.
 
 use clap::{Args, Subcommand};
+use kobe::tron::Deriver;
 use kobe::{DeriveExt, Wallet};
-use kobe_tron::Deriver;
 
 use crate::output::{self, AccountOutput, HdWalletOutput};
 

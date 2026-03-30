@@ -4,8 +4,8 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
 use ed25519_dalek::VerifyingKey;
-use kobe::slip10::DerivedKey;
-use kobe::{Derive, DerivedAccount, Wallet};
+use kobe_core::slip10::DerivedKey;
+use kobe_core::{Derive, DerivedAccount, Wallet};
 use zeroize::Zeroizing;
 
 use crate::Error;
@@ -118,7 +118,9 @@ impl<'a> Deriver<'a> {
         start: u32,
         count: u32,
     ) -> Result<Vec<DerivedAddress>, Error> {
-        let end = start.checked_add(count).ok_or(kobe::Error::IndexOverflow)?;
+        let end = start
+            .checked_add(count)
+            .ok_or(kobe_core::Error::IndexOverflow)?;
         (start..end)
             .map(|index| self.derive_with(style, index))
             .collect()

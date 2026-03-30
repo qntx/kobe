@@ -5,31 +5,42 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 readme = "../README.md"
-description = "Multi-chain HD wallet derivation library"
-keywords = ["crypto", "wallet", "bip39", "mnemonic", "no_std"]
-categories = ["cryptography", "no-std"]
+description = "Multi-chain HD wallet derivation — umbrella crate"
+keywords = ["crypto", "wallet", "bitcoin", "ethereum", "solana"]
+categories = ["cryptography::cryptocurrencies"]
 
 [features]
-default = ["std"]
-std = ["alloc", "bip39/std", "zeroize/std"]
-alloc = ["bip39/alloc", "zeroize/alloc"]
-rand = ["bip39/rand"]
-rand_core = ["bip39/rand_core"]
-camouflage = ["dep:hmac", "dep:pbkdf2", "dep:sha2", "alloc"]
-slip10 = ["dep:ed25519-dalek", "dep:hmac", "dep:sha2", "alloc"]
-bip32 = ["dep:bip32-crate", "dep:k256", "dep:hex", "alloc"]
+default = ["std", "btc", "evm", "svm"]
+std = ["kobe-core/std"]
+alloc = ["kobe-core/alloc"]
+rand = ["kobe-core/rand"]
+rand_core = ["kobe-core/rand_core"]
+camouflage = ["kobe-core/camouflage"]
+slip10 = ["kobe-core/slip10"]
+bip32 = ["kobe-core/bip32"]
+
+btc = ["dep:kobe-btc"]
+evm = ["dep:kobe-evm"]
+svm = ["dep:kobe-svm"]
+cosmos = ["dep:kobe-cosmos"]
+tron = ["dep:kobe-tron"]
+spark = ["dep:kobe-spark"]
+fil = ["dep:kobe-fil"]
+ton = ["dep:kobe-ton"]
+sui = ["dep:kobe-sui"]
+all-chains = ["btc", "evm", "svm", "cosmos", "tron", "spark", "fil", "ton", "sui"]
 
 [dependencies]
-bip39.workspace = true
-hmac = { workspace = true, optional = true }
-pbkdf2 = { workspace = true, optional = true }
-sha2 = { workspace = true, optional = true }
-ed25519-dalek = { workspace = true, optional = true }
-bip32-crate = { package = "bip32", version = "0.5.3", default-features = false, features = ["secp256k1", "alloc"], optional = true }
-k256 = { workspace = true, optional = true }
-hex = { version = "0.4.3", default-features = false, features = ["alloc"], optional = true }
-thiserror.workspace = true
-zeroize.workspace = true
+kobe-core = { workspace = true, features = ["alloc"] }
+kobe-btc = { workspace = true, features = ["std"], optional = true }
+kobe-evm = { workspace = true, features = ["std"], optional = true }
+kobe-svm = { workspace = true, features = ["std"], optional = true }
+kobe-cosmos = { workspace = true, features = ["std"], optional = true }
+kobe-tron = { workspace = true, features = ["std"], optional = true }
+kobe-spark = { workspace = true, features = ["std"], optional = true }
+kobe-fil = { workspace = true, features = ["std"], optional = true }
+kobe-ton = { workspace = true, features = ["std"], optional = true }
+kobe-sui = { workspace = true, features = ["std"], optional = true }
 
 [lints]
 workspace = true

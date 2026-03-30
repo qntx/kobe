@@ -1,8 +1,8 @@
 //! Cosmos wallet CLI commands.
 
 use clap::{Args, Subcommand};
+use kobe::cosmos::Deriver;
 use kobe::{DeriveExt, Wallet};
-use kobe_cosmos::Deriver;
 
 use crate::output::{self, AccountOutput, HdWalletOutput};
 

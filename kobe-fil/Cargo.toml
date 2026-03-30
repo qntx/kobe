@@ -11,11 +11,11 @@ categories = ["cryptography", "no-std"]
 
 [features]
 default = ["std"]
-std = ["alloc", "kobe/std", "zeroize/std"]
-alloc = ["kobe/alloc", "zeroize/alloc"]
+std = ["alloc", "kobe-core/std", "zeroize/std"]
+alloc = ["kobe-core/alloc", "zeroize/alloc"]
 
 [dependencies]
-kobe = { workspace = true, features = ["bip32"] }
+kobe-core = { workspace = true, features = ["bip32"] }
 thiserror.workspace = true
 zeroize.workspace = true
 blake2.workspace = true

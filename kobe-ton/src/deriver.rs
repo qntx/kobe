@@ -5,9 +5,9 @@ use alloc::{format, string::String, vec::Vec};
 use core::fmt;
 
 use ed25519_dalek::VerifyingKey;
-pub use kobe::DerivedAccount;
-use kobe::slip10::DerivedKey;
-use kobe::{Derive, Wallet};
+pub use kobe_core::DerivedAccount;
+use kobe_core::slip10::DerivedKey;
+use kobe_core::{Derive, Wallet};
 use sha2::{Digest, Sha256};
 use zeroize::Zeroizing;
 
