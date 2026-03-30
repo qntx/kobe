@@ -19,34 +19,67 @@ Kobe derives standards-compliant addresses for Bitcoin, Ethereum, Solana, Cosmos
 
 ## Crates
 
-| Kobe Crate | | Description |
+| Crate | | Description |
 | --- | --- | --- |
-| **[`kobe`](kobe/)** | [![crates.io][kobe-crate]][kobe-crate-url] [![docs.rs][kobe-doc]][kobe-doc-url] | Core library — BIP39 mnemonic, seed derivation, `no_std` wallet type |
-| **[`kobe-btc`](kobe-btc/)** | [![crates.io][kobe-btc-crate]][kobe-btc-crate-url] [![docs.rs][kobe-btc-doc]][kobe-btc-doc-url] | Bitcoin — P2PKH, P2SH-P2WPKH, P2WPKH, P2TR address derivation |
-| **[`kobe-evm`](kobe-evm/)** | [![crates.io][kobe-evm-crate]][kobe-evm-crate-url] [![docs.rs][kobe-evm-doc]][kobe-evm-doc-url] | Ethereum (EVM) — BIP-44 derivation, MetaMask / Ledger Live / Ledger Legacy styles |
-| **[`kobe-svm`](kobe-svm/)** | [![crates.io][kobe-svm-crate]][kobe-svm-crate-url] [![docs.rs][kobe-svm-doc]][kobe-svm-doc-url] | Solana (SVM) — SLIP-10 Ed25519, Phantom / Trust / Ledger Live styles |
-| **[`kobe-cli`](kobe-cli/)** | [![crates.io][kobe-cli-crate]][kobe-cli-crate-url] | CLI tool — generate, import, and derive wallets across all supported chains |
+| **[`kobe`](kobe/)** | [![crates.io][kobe-crate]][kobe-crate-url] [![docs.rs][kobe-doc]][kobe-doc-url] | Umbrella crate — re-exports `kobe-core` + feature-gated chain crates |
+| **[`kobe-core`](kobe-core/)** | [![crates.io][kobe-core-crate]][kobe-core-crate-url] [![docs.rs][kobe-core-doc]][kobe-core-doc-url] | Core library — BIP-39/32, SLIP-10, Wallet, `no_std` + `alloc` |
+| **[`kobe-btc`](kobe-btc/)** | [![crates.io][kobe-btc-crate]][kobe-btc-crate-url] [![docs.rs][kobe-btc-doc]][kobe-btc-doc-url] | Bitcoin — P2PKH, P2SH-P2WPKH, P2WPKH, P2TR |
+| **[`kobe-evm`](kobe-evm/)** | [![crates.io][kobe-evm-crate]][kobe-evm-crate-url] [![docs.rs][kobe-evm-doc]][kobe-evm-doc-url] | Ethereum — MetaMask / Ledger Live / Ledger Legacy styles |
+| **[`kobe-svm`](kobe-svm/)** | [![crates.io][kobe-svm-crate]][kobe-svm-crate-url] [![docs.rs][kobe-svm-doc]][kobe-svm-doc-url] | Solana — Phantom / Trust / Ledger Live styles |
+| **[`kobe-cosmos`](kobe-cosmos/)** | [![crates.io][kobe-cosmos-crate]][kobe-cosmos-crate-url] [![docs.rs][kobe-cosmos-doc]][kobe-cosmos-doc-url] | Cosmos — configurable HRP and coin type |
+| **[`kobe-tron`](kobe-tron/)** | [![crates.io][kobe-tron-crate]][kobe-tron-crate-url] [![docs.rs][kobe-tron-doc]][kobe-tron-doc-url] | Tron — base58check addresses |
+| **[`kobe-sui`](kobe-sui/)** | [![crates.io][kobe-sui-crate]][kobe-sui-crate-url] [![docs.rs][kobe-sui-doc]][kobe-sui-doc-url] | Sui — SLIP-10 Ed25519 + BLAKE2b-256 |
+| **[`kobe-ton`](kobe-ton/)** | [![crates.io][kobe-ton-crate]][kobe-ton-crate-url] [![docs.rs][kobe-ton-doc]][kobe-ton-doc-url] | TON — wallet v5r1, Tonkeeper / Ledger Live styles |
+| **[`kobe-fil`](kobe-fil/)** | [![crates.io][kobe-fil-crate]][kobe-fil-crate-url] [![docs.rs][kobe-fil-doc]][kobe-fil-doc-url] | Filecoin — f1 secp256k1 addresses |
+| **[`kobe-spark`](kobe-spark/)** | [![crates.io][kobe-spark-crate]][kobe-spark-crate-url] [![docs.rs][kobe-spark-doc]][kobe-spark-doc-url] | Spark — Lightning-compatible addresses |
+| **[`kobe-cli`](kobe-cli/)** | [![crates.io][kobe-cli-crate]][kobe-cli-crate-url] | CLI — generate, import, derive across all chains |
 
 [kobe-crate]: https://img.shields.io/crates/v/kobe.svg
 [kobe-crate-url]: https://crates.io/crates/kobe
+[kobe-core-crate]: https://img.shields.io/crates/v/kobe-core.svg
+[kobe-core-crate-url]: https://crates.io/crates/kobe-core
 [kobe-btc-crate]: https://img.shields.io/crates/v/kobe-btc.svg
 [kobe-btc-crate-url]: https://crates.io/crates/kobe-btc
 [kobe-evm-crate]: https://img.shields.io/crates/v/kobe-evm.svg
 [kobe-evm-crate-url]: https://crates.io/crates/kobe-evm
 [kobe-svm-crate]: https://img.shields.io/crates/v/kobe-svm.svg
 [kobe-svm-crate-url]: https://crates.io/crates/kobe-svm
+[kobe-cosmos-crate]: https://img.shields.io/crates/v/kobe-cosmos.svg
+[kobe-cosmos-crate-url]: https://crates.io/crates/kobe-cosmos
+[kobe-tron-crate]: https://img.shields.io/crates/v/kobe-tron.svg
+[kobe-tron-crate-url]: https://crates.io/crates/kobe-tron
+[kobe-sui-crate]: https://img.shields.io/crates/v/kobe-sui.svg
+[kobe-sui-crate-url]: https://crates.io/crates/kobe-sui
+[kobe-ton-crate]: https://img.shields.io/crates/v/kobe-ton.svg
+[kobe-ton-crate-url]: https://crates.io/crates/kobe-ton
+[kobe-fil-crate]: https://img.shields.io/crates/v/kobe-fil.svg
+[kobe-fil-crate-url]: https://crates.io/crates/kobe-fil
+[kobe-spark-crate]: https://img.shields.io/crates/v/kobe-spark.svg
+[kobe-spark-crate-url]: https://crates.io/crates/kobe-spark
 [kobe-cli-crate]: https://img.shields.io/crates/v/kobe-cli.svg
 [kobe-cli-crate-url]: https://crates.io/crates/kobe-cli
 [kobe-doc]: https://img.shields.io/docsrs/kobe.svg
 [kobe-doc-url]: https://docs.rs/kobe
+[kobe-core-doc]: https://img.shields.io/docsrs/kobe-core.svg
+[kobe-core-doc-url]: https://docs.rs/kobe-core
 [kobe-btc-doc]: https://img.shields.io/docsrs/kobe-btc.svg
 [kobe-btc-doc-url]: https://docs.rs/kobe-btc
 [kobe-evm-doc]: https://img.shields.io/docsrs/kobe-evm.svg
 [kobe-evm-doc-url]: https://docs.rs/kobe-evm
 [kobe-svm-doc]: https://img.shields.io/docsrs/kobe-svm.svg
 [kobe-svm-doc-url]: https://docs.rs/kobe-svm
-
-Planned: **`kobe-sui`** (Sui), **`kobe-xmr`** (Monero), **`kobe-zec`** (Zcash).
+[kobe-cosmos-doc]: https://img.shields.io/docsrs/kobe-cosmos.svg
+[kobe-cosmos-doc-url]: https://docs.rs/kobe-cosmos
+[kobe-tron-doc]: https://img.shields.io/docsrs/kobe-tron.svg
+[kobe-tron-doc-url]: https://docs.rs/kobe-tron
+[kobe-sui-doc]: https://img.shields.io/docsrs/kobe-sui.svg
+[kobe-sui-doc-url]: https://docs.rs/kobe-sui
+[kobe-ton-doc]: https://img.shields.io/docsrs/kobe-ton.svg
+[kobe-ton-doc-url]: https://docs.rs/kobe-ton
+[kobe-fil-doc]: https://img.shields.io/docsrs/kobe-fil.svg
+[kobe-fil-doc-url]: https://docs.rs/kobe-fil
+[kobe-spark-doc]: https://img.shields.io/docsrs/kobe-spark.svg
+[kobe-spark-doc-url]: https://docs.rs/kobe-spark
 
 ## Quick Start
 
@@ -73,58 +106,49 @@ cargo install kobe-cli
 ### CLI Usage
 
 ```bash
-# Generate a new Bitcoin wallet (Native SegWit)
-kobe btc new
+# Generate wallets
+kobe btc new                              # Bitcoin (Native SegWit)
+kobe btc new -a taproot -w 24 -c 5        # 5 Taproot addresses, 24 words
+kobe evm new                              # Ethereum (MetaMask-compatible)
+kobe evm new --style ledger-live -c 3    # Ledger Live style, 3 accounts
+kobe svm new                              # Solana (Phantom-compatible)
+kobe cosmos new                           # Cosmos Hub
+kobe sui new                              # Sui
+kobe ton new                              # TON
 
-# Generate 5 Taproot addresses with a 24-word mnemonic
-kobe btc new --words 24 --address-type taproot --count 5
+# Import from mnemonic
+kobe evm import -m "abandon abandon ... about"
 
-# Generate a new Ethereum wallet (Ledger Live style, 3 accounts)
-kobe evm new --style ledger-live --count 3
-
-# Generate a new Solana wallet (Phantom-compatible)
-kobe svm new --style standard
-
-# Import from an existing mnemonic
-kobe evm import --mnemonic "abandon abandon ... about"
-
-# Camouflage a mnemonic (encrypt into a decoy mnemonic)
-kobe mnemonic encrypt --mnemonic "real mnemonic ..." --password "strong-password"
-
-# Recover the original mnemonic from a camouflaged one
-kobe mnemonic decrypt --camouflaged "decoy mnemonic ..." --password "strong-password"
+# JSON output (for scripts / agents)
+kobe evm new --json
 ```
 
-### Derive an Ethereum Address (Library)
+### Library Usage
 
 ```rust
-use kobe::Wallet;
-use kobe_evm::Deriver;
+use kobe::{Wallet, Derive};
+use kobe::evm::Deriver;  // or kobe::btc, kobe::svm, kobe::cosmos, ...
 
+// Import from mnemonic
 let wallet = Wallet::from_mnemonic(
     "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
-    None,
+    None,  // optional passphrase
 )?;
 
-let deriver = Deriver::new(&wallet);
-let addr = deriver.derive(0)?;
+// Derive addresses
+let eth = kobe::evm::Deriver::new(&wallet).derive(0)?;
+let btc = kobe::btc::Deriver::new(&wallet, kobe::btc::Network::Mainnet)?.derive(0)?;
+let sol = kobe::svm::Deriver::new(&wallet).derive(0)?;
 
-println!("Address: {}", addr.address);  // 0x9858EfFD232B4033E47d90003D41EC34EcaEda94
+println!("ETH: {}", eth.address);  // 0x9858EfFD232B4033E47d90003D41EC34EcaEda94
+println!("BTC: {}", btc.address);  // bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu
+println!("SOL: {}", sol.address);  // HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk
 ```
 
-### Generate a Bitcoin Wallet (Library)
-
 ```rust
-use kobe::Wallet;
-use kobe_btc::{Deriver, Network};
-
-let wallet = Wallet::generate(12, None)?;
-
-let deriver = Deriver::new(&wallet, Network::Mainnet)?;
-let addr = deriver.derive(0)?;
-
-println!("Address: {}", addr.address);
-println!("Path:    {}", addr.path);
+// Generate new wallet
+let wallet = Wallet::generate(12, None)?;  // 12-word mnemonic
+println!("Mnemonic: {}", wallet.mnemonic());
 ```
 
 ## Design
@@ -140,14 +164,29 @@ println!("Path:    {}", addr.path);
 
 ## Feature Flags
 
-Each crate uses feature flags to minimize compile-time dependencies:
+The umbrella `kobe` crate uses feature flags to select chains:
 
-| Crate | `std` | `alloc` | `rand` | `camouflage` |
-| --- | --- | --- | --- | --- |
-| `kobe` | Full std support (default) | Heap allocation for `no_std` | Random mnemonic via OS entropy | Mnemonic camouflage (XOR + PBKDF2) |
-| `kobe-btc` | Full std support (default) | Heap allocation for `no_std` | Random key generation | — |
-| `kobe-evm` | Full std support (default) | Heap allocation for `no_std` | Random key generation | — |
-| `kobe-svm` | Full std support (default) | Heap allocation for `no_std` | Ed25519 key generation | — |
+| Feature | Chains |
+| --- | --- |
+| `btc` | Bitcoin (default) |
+| `evm` | Ethereum (default) |
+| `svm` | Solana (default) |
+| `cosmos` | Cosmos Hub, Osmosis, Terra, etc. |
+| `tron` | Tron |
+| `sui` | Sui |
+| `ton` | TON |
+| `fil` | Filecoin |
+| `spark` | Spark (Lightning) |
+| `all-chains` | All of the above |
+
+Core features on `kobe` / `kobe-core`:
+
+| Feature | Description |
+| --- | --- |
+| `std` | Full std support (default) |
+| `alloc` | Heap allocation for `no_std` |
+| `rand` | Random mnemonic generation via OS entropy |
+| `camouflage` | Mnemonic camouflage (XOR + PBKDF2) |
 
 ## Mnemonic Camouflage
 
