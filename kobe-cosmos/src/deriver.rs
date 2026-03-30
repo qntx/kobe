@@ -9,102 +9,90 @@ use alloc::{
 
 use bip32::{DerivationPath, XPrv};
 use k256::ecdsa::SigningKey;
-use kobe::Wallet;
+pub use kobe::DerivedAccount;
+use kobe::{Derive, Wallet};
 use ripemd::{Digest as RipemdDigest, Ripemd160};
 use sha2::{Digest as Sha2Digest, Sha256};
 use zeroize::Zeroizing;
 
 use crate::Error;
 
-/// Default bech32 human-readable part for Cosmos Hub.
-const DEFAULT_HRP: &str = "cosmos";
-
-/// Cosmos address deriver from a unified wallet seed.
+/// Cosmos address deriver.
 ///
-/// Derives Cosmos-compatible addresses using BIP-44 path `m/44'/118'/0'/0/{index}`.
-/// Supports configurable bech32 prefixes for different Cosmos chains
-/// (e.g. "cosmos", "osmo", "atom").
+/// Configurable bech32 prefix (`hrp`) and BIP-44 coin type for different
+/// Cosmos SDK chains (ATOM=118, Osmosis=118, Terra=330, etc.).
 #[derive(Debug)]
 pub struct Deriver<'a> {
-    /// Reference to the wallet for seed access.
+    /// Wallet seed reference.
     wallet: &'a Wallet,
-    /// Bech32 human-readable part (e.g. "cosmos").
+    /// Bech32 human-readable part.
     hrp: String,
-}
-
-/// A derived Cosmos address with associated key material.
-#[derive(Debug, Clone)]
-#[non_exhaustive]
-pub struct DerivedAddress {
-    /// Derivation path used (e.g. `m/44'/118'/0'/0/0`).
-    pub path: String,
-    /// Private key in hex format (zeroized on drop).
-    pub private_key_hex: Zeroizing<String>,
-    /// Compressed public key in hex format.
-    pub public_key_hex: String,
-    /// Bech32-encoded Cosmos address.
-    pub address: String,
+    /// BIP-44 coin type (default 118 for Cosmos Hub).
+    coin_type: u32,
 }
 
 impl<'a> Deriver<'a> {
-    /// Create a new Cosmos deriver with the default "cosmos" prefix.
+    /// Create a Cosmos Hub deriver (`cosmos1...`, coin_type 118).
     #[must_use]
     pub fn new(wallet: &'a Wallet) -> Self {
         Self {
             wallet,
-            hrp: DEFAULT_HRP.to_string(),
+            hrp: "cosmos".to_string(),
+            coin_type: 118,
         }
     }
 
-    /// Create a new Cosmos deriver with a custom bech32 prefix.
+    /// Create a deriver with custom bech32 prefix and coin type.
+    ///
+    /// # Examples
+    /// - Osmosis: `Deriver::with_config(&w, "osmo", 118)`
+    /// - Terra: `Deriver::with_config(&w, "terra", 330)`
     #[must_use]
-    pub fn with_hrp(wallet: &'a Wallet, hrp: &str) -> Self {
+    pub fn with_config(wallet: &'a Wallet, hrp: &str, coin_type: u32) -> Self {
         Self {
             wallet,
             hrp: hrp.to_string(),
+            coin_type,
         }
     }
 
-    /// Derive an address at the given account index.
-    ///
-    /// Uses BIP-44 path: `m/44'/118'/0'/0/{index}`
-    pub fn derive(&self, index: u32) -> Result<DerivedAddress, Error> {
-        let path = format!("m/44'/118'/0'/0/{index}");
-        self.derive_path(&path)
-    }
-
-    /// Derive `count` accounts starting at `start`.
-    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAddress>, Error> {
-        (start
-            ..start
-                .checked_add(count)
-                .ok_or_else(|| Error::Derivation("index overflow".into()))?)
-            .map(|i| self.derive(i))
-            .collect()
-    }
-
-    /// Derive an address at a custom derivation path.
-    pub fn derive_path(&self, path: &str) -> Result<DerivedAddress, Error> {
-        let derivation_path: DerivationPath = path
+    /// Derive at an arbitrary path (internal).
+    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+        let dp: DerivationPath = path
             .parse()
-            .map_err(|e| Error::Derivation(format!("invalid derivation path: {e}")))?;
+            .map_err(|e| Error::Derivation(format!("invalid path: {e}")))?;
+        let xprv = XPrv::derive_from_path(self.wallet.seed(), &dp)
+            .map_err(|e| Error::Derivation(format!("derivation failed: {e}")))?;
 
-        let derived = XPrv::derive_from_path(self.wallet.seed(), &derivation_path)
-            .map_err(|e| Error::Derivation(format!("key derivation failed: {e}")))?;
-
-        let signing_key: &SigningKey = derived.private_key();
+        let signing_key: &SigningKey = xprv.private_key();
         let verifying_key = signing_key.verifying_key();
         let pubkey_compressed = verifying_key.to_encoded_point(true);
         let pubkey_bytes = pubkey_compressed.as_bytes();
-
         let address = encode_bech32_address(&self.hrp, pubkey_bytes)?;
 
-        Ok(DerivedAddress {
+        Ok(DerivedAccount {
             path: path.to_string(),
-            private_key_hex: Zeroizing::new(hex::encode(signing_key.to_bytes())),
-            public_key_hex: hex::encode(pubkey_bytes),
+            private_key: Zeroizing::new(hex::encode(signing_key.to_bytes())),
+            public_key: hex::encode(pubkey_bytes),
             address,
         })
+    }
+}
+
+impl Derive for Deriver<'_> {
+    type Error = Error;
+
+    fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
+        let path = format!("m/44'/{}'/{index}'/0/0", self.coin_type);
+        self.derive_at_path(&path)
+    }
+
+    fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+        self.derive_at_path(path)
+    }
+
+    fn overflow_error(&self) -> Error {
+        Error::Derivation("index overflow".into())
     }
 }
 
@@ -127,66 +115,82 @@ fn encode_bech32_address(hrp: &str, compressed_pubkey: &[u8]) -> Result<String, 
 mod tests {
     use super::*;
 
-    const TEST_MNEMONIC: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+    const MNEMONIC: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
-    fn test_wallet() -> Wallet {
-        Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap()
+    fn wallet() -> Wallet {
+        Wallet::from_mnemonic(MNEMONIC, None).unwrap()
     }
 
     #[test]
-    fn derive_produces_valid_address() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet);
-        let derived = deriver.derive(0).unwrap();
-
-        assert!(derived.address.starts_with("cosmos1"));
-        assert_eq!(derived.path, "m/44'/118'/0'/0/0");
+    fn cosmos_hub_address() {
+        let w = wallet();
+        let a = Deriver::new(&w).derive(0).unwrap();
+        assert!(a.address.starts_with("cosmos1"));
     }
 
     #[test]
-    fn deterministic_derivation() {
-        let w1 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
-        let w2 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
-
-        let a1 = Deriver::new(&w1).derive(0).unwrap();
-        let a2 = Deriver::new(&w2).derive(0).unwrap();
+    fn deterministic() {
+        let w = wallet();
+        let a1 = Deriver::new(&w).derive(0).unwrap();
+        let a2 = Deriver::new(&w).derive(0).unwrap();
         assert_eq!(a1.address, a2.address);
     }
 
     #[test]
-    fn different_indices_differ() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet);
-        let a0 = deriver.derive(0).unwrap();
-        let a1 = deriver.derive(1).unwrap();
-        assert_ne!(a0.address, a1.address);
+    fn different_indices() {
+        let w = wallet();
+        let d = Deriver::new(&w);
+        assert_ne!(d.derive(0).unwrap().address, d.derive(1).unwrap().address);
     }
 
     #[test]
-    fn custom_hrp() {
-        let wallet = test_wallet();
-        let deriver = Deriver::with_hrp(&wallet, "osmo");
-        let derived = deriver.derive(0).unwrap();
-        assert!(derived.address.starts_with("osmo1"));
+    fn osmosis_hrp() {
+        let w = wallet();
+        let a = Deriver::with_config(&w, "osmo", 118).derive(0).unwrap();
+        assert!(a.address.starts_with("osmo1"));
     }
 
     #[test]
-    fn same_hash_different_prefix() {
-        let wallet = test_wallet();
-        let cosmos = Deriver::new(&wallet).derive(0).unwrap();
-        let osmo = Deriver::with_hrp(&wallet, "osmo").derive(0).unwrap();
+    fn same_coin_type_same_hash() {
+        let w = wallet();
+        let cosmos = Deriver::new(&w).derive(0).unwrap();
+        let osmo = Deriver::with_config(&w, "osmo", 118).derive(0).unwrap();
+        let (_, cd) = bech32::decode(&cosmos.address).unwrap();
+        let (_, od) = bech32::decode(&osmo.address).unwrap();
+        assert_eq!(cd, od);
+    }
 
-        let (_, cosmos_data) = bech32::decode(&cosmos.address).unwrap();
-        let (_, osmo_data) = bech32::decode(&osmo.address).unwrap();
-        assert_eq!(cosmos_data, osmo_data);
+    #[test]
+    fn terra_different_coin_type() {
+        let w = wallet();
+        let cosmos = Deriver::new(&w).derive(0).unwrap();
+        let terra = Deriver::with_config(&w, "terra", 330).derive(0).unwrap();
+        assert!(terra.address.starts_with("terra1"));
+        assert_ne!(cosmos.address, terra.address);
+    }
+
+    #[test]
+    fn derive_many_works() {
+        let w = wallet();
+        let accounts = Deriver::new(&w).derive_many(0, 3).unwrap();
+        assert_eq!(accounts.len(), 3);
+        assert_ne!(accounts[0].address, accounts[1].address);
+    }
+
+    #[test]
+    fn derive_path_custom() {
+        let w = wallet();
+        let a = Deriver::new(&w).derive_path("m/44'/118'/0'/0/5").unwrap();
+        assert!(a.address.starts_with("cosmos1"));
     }
 
     #[test]
     fn passphrase_changes_address() {
-        let w1 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
-        let w2 = Wallet::from_mnemonic(TEST_MNEMONIC, Some("pass")).unwrap();
-        let a1 = Deriver::new(&w1).derive(0).unwrap();
-        let a2 = Deriver::new(&w2).derive(0).unwrap();
-        assert_ne!(a1.address, a2.address);
+        let w1 = Wallet::from_mnemonic(MNEMONIC, None).unwrap();
+        let w2 = Wallet::from_mnemonic(MNEMONIC, Some("pass")).unwrap();
+        assert_ne!(
+            Deriver::new(&w1).derive(0).unwrap().address,
+            Deriver::new(&w2).derive(0).unwrap().address,
+        );
     }
 }

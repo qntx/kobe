@@ -1,12 +1,13 @@
 //! Sui address derivation from a unified wallet.
 
 #[cfg(feature = "alloc")]
-use alloc::{format, string::String, vec::Vec};
+use alloc::{format, vec::Vec};
 
 use blake2::Blake2bVar;
 use blake2::digest::{Update, VariableOutput};
 use ed25519_dalek::VerifyingKey;
-use kobe::Wallet;
+pub use kobe::DerivedAccount;
+use kobe::{Derive, Wallet};
 use zeroize::Zeroizing;
 
 use crate::Error;
@@ -25,20 +26,6 @@ pub struct Deriver<'a> {
     wallet: &'a Wallet,
 }
 
-/// A derived Sui address with associated key material.
-#[derive(Debug, Clone)]
-#[non_exhaustive]
-pub struct DerivedAddress {
-    /// Derivation path used (e.g. `m/44'/784'/0'/0'/0'`).
-    pub path: String,
-    /// Private key in hex format (zeroized on drop).
-    pub private_key_hex: Zeroizing<String>,
-    /// Public key in hex format.
-    pub public_key_hex: String,
-    /// Sui address (`0x` + 64 hex chars).
-    pub address: String,
-}
-
 impl<'a> Deriver<'a> {
     /// Create a new Sui deriver from a wallet.
     #[must_use]
@@ -46,37 +33,39 @@ impl<'a> Deriver<'a> {
         Self { wallet }
     }
 
-    /// Derive an address at the given account index.
-    ///
-    /// Uses SLIP-10 path: `m/44'/784'/{index}'/0'/0'`
-    pub fn derive(&self, index: u32) -> Result<DerivedAddress, Error> {
-        let derived_key = DerivedKey::derive_sui_path(self.wallet.seed(), index)?;
+    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+        let derived_key = DerivedKey::derive_path(self.wallet.seed(), path)?;
         let signing_key = derived_key.to_signing_key();
         let verifying_key: VerifyingKey = signing_key.verifying_key();
         let pubkey_bytes: &[u8; 32] = verifying_key.as_bytes();
 
-        // Address = BLAKE2b-256(flag || pubkey)
         let mut buf = Vec::with_capacity(33);
         buf.push(ED25519_FLAG);
         buf.extend_from_slice(pubkey_bytes);
         let hash = blake2b_256(&buf);
 
-        Ok(DerivedAddress {
-            path: format!("m/44'/784'/{index}'/0'/0'"),
-            private_key_hex: Zeroizing::new(hex::encode(signing_key.to_bytes())),
-            public_key_hex: hex::encode(pubkey_bytes),
+        Ok(DerivedAccount {
+            path: path.to_string(),
+            private_key: Zeroizing::new(hex::encode(signing_key.to_bytes())),
+            public_key: hex::encode(pubkey_bytes),
             address: format!("0x{}", hex::encode(hash)),
         })
     }
+}
 
-    /// Derive `count` accounts starting at `start`.
-    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAddress>, Error> {
-        (start
-            ..start
-                .checked_add(count)
-                .ok_or_else(|| Error::Derivation("index overflow".into()))?)
-            .map(|i| self.derive(i))
-            .collect()
+impl Derive for Deriver<'_> {
+    type Error = Error;
+
+    fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
+        self.derive_at_path(&format!("m/44'/784'/{index}'/0'/0'"))
+    }
+
+    fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+        self.derive_at_path(path)
+    }
+
+    fn overflow_error(&self) -> Error {
+        Error::Derivation("index overflow".into())
     }
 }
 
@@ -145,7 +134,7 @@ mod tests {
         let derived = Deriver::new(&wallet).derive(0).unwrap();
 
         // Manually compute: BLAKE2b-256(0x00 || pubkey)
-        let pubkey_bytes = hex::decode(&derived.public_key_hex).unwrap();
+        let pubkey_bytes = hex::decode(&derived.public_key).unwrap();
         let mut buf = vec![ED25519_FLAG];
         buf.extend_from_slice(&pubkey_bytes);
         let expected = blake2b_256(&buf);

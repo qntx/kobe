@@ -15,7 +15,7 @@ mod error;
 mod slip10;
 
 #[cfg(feature = "alloc")]
-pub use deriver::{DerivedAddress, Deriver};
+pub use deriver::{DerivationStyle, DerivedAccount, Deriver};
 pub use error::Error;
 
 /// A convenient Result type alias for kobe-ton operations.

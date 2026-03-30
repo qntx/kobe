@@ -14,6 +14,8 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
+#[cfg(feature = "alloc")]
+mod derive;
 mod error;
 #[cfg(feature = "alloc")]
 mod wallet;
@@ -26,6 +28,8 @@ pub mod mnemonic;
 pub use bip39::Language;
 #[cfg(feature = "rand_core")]
 pub use bip39::rand_core;
+#[cfg(feature = "alloc")]
+pub use derive::{Derive, DerivedAccount};
 pub use error::Error;
 #[cfg(feature = "alloc")]
 pub use wallet::Wallet;

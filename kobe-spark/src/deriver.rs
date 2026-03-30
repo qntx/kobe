@@ -1,14 +1,12 @@
 //! Spark address derivation from a unified wallet.
 
 #[cfg(feature = "alloc")]
-use alloc::{
-    format,
-    string::{String, ToString},
-};
+use alloc::{format, string::ToString};
 
 use bip32::{DerivationPath, XPrv};
 use k256::ecdsa::SigningKey;
-use kobe::Wallet;
+pub use kobe::DerivedAccount;
+use kobe::{Derive, Wallet};
 use zeroize::Zeroizing;
 
 use crate::Error;
@@ -24,20 +22,6 @@ pub struct Deriver<'a> {
     wallet: &'a Wallet,
 }
 
-/// A derived Spark address with associated key material.
-#[derive(Debug, Clone)]
-#[non_exhaustive]
-pub struct DerivedAddress {
-    /// Derivation path used (e.g. `m/84'/0'/0'/0/0`).
-    pub path: String,
-    /// Private key in hex format (zeroized on drop).
-    pub private_key_hex: Zeroizing<String>,
-    /// Compressed public key in hex format.
-    pub public_key_hex: String,
-    /// Spark address (`spark:<compressed_pubkey_hex>`).
-    pub address: String,
-}
-
 impl<'a> Deriver<'a> {
     /// Create a new Spark deriver from a wallet.
     #[must_use]
@@ -45,44 +29,40 @@ impl<'a> Deriver<'a> {
         Self { wallet }
     }
 
-    /// Derive an address at the given account index.
-    ///
-    /// Uses BIP-84 path: `m/84'/0'/0'/0/{index}` (same as Bitcoin).
-    pub fn derive(&self, index: u32) -> Result<DerivedAddress, Error> {
-        let path = format!("m/84'/0'/0'/0/{index}");
-        self.derive_path(&path)
-    }
-
-    /// Derive `count` accounts starting at `start`.
-    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAddress>, Error> {
-        (start
-            ..start
-                .checked_add(count)
-                .ok_or_else(|| Error::Derivation("index overflow".into()))?)
-            .map(|i| self.derive(i))
-            .collect()
-    }
-
-    /// Derive an address at a custom derivation path.
-    pub fn derive_path(&self, path: &str) -> Result<DerivedAddress, Error> {
-        let derivation_path: DerivationPath = path
+    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+        let dp: DerivationPath = path
             .parse()
-            .map_err(|e| Error::Derivation(format!("invalid derivation path: {e}")))?;
+            .map_err(|e| Error::Derivation(format!("invalid path: {e}")))?;
+        let xprv = XPrv::derive_from_path(self.wallet.seed(), &dp)
+            .map_err(|e| Error::Derivation(format!("derivation failed: {e}")))?;
 
-        let derived = XPrv::derive_from_path(self.wallet.seed(), &derivation_path)
-            .map_err(|e| Error::Derivation(format!("key derivation failed: {e}")))?;
-
-        let signing_key: &SigningKey = derived.private_key();
+        let signing_key: &SigningKey = xprv.private_key();
         let verifying_key = signing_key.verifying_key();
         let pubkey_compressed = verifying_key.to_encoded_point(true);
         let pubkey_hex = hex::encode(pubkey_compressed.as_bytes());
 
-        Ok(DerivedAddress {
+        Ok(DerivedAccount {
             path: path.to_string(),
-            private_key_hex: Zeroizing::new(hex::encode(signing_key.to_bytes())),
-            public_key_hex: pubkey_hex.clone(),
+            private_key: Zeroizing::new(hex::encode(signing_key.to_bytes())),
+            public_key: pubkey_hex.clone(),
             address: format!("spark:{pubkey_hex}"),
         })
+    }
+}
+
+impl Derive for Deriver<'_> {
+    type Error = Error;
+
+    fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
+        self.derive_at_path(&format!("m/84'/0'/0'/0/{index}"))
+    }
+
+    fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+        self.derive_at_path(path)
+    }
+
+    fn overflow_error(&self) -> Error {
+        Error::Derivation("index overflow".into())
     }
 }
 

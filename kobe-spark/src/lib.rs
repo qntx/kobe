@@ -13,7 +13,7 @@ mod deriver;
 mod error;
 
 #[cfg(feature = "alloc")]
-pub use deriver::{DerivedAddress, Deriver};
+pub use deriver::{DerivedAccount, Deriver};
 pub use error::Error;
 
 /// A convenient Result type alias for kobe-spark operations.

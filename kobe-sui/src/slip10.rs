@@ -71,6 +71,30 @@ impl DerivedKey {
             .derive_hardened(0)
     }
 
+    /// Derive key at a custom SLIP-10 path (all components hardened).
+    pub fn derive_path(seed: &[u8], path: &str) -> Result<Self, Error> {
+        let trimmed = path.trim();
+        let remainder = if trimmed == "m" {
+            ""
+        } else if let Some(rest) = trimmed.strip_prefix("m/") {
+            rest
+        } else {
+            return Err(Error::Derivation(
+                "path must start with 'm/' or be 'm'".into(),
+            ));
+        };
+
+        let mut current = Self::from_seed(seed)?;
+        for component in remainder.split('/').filter(|s| !s.is_empty()) {
+            let stripped = component.trim_end_matches('\'').trim_end_matches('h');
+            let index: u32 = stripped.parse().map_err(|_| {
+                Error::Derivation(alloc::format!("invalid path component: {component}"))
+            })?;
+            current = current.derive_hardened(index)?;
+        }
+        Ok(current)
+    }
+
     /// Convert to Ed25519 signing key.
     pub fn to_signing_key(&self) -> SigningKey {
         SigningKey::from_bytes(&self.private_key)

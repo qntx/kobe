@@ -11,7 +11,8 @@ use core::str::FromStr;
 use alloy_primitives::{Address, keccak256};
 use bip32::{DerivationPath, XPrv};
 use k256::ecdsa::SigningKey;
-use kobe::Wallet;
+pub use kobe::DerivedAccount;
+use kobe::{Derive, Wallet};
 use zeroize::Zeroizing;
 
 use crate::Error;
@@ -73,20 +74,6 @@ impl FromStr for DerivationStyle {
     }
 }
 
-/// A derived Ethereum account.
-#[derive(Debug, Clone)]
-#[non_exhaustive]
-pub struct DerivedAccount {
-    /// BIP-32 derivation path used.
-    pub path: String,
-    /// Private key hex (no `0x` prefix, zeroized on drop).
-    pub private_key: Zeroizing<String>,
-    /// Uncompressed public key hex (with `04` prefix).
-    pub public_key: String,
-    /// EIP-55 checksummed address.
-    pub address: String,
-}
-
 /// Ethereum address deriver.
 #[derive(Debug)]
 pub struct Deriver<'a> {
@@ -101,18 +88,28 @@ impl<'a> Deriver<'a> {
         Self { wallet }
     }
 
-    /// Derive using the default Standard style at `index`.
-    pub fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
-        self.derive_with(DerivationStyle::Standard, index)
-    }
-
     /// Derive with a specific [`DerivationStyle`].
     pub fn derive_with(&self, style: DerivationStyle, index: u32) -> Result<DerivedAccount, Error> {
-        self.derive_path(&style.path(index))
+        self.derive_at_path(&style.path(index))
     }
 
-    /// Derive at a custom BIP-32 path string.
-    pub fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+    /// Derive `count` accounts starting at `start` with a specific style.
+    pub fn derive_many_with(
+        &self,
+        style: DerivationStyle,
+        start: u32,
+        count: u32,
+    ) -> Result<Vec<DerivedAccount>, Error> {
+        (start
+            ..start
+                .checked_add(count)
+                .ok_or_else(|| Error::Derivation("index overflow".into()))?)
+            .map(|i| self.derive_with(style, i))
+            .collect()
+    }
+
+    /// Internal: derive at an arbitrary path.
+    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
         let dp: DerivationPath = path
             .parse()
             .map_err(|e| Error::Derivation(format!("invalid path: {e}")))?;
@@ -134,25 +131,21 @@ impl<'a> Deriver<'a> {
             address: checksum_address(&address),
         })
     }
+}
 
-    /// Derive `count` accounts starting at `start` using the default style.
-    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAccount>, Error> {
-        self.derive_many_with(DerivationStyle::Standard, start, count)
+impl Derive for Deriver<'_> {
+    type Error = Error;
+
+    fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
+        self.derive_with(DerivationStyle::Standard, index)
     }
 
-    /// Derive `count` accounts starting at `start` with a specific style.
-    pub fn derive_many_with(
-        &self,
-        style: DerivationStyle,
-        start: u32,
-        count: u32,
-    ) -> Result<Vec<DerivedAccount>, Error> {
-        (start
-            ..start
-                .checked_add(count)
-                .ok_or_else(|| Error::Derivation("index overflow".into()))?)
-            .map(|i| self.derive_with(style, i))
-            .collect()
+    fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+        self.derive_at_path(path)
+    }
+
+    fn overflow_error(&self) -> Error {
+        Error::Derivation("index overflow".into())
     }
 }
 

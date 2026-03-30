@@ -2,14 +2,56 @@
 
 #[cfg(feature = "alloc")]
 use alloc::{format, string::String, vec::Vec};
+use core::fmt;
 
 use ed25519_dalek::VerifyingKey;
-use kobe::Wallet;
+pub use kobe::DerivedAccount;
+use kobe::{Derive, Wallet};
 use sha2::{Digest, Sha256};
 use zeroize::Zeroizing;
 
 use crate::Error;
 use crate::slip10::DerivedKey;
+
+/// TON derivation path styles.
+///
+/// Tonkeeper and most wallets use `m/44'/607'/{index}'`.
+/// Ledger Live uses `m/44'/607'/{index}'/0'/0'`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[non_exhaustive]
+pub enum DerivationStyle {
+    /// `m/44'/607'/{index}'` — Tonkeeper, MyTonWallet, Trust Wallet.
+    #[default]
+    Standard,
+    /// `m/44'/607'/{index}'/0'/0'` — Ledger Live.
+    LedgerLive,
+}
+
+impl DerivationStyle {
+    /// Build the derivation path string for a given index.
+    #[must_use]
+    pub fn path(self, index: u32) -> String {
+        match self {
+            Self::Standard => format!("m/44'/607'/{index}'"),
+            Self::LedgerLive => format!("m/44'/607'/{index}'/0'/0'"),
+        }
+    }
+
+    /// Human-readable name.
+    #[must_use]
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Standard => "Standard (Tonkeeper)",
+            Self::LedgerLive => "Ledger Live",
+        }
+    }
+}
+
+impl fmt::Display for DerivationStyle {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.name())
+    }
+}
 
 /// Wallet v5r1 code cell hash (SHA256 of the cell representation).
 const WALLET_V5R1_CODE_HASH: [u8; 32] = [
@@ -34,20 +76,6 @@ pub struct Deriver<'a> {
     wallet: &'a Wallet,
 }
 
-/// A derived TON address with associated key material.
-#[derive(Debug, Clone)]
-#[non_exhaustive]
-pub struct DerivedAddress {
-    /// Derivation path used (e.g. `m/44'/607'/0'`).
-    pub path: String,
-    /// Private key in hex format (zeroized on drop).
-    pub private_key_hex: Zeroizing<String>,
-    /// Public key in hex format.
-    pub public_key_hex: String,
-    /// TON user-friendly address (non-bounceable, base64url).
-    pub address: String,
-}
-
 impl<'a> Deriver<'a> {
     /// Create a new TON deriver from a wallet.
     #[must_use]
@@ -55,11 +83,13 @@ impl<'a> Deriver<'a> {
         Self { wallet }
     }
 
-    /// Derive an address at the given account index.
-    ///
-    /// Uses SLIP-10 path: `m/44'/607'/{index}'`
-    pub fn derive(&self, index: u32) -> Result<DerivedAddress, Error> {
-        let derived_key = DerivedKey::derive_ton_path(self.wallet.seed(), index)?;
+    /// Derive with a specific [`DerivationStyle`].
+    pub fn derive_with(&self, style: DerivationStyle, index: u32) -> Result<DerivedAccount, Error> {
+        self.derive_at_path(&style.path(index))
+    }
+
+    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+        let derived_key = DerivedKey::derive_path(self.wallet.seed(), path)?;
         let signing_key = derived_key.to_signing_key();
         let verifying_key: VerifyingKey = signing_key.verifying_key();
         let pubkey_bytes: &[u8; 32] = verifying_key.as_bytes();
@@ -69,22 +99,28 @@ impl<'a> Deriver<'a> {
             state_init_hash(&WALLET_V5R1_CODE_HASH, WALLET_V5R1_CODE_DEPTH, &data_hash);
         let address = encode_address(0, &state_hash, false);
 
-        Ok(DerivedAddress {
-            path: format!("m/44'/607'/{index}'"),
-            private_key_hex: Zeroizing::new(hex::encode(signing_key.to_bytes())),
-            public_key_hex: hex::encode(pubkey_bytes),
+        Ok(DerivedAccount {
+            path: path.to_string(),
+            private_key: Zeroizing::new(hex::encode(signing_key.to_bytes())),
+            public_key: hex::encode(pubkey_bytes),
             address,
         })
     }
+}
 
-    /// Derive `count` accounts starting at `start`.
-    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAddress>, Error> {
-        (start
-            ..start
-                .checked_add(count)
-                .ok_or_else(|| Error::Derivation("index overflow".into()))?)
-            .map(|i| self.derive(i))
-            .collect()
+impl Derive for Deriver<'_> {
+    type Error = Error;
+
+    fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
+        self.derive_with(DerivationStyle::Standard, index)
+    }
+
+    fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+        self.derive_at_path(path)
+    }
+
+    fn overflow_error(&self) -> Error {
+        Error::Derivation("index overflow".into())
     }
 }
 
