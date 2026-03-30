@@ -8,7 +8,7 @@ use alloc::{
 use core::marker::PhantomData;
 
 use bitcoin::{PrivateKey, bip32::Xpriv, key::CompressedPublicKey};
-use kobe::Wallet;
+use kobe::{Derive, DerivedAccount, Wallet};
 use zeroize::Zeroizing;
 
 use crate::address::create_address;
@@ -194,6 +194,40 @@ impl<'a> Deriver<'a> {
     #[must_use]
     pub const fn network(&self) -> Network {
         self.network
+    }
+
+    /// Internal: derive a [`DerivedAccount`] at a string path with default P2WPKH.
+    fn derive_account_at_path(&self, path_str: &str) -> Result<DerivedAccount, Error> {
+        let path = DerivationPath::from_path_str(path_str)?;
+        let da = self.derive_path(&path, AddressType::P2wpkh)?;
+        Ok(DerivedAccount::new(
+            da.path.to_string(),
+            da.private_key_hex,
+            da.public_key_hex,
+            da.address,
+        ))
+    }
+}
+
+impl Derive for Deriver<'_> {
+    type Error = Error;
+
+    fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
+        let da = self.derive_with(AddressType::P2wpkh, index)?;
+        Ok(DerivedAccount::new(
+            da.path.to_string(),
+            da.private_key_hex,
+            da.public_key_hex,
+            da.address,
+        ))
+    }
+
+    fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+        self.derive_account_at_path(path)
+    }
+
+    fn overflow_error(&self) -> Error {
+        Error::InvalidDerivationPath("index overflow".into())
     }
 }
 

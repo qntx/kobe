@@ -83,7 +83,7 @@ impl Derive for Deriver<'_> {
     type Error = Error;
 
     fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
-        let path = format!("m/44'/{}'/{index}'/0/0", self.coin_type);
+        let path = format!("m/44'/{}'/0'/0/{index}", self.coin_type);
         self.derive_at_path(&path)
     }
 

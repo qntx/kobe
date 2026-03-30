@@ -4,7 +4,7 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
 use ed25519_dalek::VerifyingKey;
-use kobe::Wallet;
+use kobe::{Derive, DerivedAccount, Wallet};
 use zeroize::Zeroizing;
 
 use crate::Error;
@@ -152,6 +152,34 @@ impl<'a> Deriver<'a> {
     pub fn derive_path(&self, path: &str) -> Result<DerivedAddress, Error> {
         let derived = DerivedKey::derive_path(self.wallet.seed(), path)?;
         Ok(build_derived_address(&derived, path.to_string()))
+    }
+}
+
+impl Derive for Deriver<'_> {
+    type Error = Error;
+
+    fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
+        let da = self.derive_with(DerivationStyle::Standard, index)?;
+        Ok(DerivedAccount::new(
+            da.path,
+            da.private_key_hex,
+            da.public_key_hex,
+            da.address,
+        ))
+    }
+
+    fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+        let da = Deriver::derive_path(self, path)?;
+        Ok(DerivedAccount::new(
+            da.path,
+            da.private_key_hex,
+            da.public_key_hex,
+            da.address,
+        ))
+    }
+
+    fn overflow_error(&self) -> Error {
+        Error::Derivation("index overflow".into())
     }
 }
 
