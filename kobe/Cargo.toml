@@ -5,7 +5,7 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 readme = "../README.md"
-description = "Core bip39 wallet for Kobe multi-chain wallet"
+description = "Multi-chain HD wallet derivation library"
 keywords = ["crypto", "wallet", "bip39", "mnemonic", "no_std"]
 categories = ["cryptography", "no-std"]
 
@@ -13,11 +13,8 @@ categories = ["cryptography", "no-std"]
 default = ["std"]
 std = ["alloc", "bip39/std", "zeroize/std"]
 alloc = ["bip39/alloc", "zeroize/alloc"]
-# Enable random mnemonic generation (requires std or custom RNG)
 rand = ["bip39/rand"]
-# Enable custom RNG support for no_std environments
 rand_core = ["bip39/rand_core"]
-# Enable mnemonic camouflage (entropy-layer XOR encryption)
 camouflage = ["dep:hmac", "dep:pbkdf2", "dep:sha2", "alloc"]
 
 [dependencies]

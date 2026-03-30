@@ -5,20 +5,18 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 readme = "../README.md"
-description = "Bitcoin wallet for Kobe"
+description = "Bitcoin HD wallet derivation for Kobe"
 keywords = ["bitcoin", "wallet", "crypto", "no_std"]
 categories = ["cryptography", "no-std"]
 
 [features]
 default = ["std"]
-std = ["alloc", "kobe/std", "bitcoin/std", "bip39/std", "hex/std", "zeroize/std"]
-alloc = ["kobe/alloc", "bip39/alloc", "hex/alloc", "zeroize/alloc"]
-rand = ["std", "bitcoin/rand-std"]
+std = ["alloc", "kobe/std", "bitcoin/std", "hex/std", "zeroize/std"]
+alloc = ["kobe/alloc", "hex/alloc", "zeroize/alloc"]
 
 [dependencies]
 kobe.workspace = true
 bitcoin.workspace = true
-bip39.workspace = true
 hex.workspace = true
 thiserror.workspace = true
 zeroize.workspace = true

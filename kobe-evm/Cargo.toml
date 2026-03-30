@@ -5,7 +5,7 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 readme = "../README.md"
-description = "Ethereum wallet for Kobe"
+description = "Ethereum HD wallet derivation for Kobe"
 keywords = ["ethereum", "wallet", "crypto", "no_std"]
 categories = ["cryptography", "no-std"]
 
@@ -13,8 +13,6 @@ categories = ["cryptography", "no-std"]
 default = ["std"]
 std = ["alloc", "kobe/std", "k256/std", "hex/std", "zeroize/std"]
 alloc = ["kobe/alloc", "hex/alloc", "zeroize/alloc"]
-# Enable random key generation for StandardWallet (requires std)
-rand = ["std"]
 
 [dependencies]
 kobe.workspace = true

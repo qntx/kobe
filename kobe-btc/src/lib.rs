@@ -1,12 +1,8 @@
-//! Bitcoin wallet utilities for Kobe CLI.
+//! Bitcoin HD wallet derivation for Kobe.
 //!
-//! Provides Bitcoin address derivation from a unified [`kobe::Wallet`].
-//!
-//! # Features
-//!
-//! - `std` (default): Enable standard library support
-//! - `alloc`: Enable heap allocation without full std (for `no_std` environments)
-//! - `rand`: Enable random key generation for `StandardWallet`
+//! Derives Bitcoin addresses from a [`kobe::Wallet`] seed following
+//! BIP-32/44/49/84/86. Supports P2PKH, P2SH-P2WPKH, P2WPKH, and P2TR
+//! address types across mainnet and testnet.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -19,8 +15,6 @@ mod address;
 mod deriver;
 mod error;
 mod network;
-#[cfg(feature = "alloc")]
-mod standard_wallet;
 mod types;
 
 #[cfg(feature = "alloc")]
@@ -28,10 +22,8 @@ pub use deriver::{DerivedAddress, Deriver};
 pub use error::Error;
 pub use network::{Network, ParseNetworkError};
 #[cfg(feature = "alloc")]
-pub use standard_wallet::StandardWallet;
-#[cfg(feature = "alloc")]
 pub use types::DerivationPath;
 pub use types::{AddressType, ParseAddressTypeError};
 
-/// A convenient Result type alias for kobe-btc operations.
+/// Convenient Result alias.
 pub type Result<T> = core::result::Result<T, Error>;

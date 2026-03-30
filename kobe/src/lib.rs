@@ -1,12 +1,13 @@
-//! Core wallet types for Kobe multi-chain wallet CLI.
+//! Multi-chain HD wallet derivation library.
 //!
-//! This crate provides the unified [`Wallet`] type that holds a BIP39 mnemonic
-//! and derives seeds for multiple cryptocurrencies.
+//! Core [`Wallet`] type holds a BIP-39 mnemonic and derives seeds for
+//! chain-specific derivers (`kobe-evm`, `kobe-btc`, `kobe-svm`, etc.).
 //!
-//! # Features
-//!
-//! - `std` (default): Enable standard library support
-//! - `alloc`: Enable heap allocation without full std (for `no_std` environments)
+//! ```ignore
+//! let wallet = kobe::Wallet::from_mnemonic("abandon ...", None)?;
+//! let eth = kobe_evm::Deriver::new(&wallet).derive(0)?;
+//! let btc = kobe_btc::Deriver::new(&wallet, kobe_btc::Network::Mainnet)?.derive(0)?;
+//! ```
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -29,5 +30,5 @@ pub use error::Error;
 #[cfg(feature = "alloc")]
 pub use wallet::Wallet;
 
-/// A convenient Result type alias for kobe-core operations.
+/// Convenient Result alias.
 pub type Result<T> = core::result::Result<T, Error>;

@@ -68,6 +68,16 @@ impl<'a> Deriver<'a> {
             address: format!("0x{}", hex::encode(hash)),
         })
     }
+
+    /// Derive `count` accounts starting at `start`.
+    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAddress>, Error> {
+        (start
+            ..start
+                .checked_add(count)
+                .ok_or_else(|| Error::Derivation("index overflow".into()))?)
+            .map(|i| self.derive(i))
+            .collect()
+    }
 }
 
 /// Compute BLAKE2b-256.

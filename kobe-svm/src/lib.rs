@@ -1,12 +1,7 @@
-//! Solana wallet utilities for the Kobe multi-chain wallet.
+//! Solana HD wallet derivation for Kobe.
 //!
-//! Provides Solana address derivation from a unified [`kobe::Wallet`].
-//!
-//! # Features
-//!
-//! - `std` (default): Enable standard library support
-//! - `alloc`: Enable heap allocation without full std (for `no_std` environments)
-//! - `rand`: Enable random key generation for `StandardWallet`
+//! Derives Solana addresses from a [`kobe::Wallet`] seed using SLIP-10 Ed25519.
+//! Supports Phantom/Backpack, Trust Wallet, and Ledger Live derivation styles.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -19,17 +14,13 @@ mod derivation_style;
 mod deriver;
 mod error;
 #[cfg(feature = "alloc")]
-mod slip10;
-#[cfg(feature = "alloc")]
-mod standard_wallet;
+pub(crate) mod slip10;
 
 #[cfg(feature = "alloc")]
 pub use derivation_style::{DerivationStyle, ParseDerivationStyleError};
 #[cfg(feature = "alloc")]
 pub use deriver::{DerivedAddress, Deriver};
 pub use error::Error;
-#[cfg(feature = "alloc")]
-pub use standard_wallet::StandardWallet;
 
-/// A convenient Result type alias for kobe-svm operations.
+/// Convenient Result alias.
 pub type Result<T> = core::result::Result<T, Error>;

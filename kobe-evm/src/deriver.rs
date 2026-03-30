@@ -1,318 +1,308 @@
-//! Ethereum address derivation from a unified wallet.
+//! Ethereum address derivation from an HD wallet seed.
 
-#[cfg(feature = "alloc")]
 use alloc::{
     format,
     string::{String, ToString},
     vec::Vec,
 };
+use core::fmt;
+use core::str::FromStr;
 
+use alloy_primitives::{Address, keccak256};
 use bip32::{DerivationPath, XPrv};
 use k256::ecdsa::SigningKey;
 use kobe::Wallet;
 use zeroize::Zeroizing;
 
 use crate::Error;
-use crate::address::{public_key_to_address, to_checksum_address};
-use crate::derivation_style::DerivationStyle;
 
-/// Ethereum address deriver from a unified wallet seed.
+/// Derivation path styles for different wallet software.
 ///
-/// This deriver takes a seed from [`kobe::Wallet`] and derives
-/// Ethereum addresses following BIP32/44 standards.
-#[derive(Debug)]
-pub struct Deriver<'a> {
-    /// Reference to the wallet for seed access.
-    wallet: &'a Wallet,
+/// MetaMask/Trezor, Ledger Live, and Ledger Legacy each use a different
+/// BIP-44 path layout. See individual variant docs for details.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[non_exhaustive]
+pub enum DerivationStyle {
+    /// `m/44'/60'/0'/0/{index}` — MetaMask, Trezor, Exodus (most common).
+    #[default]
+    Standard,
+    /// `m/44'/60'/{index}'/0/0` — Ledger Live.
+    LedgerLive,
+    /// `m/44'/60'/0'/{index}` — Ledger Legacy / MEW / MyCrypto.
+    LedgerLegacy,
 }
 
-/// A derived Ethereum address with associated keys.
+impl DerivationStyle {
+    /// Build the derivation path string for a given account index.
+    #[must_use]
+    pub fn path(self, index: u32) -> String {
+        match self {
+            Self::Standard => format!("m/44'/60'/0'/0/{index}"),
+            Self::LedgerLive => format!("m/44'/60'/{index}'/0/0"),
+            Self::LedgerLegacy => format!("m/44'/60'/0'/{index}"),
+        }
+    }
+
+    /// Human-readable name.
+    #[must_use]
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Standard => "Standard (MetaMask/Trezor)",
+            Self::LedgerLive => "Ledger Live",
+            Self::LedgerLegacy => "Ledger Legacy",
+        }
+    }
+}
+
+impl fmt::Display for DerivationStyle {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.name())
+    }
+}
+
+impl FromStr for DerivationStyle {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "standard" | "metamask" | "trezor" | "bip44" => Ok(Self::Standard),
+            "ledger-live" | "ledgerlive" | "live" => Ok(Self::LedgerLive),
+            "ledger-legacy" | "ledgerlegacy" | "legacy" | "mew" => Ok(Self::LedgerLegacy),
+            _ => Err(Error::Derivation(format!("unknown derivation style: {s}"))),
+        }
+    }
+}
+
+/// A derived Ethereum account.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
-pub struct DerivedAddress {
-    /// Derivation path used (e.g., `m/44'/60'/0'/0/0`).
+pub struct DerivedAccount {
+    /// BIP-32 derivation path used.
     pub path: String,
-    /// Private key in hex format without 0x prefix (zeroized on drop).
-    pub private_key_hex: Zeroizing<String>,
-    /// Public key in uncompressed hex format.
-    pub public_key_hex: String,
-    /// Checksummed Ethereum address (EIP-55).
+    /// Private key hex (no `0x` prefix, zeroized on drop).
+    pub private_key: Zeroizing<String>,
+    /// Uncompressed public key hex (with `04` prefix).
+    pub public_key: String,
+    /// EIP-55 checksummed address.
     pub address: String,
 }
 
+/// Ethereum address deriver.
+#[derive(Debug)]
+pub struct Deriver<'a> {
+    /// Wallet seed reference.
+    wallet: &'a Wallet,
+}
+
 impl<'a> Deriver<'a> {
-    /// Create a new Ethereum deriver from a wallet.
+    /// Create a deriver from a wallet.
     #[must_use]
     pub const fn new(wallet: &'a Wallet) -> Self {
         Self { wallet }
     }
 
-    /// Derive an address using the Standard derivation style.
-    ///
-    /// Uses path: `m/44'/60'/0'/0/{index}` (MetaMask/Trezor compatible)
-    ///
-    /// # Arguments
-    ///
-    /// * `index` - The address index
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if derivation fails.
-    #[inline]
-    pub fn derive(&self, index: u32) -> Result<DerivedAddress, Error> {
+    /// Derive using the default Standard style at `index`.
+    pub fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
         self.derive_with(DerivationStyle::Standard, index)
     }
 
-    /// Derive an address using a specific derivation style.
-    ///
-    /// This method supports different hardware/software wallet path formats:
-    /// - **Standard** (MetaMask/Trezor): `m/44'/60'/0'/0/{index}`
-    /// - **Ledger Live**: `m/44'/60'/{index}'/0/0`
-    /// - **Ledger Legacy**: `m/44'/60'/0'/{index}`
-    ///
-    /// # Arguments
-    ///
-    /// * `style` - The derivation style to use
-    /// * `index` - The address/account index
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if derivation fails.
-    #[inline]
-    pub fn derive_with(&self, style: DerivationStyle, index: u32) -> Result<DerivedAddress, Error> {
+    /// Derive with a specific [`DerivationStyle`].
+    pub fn derive_with(&self, style: DerivationStyle, index: u32) -> Result<DerivedAccount, Error> {
         self.derive_path(&style.path(index))
     }
 
-    /// Derive multiple addresses using the Standard derivation style.
-    ///
-    /// # Arguments
-    ///
-    /// * `start` - Starting address index
-    /// * `count` - Number of addresses to derive
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if any derivation fails.
-    #[inline]
-    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAddress>, Error> {
+    /// Derive at a custom BIP-32 path string.
+    pub fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+        let dp: DerivationPath = path
+            .parse()
+            .map_err(|e| Error::Derivation(format!("invalid path: {e}")))?;
+        let xprv = XPrv::derive_from_path(self.wallet.seed(), &dp)
+            .map_err(|e| Error::Derivation(format!("derivation failed: {e}")))?;
+
+        let signing_key: &SigningKey = xprv.private_key();
+        let verifying_key = signing_key.verifying_key();
+        let uncompressed = verifying_key.to_encoded_point(false);
+        let pubkey_bytes = uncompressed.as_bytes();
+
+        let addr_hash = keccak256(&pubkey_bytes[1..]);
+        let address = Address::from_slice(&addr_hash[12..]);
+
+        Ok(DerivedAccount {
+            path: path.to_string(),
+            private_key: Zeroizing::new(hex::encode(signing_key.to_bytes())),
+            public_key: hex::encode(pubkey_bytes),
+            address: checksum_address(&address),
+        })
+    }
+
+    /// Derive `count` accounts starting at `start` using the default style.
+    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAccount>, Error> {
         self.derive_many_with(DerivationStyle::Standard, start, count)
     }
 
-    /// Derive multiple addresses using a specific derivation style.
-    ///
-    /// # Arguments
-    ///
-    /// * `style` - The derivation style to use
-    /// * `start` - Starting index
-    /// * `count` - Number of addresses to derive
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if any derivation fails.
+    /// Derive `count` accounts starting at `start` with a specific style.
     pub fn derive_many_with(
         &self,
         style: DerivationStyle,
         start: u32,
         count: u32,
-    ) -> Result<Vec<DerivedAddress>, Error> {
-        let end = start.checked_add(count).ok_or_else(|| {
-            Error::Derivation("index overflow: start + count exceeds u32::MAX".into())
-        })?;
-        (start..end)
-            .map(|index| self.derive_with(style, index))
+    ) -> Result<Vec<DerivedAccount>, Error> {
+        (start
+            ..start
+                .checked_add(count)
+                .ok_or_else(|| Error::Derivation("index overflow".into()))?)
+            .map(|i| self.derive_with(style, i))
             .collect()
-    }
-
-    /// Derive an address at a custom derivation path.
-    ///
-    /// This is the lowest-level derivation method, allowing full control
-    /// over the derivation path.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - BIP-32 derivation path (e.g., `m/44'/60'/0'/0/0`)
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if derivation fails.
-    pub fn derive_path(&self, path: &str) -> Result<DerivedAddress, Error> {
-        let private_key = self.derive_key(path)?;
-
-        let public_key = private_key.verifying_key();
-        let public_key_bytes = public_key.to_encoded_point(false);
-        let address = public_key_to_address(public_key_bytes.as_bytes())?;
-
-        Ok(DerivedAddress {
-            path: path.to_string(),
-            private_key_hex: Zeroizing::new(hex::encode(private_key.to_bytes())),
-            public_key_hex: hex::encode(public_key_bytes.as_bytes()),
-            address: to_checksum_address(&address),
-        })
-    }
-
-    /// Derive a private key at the given path using bip32 crate.
-    fn derive_key(&self, path: &str) -> Result<SigningKey, Error> {
-        // Parse derivation path
-        let derivation_path: DerivationPath = path
-            .parse()
-            .map_err(|e| Error::Derivation(format!("invalid derivation path: {e}")))?;
-
-        // Derive from seed directly using path
-        let derived = XPrv::derive_from_path(self.wallet.seed(), &derivation_path)
-            .map_err(|e| Error::Derivation(format!("key derivation failed: {e}")))?;
-
-        // Get signing key (XPrv wraps k256::ecdsa::SigningKey)
-        Ok(derived.private_key().clone())
     }
 }
 
+/// EIP-55 mixed-case checksum encoding.
+fn checksum_address(address: &Address) -> String {
+    let hex_addr = hex::encode(address.as_slice());
+    let hash = keccak256(hex_addr.as_bytes());
+
+    let mut out = String::with_capacity(42);
+    out.push_str("0x");
+    for (i, c) in hex_addr.chars().enumerate() {
+        if c.is_ascii_alphabetic() {
+            let nibble = (hash[i / 2] >> (4 * (1 - i % 2))) & 0xf;
+            if nibble >= 8 {
+                out.push(c.to_ascii_uppercase());
+            } else {
+                out.push(c);
+            }
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::shadow_unrelated)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
-    const TEST_MNEMONIC: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+    const MNEMONIC: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
-    fn test_wallet() -> Wallet {
-        Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap()
+    fn wallet() -> Wallet {
+        Wallet::from_mnemonic(MNEMONIC, None).unwrap()
     }
 
     #[test]
-    fn test_derive_address() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet);
-        let addr = deriver.derive(0).unwrap();
-
-        assert!(addr.address.starts_with("0x"));
-        assert_eq!(addr.address.len(), 42);
-        assert_eq!(addr.path, "m/44'/60'/0'/0/0");
+    fn derive_standard_address() {
+        let w = wallet();
+        let d = Deriver::new(&w);
+        let a = d.derive(0).unwrap();
+        assert!(a.address.starts_with("0x"));
+        assert_eq!(a.address.len(), 42);
+        assert_eq!(a.path, "m/44'/60'/0'/0/0");
     }
 
     #[test]
-    fn test_derive_multiple() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet);
-        let addrs = deriver.derive_many(0, 5).unwrap();
+    fn deterministic() {
+        let w = wallet();
+        let a = Deriver::new(&w).derive(0).unwrap();
+        let b = Deriver::new(&w).derive(0).unwrap();
+        assert_eq!(a.address, b.address);
+    }
 
-        assert_eq!(addrs.len(), 5);
+    #[test]
+    fn different_indices() {
+        let w = wallet();
+        let d = Deriver::new(&w);
+        assert_ne!(d.derive(0).unwrap().address, d.derive(1).unwrap().address);
+    }
 
-        // All addresses should be unique
-        let mut seen = Vec::new();
-        for addr in &addrs {
-            assert!(!seen.contains(&addr.address));
-            seen.push(addr.address.clone());
+    #[test]
+    fn passphrase_changes_address() {
+        let w1 = Wallet::from_mnemonic(MNEMONIC, None).unwrap();
+        let w2 = Wallet::from_mnemonic(MNEMONIC, Some("pass")).unwrap();
+        assert_ne!(
+            Deriver::new(&w1).derive(0).unwrap().address,
+            Deriver::new(&w2).derive(0).unwrap().address,
+        );
+    }
+
+    #[test]
+    fn derivation_styles_produce_different_addresses() {
+        let w = wallet();
+        let d = Deriver::new(&w);
+        let standard = d.derive_with(DerivationStyle::Standard, 1).unwrap();
+        let live = d.derive_with(DerivationStyle::LedgerLive, 1).unwrap();
+        let legacy = d.derive_with(DerivationStyle::LedgerLegacy, 1).unwrap();
+        assert_ne!(standard.address, live.address);
+        assert_ne!(standard.address, legacy.address);
+        assert_ne!(live.address, legacy.address);
+    }
+
+    #[test]
+    fn style_paths() {
+        assert_eq!(DerivationStyle::Standard.path(0), "m/44'/60'/0'/0/0");
+        assert_eq!(DerivationStyle::LedgerLive.path(1), "m/44'/60'/1'/0/0");
+        assert_eq!(DerivationStyle::LedgerLegacy.path(2), "m/44'/60'/0'/2");
+    }
+
+    #[test]
+    fn style_from_str() {
+        assert_eq!(
+            "standard".parse::<DerivationStyle>().unwrap(),
+            DerivationStyle::Standard
+        );
+        assert_eq!(
+            "metamask".parse::<DerivationStyle>().unwrap(),
+            DerivationStyle::Standard
+        );
+        assert_eq!(
+            "ledger-live".parse::<DerivationStyle>().unwrap(),
+            DerivationStyle::LedgerLive
+        );
+        assert_eq!(
+            "legacy".parse::<DerivationStyle>().unwrap(),
+            DerivationStyle::LedgerLegacy
+        );
+        assert!("bad".parse::<DerivationStyle>().is_err());
+    }
+
+    #[test]
+    fn derive_many_returns_correct_count() {
+        let w = wallet();
+        let d = Deriver::new(&w);
+        let accounts = d.derive_many(0, 5).unwrap();
+        assert_eq!(accounts.len(), 5);
+        for (i, a) in accounts.iter().enumerate() {
+            assert_eq!(a.path, format!("m/44'/60'/0'/0/{i}"));
         }
-        assert_eq!(seen.len(), 5);
     }
 
     #[test]
-    fn test_deterministic_derivation() {
-        let wallet1 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
-        let wallet2 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
-
-        let deriver1 = Deriver::new(&wallet1);
-        let deriver2 = Deriver::new(&wallet2);
-
-        let addr1 = deriver1.derive(0).unwrap();
-        let addr2 = deriver2.derive(0).unwrap();
-
-        assert_eq!(addr1.address, addr2.address);
+    fn derive_path_custom() {
+        let w = wallet();
+        let d = Deriver::new(&w);
+        let a = d.derive_path("m/44'/60'/0'/0/42").unwrap();
+        assert_eq!(a.path, "m/44'/60'/0'/0/42");
+        assert!(a.address.starts_with("0x"));
     }
 
     #[test]
-    fn test_passphrase_changes_addresses() {
-        let wallet1 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
-        let wallet2 = Wallet::from_mnemonic(TEST_MNEMONIC, Some("password")).unwrap();
-
-        let deriver1 = Deriver::new(&wallet1);
-        let deriver2 = Deriver::new(&wallet2);
-
-        let addr1 = deriver1.derive(0).unwrap();
-        let addr2 = deriver2.derive(0).unwrap();
-
-        // Same mnemonic with different passphrase should produce different addresses
-        assert_ne!(addr1.address, addr2.address);
-    }
-
-    #[test]
-    fn test_derive_with_standard() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet);
-
-        let addr = deriver.derive_with(DerivationStyle::Standard, 0).unwrap();
-        assert_eq!(addr.path, "m/44'/60'/0'/0/0");
-
-        let addr = deriver.derive_with(DerivationStyle::Standard, 5).unwrap();
-        assert_eq!(addr.path, "m/44'/60'/0'/0/5");
-    }
-
-    #[test]
-    fn test_derive_with_ledger_live() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet);
-
-        let addr = deriver.derive_with(DerivationStyle::LedgerLive, 0).unwrap();
-        assert_eq!(addr.path, "m/44'/60'/0'/0/0");
-
-        let addr = deriver.derive_with(DerivationStyle::LedgerLive, 1).unwrap();
-        assert_eq!(addr.path, "m/44'/60'/1'/0/0");
-    }
-
-    #[test]
-    fn test_derive_with_ledger_legacy() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet);
-
-        let addr = deriver
-            .derive_with(DerivationStyle::LedgerLegacy, 0)
-            .unwrap();
-        assert_eq!(addr.path, "m/44'/60'/0'/0");
-
-        let addr = deriver
-            .derive_with(DerivationStyle::LedgerLegacy, 3)
-            .unwrap();
-        assert_eq!(addr.path, "m/44'/60'/0'/3");
-    }
-
-    #[test]
-    fn test_different_styles_produce_different_addresses() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet);
-
-        let standard = deriver.derive_with(DerivationStyle::Standard, 1).unwrap();
-        let ledger_live = deriver.derive_with(DerivationStyle::LedgerLive, 1).unwrap();
-        let ledger_legacy = deriver
-            .derive_with(DerivationStyle::LedgerLegacy, 1)
-            .unwrap();
-
-        // Different paths should produce different addresses
-        assert_ne!(standard.address, ledger_live.address);
-        assert_ne!(standard.address, ledger_legacy.address);
-        assert_ne!(ledger_live.address, ledger_legacy.address);
-    }
-
-    #[test]
-    fn test_derive_many_with() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet);
-
-        let addrs = deriver
-            .derive_many_with(DerivationStyle::LedgerLive, 0, 3)
-            .unwrap();
-
-        assert_eq!(addrs.len(), 3);
-        assert_eq!(addrs[0].path, "m/44'/60'/0'/0/0");
-        assert_eq!(addrs[1].path, "m/44'/60'/1'/0/0");
-        assert_eq!(addrs[2].path, "m/44'/60'/2'/0/0");
-    }
-
-    #[test]
-    fn test_derive_path() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet);
-
-        let addr = deriver.derive_path("m/44'/60'/0'/0/0").unwrap();
-        assert_eq!(addr.path, "m/44'/60'/0'/0/0");
-        assert!(addr.address.starts_with("0x"));
+    fn eip55_checksum_vectors() {
+        let cases = [
+            (
+                "52908400098527886E0F7030069857D2E4169EE7",
+                "0x52908400098527886E0F7030069857D2E4169EE7",
+            ),
+            (
+                "de709f2102306220921060314715629080e2fb77",
+                "0xde709f2102306220921060314715629080e2fb77",
+            ),
+            (
+                "5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed",
+                "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed",
+            ),
+        ];
+        for (hex_addr, expected) in cases {
+            let addr = Address::from_slice(&hex::decode(hex_addr).unwrap());
+            assert_eq!(checksum_address(&addr), expected);
+        }
     }
 }

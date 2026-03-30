@@ -44,31 +44,48 @@ pub fn create_address(
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
-    use bitcoin::secp256k1::Secp256k1;
+    use bitcoin::secp256k1::{Secp256k1, SecretKey};
 
     use super::*;
 
-    #[test]
-    fn test_create_address_p2wpkh() {
+    fn test_pubkey() -> CompressedPublicKey {
         let secp = Secp256k1::new();
-        let (secret_key, _) = secp.generate_keypair(&mut bitcoin::secp256k1::rand::thread_rng());
-        let private_key = bitcoin::PrivateKey::new(secret_key, bitcoin::Network::Bitcoin);
-        let public_key =
-            CompressedPublicKey::from_private_key(&secp, &private_key).expect("valid key");
-
-        let address = create_address(&public_key, Network::Mainnet, AddressType::P2wpkh);
-        assert!(address.to_string().starts_with("bc1q"));
+        let sk = SecretKey::from_slice(
+            &hex::decode("4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318")
+                .unwrap(),
+        )
+        .unwrap();
+        let pk = bitcoin::PrivateKey::new(sk, bitcoin::Network::Bitcoin);
+        CompressedPublicKey::from_private_key(&secp, &pk).expect("valid key")
     }
 
     #[test]
-    fn test_create_address_p2pkh() {
-        let secp = Secp256k1::new();
-        let (secret_key, _) = secp.generate_keypair(&mut bitcoin::secp256k1::rand::thread_rng());
-        let private_key = bitcoin::PrivateKey::new(secret_key, bitcoin::Network::Bitcoin);
-        let public_key =
-            CompressedPublicKey::from_private_key(&secp, &private_key).expect("valid key");
+    fn p2wpkh_starts_with_bc1q() {
+        let addr = create_address(&test_pubkey(), Network::Mainnet, AddressType::P2wpkh);
+        assert!(addr.to_string().starts_with("bc1q"));
+    }
 
-        let address = create_address(&public_key, Network::Mainnet, AddressType::P2pkh);
-        assert!(address.to_string().starts_with('1'));
+    #[test]
+    fn p2pkh_starts_with_1() {
+        let addr = create_address(&test_pubkey(), Network::Mainnet, AddressType::P2pkh);
+        assert!(addr.to_string().starts_with('1'));
+    }
+
+    #[test]
+    fn p2sh_starts_with_3() {
+        let addr = create_address(&test_pubkey(), Network::Mainnet, AddressType::P2shP2wpkh);
+        assert!(addr.to_string().starts_with('3'));
+    }
+
+    #[test]
+    fn p2tr_starts_with_bc1p() {
+        let addr = create_address(&test_pubkey(), Network::Mainnet, AddressType::P2tr);
+        assert!(addr.to_string().starts_with("bc1p"));
+    }
+
+    #[test]
+    fn testnet_p2wpkh_starts_with_tb1q() {
+        let addr = create_address(&test_pubkey(), Network::Testnet, AddressType::P2wpkh);
+        assert!(addr.to_string().starts_with("tb1q"));
     }
 }
