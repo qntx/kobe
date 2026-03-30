@@ -24,7 +24,7 @@
 Kobe derives standards-compliant addresses for Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, and Spark from a single BIP-39 mnemonic. All library crates compile under `no_std + alloc` and zeroize sensitive material on drop.
 
 <p align="center">
-  <img src="demo.gif" alt="Kobe CLI Demo" width="800" />
+  <img src="demo.gif" alt="Kobe CLI Demo"/>
 </p>
 
 ## Quick Start
