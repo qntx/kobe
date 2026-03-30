@@ -1,7 +1,10 @@
-#![allow(clippy::print_stdout, clippy::print_stderr)]
-//! Kobe - A multi-chain cryptocurrency wallet CLI tool.
-//!
-//! Easily generate and manage wallets for Bitcoin, Ethereum, and Solana.
+#![allow(
+    clippy::print_stdout,
+    clippy::print_stderr,
+    clippy::missing_docs_in_private_items,
+    missing_docs
+)]
+//! Kobe — multi-chain cryptocurrency wallet CLI.
 
 mod commands;
 pub mod output;

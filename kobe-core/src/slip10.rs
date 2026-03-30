@@ -25,6 +25,7 @@ const ED25519_CURVE: &[u8] = b"ed25519 seed";
 /// Contains a 32-byte private key and chain code. All sensitive fields
 /// are wrapped in [`Zeroizing`] for automatic secure cleanup on drop.
 #[derive(Debug)]
+#[non_exhaustive]
 pub struct DerivedKey {
     /// 32-byte Ed25519 private key.
     pub private_key: Zeroizing<[u8; 32]>,

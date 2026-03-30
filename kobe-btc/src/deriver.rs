@@ -7,7 +7,7 @@ use alloc::{
 };
 use core::marker::PhantomData;
 
-use bitcoin::{PrivateKey, bip32::Xpriv, key::CompressedPublicKey};
+use bitcoin::{PrivateKey, bip32::Xpriv, key::CompressedPublicKey, secp256k1::Secp256k1};
 use kobe_core::{Derive, DerivedAccount, Wallet};
 use zeroize::Zeroizing;
 
@@ -22,6 +22,8 @@ use crate::{AddressType, DerivationPath, Error, Network};
 pub struct Deriver<'a> {
     /// Master extended private key.
     master_key: Xpriv,
+    /// Cached secp256k1 context (~768KB, reused across derivations).
+    secp: Secp256k1<bitcoin::secp256k1::All>,
     /// Bitcoin network (mainnet or testnet).
     network: Network,
     /// Phantom data to track wallet lifetime.
@@ -58,6 +60,7 @@ impl<'a> Deriver<'a> {
 
         Ok(Self {
             master_key,
+            secp: Secp256k1::new(),
             network,
             _wallet: PhantomData,
         })
@@ -168,17 +171,15 @@ impl<'a> Deriver<'a> {
         path: &DerivationPath,
         address_type: AddressType,
     ) -> Result<DerivedAddress, Error> {
-        let secp = bitcoin::secp256k1::Secp256k1::new();
-        let derived = self.master_key.derive_priv(&secp, path.inner())?;
+        let derived = self.master_key.derive_priv(&self.secp, path.inner())?;
 
         let private_key = PrivateKey::new(derived.private_key, self.network.to_bitcoin_network());
-        let public_key = CompressedPublicKey::from_private_key(&secp, &private_key)
+        let public_key = CompressedPublicKey::from_private_key(&self.secp, &private_key)
             .map_err(|_| Error::InvalidPrivateKey)?;
 
         let address = create_address(&public_key, self.network, address_type);
 
-        // Get raw private key bytes in hex format
-        let private_key_bytes = derived.private_key.secret_bytes();
+        let private_key_bytes = Zeroizing::new(derived.private_key.secret_bytes());
 
         Ok(DerivedAddress {
             path: path.clone(),
