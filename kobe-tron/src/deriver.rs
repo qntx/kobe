@@ -3,12 +3,9 @@
 #[cfg(feature = "alloc")]
 use alloc::{format, string::ToString, vec};
 
-use bip32::{DerivationPath, XPrv};
-use k256::ecdsa::SigningKey;
 pub use kobe::DerivedAccount;
 use kobe::{Derive, Wallet};
 use sha3::{Digest, Keccak256};
-use zeroize::Zeroizing;
 
 use crate::Error;
 
@@ -31,26 +28,18 @@ impl<'a> Deriver<'a> {
 
     /// Internal derivation at arbitrary path.
     fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
-        let dp: DerivationPath = path
-            .parse()
-            .map_err(|e| Error::Derivation(format!("invalid path: {e}")))?;
-        let xprv = XPrv::derive_from_path(self.wallet.seed(), &dp)
-            .map_err(|e| Error::Derivation(format!("derivation failed: {e}")))?;
+        let key = kobe::bip32::DerivedSecp256k1Key::derive(self.wallet.seed(), path)?;
+        let uncompressed = key.uncompressed_pubkey();
 
-        let signing_key: &SigningKey = xprv.private_key();
-        let verifying_key = signing_key.verifying_key();
-        let pubkey_uncompressed = verifying_key.to_encoded_point(false);
-        let pubkey_bytes = pubkey_uncompressed.as_bytes();
-
-        let hash = Keccak256::digest(&pubkey_bytes[1..]);
+        let hash = Keccak256::digest(&uncompressed[1..]);
         let mut prefixed = vec![0x41u8];
         prefixed.extend_from_slice(&hash[12..]);
         let address = bs58::encode(&prefixed).with_check().into_string();
 
         Ok(DerivedAccount::new(
             path.to_string(),
-            Zeroizing::new(hex::encode(signing_key.to_bytes())),
-            hex::encode(pubkey_bytes),
+            key.private_key_hex(),
+            key.uncompressed_pubkey_hex(),
             address,
         ))
     }
@@ -65,10 +54,6 @@ impl Derive for Deriver<'_> {
 
     fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
         self.derive_at_path(path)
-    }
-
-    fn overflow_error(&self) -> Error {
-        Error::Derivation("index overflow".into())
     }
 }
 

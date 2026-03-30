@@ -7,6 +7,10 @@ use alloc::string::String;
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
+    /// Core kobe error (index overflow, etc.).
+    #[error(transparent)]
+    Core(#[from] kobe::Error),
+
     /// BIP-32 derivation error.
     #[error("bip32: {0}")]
     Bip32(#[from] bitcoin::bip32::Error),

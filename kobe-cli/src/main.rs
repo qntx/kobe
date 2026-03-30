@@ -34,6 +34,12 @@ fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
         Commands::Bitcoin(cmd) => cmd.execute(json)?,
         Commands::Ethereum(cmd) => cmd.execute(json)?,
         Commands::Solana(cmd) => cmd.execute(json)?,
+        Commands::Cosmos(cmd) => cmd.execute(json)?,
+        Commands::Tron(cmd) => cmd.execute(json)?,
+        Commands::Spark(cmd) => cmd.execute(json)?,
+        Commands::Filecoin(cmd) => cmd.execute(json)?,
+        Commands::Ton(cmd) => cmd.execute(json)?,
+        Commands::Sui(cmd) => cmd.execute(json)?,
         Commands::Mnemonic(cmd) => cmd.execute(json)?,
     }
     Ok(())

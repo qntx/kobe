@@ -4,12 +4,12 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
 use ed25519_dalek::VerifyingKey;
+use kobe::slip10::DerivedKey;
 use kobe::{Derive, DerivedAccount, Wallet};
 use zeroize::Zeroizing;
 
 use crate::Error;
 use crate::derivation_style::DerivationStyle;
-use crate::slip10::DerivedKey;
 
 /// A derived Solana address with associated keys.
 #[derive(Debug, Clone)]
@@ -81,17 +81,9 @@ impl<'a> Deriver<'a> {
     /// Returns an error if derivation fails.
     #[allow(deprecated)]
     pub fn derive_with(&self, style: DerivationStyle, index: u32) -> Result<DerivedAddress, Error> {
-        let derived = match style {
-            DerivationStyle::Standard => {
-                DerivedKey::derive_standard_path(self.wallet.seed(), index)?
-            }
-            DerivationStyle::Trust => DerivedKey::derive_trust_path(self.wallet.seed(), index)?,
-            DerivationStyle::LedgerLive => {
-                DerivedKey::derive_ledger_live_path(self.wallet.seed(), index)?
-            }
-            DerivationStyle::Legacy => DerivedKey::derive_legacy_path(self.wallet.seed(), index)?,
-        };
-        Ok(build_derived_address(&derived, style.path(index)))
+        let path = style.path(index);
+        let derived = DerivedKey::derive_path(self.wallet.seed(), &path)?;
+        Ok(build_derived_address(&derived, path))
     }
 
     /// Derive multiple addresses using the Standard derivation style.
@@ -126,9 +118,7 @@ impl<'a> Deriver<'a> {
         start: u32,
         count: u32,
     ) -> Result<Vec<DerivedAddress>, Error> {
-        let end = start.checked_add(count).ok_or_else(|| {
-            Error::Derivation("index overflow: start + count exceeds u32::MAX".into())
-        })?;
+        let end = start.checked_add(count).ok_or(kobe::Error::IndexOverflow)?;
         (start..end)
             .map(|index| self.derive_with(style, index))
             .collect()
@@ -176,10 +166,6 @@ impl Derive for Deriver<'_> {
             da.public_key_hex,
             da.address,
         ))
-    }
-
-    fn overflow_error(&self) -> Error {
-        Error::Derivation("index overflow".into())
     }
 }
 

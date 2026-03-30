@@ -7,13 +7,10 @@ use alloc::{
     vec::Vec,
 };
 
-use bip32::{DerivationPath, XPrv};
 use blake2::Blake2bVar;
 use blake2::digest::{Update, VariableOutput};
-use k256::ecdsa::SigningKey;
 pub use kobe::DerivedAccount;
 use kobe::{Derive, Wallet};
-use zeroize::Zeroizing;
 
 use crate::Error;
 
@@ -38,18 +35,10 @@ impl<'a> Deriver<'a> {
 
     /// Internal: derive at an arbitrary BIP-32 path.
     fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
-        let dp: DerivationPath = path
-            .parse()
-            .map_err(|e| Error::Derivation(format!("invalid path: {e}")))?;
-        let xprv = XPrv::derive_from_path(self.wallet.seed(), &dp)
-            .map_err(|e| Error::Derivation(format!("derivation failed: {e}")))?;
+        let key = kobe::bip32::DerivedSecp256k1Key::derive(self.wallet.seed(), path)?;
+        let pubkey_bytes = key.uncompressed_pubkey();
 
-        let signing_key: &SigningKey = xprv.private_key();
-        let verifying_key = signing_key.verifying_key();
-        let pubkey_uncompressed = verifying_key.to_encoded_point(false);
-        let pubkey_bytes = pubkey_uncompressed.as_bytes();
-
-        let payload = blake2b(pubkey_bytes, 20);
+        let payload = blake2b(&pubkey_bytes, 20);
         let protocol: u8 = 1;
         let checksum = {
             let mut data = Vec::with_capacity(1 + payload.len());
@@ -63,8 +52,8 @@ impl<'a> Deriver<'a> {
 
         Ok(DerivedAccount::new(
             path.to_string(),
-            Zeroizing::new(hex::encode(signing_key.to_bytes())),
-            hex::encode(pubkey_bytes),
+            key.private_key_hex(),
+            key.uncompressed_pubkey_hex(),
             format!("f1{}", base32_encode(&addr_bytes)),
         ))
     }
@@ -79,10 +68,6 @@ impl Derive for Deriver<'_> {
 
     fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
         self.derive_at_path(path)
-    }
-
-    fn overflow_error(&self) -> Error {
-        Error::Derivation("index overflow".into())
     }
 }
 

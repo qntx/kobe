@@ -1,13 +1,15 @@
 //! Unified derivation trait and account type.
 //!
 //! All chain-specific derivers implement [`Derive`], providing a consistent
-//! API surface across chains. The output [`DerivedAccount`] is the same
-//! regardless of which chain produced it.
+//! API surface across chains. [`DeriveExt`] is automatically implemented for
+//! all `Derive` types, providing batch derivation via [`derive_many`](DeriveExt::derive_many).
 
 use alloc::string::String;
 use alloc::vec::Vec;
 
 use zeroize::Zeroizing;
+
+use crate::Error;
 
 /// A derived account from any chain.
 ///
@@ -50,10 +52,12 @@ impl DerivedAccount {
 /// underlying chain. Each chain crate (`kobe-evm`, `kobe-btc`, etc.)
 /// implements this trait on its `Deriver` type.
 ///
+/// Batch derivation is provided by the blanket [`DeriveExt`] trait.
+///
 /// # Example
 ///
 /// ```ignore
-/// use kobe::Derive;
+/// use kobe::{Derive, DeriveExt};
 ///
 /// fn derive_first_account(d: &impl Derive) -> kobe::DerivedAccount {
 ///     d.derive(0).unwrap()
@@ -61,25 +65,28 @@ impl DerivedAccount {
 /// ```
 pub trait Derive {
     /// The error type returned by derivation operations.
-    type Error: core::fmt::Debug + core::fmt::Display;
+    type Error: core::fmt::Debug + core::fmt::Display + From<Error>;
 
     /// Derive an account at the given index using the chain's default path.
     fn derive(&self, index: u32) -> Result<DerivedAccount, Self::Error>;
 
-    /// Derive `count` accounts starting at `start`.
-    fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAccount>, Self::Error> {
-        let end = start
-            .checked_add(count)
-            .ok_or_else(|| self.overflow_error())?;
-        (start..end).map(|i| self.derive(i)).collect()
-    }
-
     /// Derive an account at a custom path string.
     fn derive_path(&self, path: &str) -> Result<DerivedAccount, Self::Error>;
-
-    /// Produce an overflow error (used by default `derive_many` impl).
-    ///
-    /// Implementors must return an appropriate error for index overflow.
-    #[doc(hidden)]
-    fn overflow_error(&self) -> Self::Error;
 }
+
+/// Extension trait providing batch derivation for all [`Derive`] implementors.
+///
+/// This trait is automatically implemented for any type implementing `Derive`.
+pub trait DeriveExt: Derive {
+    /// Derive `count` accounts starting at index `start`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::IndexOverflow`] if `start + count` overflows `u32`.
+    fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAccount>, Self::Error> {
+        let end = start.checked_add(count).ok_or(Error::IndexOverflow)?;
+        (start..end).map(|i| self.derive(i)).collect()
+    }
+}
+
+impl<T: Derive> DeriveExt for T {}

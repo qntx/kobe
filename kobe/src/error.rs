@@ -49,4 +49,23 @@ pub enum Error {
         /// Words that match the prefix.
         candidates: Vec<String>,
     },
+
+    /// Index overflow in batch derivation.
+    #[error("index overflow")]
+    IndexOverflow,
+
+    /// SLIP-10 Ed25519 derivation: invalid seed.
+    #[cfg(feature = "slip10")]
+    #[error("SLIP-10: invalid seed length")]
+    Slip10InvalidSeed,
+
+    /// SLIP-10 Ed25519 derivation: invalid path.
+    #[cfg(feature = "slip10")]
+    #[error("SLIP-10: {0}")]
+    Slip10InvalidPath(String),
+
+    /// BIP-32 secp256k1 derivation error.
+    #[cfg(feature = "bip32")]
+    #[error("BIP-32: {0}")]
+    Bip32Derivation(String),
 }

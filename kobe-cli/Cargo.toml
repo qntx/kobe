@@ -15,12 +15,17 @@ path = "src/main.rs"
 
 [dependencies]
 kobe = { workspace = true, features = ["std", "rand", "camouflage"] }
-kobe-btc = { workspace = true, features = ["std", "rand"] }
-kobe-evm = { workspace = true, features = ["std", "rand"] }
-kobe-svm = { workspace = true, features = ["std", "rand"] }
+kobe-btc = { workspace = true, features = ["std"] }
+kobe-evm = { workspace = true, features = ["std"] }
+kobe-svm = { workspace = true, features = ["std"] }
+kobe-cosmos = { workspace = true, features = ["std"] }
+kobe-tron = { workspace = true, features = ["std"] }
+kobe-spark = { workspace = true, features = ["std"] }
+kobe-fil = { workspace = true, features = ["std"] }
+kobe-ton = { workspace = true, features = ["std"] }
+kobe-sui = { workspace = true, features = ["std"] }
 clap.workspace = true
 colored.workspace = true
-hex.workspace = true
 zeroize.workspace = true
 qrcode.workspace = true
 serde.workspace = true

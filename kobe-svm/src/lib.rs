@@ -13,8 +13,6 @@ mod derivation_style;
 #[cfg(feature = "alloc")]
 mod deriver;
 mod error;
-#[cfg(feature = "alloc")]
-pub(crate) mod slip10;
 
 #[cfg(feature = "alloc")]
 pub use derivation_style::{DerivationStyle, ParseDerivationStyleError};

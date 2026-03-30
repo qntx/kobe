@@ -7,11 +7,11 @@ use blake2::Blake2bVar;
 use blake2::digest::{Update, VariableOutput};
 use ed25519_dalek::VerifyingKey;
 pub use kobe::DerivedAccount;
+use kobe::slip10::DerivedKey;
 use kobe::{Derive, Wallet};
 use zeroize::Zeroizing;
 
 use crate::Error;
-use crate::slip10::DerivedKey;
 
 /// Ed25519 signature scheme flag used by Sui.
 const ED25519_FLAG: u8 = 0x00;
@@ -63,10 +63,6 @@ impl Derive for Deriver<'_> {
 
     fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
         self.derive_at_path(path)
-    }
-
-    fn overflow_error(&self) -> Error {
-        Error::Derivation("index overflow".into())
     }
 }
 

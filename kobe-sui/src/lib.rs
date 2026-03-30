@@ -11,8 +11,6 @@ extern crate alloc;
 #[cfg(feature = "alloc")]
 mod deriver;
 mod error;
-#[cfg(feature = "alloc")]
-mod slip10;
 
 #[cfg(feature = "alloc")]
 pub use deriver::{DerivedAccount, Deriver};

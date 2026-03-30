@@ -20,16 +20,20 @@ mod error;
 #[cfg(feature = "alloc")]
 mod wallet;
 
+#[cfg(feature = "bip32")]
+pub mod bip32;
 #[cfg(feature = "camouflage")]
 pub mod camouflage;
 #[cfg(feature = "alloc")]
 pub mod mnemonic;
+#[cfg(feature = "slip10")]
+pub mod slip10;
 
 pub use bip39::Language;
 #[cfg(feature = "rand_core")]
 pub use bip39::rand_core;
 #[cfg(feature = "alloc")]
-pub use derive::{Derive, DerivedAccount};
+pub use derive::{Derive, DeriveExt, DerivedAccount};
 pub use error::Error;
 #[cfg(feature = "alloc")]
 pub use wallet::Wallet;

@@ -1,13 +1,10 @@
 //! Spark address derivation from a unified wallet.
 
 #[cfg(feature = "alloc")]
-use alloc::{format, string::ToString};
+use alloc::format;
 
-use bip32::{DerivationPath, XPrv};
-use k256::ecdsa::SigningKey;
 pub use kobe::DerivedAccount;
 use kobe::{Derive, Wallet};
-use zeroize::Zeroizing;
 
 use crate::Error;
 
@@ -31,20 +28,12 @@ impl<'a> Deriver<'a> {
 
     /// Internal: derive at an arbitrary BIP-32 path.
     fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
-        let dp: DerivationPath = path
-            .parse()
-            .map_err(|e| Error::Derivation(format!("invalid path: {e}")))?;
-        let xprv = XPrv::derive_from_path(self.wallet.seed(), &dp)
-            .map_err(|e| Error::Derivation(format!("derivation failed: {e}")))?;
-
-        let signing_key: &SigningKey = xprv.private_key();
-        let verifying_key = signing_key.verifying_key();
-        let pubkey_compressed = verifying_key.to_encoded_point(true);
-        let pubkey_hex = hex::encode(pubkey_compressed.as_bytes());
+        let key = kobe::bip32::DerivedSecp256k1Key::derive(self.wallet.seed(), path)?;
+        let pubkey_hex = key.compressed_pubkey_hex();
 
         Ok(DerivedAccount::new(
             path.to_string(),
-            Zeroizing::new(hex::encode(signing_key.to_bytes())),
+            key.private_key_hex(),
             pubkey_hex.clone(),
             format!("spark:{pubkey_hex}"),
         ))
@@ -60,10 +49,6 @@ impl Derive for Deriver<'_> {
 
     fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
         self.derive_at_path(path)
-    }
-
-    fn overflow_error(&self) -> Error {
-        Error::Derivation("index overflow".into())
     }
 }
 

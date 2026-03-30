@@ -2,9 +2,9 @@
 
 use clap::{Args, Subcommand, ValueEnum};
 use kobe::Wallet;
-use kobe_btc::{AddressType, Deriver, Network, StandardWallet};
+use kobe_btc::{AddressType, Deriver, Network};
 
-use crate::output::{self, AccountOutput, HdWalletOutput, SingleKeyOutput};
+use crate::output::{self, AccountOutput, HdWalletOutput};
 
 /// Bitcoin wallet operations.
 #[derive(Args)]
@@ -44,21 +44,6 @@ enum BitcoinSubcommand {
         qr: bool,
     },
 
-    /// Generate a random single-key wallet (no mnemonic).
-    Random {
-        /// Use testnet instead of mainnet.
-        #[arg(short, long)]
-        testnet: bool,
-
-        /// Address type to generate.
-        #[arg(short, long, value_enum, default_value = "native-segwit")]
-        address_type: CliAddressType,
-
-        /// Display QR code for the address.
-        #[arg(long)]
-        qr: bool,
-    },
-
     /// Import wallet from mnemonic phrase.
     Import {
         /// BIP39 mnemonic phrase.
@@ -82,21 +67,6 @@ enum BitcoinSubcommand {
         count: u32,
 
         /// Display QR code for each address.
-        #[arg(long)]
-        qr: bool,
-    },
-
-    /// Import wallet from private key (WIF format).
-    ImportKey {
-        /// Private key in WIF format.
-        #[arg(short, long)]
-        key: String,
-
-        /// Address type to generate.
-        #[arg(short, long, value_enum, default_value = "native-segwit")]
-        address_type: CliAddressType,
-
-        /// Display QR code for the address.
         #[arg(long)]
         qr: bool,
     },
@@ -126,7 +96,6 @@ impl From<CliAddressType> for AddressType {
     }
 }
 
-/// Map bool to Network.
 const fn network(testnet: bool) -> Network {
     if testnet {
         Network::Testnet
@@ -135,7 +104,6 @@ const fn network(testnet: bool) -> Network {
     }
 }
 
-/// Map Network to display string.
 const fn network_str(n: Network) -> &'static str {
     match n {
         Network::Mainnet => "mainnet",
@@ -144,7 +112,6 @@ const fn network_str(n: Network) -> &'static str {
 }
 
 impl BitcoinCommand {
-    /// Execute the Bitcoin command.
     pub fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
         match self.command {
             BitcoinSubcommand::New {
@@ -163,17 +130,6 @@ impl BitcoinCommand {
                 let out = build_hd(&wallet, net, addr_type, &addresses);
                 output::render_hd_wallet(&out, json, qr)?;
             }
-            BitcoinSubcommand::Random {
-                testnet,
-                address_type,
-                qr,
-            } => {
-                let net = network(testnet);
-                let addr_type = AddressType::from(address_type);
-                let wallet = StandardWallet::generate(net, addr_type)?;
-                let out = build_single_key(&wallet);
-                output::render_single_key(&out, json, qr)?;
-            }
             BitcoinSubcommand::Import {
                 mnemonic,
                 passphrase,
@@ -191,22 +147,11 @@ impl BitcoinCommand {
                 let out = build_hd(&wallet, net, addr_type, &addresses);
                 output::render_hd_wallet(&out, json, qr)?;
             }
-            BitcoinSubcommand::ImportKey {
-                key,
-                address_type,
-                qr,
-            } => {
-                let addr_type = AddressType::from(address_type);
-                let wallet = StandardWallet::from_wif(&key, addr_type)?;
-                let out = build_single_key(&wallet);
-                output::render_single_key(&out, json, qr)?;
-            }
         }
         Ok(())
     }
 }
 
-/// Build HD wallet output struct from BTC-specific types.
 fn build_hd(
     wallet: &Wallet,
     net: Network,
@@ -230,17 +175,5 @@ fn build_hd(
                 private_key: a.private_key_wif.to_string(),
             })
             .collect(),
-    }
-}
-
-/// Build single-key output struct from BTC StandardWallet.
-fn build_single_key(wallet: &StandardWallet) -> SingleKeyOutput {
-    SingleKeyOutput {
-        chain: "bitcoin",
-        network: Some(network_str(wallet.network())),
-        address_type: Some(wallet.address_type().name()),
-        address: wallet.address(),
-        private_key: wallet.to_wif().to_string(),
-        public_key: wallet.pubkey_hex(),
     }
 }

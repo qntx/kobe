@@ -225,10 +225,6 @@ impl Derive for Deriver<'_> {
     fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
         self.derive_account_at_path(path)
     }
-
-    fn overflow_error(&self) -> Error {
-        Error::InvalidDerivationPath("index overflow".into())
-    }
 }
 
 #[cfg(test)]

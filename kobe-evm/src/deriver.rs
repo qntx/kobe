@@ -9,11 +9,8 @@ use core::fmt;
 use core::str::FromStr;
 
 use alloy_primitives::{Address, keccak256};
-use bip32::{DerivationPath, XPrv};
-use k256::ecdsa::SigningKey;
 pub use kobe::DerivedAccount;
 use kobe::{Derive, Wallet};
-use zeroize::Zeroizing;
 
 use crate::Error;
 
@@ -69,7 +66,7 @@ impl FromStr for DerivationStyle {
             "standard" | "metamask" | "trezor" | "bip44" => Ok(Self::Standard),
             "ledger-live" | "ledgerlive" | "live" => Ok(Self::LedgerLive),
             "ledger-legacy" | "ledgerlegacy" | "legacy" | "mew" => Ok(Self::LedgerLegacy),
-            _ => Err(Error::Derivation(format!("unknown derivation style: {s}"))),
+            _ => Err(kobe::Error::Bip32Derivation(format!("unknown derivation style: {s}")).into()),
         }
     }
 }
@@ -100,35 +97,23 @@ impl<'a> Deriver<'a> {
         start: u32,
         count: u32,
     ) -> Result<Vec<DerivedAccount>, Error> {
-        (start
-            ..start
-                .checked_add(count)
-                .ok_or_else(|| Error::Derivation("index overflow".into()))?)
-            .map(|i| self.derive_with(style, i))
-            .collect()
+        let end = start.checked_add(count).ok_or(kobe::Error::IndexOverflow)?;
+        (start..end).map(|i| self.derive_with(style, i)).collect()
     }
 
     /// Internal: derive at an arbitrary path.
     fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
-        let dp: DerivationPath = path
-            .parse()
-            .map_err(|e| Error::Derivation(format!("invalid path: {e}")))?;
-        let xprv = XPrv::derive_from_path(self.wallet.seed(), &dp)
-            .map_err(|e| Error::Derivation(format!("derivation failed: {e}")))?;
+        let key = kobe::bip32::DerivedSecp256k1Key::derive(self.wallet.seed(), path)?;
+        let uncompressed = key.uncompressed_pubkey();
 
-        let signing_key: &SigningKey = xprv.private_key();
-        let verifying_key = signing_key.verifying_key();
-        let uncompressed = verifying_key.to_encoded_point(false);
-        let pubkey_bytes = uncompressed.as_bytes();
-
-        let addr_hash = keccak256(&pubkey_bytes[1..]);
+        let addr_hash = keccak256(&uncompressed[1..]);
         let address = Address::from_slice(&addr_hash[12..]);
 
         Ok(DerivedAccount::new(
             path.to_string(),
-            Zeroizing::new(hex::encode(signing_key.to_bytes())),
-            hex::encode(pubkey_bytes),
-            checksum_address(&address),
+            key.private_key_hex(),
+            key.uncompressed_pubkey_hex(),
+            address.to_checksum(None),
         ))
     }
 }
@@ -143,37 +128,13 @@ impl Derive for Deriver<'_> {
     fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
         self.derive_at_path(path)
     }
-
-    fn overflow_error(&self) -> Error {
-        Error::Derivation("index overflow".into())
-    }
-}
-
-/// EIP-55 mixed-case checksum encoding.
-fn checksum_address(address: &Address) -> String {
-    let hex_addr = hex::encode(address.as_slice());
-    let hash = keccak256(hex_addr.as_bytes());
-
-    let mut out = String::with_capacity(42);
-    out.push_str("0x");
-    for (i, c) in hex_addr.chars().enumerate() {
-        if c.is_ascii_alphabetic() {
-            let nibble = (hash[i / 2] >> (4 * (1 - i % 2))) & 0xf;
-            if nibble >= 8 {
-                out.push(c.to_ascii_uppercase());
-            } else {
-                out.push(c);
-            }
-        } else {
-            out.push(c);
-        }
-    }
-    out
 }
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
+    use kobe::DeriveExt;
+
     use super::*;
 
     const MNEMONIC: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -278,24 +239,13 @@ mod tests {
     }
 
     #[test]
-    fn eip55_checksum_vectors() {
-        let cases = [
-            (
-                "52908400098527886E0F7030069857D2E4169EE7",
-                "0x52908400098527886E0F7030069857D2E4169EE7",
-            ),
-            (
-                "de709f2102306220921060314715629080e2fb77",
-                "0xde709f2102306220921060314715629080e2fb77",
-            ),
-            (
-                "5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed",
-                "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed",
-            ),
-        ];
-        for (hex_addr, expected) in cases {
-            let addr = Address::from_slice(&hex::decode(hex_addr).unwrap());
-            assert_eq!(checksum_address(&addr), expected);
-        }
+    fn eip55_checksum_via_alloy() {
+        let addr: Address = "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
+            .parse()
+            .unwrap();
+        assert_eq!(
+            addr.to_checksum(None),
+            "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
+        );
     }
 }

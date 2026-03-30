@@ -96,13 +96,13 @@ fn resolve_token<'a>(word_list: &'a [&'a str; 2048], token: &str) -> Result<&'a 
         });
     }
 
-    // Collect all words starting with this prefix.
-    let mut matches: Vec<&str> = Vec::new();
-    for &word in word_list {
-        if word.starts_with(token) {
-            matches.push(word);
-        }
-    }
+    // Binary search for the prefix range (wordlist is sorted).
+    let start = word_list.partition_point(|w| *w < token);
+    let matches: Vec<&str> = word_list[start..]
+        .iter()
+        .take_while(|w| w.starts_with(token))
+        .copied()
+        .collect();
 
     match matches.len() {
         0 => Err(Error::UnknownPrefix(String::from(token))),
