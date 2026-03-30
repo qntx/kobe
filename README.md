@@ -106,35 +106,7 @@ println!("Mnemonic: {}", wallet.mnemonic());
 
 ## Crates
 
-12 crates: `kobe` (umbrella), `kobe-core`, 9 chain crates (`btc`, `evm`, `svm`, `cosmos`, `tron`, `sui`, `ton`, `fil`, `spark`), and `kobe-cli`.
-
 See **[`crates/README.md`](crates/README.md)** for the full crate table, dependency graph, and feature flag reference.
-
-## Feature Flags
-
-The umbrella `kobe` crate uses feature flags to select chains:
-
-| Feature | Chains |
-| --- | --- |
-| `btc` | Bitcoin (default) |
-| `evm` | Ethereum (default) |
-| `svm` | Solana (default) |
-| `cosmos` | Cosmos Hub, Osmosis, Terra, etc. |
-| `tron` | Tron |
-| `sui` | Sui |
-| `ton` | TON |
-| `fil` | Filecoin |
-| `spark` | Spark (Lightning) |
-| `all-chains` | All of the above |
-
-Core features on `kobe` / `kobe-core`:
-
-| Feature | Description |
-| --- | --- |
-| `std` | Full std support (default) |
-| `alloc` | Heap allocation for `no_std` |
-| `rand` | Random mnemonic generation via OS entropy |
-| `camouflage` | Mnemonic camouflage (XOR + PBKDF2) |
 
 ## Mnemonic Camouflage
 
