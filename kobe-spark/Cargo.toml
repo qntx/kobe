@@ -1,0 +1,26 @@
+[package]
+name = "kobe-spark"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "../README.md"
+description = "Spark (Bitcoin L2) wallet for Kobe"
+keywords = ["spark", "bitcoin", "wallet", "crypto"]
+categories = ["cryptography", "no-std"]
+
+[features]
+default = ["std"]
+std = ["alloc", "kobe/std", "k256/std", "hex/std", "zeroize/std"]
+alloc = ["kobe/alloc", "hex/alloc", "zeroize/alloc"]
+
+[dependencies]
+kobe.workspace = true
+bip32.workspace = true
+k256.workspace = true
+hex.workspace = true
+thiserror.workspace = true
+zeroize.workspace = true
+
+[lints]
+workspace = true
