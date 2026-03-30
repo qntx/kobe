@@ -29,6 +29,7 @@ impl<'a> Deriver<'a> {
         Self { wallet }
     }
 
+    /// Internal: derive at an arbitrary BIP-32 path.
     fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
         let dp: DerivationPath = path
             .parse()
@@ -41,12 +42,12 @@ impl<'a> Deriver<'a> {
         let pubkey_compressed = verifying_key.to_encoded_point(true);
         let pubkey_hex = hex::encode(pubkey_compressed.as_bytes());
 
-        Ok(DerivedAccount {
-            path: path.to_string(),
-            private_key: Zeroizing::new(hex::encode(signing_key.to_bytes())),
-            public_key: pubkey_hex.clone(),
-            address: format!("spark:{pubkey_hex}"),
-        })
+        Ok(DerivedAccount::new(
+            path.to_string(),
+            Zeroizing::new(hex::encode(signing_key.to_bytes())),
+            pubkey_hex.clone(),
+            format!("spark:{pubkey_hex}"),
+        ))
     }
 }
 

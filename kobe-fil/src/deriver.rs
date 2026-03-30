@@ -36,6 +36,7 @@ impl<'a> Deriver<'a> {
         Self { wallet }
     }
 
+    /// Internal: derive at an arbitrary BIP-32 path.
     fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
         let dp: DerivationPath = path
             .parse()
@@ -60,12 +61,12 @@ impl<'a> Deriver<'a> {
         addr_bytes.extend_from_slice(&payload);
         addr_bytes.extend_from_slice(&checksum);
 
-        Ok(DerivedAccount {
-            path: path.to_string(),
-            private_key: Zeroizing::new(hex::encode(signing_key.to_bytes())),
-            public_key: hex::encode(pubkey_bytes),
-            address: format!("f1{}", base32_encode(&addr_bytes)),
-        })
+        Ok(DerivedAccount::new(
+            path.to_string(),
+            Zeroizing::new(hex::encode(signing_key.to_bytes())),
+            hex::encode(pubkey_bytes),
+            format!("f1{}", base32_encode(&addr_bytes)),
+        ))
     }
 }
 

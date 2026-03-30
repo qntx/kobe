@@ -70,12 +70,12 @@ impl<'a> Deriver<'a> {
         let pubkey_bytes = pubkey_compressed.as_bytes();
         let address = encode_bech32_address(&self.hrp, pubkey_bytes)?;
 
-        Ok(DerivedAccount {
-            path: path.to_string(),
-            private_key: Zeroizing::new(hex::encode(signing_key.to_bytes())),
-            public_key: hex::encode(pubkey_bytes),
+        Ok(DerivedAccount::new(
+            path.to_string(),
+            Zeroizing::new(hex::encode(signing_key.to_bytes())),
+            hex::encode(pubkey_bytes),
             address,
-        })
+        ))
     }
 }
 

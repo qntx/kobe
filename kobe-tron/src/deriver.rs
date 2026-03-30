@@ -47,12 +47,12 @@ impl<'a> Deriver<'a> {
         prefixed.extend_from_slice(&hash[12..]);
         let address = bs58::encode(&prefixed).with_check().into_string();
 
-        Ok(DerivedAccount {
-            path: path.to_string(),
-            private_key: Zeroizing::new(hex::encode(signing_key.to_bytes())),
-            public_key: hex::encode(pubkey_bytes),
+        Ok(DerivedAccount::new(
+            path.to_string(),
+            Zeroizing::new(hex::encode(signing_key.to_bytes())),
+            hex::encode(pubkey_bytes),
             address,
-        })
+        ))
     }
 }
 

@@ -33,6 +33,7 @@ impl<'a> Deriver<'a> {
         Self { wallet }
     }
 
+    /// Internal: derive at an arbitrary SLIP-10 path.
     fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
         let derived_key = DerivedKey::derive_path(self.wallet.seed(), path)?;
         let signing_key = derived_key.to_signing_key();
@@ -44,12 +45,12 @@ impl<'a> Deriver<'a> {
         buf.extend_from_slice(pubkey_bytes);
         let hash = blake2b_256(&buf);
 
-        Ok(DerivedAccount {
-            path: path.to_string(),
-            private_key: Zeroizing::new(hex::encode(signing_key.to_bytes())),
-            public_key: hex::encode(pubkey_bytes),
-            address: format!("0x{}", hex::encode(hash)),
-        })
+        Ok(DerivedAccount::new(
+            path.to_string(),
+            Zeroizing::new(hex::encode(signing_key.to_bytes())),
+            hex::encode(pubkey_bytes),
+            format!("0x{}", hex::encode(hash)),
+        ))
     }
 }
 

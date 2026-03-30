@@ -14,6 +14,7 @@ use zeroize::Zeroizing;
 /// Contains the derivation path, key material, and on-chain address.
 /// The private key is zeroized on drop.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct DerivedAccount {
     /// BIP-32/SLIP-10 derivation path used (e.g. `m/44'/60'/0'/0/0`).
     pub path: String,
@@ -23,6 +24,24 @@ pub struct DerivedAccount {
     pub public_key: String,
     /// On-chain address in the chain's native format.
     pub address: String,
+}
+
+impl DerivedAccount {
+    /// Create a new derived account.
+    #[must_use]
+    pub const fn new(
+        path: String,
+        private_key: Zeroizing<String>,
+        public_key: String,
+        address: String,
+    ) -> Self {
+        Self {
+            path,
+            private_key,
+            public_key,
+            address,
+        }
+    }
 }
 
 /// Unified derivation trait implemented by all chain derivers.

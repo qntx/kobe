@@ -61,14 +61,6 @@ impl DerivedKey {
         })
     }
 
-    /// Derive key at TON path: `m/44'/607'/{index}'`
-    pub fn derive_ton_path(seed: &[u8], index: u32) -> Result<Self, Error> {
-        Self::from_seed(seed)?
-            .derive_hardened(44)?
-            .derive_hardened(607)?
-            .derive_hardened(index)
-    }
-
     /// Derive key at a custom SLIP-10 path (all components hardened).
     pub fn derive_path(seed: &[u8], path: &str) -> Result<Self, Error> {
         let trimmed = path.trim();
@@ -115,15 +107,15 @@ mod tests {
     #[test]
     fn ton_path_derivation() {
         let seed = [0u8; 64];
-        let derived = DerivedKey::derive_ton_path(&seed, 0).unwrap();
+        let derived = DerivedKey::derive_path(&seed, "m/44'/607'/0'").unwrap();
         assert_eq!(derived.private_key.len(), 32);
     }
 
     #[test]
     fn different_indices_produce_different_keys() {
         let seed = [1u8; 64];
-        let k0 = DerivedKey::derive_ton_path(&seed, 0).unwrap();
-        let k1 = DerivedKey::derive_ton_path(&seed, 1).unwrap();
+        let k0 = DerivedKey::derive_path(&seed, "m/44'/607'/0'").unwrap();
+        let k1 = DerivedKey::derive_path(&seed, "m/44'/607'/1'").unwrap();
         assert_ne!(*k0.private_key, *k1.private_key);
     }
 }

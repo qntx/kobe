@@ -124,12 +124,12 @@ impl<'a> Deriver<'a> {
         let addr_hash = keccak256(&pubkey_bytes[1..]);
         let address = Address::from_slice(&addr_hash[12..]);
 
-        Ok(DerivedAccount {
-            path: path.to_string(),
-            private_key: Zeroizing::new(hex::encode(signing_key.to_bytes())),
-            public_key: hex::encode(pubkey_bytes),
-            address: checksum_address(&address),
-        })
+        Ok(DerivedAccount::new(
+            path.to_string(),
+            Zeroizing::new(hex::encode(signing_key.to_bytes())),
+            hex::encode(pubkey_bytes),
+            checksum_address(&address),
+        ))
     }
 }
 
