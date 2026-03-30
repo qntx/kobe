@@ -2,10 +2,16 @@
 
 # Kobe
 
+[![Crates.io][crates-badge]][crates-url]
+[![Docs.rs][docs-badge]][docs-url]
 [![CI][ci-badge]][ci-url]
 [![License][license-badge]][license-url]
 [![Rust][rust-badge]][rust-url]
 
+[crates-badge]: https://img.shields.io/crates/v/kobe.svg
+[crates-url]: https://crates.io/crates/kobe
+[docs-badge]: https://img.shields.io/docsrs/kobe.svg
+[docs-url]: https://docs.rs/kobe
 [ci-badge]: https://github.com/qntx/kobe/actions/workflows/rust.yml/badge.svg
 [ci-url]: https://github.com/qntx/kobe/actions/workflows/rust.yml
 [license-badge]: https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg
@@ -18,8 +24,6 @@
 Kobe derives standards-compliant addresses for Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, and Spark from a single BIP-39 mnemonic. All library crates compile under `no_std + alloc` and zeroize sensitive material on drop.
 
 ## Crates
-
-[![crates.io](https://img.shields.io/crates/v/kobe.svg)](https://crates.io/crates/kobe) [![docs.rs](https://img.shields.io/docsrs/kobe.svg)](https://docs.rs/kobe)
 
 12 crates: `kobe` (umbrella), `kobe-core`, 9 chain crates (`btc`, `evm`, `svm`, `cosmos`, `tron`, `sui`, `ton`, `fil`, `spark`), and `kobe-cli`.
 
