@@ -23,12 +23,6 @@
 
 Kobe derives standards-compliant addresses for Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, and Spark from a single BIP-39 mnemonic. All library crates compile under `no_std + alloc` and zeroize sensitive material on drop.
 
-## Crates
-
-12 crates: `kobe` (umbrella), `kobe-core`, 9 chain crates (`btc`, `evm`, `svm`, `cosmos`, `tron`, `sui`, `ton`, `fil`, `spark`), and `kobe-cli`.
-
-See **[`crates/README.md`](crates/README.md)** for the full crate table, dependency graph, and feature flag reference.
-
 ## Quick Start
 
 ### Install the CLI
@@ -109,6 +103,12 @@ println!("Mnemonic: {}", wallet.mnemonic());
 - **Shared infrastructure** — SLIP-10 Ed25519 and BIP-32 secp256k1 derivation in `kobe-core`
 - **KAT-verified** — Every chain has Known Answer Tests cross-verified with Python
 - **Strict linting** — Clippy `pedantic` + `nursery` + `correctness` (deny), zero warnings
+
+## Crates
+
+12 crates: `kobe` (umbrella), `kobe-core`, 9 chain crates (`btc`, `evm`, `svm`, `cosmos`, `tron`, `sui`, `ton`, `fil`, `spark`), and `kobe-cli`.
+
+See **[`crates/README.md`](crates/README.md)** for the full crate table, dependency graph, and feature flag reference.
 
 ## Feature Flags
 
