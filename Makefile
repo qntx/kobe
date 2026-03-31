@@ -28,6 +28,7 @@ check-no-std:
 	cargo check -p kobe-ton --no-default-features --features alloc
 	cargo check -p kobe-sui --no-default-features --features alloc
 	cargo check -p kobe --no-default-features --features alloc
+	cargo check -p kobe --no-default-features --features "alloc,all-chains"
 
 # Update dependencies to their latest compatible versions
 update:

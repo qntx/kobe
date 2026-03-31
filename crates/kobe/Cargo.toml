@@ -11,8 +11,8 @@ categories = ["cryptography::cryptocurrencies"]
 
 [features]
 default = ["std", "btc", "evm", "svm"]
-std = ["kobe-core/std"]
-alloc = ["kobe-core/alloc"]
+std = ["alloc", "kobe-core/std", "kobe-btc?/std", "kobe-evm?/std", "kobe-svm?/std", "kobe-cosmos?/std", "kobe-tron?/std", "kobe-spark?/std", "kobe-fil?/std", "kobe-ton?/std", "kobe-sui?/std"]
+alloc = ["kobe-core/alloc", "kobe-btc?/alloc", "kobe-evm?/alloc", "kobe-svm?/alloc", "kobe-cosmos?/alloc", "kobe-tron?/alloc", "kobe-spark?/alloc", "kobe-fil?/alloc", "kobe-ton?/alloc", "kobe-sui?/alloc"]
 rand = ["kobe-core/rand"]
 rand_core = ["kobe-core/rand_core"]
 camouflage = ["kobe-core/camouflage"]
@@ -32,15 +32,15 @@ all-chains = ["btc", "evm", "svm", "cosmos", "tron", "spark", "fil", "ton", "sui
 
 [dependencies]
 kobe-core = { workspace = true, features = ["alloc"] }
-kobe-btc = { workspace = true, features = ["std"], optional = true }
-kobe-evm = { workspace = true, features = ["std"], optional = true }
-kobe-svm = { workspace = true, features = ["std"], optional = true }
-kobe-cosmos = { workspace = true, features = ["std"], optional = true }
-kobe-tron = { workspace = true, features = ["std"], optional = true }
-kobe-spark = { workspace = true, features = ["std"], optional = true }
-kobe-fil = { workspace = true, features = ["std"], optional = true }
-kobe-ton = { workspace = true, features = ["std"], optional = true }
-kobe-sui = { workspace = true, features = ["std"], optional = true }
+kobe-btc = { workspace = true, optional = true }
+kobe-evm = { workspace = true, optional = true }
+kobe-svm = { workspace = true, optional = true }
+kobe-cosmos = { workspace = true, optional = true }
+kobe-tron = { workspace = true, optional = true }
+kobe-spark = { workspace = true, optional = true }
+kobe-fil = { workspace = true, optional = true }
+kobe-ton = { workspace = true, optional = true }
+kobe-sui = { workspace = true, optional = true }
 
 [lints]
 workspace = true

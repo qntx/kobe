@@ -66,9 +66,7 @@ impl FromStr for DerivationStyle {
             "standard" | "metamask" | "trezor" | "bip44" => Ok(Self::Standard),
             "ledger-live" | "ledgerlive" | "live" => Ok(Self::LedgerLive),
             "ledger-legacy" | "ledgerlegacy" | "legacy" | "mew" => Ok(Self::LedgerLegacy),
-            _ => Err(
-                kobe_core::Error::Bip32Derivation(format!("unknown derivation style: {s}")).into(),
-            ),
+            _ => Err(Error::UnknownDerivationStyle(s.into())),
         }
     }
 }

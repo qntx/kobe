@@ -73,3 +73,5 @@ jobs:
         run: cargo check -p kobe-sui --target thumbv7m-none-eabi --no-default-features --features alloc
       - name: kobe (no_std)
         run: cargo check -p kobe --target thumbv7m-none-eabi --no-default-features --features alloc
+      - name: kobe (no_std + all chains)
+        run: cargo check -p kobe --target thumbv7m-none-eabi --no-default-features --features "alloc,all-chains"
