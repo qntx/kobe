@@ -1,7 +1,7 @@
 Output demo.gif
 
 Set Shell "bash"
-Set FontSize 20
+Set FontSize 16
 Set Width 1200
 Set Height 600
 
@@ -10,13 +10,6 @@ Type "clear"
 Enter
 Show
 
-Type "kobe --help"
-Sleep 500ms
-Enter
-Sleep 3s
-
-Ctrl+L
-
 Type "kobe btc new"
 Sleep 500ms
 Enter
@@ -24,14 +17,14 @@ Sleep 3s
 
 Ctrl+L
 
-Type "kobe evm new"
+Type "kobe svm new"
 Sleep 500ms
 Enter
 Sleep 3s
 
 Ctrl+L
 
-Type "kobe svm new -c 2"
+Type "kobe evm new -c 3"
 Sleep 500ms
 Enter
 Sleep 3s
