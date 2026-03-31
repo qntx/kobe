@@ -1,6 +1,8 @@
 # Makefile for Rust project using Cargo
 
-.PHONY: all build check run test bench clippy clippy-fix fmt doc update
+NOSTD_TARGET := thumbv7m-none-eabi
+
+.PHONY: all build check check-no-std run test bench clippy clippy-fix fmt doc update
 
 all: fmt clippy-fix
 
@@ -11,6 +13,23 @@ build:
 # Check the project for compilation errors without producing binaries
 check:
 	cargo check --workspace --all-features
+
+# Verify no_std compilation against a bare-metal target (no std available)
+# Requires: rustup target add $(NOSTD_TARGET)
+check-no-std:
+	cargo check -p kobe-core --target $(NOSTD_TARGET) --no-default-features
+	cargo check -p kobe-core --target $(NOSTD_TARGET) --no-default-features --features alloc
+	cargo check -p kobe-core --target $(NOSTD_TARGET) --no-default-features --features "alloc,bip32,slip10,camouflage"
+	cargo check -p kobe-btc --target $(NOSTD_TARGET) --no-default-features --features alloc
+	cargo check -p kobe-evm --target $(NOSTD_TARGET) --no-default-features --features alloc
+	cargo check -p kobe-svm --target $(NOSTD_TARGET) --no-default-features --features alloc
+	cargo check -p kobe-cosmos --target $(NOSTD_TARGET) --no-default-features --features alloc
+	cargo check -p kobe-tron --target $(NOSTD_TARGET) --no-default-features --features alloc
+	cargo check -p kobe-spark --target $(NOSTD_TARGET) --no-default-features --features alloc
+	cargo check -p kobe-fil --target $(NOSTD_TARGET) --no-default-features --features alloc
+	cargo check -p kobe-ton --target $(NOSTD_TARGET) --no-default-features --features alloc
+	cargo check -p kobe-sui --target $(NOSTD_TARGET) --no-default-features --features alloc
+	cargo check -p kobe --target $(NOSTD_TARGET) --no-default-features --features alloc
 
 # Update dependencies to their latest compatible versions
 update:

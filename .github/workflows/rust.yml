@@ -2,13 +2,72 @@ name: Rust
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  call-ci:
-    uses: qntx/workflows/.github/workflows/rust.yml@main
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build
+        run: cargo build --workspace --all-features --verbose
+      - name: Test
+        run: cargo test --workspace --all-features --verbose
+
+  no-std:
+    name: no_std
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: thumbv7m-none-eabi
+      - uses: Swatinem/rust-cache@v2
+      - name: kobe-core (pure no_std)
+        run: cargo check -p kobe-core --target thumbv7m-none-eabi --no-default-features
+      - name: kobe-core (alloc)
+        run: cargo check -p kobe-core --target thumbv7m-none-eabi --no-default-features --features alloc
+      - name: kobe-core (alloc + all optional)
+        run: cargo check -p kobe-core --target thumbv7m-none-eabi --no-default-features --features "alloc,bip32,slip10,camouflage"
+      - name: kobe-btc (no_std)
+        run: cargo check -p kobe-btc --target thumbv7m-none-eabi --no-default-features --features alloc
+      - name: kobe-evm (no_std)
+        run: cargo check -p kobe-evm --target thumbv7m-none-eabi --no-default-features --features alloc
+      - name: kobe-svm (no_std)
+        run: cargo check -p kobe-svm --target thumbv7m-none-eabi --no-default-features --features alloc
+      - name: kobe-cosmos (no_std)
+        run: cargo check -p kobe-cosmos --target thumbv7m-none-eabi --no-default-features --features alloc
+      - name: kobe-tron (no_std)
+        run: cargo check -p kobe-tron --target thumbv7m-none-eabi --no-default-features --features alloc
+      - name: kobe-spark (no_std)
+        run: cargo check -p kobe-spark --target thumbv7m-none-eabi --no-default-features --features alloc
+      - name: kobe-fil (no_std)
+        run: cargo check -p kobe-fil --target thumbv7m-none-eabi --no-default-features --features alloc
+      - name: kobe-ton (no_std)
+        run: cargo check -p kobe-ton --target thumbv7m-none-eabi --no-default-features --features alloc
+      - name: kobe-sui (no_std)
+        run: cargo check -p kobe-sui --target thumbv7m-none-eabi --no-default-features --features alloc
+      - name: kobe (no_std)
+        run: cargo check -p kobe --target thumbv7m-none-eabi --no-default-features --features alloc
