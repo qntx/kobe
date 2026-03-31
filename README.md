@@ -104,7 +104,7 @@ println!("Mnemonic: {}", wallet.mnemonic());
 - **Derivation styles** — Standard, Ledger Live, Ledger Legacy, Trust, Phantom, Backpack
 - **`no_std` + `alloc`** — All library crates compile without `std`; embedded / WASM ready
 - **Zeroizing** — Private keys, seeds, and intermediate material wrapped in `Zeroizing<T>`
-- **Shared infrastructure** — SLIP-10 Ed25519 and BIP-32 secp256k1 derivation in `kobe-core`
+- **Shared infrastructure** — SLIP-10 Ed25519 and BIP-32 secp256k1 derivation in `kobe-primitives`
 - **KAT-verified** — Every chain has Known Answer Tests cross-verified with Python
 - **Strict linting** — Clippy `pedantic` + `nursery` + `correctness` (deny), zero warnings
 

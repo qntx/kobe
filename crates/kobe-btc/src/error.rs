@@ -9,7 +9,7 @@ use alloc::string::String;
 pub enum Error {
     /// Core kobe error (index overflow, etc.).
     #[error(transparent)]
-    Core(#[from] kobe_core::Error),
+    Core(#[from] kobe_primitives::Error),
 
     /// BIP-32 derivation error.
     #[error("bip32: {0}")]

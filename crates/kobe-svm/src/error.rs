@@ -6,7 +6,7 @@
 pub enum Error {
     /// Core kobe error (index overflow, SLIP-10 derivation, etc.).
     #[error(transparent)]
-    Core(#[from] kobe_core::Error),
+    Core(#[from] kobe_primitives::Error),
 
     /// Ed25519 signature error.
     #[error("ed25519 signature error")]

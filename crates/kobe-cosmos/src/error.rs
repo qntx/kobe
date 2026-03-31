@@ -9,7 +9,7 @@ use alloc::string::String;
 pub enum Error {
     /// Core kobe error (index overflow, BIP-32 derivation, etc.).
     #[error(transparent)]
-    Core(#[from] kobe_core::Error),
+    Core(#[from] kobe_primitives::Error),
 
     /// Address encoding error.
     #[cfg(feature = "alloc")]

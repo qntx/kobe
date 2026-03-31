@@ -9,9 +9,9 @@ use alloc::{
 use core::fmt;
 
 use ed25519_dalek::VerifyingKey;
-pub use kobe_core::DerivedAccount;
-use kobe_core::slip10::DerivedKey;
-use kobe_core::{Derive, Wallet};
+pub use kobe_primitives::DerivedAccount;
+use kobe_primitives::slip10::DerivedKey;
+use kobe_primitives::{Derive, Wallet};
 use sha2::{Digest, Sha256};
 use zeroize::Zeroizing;
 

@@ -1,6 +1,6 @@
 //! Multi-chain HD wallet derivation — umbrella crate.
 //!
-//! This crate re-exports [`kobe_core`] and all chain-specific crates behind
+//! This crate re-exports [`kobe_primitives`] and all chain-specific crates behind
 //! feature flags, so a single dependency covers everything:
 //!
 //! ```toml
@@ -20,13 +20,13 @@
 
 #[cfg(feature = "btc")]
 pub use kobe_btc as btc;
-pub use kobe_core::*;
 #[cfg(feature = "cosmos")]
 pub use kobe_cosmos as cosmos;
 #[cfg(feature = "evm")]
 pub use kobe_evm as evm;
 #[cfg(feature = "fil")]
 pub use kobe_fil as fil;
+pub use kobe_primitives::*;
 #[cfg(feature = "spark")]
 pub use kobe_spark as spark;
 #[cfg(feature = "sui")]

@@ -47,12 +47,12 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Install ARM cross-compiler
         run: sudo apt-get update && sudo apt-get install -y gcc-arm-none-eabi
-      - name: kobe-core (pure no_std)
-        run: cargo check -p kobe-core --target thumbv7m-none-eabi --no-default-features
-      - name: kobe-core (alloc)
-        run: cargo check -p kobe-core --target thumbv7m-none-eabi --no-default-features --features alloc
-      - name: kobe-core (alloc + all optional)
-        run: cargo check -p kobe-core --target thumbv7m-none-eabi --no-default-features --features "alloc,bip32,slip10,camouflage"
+      - name: kobe-primitives (pure no_std)
+        run: cargo check -p kobe-primitives --target thumbv7m-none-eabi --no-default-features
+      - name: kobe-primitives (alloc)
+        run: cargo check -p kobe-primitives --target thumbv7m-none-eabi --no-default-features --features alloc
+      - name: kobe-primitives (alloc + all optional)
+        run: cargo check -p kobe-primitives --target thumbv7m-none-eabi --no-default-features --features "alloc,bip32,slip10,camouflage"
       - name: kobe-btc (no_std)
         run: cargo check -p kobe-btc --target thumbv7m-none-eabi --no-default-features --features alloc
       - name: kobe-evm (no_std)

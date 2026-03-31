@@ -11,11 +11,11 @@ categories = ["cryptography", "no-std"]
 
 [features]
 default = ["std"]
-std = ["alloc", "kobe-core/std", "bitcoin/std", "hex/std", "zeroize/std"]
-alloc = ["kobe-core/alloc", "hex/alloc", "zeroize/alloc"]
+std = ["alloc", "kobe-primitives/std", "bitcoin/std", "hex/std", "zeroize/std"]
+alloc = ["kobe-primitives/alloc", "hex/alloc", "zeroize/alloc"]
 
 [dependencies]
-kobe-core.workspace = true
+kobe-primitives.workspace = true
 bitcoin.workspace = true
 hex.workspace = true
 thiserror.workspace = true

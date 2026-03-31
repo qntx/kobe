@@ -3,8 +3,8 @@
 #[cfg(feature = "alloc")]
 use alloc::{format, string::ToString, vec};
 
-pub use kobe_core::DerivedAccount;
-use kobe_core::{Derive, Wallet};
+pub use kobe_primitives::DerivedAccount;
+use kobe_primitives::{Derive, Wallet};
 use sha3::{Digest, Keccak256};
 
 use crate::Error;
@@ -28,7 +28,7 @@ impl<'a> Deriver<'a> {
 
     /// Internal derivation at arbitrary path.
     fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
-        let key = kobe_core::bip32::DerivedSecp256k1Key::derive(self.wallet.seed(), path)?;
+        let key = kobe_primitives::bip32::DerivedSecp256k1Key::derive(self.wallet.seed(), path)?;
         let uncompressed = key.uncompressed_pubkey();
 
         let hash = Keccak256::digest(&uncompressed[1..]);

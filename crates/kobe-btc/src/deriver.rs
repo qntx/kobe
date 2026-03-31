@@ -8,7 +8,7 @@ use alloc::{
 use core::marker::PhantomData;
 
 use bitcoin::{PrivateKey, bip32::Xpriv, key::CompressedPublicKey, secp256k1::Secp256k1};
-use kobe_core::{Derive, DerivedAccount, Wallet};
+use kobe_primitives::{Derive, DerivedAccount, Wallet};
 use zeroize::Zeroizing;
 
 use crate::address::create_address;

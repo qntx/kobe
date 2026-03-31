@@ -15,9 +15,9 @@ check:
 # Verify no_std compilation (all crates use #![cfg_attr(not(feature = "std"), no_std)])
 # CI uses thumbv7m-none-eabi for strict bare-metal verification
 check-no-std:
-	cargo check -p kobe-core --no-default-features
-	cargo check -p kobe-core --no-default-features --features alloc
-	cargo check -p kobe-core --no-default-features --features "alloc,bip32,slip10,camouflage"
+	cargo check -p kobe-primitives --no-default-features
+	cargo check -p kobe-primitives --no-default-features --features alloc
+	cargo check -p kobe-primitives --no-default-features --features "alloc,bip32,slip10,camouflage"
 	cargo check -p kobe-btc --no-default-features --features alloc
 	cargo check -p kobe-evm --no-default-features --features alloc
 	cargo check -p kobe-svm --no-default-features --features alloc

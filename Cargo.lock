@@ -677,13 +677,13 @@ dependencies = [
 
 [[package]]
 name = "kobe"
-version = "0.7.3"
+version = "0.7.5"
 dependencies = [
  "kobe-btc",
- "kobe-core",
  "kobe-cosmos",
  "kobe-evm",
  "kobe-fil",
+ "kobe-primitives",
  "kobe-spark",
  "kobe-sui",
  "kobe-svm",
@@ -693,18 +693,18 @@ dependencies = [
 
 [[package]]
 name = "kobe-btc"
-version = "0.7.3"
+version = "0.7.5"
 dependencies = [
  "bitcoin",
  "hex",
- "kobe-core",
+ "kobe-primitives",
  "thiserror",
  "zeroize",
 ]
 
 [[package]]
 name = "kobe-cli"
-version = "0.7.3"
+version = "0.7.5"
 dependencies = [
  "clap",
  "colored",
@@ -716,8 +716,40 @@ dependencies = [
 ]
 
 [[package]]
-name = "kobe-core"
-version = "0.7.3"
+name = "kobe-cosmos"
+version = "0.7.5"
+dependencies = [
+ "bech32",
+ "kobe-primitives",
+ "ripemd 0.2.0",
+ "sha2",
+ "thiserror",
+ "zeroize",
+]
+
+[[package]]
+name = "kobe-evm"
+version = "0.7.5"
+dependencies = [
+ "alloy-primitives",
+ "kobe-primitives",
+ "thiserror",
+ "zeroize",
+]
+
+[[package]]
+name = "kobe-fil"
+version = "0.7.5"
+dependencies = [
+ "blake2",
+ "kobe-primitives",
+ "thiserror",
+ "zeroize",
+]
+
+[[package]]
+name = "kobe-primitives"
+version = "0.7.5"
 dependencies = [
  "bip32",
  "bip39",
@@ -732,78 +764,46 @@ dependencies = [
 ]
 
 [[package]]
-name = "kobe-cosmos"
-version = "0.7.3"
-dependencies = [
- "bech32",
- "kobe-core",
- "ripemd 0.2.0",
- "sha2",
- "thiserror",
- "zeroize",
-]
-
-[[package]]
-name = "kobe-evm"
-version = "0.7.3"
-dependencies = [
- "alloy-primitives",
- "kobe-core",
- "thiserror",
- "zeroize",
-]
-
-[[package]]
-name = "kobe-fil"
-version = "0.7.3"
-dependencies = [
- "blake2",
- "kobe-core",
- "thiserror",
- "zeroize",
-]
-
-[[package]]
 name = "kobe-spark"
-version = "0.7.3"
+version = "0.7.5"
 dependencies = [
- "kobe-core",
+ "kobe-primitives",
  "thiserror",
  "zeroize",
 ]
 
 [[package]]
 name = "kobe-sui"
-version = "0.7.3"
+version = "0.7.5"
 dependencies = [
  "blake2",
  "ed25519-dalek",
  "hex",
- "kobe-core",
+ "kobe-primitives",
  "thiserror",
  "zeroize",
 ]
 
 [[package]]
 name = "kobe-svm"
-version = "0.7.3"
+version = "0.7.5"
 dependencies = [
  "bs58",
  "ed25519-dalek",
  "hex",
- "kobe-core",
+ "kobe-primitives",
  "thiserror",
  "zeroize",
 ]
 
 [[package]]
 name = "kobe-ton"
-version = "0.7.3"
+version = "0.7.5"
 dependencies = [
  "base64",
  "ed25519-dalek",
  "hex",
- "kobe-core",
+ "kobe-primitives",
  "sha2",
  "thiserror",
  "zeroize",
@@ -811,10 +811,10 @@ dependencies = [
 
 [[package]]
 name = "kobe-tron"
-version = "0.7.3"
+version = "0.7.5"
 dependencies = [
  "bs58",
- "kobe-core",
+ "kobe-primitives",
  "sha3",
  "thiserror",
  "zeroize",

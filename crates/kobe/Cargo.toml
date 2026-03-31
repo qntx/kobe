@@ -11,13 +11,13 @@ categories = ["cryptography::cryptocurrencies"]
 
 [features]
 default = ["std", "btc", "evm", "svm"]
-std = ["alloc", "kobe-core/std", "kobe-btc?/std", "kobe-evm?/std", "kobe-svm?/std", "kobe-cosmos?/std", "kobe-tron?/std", "kobe-spark?/std", "kobe-fil?/std", "kobe-ton?/std", "kobe-sui?/std"]
-alloc = ["kobe-core/alloc", "kobe-btc?/alloc", "kobe-evm?/alloc", "kobe-svm?/alloc", "kobe-cosmos?/alloc", "kobe-tron?/alloc", "kobe-spark?/alloc", "kobe-fil?/alloc", "kobe-ton?/alloc", "kobe-sui?/alloc"]
-rand = ["kobe-core/rand"]
-rand_core = ["kobe-core/rand_core"]
-camouflage = ["kobe-core/camouflage"]
-slip10 = ["kobe-core/slip10"]
-bip32 = ["kobe-core/bip32"]
+std = ["alloc", "kobe-primitives/std", "kobe-btc?/std", "kobe-evm?/std", "kobe-svm?/std", "kobe-cosmos?/std", "kobe-tron?/std", "kobe-spark?/std", "kobe-fil?/std", "kobe-ton?/std", "kobe-sui?/std"]
+alloc = ["kobe-primitives/alloc", "kobe-btc?/alloc", "kobe-evm?/alloc", "kobe-svm?/alloc", "kobe-cosmos?/alloc", "kobe-tron?/alloc", "kobe-spark?/alloc", "kobe-fil?/alloc", "kobe-ton?/alloc", "kobe-sui?/alloc"]
+rand = ["kobe-primitives/rand"]
+rand_core = ["kobe-primitives/rand_core"]
+camouflage = ["kobe-primitives/camouflage"]
+slip10 = ["kobe-primitives/slip10"]
+bip32 = ["kobe-primitives/bip32"]
 
 btc = ["dep:kobe-btc"]
 evm = ["dep:kobe-evm", "bip32"]
@@ -31,7 +31,7 @@ sui = ["dep:kobe-sui", "slip10"]
 all-chains = ["btc", "evm", "svm", "cosmos", "tron", "spark", "fil", "ton", "sui"]
 
 [dependencies]
-kobe-core = { workspace = true, features = ["alloc"] }
+kobe-primitives = { workspace = true, features = ["alloc"] }
 kobe-btc = { workspace = true, optional = true }
 kobe-evm = { workspace = true, optional = true }
 kobe-svm = { workspace = true, optional = true }

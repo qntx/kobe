@@ -10,8 +10,8 @@ use alloc::{
 
 use blake2::Blake2bVar;
 use blake2::digest::{Update, VariableOutput};
-pub use kobe_core::DerivedAccount;
-use kobe_core::{Derive, Wallet};
+pub use kobe_primitives::DerivedAccount;
+use kobe_primitives::{Derive, Wallet};
 
 use crate::Error;
 
@@ -36,7 +36,7 @@ impl<'a> Deriver<'a> {
 
     /// Internal: derive at an arbitrary BIP-32 path.
     fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
-        let key = kobe_core::bip32::DerivedSecp256k1Key::derive(self.wallet.seed(), path)?;
+        let key = kobe_primitives::bip32::DerivedSecp256k1Key::derive(self.wallet.seed(), path)?;
         let pubkey_bytes = key.uncompressed_pubkey();
 
         let payload = blake2b(&pubkey_bytes, 20);

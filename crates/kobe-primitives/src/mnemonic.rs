@@ -13,7 +13,7 @@
 //! # Example
 //!
 //! ```
-//! use kobe_core::mnemonic;
+//! use kobe_primitives::mnemonic;
 //!
 //! let expanded = mnemonic::expand("aban aban aban aban aban aban aban aban aban aban aban abou").unwrap();
 //! assert_eq!(

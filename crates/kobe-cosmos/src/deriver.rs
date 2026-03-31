@@ -7,8 +7,8 @@ use alloc::{
     vec::Vec,
 };
 
-pub use kobe_core::DerivedAccount;
-use kobe_core::{Derive, Wallet};
+pub use kobe_primitives::DerivedAccount;
+use kobe_primitives::{Derive, Wallet};
 use ripemd::{Digest as RipemdDigest, Ripemd160};
 use sha2::{Digest as Sha2Digest, Sha256};
 
@@ -55,7 +55,7 @@ impl<'a> Deriver<'a> {
 
     /// Derive at an arbitrary path (internal).
     fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
-        let key = kobe_core::bip32::DerivedSecp256k1Key::derive(self.wallet.seed(), path)?;
+        let key = kobe_primitives::bip32::DerivedSecp256k1Key::derive(self.wallet.seed(), path)?;
         let pubkey_bytes = key.compressed_pubkey();
         let address = encode_bech32_address(&self.hrp, &pubkey_bytes)?;
 
@@ -98,7 +98,7 @@ fn encode_bech32_address(hrp: &str, compressed_pubkey: &[u8]) -> Result<String, 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use kobe_core::DeriveExt;
+    use kobe_primitives::DeriveExt;
 
     use super::*;
 

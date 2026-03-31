@@ -4,7 +4,7 @@ default-members = ["crates/kobe"]
 resolver = "3"
 
 [workspace.package]
-version = "0.7.3"
+version = "0.7.5"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/qntx/kobe"
@@ -13,7 +13,7 @@ keywords = ["crypto", "wallet", "bitcoin", "ethereum", "solana"]
 categories = ["cryptography::cryptocurrencies"]
 
 [workspace.dependencies]
-kobe-core = { version = "0.7", path = "crates/kobe-core", default-features = false }
+kobe-primitives = { version = "0.7", path = "crates/kobe-primitives", default-features = false }
 kobe = { version = "0.7", path = "crates/kobe", default-features = false }
 kobe-btc = { version = "0.7", path = "crates/kobe-btc", default-features = false }
 kobe-cosmos = { version = "0.7", path = "crates/kobe-cosmos", default-features = false }
