@@ -1,7 +1,7 @@
 //! TON address derivation from a unified wallet.
 
 #[cfg(feature = "alloc")]
-use alloc::{format, string::String, vec::Vec};
+use alloc::{format, string::{String, ToString}, vec::Vec};
 use core::fmt;
 
 use ed25519_dalek::VerifyingKey;

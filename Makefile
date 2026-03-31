@@ -14,22 +14,22 @@ build:
 check:
 	cargo check --workspace --all-features
 
-# Verify no_std compilation against a bare-metal target (no std available)
-# Requires: rustup target add $(NOSTD_TARGET)
+# Verify no_std compilation (all crates use #![cfg_attr(not(feature = "std"), no_std)])
+# CI uses thumbv7m-none-eabi for strict bare-metal verification
 check-no-std:
-	cargo check -p kobe-core --target $(NOSTD_TARGET) --no-default-features
-	cargo check -p kobe-core --target $(NOSTD_TARGET) --no-default-features --features alloc
-	cargo check -p kobe-core --target $(NOSTD_TARGET) --no-default-features --features "alloc,bip32,slip10,camouflage"
-	cargo check -p kobe-btc --target $(NOSTD_TARGET) --no-default-features --features alloc
-	cargo check -p kobe-evm --target $(NOSTD_TARGET) --no-default-features --features alloc
-	cargo check -p kobe-svm --target $(NOSTD_TARGET) --no-default-features --features alloc
-	cargo check -p kobe-cosmos --target $(NOSTD_TARGET) --no-default-features --features alloc
-	cargo check -p kobe-tron --target $(NOSTD_TARGET) --no-default-features --features alloc
-	cargo check -p kobe-spark --target $(NOSTD_TARGET) --no-default-features --features alloc
-	cargo check -p kobe-fil --target $(NOSTD_TARGET) --no-default-features --features alloc
-	cargo check -p kobe-ton --target $(NOSTD_TARGET) --no-default-features --features alloc
-	cargo check -p kobe-sui --target $(NOSTD_TARGET) --no-default-features --features alloc
-	cargo check -p kobe --target $(NOSTD_TARGET) --no-default-features --features alloc
+	cargo check -p kobe-core --no-default-features
+	cargo check -p kobe-core --no-default-features --features alloc
+	cargo check -p kobe-core --no-default-features --features "alloc,bip32,slip10,camouflage"
+	cargo check -p kobe-btc --no-default-features --features alloc
+	cargo check -p kobe-evm --no-default-features --features alloc
+	cargo check -p kobe-svm --no-default-features --features alloc
+	cargo check -p kobe-cosmos --no-default-features --features alloc
+	cargo check -p kobe-tron --no-default-features --features alloc
+	cargo check -p kobe-spark --no-default-features --features alloc
+	cargo check -p kobe-fil --no-default-features --features alloc
+	cargo check -p kobe-ton --no-default-features --features alloc
+	cargo check -p kobe-sui --no-default-features --features alloc
+	cargo check -p kobe --no-default-features --features alloc
 
 # Update dependencies to their latest compatible versions
 update:

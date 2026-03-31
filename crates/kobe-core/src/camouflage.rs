@@ -20,7 +20,7 @@
 //! - Security strength is bounded by the password entropy.
 //! - PBKDF2 with 600,000 iterations provides strong resistance to brute-force attacks.
 
-use alloc::string::String;
+use alloc::string::{String, ToString};
 
 use bip39::{Language, Mnemonic};
 use hmac::Hmac;

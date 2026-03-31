@@ -9,7 +9,10 @@ use alloc::{string::String, vec::Vec};
 pub enum Error {
     /// Invalid mnemonic phrase.
     #[error("invalid mnemonic: {0}")]
-    Mnemonic(#[from] bip39::Error),
+    Mnemonic(
+        #[cfg_attr(feature = "std", from)]
+        bip39::Error,
+    ),
 
     /// Invalid word count for mnemonic.
     #[error("invalid word count {0}, must be 12, 15, 18, 21, or 24")]
@@ -68,4 +71,11 @@ pub enum Error {
     #[cfg(feature = "bip32")]
     #[error("BIP-32: {0}")]
     Bip32Derivation(String),
+}
+
+#[cfg(not(feature = "std"))]
+impl From<bip39::Error> for Error {
+    fn from(e: bip39::Error) -> Self {
+        Self::Mnemonic(e)
+    }
 }

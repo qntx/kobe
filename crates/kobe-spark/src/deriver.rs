@@ -1,7 +1,7 @@
 //! Spark address derivation from a unified wallet.
 
 #[cfg(feature = "alloc")]
-use alloc::format;
+use alloc::{format, string::ToString};
 
 pub use kobe_core::DerivedAccount;
 use kobe_core::{Derive, Wallet};

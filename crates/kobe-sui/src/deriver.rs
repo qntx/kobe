@@ -1,7 +1,7 @@
 //! Sui address derivation from a unified wallet.
 
 #[cfg(feature = "alloc")]
-use alloc::{format, vec::Vec};
+use alloc::{format, string::ToString, vec::Vec};
 
 use blake2::Blake2bVar;
 use blake2::digest::{Update, VariableOutput};
