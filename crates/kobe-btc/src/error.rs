@@ -13,10 +13,7 @@ pub enum Error {
 
     /// BIP-32 derivation error.
     #[error("bip32: {0}")]
-    Bip32(
-        #[cfg_attr(feature = "std", from)]
-        bitcoin::bip32::Error,
-    ),
+    Bip32(#[cfg_attr(feature = "std", from)] bitcoin::bip32::Error),
 
     /// Invalid derivation path.
     #[cfg(feature = "alloc")]
@@ -29,10 +26,7 @@ pub enum Error {
 
     /// Secp256k1 error.
     #[error("secp256k1: {0}")]
-    Secp256k1(
-        #[cfg_attr(feature = "std", from)]
-        bitcoin::secp256k1::Error,
-    ),
+    Secp256k1(#[cfg_attr(feature = "std", from)] bitcoin::secp256k1::Error),
 }
 
 #[cfg(not(feature = "std"))]

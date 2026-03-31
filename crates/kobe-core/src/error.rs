@@ -9,10 +9,7 @@ use alloc::{string::String, vec::Vec};
 pub enum Error {
     /// Invalid mnemonic phrase.
     #[error("invalid mnemonic: {0}")]
-    Mnemonic(
-        #[cfg_attr(feature = "std", from)]
-        bip39::Error,
-    ),
+    Mnemonic(#[cfg_attr(feature = "std", from)] bip39::Error),
 
     /// Invalid word count for mnemonic.
     #[error("invalid word count {0}, must be 12, 15, 18, 21, or 24")]

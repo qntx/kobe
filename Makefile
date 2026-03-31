@@ -1,7 +1,5 @@
 # Makefile for Rust project using Cargo
 
-NOSTD_TARGET := thumbv7m-none-eabi
-
 .PHONY: all build check check-no-std run test bench clippy clippy-fix fmt doc update
 
 all: fmt clippy-fix
