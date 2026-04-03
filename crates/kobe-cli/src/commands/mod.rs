@@ -10,6 +10,7 @@ mod spark;
 mod sui;
 mod ton;
 mod tron;
+mod xrpl;
 
 pub use bitcoin::BitcoinCommand;
 use clap::{Parser, Subcommand};
@@ -22,6 +23,7 @@ pub use spark::SparkCommand;
 pub use sui::SuiCommand;
 pub use ton::TonCommand;
 pub use tron::TronCommand;
+pub use xrpl::XrplCommand;
 
 /// Kobe - A multi-chain cryptocurrency wallet CLI tool.
 #[derive(Parser)]
@@ -75,6 +77,10 @@ pub enum Commands {
     /// Sui wallet operations.
     #[command(name = "sui")]
     Sui(SuiCommand),
+
+    /// XRP Ledger wallet operations.
+    #[command(name = "xrpl", alias = "xrp", alias = "ripple")]
+    Xrpl(XrplCommand),
 
     /// Mnemonic utilities (camouflage encrypt/decrypt).
     #[command(name = "mnemonic", alias = "mn")]

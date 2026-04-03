@@ -677,7 +677,7 @@ dependencies = [
 
 [[package]]
 name = "kobe"
-version = "0.7.6"
+version = "0.7.7"
 dependencies = [
  "kobe-btc",
  "kobe-cosmos",
@@ -694,7 +694,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-btc"
-version = "0.7.6"
+version = "0.7.7"
 dependencies = [
  "bitcoin",
  "hex",
@@ -705,7 +705,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-cli"
-version = "0.7.6"
+version = "0.7.7"
 dependencies = [
  "clap",
  "colored",
@@ -718,7 +718,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-cosmos"
-version = "0.7.6"
+version = "0.7.7"
 dependencies = [
  "bech32",
  "kobe-primitives",
@@ -730,7 +730,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-evm"
-version = "0.7.6"
+version = "0.7.7"
 dependencies = [
  "alloy-primitives",
  "kobe-primitives",
@@ -740,7 +740,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-fil"
-version = "0.7.6"
+version = "0.7.7"
 dependencies = [
  "blake2",
  "kobe-primitives",
@@ -750,7 +750,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-primitives"
-version = "0.7.6"
+version = "0.7.7"
 dependencies = [
  "bip32",
  "bip39",
@@ -766,7 +766,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-spark"
-version = "0.7.6"
+version = "0.7.7"
 dependencies = [
  "kobe-primitives",
  "thiserror",
@@ -775,7 +775,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-sui"
-version = "0.7.6"
+version = "0.7.7"
 dependencies = [
  "blake2",
  "ed25519-dalek",
@@ -787,7 +787,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-svm"
-version = "0.7.6"
+version = "0.7.7"
 dependencies = [
  "bs58",
  "ed25519-dalek",
@@ -799,7 +799,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-ton"
-version = "0.7.6"
+version = "0.7.7"
 dependencies = [
  "base64",
  "ed25519-dalek",
@@ -812,7 +812,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-tron"
-version = "0.7.6"
+version = "0.7.7"
 dependencies = [
  "bs58",
  "kobe-primitives",
@@ -823,7 +823,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-xrpl"
-version = "0.7.6"
+version = "0.7.7"
 dependencies = [
  "bs58",
  "hex",
