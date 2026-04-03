@@ -37,3 +37,5 @@ pub use kobe_svm as svm;
 pub use kobe_ton as ton;
 #[cfg(feature = "tron")]
 pub use kobe_tron as tron;
+#[cfg(feature = "xrpl")]
+pub use kobe_xrpl as xrpl;

@@ -4,7 +4,7 @@ default-members = ["crates/kobe"]
 resolver = "3"
 
 [workspace.package]
-version = "0.7.5"
+version = "0.7.6"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/qntx/kobe"
@@ -24,6 +24,7 @@ kobe-sui = { version = "0.7", path = "crates/kobe-sui", default-features = false
 kobe-svm = { version = "0.7", path = "crates/kobe-svm", default-features = false }
 kobe-ton = { version = "0.7", path = "crates/kobe-ton", default-features = false }
 kobe-tron = { version = "0.7", path = "crates/kobe-tron", default-features = false }
+kobe-xrpl = { version = "0.7", path = "crates/kobe-xrpl", default-features = false }
 
 alloy-primitives = { version = "1.5.7", default-features = false, features = ["k256"] }
 base64 = { version = "0.22", default-features = false, features = ["alloc"] }

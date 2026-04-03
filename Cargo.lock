@@ -677,7 +677,7 @@ dependencies = [
 
 [[package]]
 name = "kobe"
-version = "0.7.5"
+version = "0.7.6"
 dependencies = [
  "kobe-btc",
  "kobe-cosmos",
@@ -689,11 +689,12 @@ dependencies = [
  "kobe-svm",
  "kobe-ton",
  "kobe-tron",
+ "kobe-xrpl",
 ]
 
 [[package]]
 name = "kobe-btc"
-version = "0.7.5"
+version = "0.7.6"
 dependencies = [
  "bitcoin",
  "hex",
@@ -704,7 +705,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-cli"
-version = "0.7.5"
+version = "0.7.6"
 dependencies = [
  "clap",
  "colored",
@@ -717,7 +718,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-cosmos"
-version = "0.7.5"
+version = "0.7.6"
 dependencies = [
  "bech32",
  "kobe-primitives",
@@ -729,7 +730,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-evm"
-version = "0.7.5"
+version = "0.7.6"
 dependencies = [
  "alloy-primitives",
  "kobe-primitives",
@@ -739,7 +740,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-fil"
-version = "0.7.5"
+version = "0.7.6"
 dependencies = [
  "blake2",
  "kobe-primitives",
@@ -749,7 +750,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-primitives"
-version = "0.7.5"
+version = "0.7.6"
 dependencies = [
  "bip32",
  "bip39",
@@ -765,7 +766,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-spark"
-version = "0.7.5"
+version = "0.7.6"
 dependencies = [
  "kobe-primitives",
  "thiserror",
@@ -774,7 +775,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-sui"
-version = "0.7.5"
+version = "0.7.6"
 dependencies = [
  "blake2",
  "ed25519-dalek",
@@ -786,7 +787,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-svm"
-version = "0.7.5"
+version = "0.7.6"
 dependencies = [
  "bs58",
  "ed25519-dalek",
@@ -798,7 +799,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-ton"
-version = "0.7.5"
+version = "0.7.6"
 dependencies = [
  "base64",
  "ed25519-dalek",
@@ -811,11 +812,24 @@ dependencies = [
 
 [[package]]
 name = "kobe-tron"
-version = "0.7.5"
+version = "0.7.6"
 dependencies = [
  "bs58",
  "kobe-primitives",
  "sha3",
+ "thiserror",
+ "zeroize",
+]
+
+[[package]]
+name = "kobe-xrpl"
+version = "0.7.6"
+dependencies = [
+ "bs58",
+ "hex",
+ "kobe-primitives",
+ "ripemd 0.2.0",
+ "sha2",
  "thiserror",
  "zeroize",
 ]
