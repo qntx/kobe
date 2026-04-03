@@ -2,15 +2,15 @@
 name: kobe
 description: >-
   Multi-chain cryptocurrency wallet CLI tool for generating, importing, and
-  managing HD wallets across 10 chains: Bitcoin, Ethereum, Solana, Cosmos, Tron,
-  Sui, TON, Filecoin, and Spark. Use when the user asks to create wallets,
+  managing HD wallets across 11 chains: Bitcoin, Ethereum, Solana, Cosmos, Tron,
+  Sui, TON, Filecoin, Spark, and XRP Ledger. Use when the user asks to create wallets,
   generate addresses, derive keys, import mnemonics, or perform any
   cryptocurrency wallet operation. Supports JSON output via --json flag.
 ---
 
 # Kobe CLI — Multi-Chain HD Wallet Tool
 
-`kobe` is a single binary CLI for generating and managing cryptocurrency wallets across **10 chains**: Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, and Spark. It supports BIP-39 mnemonic generation, HD key derivation (BIP-32/44/49/84/86, SLIP-10), multiple derivation styles for hardware wallet compatibility, and mnemonic camouflage encryption.
+`kobe` is a single binary CLI for generating and managing cryptocurrency wallets across **10 chains**: Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, and XRP Ledger. It supports BIP-39 mnemonic generation, HD key derivation (BIP-32/44/49/84/86, SLIP-10), multiple derivation styles for hardware wallet compatibility, and mnemonic camouflage encryption.
 
 ## Installation
 
@@ -46,18 +46,19 @@ The `--json` flag is **global** and must appear **before** the chain subcommand.
 
 ### Chain subcommands and aliases
 
-| Chain    | Primary    | Aliases           |
-| -------- | ---------- | ----------------- |
-| Bitcoin  | `btc`      | `bitcoin`         |
-| Ethereum | `evm`      | `eth`, `ethereum` |
-| Solana   | `svm`      | `sol`, `solana`   |
-| Cosmos   | `cosmos`   | `atom`            |
-| Tron     | `tron`     | `trx`             |
-| Sui      | `sui`      | —                 |
-| TON      | `ton`      | —                 |
-| Filecoin | `fil`      | `filecoin`        |
-| Spark    | `spark`    | —                 |
-| Mnemonic | `mnemonic` | `mn`              |
+| Chain      | Primary    | Aliases           |
+| ---------- | ---------- | ----------------- |
+| Bitcoin    | `btc`      | `bitcoin`         |
+| Ethereum   | `evm`      | `eth`, `ethereum` |
+| Solana     | `svm`      | `sol`, `solana`   |
+| Cosmos     | `cosmos`   | `atom`            |
+| Tron       | `tron`     | `trx`             |
+| Sui        | `sui`      | —                 |
+| TON        | `ton`      | —                 |
+| Filecoin   | `fil`      | `filecoin`        |
+| Spark      | `spark`    | —                 |
+| XRP Ledger | `xrpl`     | `xrp`, `ripple`   |
+| Mnemonic   | `mnemonic` | `mn`              |
 
 ### Subcommands per chain
 
@@ -214,6 +215,9 @@ kobe fil new
 
 # Spark (Bitcoin L2)
 kobe spark new
+
+# XRP Ledger
+kobe xrpl new
 ```
 
 ### Mnemonic Camouflage
@@ -278,17 +282,18 @@ All errors in JSON mode return exit code 1 with:
 
 ## Private Key Formats by Chain
 
-| Chain    | Format in `private_key` field                            |
-| -------- | -------------------------------------------------------- |
-| Bitcoin  | WIF (Wallet Import Format), e.g. `L1a...` or `5H...`     |
-| Ethereum | `0x`-prefixed 64-char hex string                         |
-| Solana   | Base58-encoded 64-byte keypair (secret 32B + public 32B) |
-| Cosmos   | 64-char hex string                                       |
-| Tron     | 64-char hex string                                       |
-| Sui      | 64-char hex string (Ed25519 secret key)                  |
-| TON      | 64-char hex string (Ed25519 secret key)                  |
-| Filecoin | 64-char hex string                                       |
-| Spark    | 64-char hex string (compressed pubkey also provided)     |
+| Chain      | Format in `private_key` field                            |
+| ---------- | -------------------------------------------------------- |
+| Bitcoin    | WIF (Wallet Import Format), e.g. `L1a...` or `5H...`     |
+| Ethereum   | `0x`-prefixed 64-char hex string                         |
+| Solana     | Base58-encoded 64-byte keypair (secret 32B + public 32B) |
+| Cosmos     | 64-char hex string                                       |
+| Tron       | 64-char hex string                                       |
+| Sui        | 64-char hex string (Ed25519 secret key)                  |
+| TON        | 64-char hex string (Ed25519 secret key)                  |
+| Filecoin   | 64-char hex string                                       |
+| Spark      | 64-char hex string (compressed pubkey also provided)     |
+| XRP Ledger | 64-char hex string                                       |
 
 ## Derivation Path Reference
 
@@ -355,6 +360,12 @@ All errors in JSON mode return exit code 1 with:
 | Path Pattern          | Notes                         |
 | --------------------- | ----------------------------- |
 | `m/84'/0'/0'/0/{i}`   | Same as Bitcoin Native SegWit |
+
+### XRP Ledger (BIP-44)
+
+| Path Pattern          | Address Format     |
+| --------------------- | ------------------ |
+| `m/44'/144'/0'/0/{i}` | Base58Check `r...` |
 
 ## Agent Best Practices
 
