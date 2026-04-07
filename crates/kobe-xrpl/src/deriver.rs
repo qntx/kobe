@@ -16,8 +16,8 @@ use alloc::{format, string::String, vec::Vec};
 
 pub use kobe_primitives::DerivedAccount;
 use kobe_primitives::{Derive, Wallet};
-use ripemd::{Digest as RipemdDigest, Ripemd160};
-use sha2::{Digest as Sha2Digest, Sha256};
+use ripemd::Ripemd160;
+use sha2::{Digest, Sha256};
 
 use crate::Error;
 

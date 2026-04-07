@@ -46,7 +46,7 @@ enum MnemonicSubcommand {
 
 impl MnemonicCommand {
     /// Execute the mnemonic command.
-    pub fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
+    pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
         match self.command {
             MnemonicSubcommand::Encrypt { mnemonic, password } => {
                 let expanded = kobe::mnemonic::expand(&mnemonic)?;

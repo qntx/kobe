@@ -1,6 +1,6 @@
 //! Solana address derivation from HD wallet.
 
-use alloc::string::{String, ToString};
+use alloc::string::String;
 use alloc::vec::Vec;
 
 use ed25519_dalek::VerifyingKey;
@@ -143,7 +143,7 @@ impl<'a> Deriver<'a> {
     /// Returns an error if derivation fails.
     pub fn derive_path(&self, path: &str) -> Result<DerivedAddress, Error> {
         let derived = DerivedKey::derive_path(self.wallet.seed(), path)?;
-        Ok(build_derived_address(&derived, path.to_string()))
+        Ok(build_derived_address(&derived, path.to_owned()))
     }
 }
 

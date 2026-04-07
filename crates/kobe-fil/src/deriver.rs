@@ -1,12 +1,7 @@
 //! Filecoin address derivation from a unified wallet.
 
 #[cfg(feature = "alloc")]
-use alloc::{
-    format,
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
+use alloc::{format, string::String, vec, vec::Vec};
 
 use blake2::Blake2bVar;
 use blake2::digest::{Update, VariableOutput};
@@ -52,7 +47,7 @@ impl<'a> Deriver<'a> {
         addr_bytes.extend_from_slice(&checksum);
 
         Ok(DerivedAccount::new(
-            path.to_string(),
+            path.to_owned(),
             key.private_key_hex(),
             key.uncompressed_pubkey_hex(),
             format!("f1{}", base32_encode(&addr_bytes)),

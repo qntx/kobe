@@ -23,7 +23,7 @@
 use alloc::string::{String, ToString};
 
 use bip39::{Language, Mnemonic};
-use hmac::Hmac;
+use hmac::{Hmac, KeyInit, Mac};
 use sha2::Sha256;
 use zeroize::Zeroizing;
 
@@ -139,18 +139,67 @@ fn transform(language: Language, phrase: &str, password: &str) -> Result<Zeroizi
     Ok(Zeroizing::new(new_mnemonic.to_string()))
 }
 
-/// Derive a key from a password using PBKDF2-HMAC-SHA256.
+/// HMAC-SHA256 output size in bytes.
+const HMAC_SHA256_LEN: usize = 32;
+
+/// XOR `src` into `dest` (`dest[i] ^= src[i]`).
+///
+/// Handles the case where `dest` is shorter than `src` (last-block truncation).
+#[inline(always)]
+fn xor_buf(dest: &mut [u8], src: &[u8]) {
+    dest.iter_mut().zip(src).for_each(|(d, s)| *d ^= s);
+}
+
+/// PBKDF2-HMAC-SHA256 (RFC 8018 §5.2).
+///
+/// Self-contained implementation verified against RFC 7914 §11 test vectors.
+/// Structurally identical to the `RustCrypto` `pbkdf2` crate.
+///
+/// The `pbkdf2` crate is not used because its stable release (0.12) depends on
+/// `digest 0.10`, which is incompatible with `hmac 0.13` / `sha2 0.11`
+/// (`digest 0.11`). The `0.13` release is still in RC.
+fn pbkdf2_hmac_sha256(
+    password: &[u8],
+    salt: &[u8],
+    iterations: u32,
+    output: &mut [u8],
+) -> Result<(), Error> {
+    let prf = Hmac::<Sha256>::new_from_slice(password).map_err(|_| Error::KeyDerivation)?;
+
+    for (i, chunk) in output.chunks_mut(HMAC_SHA256_LEN).enumerate() {
+        chunk.fill(0);
+
+        // U_1 = PRF(password, salt || INT(i + 1))
+        let mut mac = prf.clone();
+        mac.update(salt);
+        #[allow(clippy::cast_possible_truncation)]
+        mac.update(&(i as u32 + 1).to_be_bytes());
+        let mut u = mac.finalize().into_bytes();
+        xor_buf(chunk, &u);
+
+        // U_2 .. U_c
+        for _ in 1..iterations {
+            let mut mac = prf.clone();
+            mac.update(&u);
+            u = mac.finalize().into_bytes();
+            xor_buf(chunk, &u);
+        }
+    }
+
+    Ok(())
+}
+
+/// Derive a key from a password using [`pbkdf2_hmac_sha256`].
 ///
 /// Returns a [`Zeroizing`] buffer of exactly `len` bytes.
 fn derive_key(password: &str, len: usize) -> Result<Zeroizing<[u8; MAX_ENTROPY_LEN]>, Error> {
     let mut key = Zeroizing::new([0u8; MAX_ENTROPY_LEN]);
-    pbkdf2::pbkdf2::<Hmac<Sha256>>(
+    pbkdf2_hmac_sha256(
         password.as_bytes(),
         PBKDF2_SALT,
         PBKDF2_ITERATIONS,
         &mut key[..len],
-    )
-    .map_err(|_| Error::KeyDerivation)?;
+    )?;
     Ok(key)
 }
 
@@ -270,5 +319,81 @@ mod tests {
             let word_count = camouflaged.split_whitespace().count();
             assert_eq!(word_count, expected_words);
         }
+    }
+
+    /// RFC 7914 §11 — PBKDF2-HMAC-SHA256("passwd", "salt", c=1, dkLen=64)
+    ///
+    /// Multi-block vector (64 bytes = 2 × HMAC-SHA256 blocks).
+    #[test]
+    fn pbkdf2_rfc7914_vector1() {
+        #[rustfmt::skip]
+        let expected: [u8; 64] = [
+            0x55, 0xac, 0x04, 0x6e, 0x56, 0xe3, 0x08, 0x9f,
+            0xec, 0x16, 0x91, 0xc2, 0x25, 0x44, 0xb6, 0x05,
+            0xf9, 0x41, 0x85, 0x21, 0x6d, 0xde, 0x04, 0x65,
+            0xe6, 0x8b, 0x9d, 0x57, 0xc2, 0x0d, 0xac, 0xbc,
+            0x49, 0xca, 0x9c, 0xcc, 0xf1, 0x79, 0xb6, 0x45,
+            0x99, 0x16, 0x64, 0xb3, 0x9d, 0x77, 0xef, 0x31,
+            0x7c, 0x71, 0xb8, 0x45, 0xb1, 0xe3, 0x0b, 0xd5,
+            0x09, 0x11, 0x20, 0x41, 0xd3, 0xa1, 0x97, 0x83,
+        ];
+        let mut dk = [0u8; 64];
+        pbkdf2_hmac_sha256(b"passwd", b"salt", 1, &mut dk).unwrap();
+        assert_eq!(dk, expected);
+    }
+
+    /// RFC 7914 §11 — PBKDF2-HMAC-SHA256("Password", "`NaCl`", c=80000, dkLen=64)
+    #[test]
+    fn pbkdf2_rfc7914_vector2() {
+        #[rustfmt::skip]
+        let expected: [u8; 64] = [
+            0x4d, 0xdc, 0xd8, 0xf6, 0x0b, 0x98, 0xbe, 0x21,
+            0x83, 0x0c, 0xee, 0x5e, 0xf2, 0x27, 0x01, 0xf9,
+            0x64, 0x1a, 0x44, 0x18, 0xd0, 0x4c, 0x04, 0x14,
+            0xae, 0xff, 0x08, 0x87, 0x6b, 0x34, 0xab, 0x56,
+            0xa1, 0xd4, 0x25, 0xa1, 0x22, 0x58, 0x33, 0x54,
+            0x9a, 0xdb, 0x84, 0x1b, 0x51, 0xc9, 0xb3, 0x17,
+            0x6a, 0x27, 0x2b, 0xde, 0xbb, 0xa1, 0xd0, 0x78,
+            0x47, 0x8f, 0x62, 0xb3, 0x97, 0xf3, 0x3c, 0x8d,
+        ];
+        let mut dk = [0u8; 64];
+        pbkdf2_hmac_sha256(b"Password", b"NaCl", 80_000, &mut dk).unwrap();
+        assert_eq!(dk, expected);
+    }
+
+    /// Single-block output (32 bytes) — verifies first-block-only path.
+    #[test]
+    fn pbkdf2_rfc7914_vector1_single_block() {
+        #[rustfmt::skip]
+        let expected: [u8; 32] = [
+            0x55, 0xac, 0x04, 0x6e, 0x56, 0xe3, 0x08, 0x9f,
+            0xec, 0x16, 0x91, 0xc2, 0x25, 0x44, 0xb6, 0x05,
+            0xf9, 0x41, 0x85, 0x21, 0x6d, 0xde, 0x04, 0x65,
+            0xe6, 0x8b, 0x9d, 0x57, 0xc2, 0x0d, 0xac, 0xbc,
+        ];
+        let mut dk = [0u8; 32];
+        pbkdf2_hmac_sha256(b"passwd", b"salt", 1, &mut dk).unwrap();
+        assert_eq!(dk, expected);
+    }
+
+    /// Truncated output (20 bytes) — verifies partial-block extraction.
+    #[test]
+    fn pbkdf2_truncated_output() {
+        #[rustfmt::skip]
+        let expected: [u8; 20] = [
+            0x55, 0xac, 0x04, 0x6e, 0x56, 0xe3, 0x08, 0x9f,
+            0xec, 0x16, 0x91, 0xc2, 0x25, 0x44, 0xb6, 0x05,
+            0xf9, 0x41, 0x85, 0x21,
+        ];
+        let mut dk = [0u8; 20];
+        pbkdf2_hmac_sha256(b"passwd", b"salt", 1, &mut dk).unwrap();
+        assert_eq!(dk, expected);
+    }
+
+    /// Empty output — degenerate case, must not panic.
+    #[test]
+    fn pbkdf2_empty_output() {
+        let mut dk = [0u8; 0];
+        pbkdf2_hmac_sha256(b"passwd", b"salt", 1, &mut dk).unwrap();
     }
 }

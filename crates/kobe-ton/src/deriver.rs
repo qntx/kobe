@@ -1,11 +1,7 @@
 //! TON address derivation from a unified wallet.
 
 #[cfg(feature = "alloc")]
-use alloc::{
-    format,
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::{format, string::String, vec::Vec};
 use core::fmt;
 
 use ed25519_dalek::VerifyingKey;
@@ -24,7 +20,7 @@ use crate::Error;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum DerivationStyle {
-    /// `m/44'/607'/{index}'` — Tonkeeper, MyTonWallet, Trust Wallet.
+    /// `m/44'/607'/{index}'` — Tonkeeper, `MyTonWallet`, Trust Wallet.
     #[default]
     Standard,
     /// `m/44'/607'/{index}'/0'/0'` — Ledger Live.
@@ -105,7 +101,7 @@ impl<'a> Deriver<'a> {
         let address = encode_address(0, &state_hash, false);
 
         Ok(DerivedAccount::new(
-            path.to_string(),
+            path.to_owned(),
             Zeroizing::new(hex::encode(signing_key.to_bytes())),
             hex::encode(pubkey_bytes),
             address,
@@ -173,7 +169,7 @@ fn data_cell_hash(public_key: &[u8; 32]) -> [u8; 32] {
     Sha256::digest(&repr).into()
 }
 
-/// Compute the StateInit cell hash.
+/// Compute the `StateInit` cell hash.
 fn state_init_hash(code_hash: &[u8; 32], code_depth: u16, data_hash: &[u8; 32]) -> [u8; 32] {
     let d1: u8 = 2; // 2 refs
     let d2: u8 = 1; // ceil(5/8) + floor(5/8) = 1 + 0

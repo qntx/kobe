@@ -1,10 +1,6 @@
 //! Ethereum address derivation from an HD wallet seed.
 
-use alloc::{
-    format,
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::{format, string::String, vec::Vec};
 use core::fmt;
 use core::str::FromStr;
 
@@ -21,12 +17,12 @@ use crate::Error;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum DerivationStyle {
-    /// `m/44'/60'/0'/0/{index}` — MetaMask, Trezor, Exodus (most common).
+    /// `m/44'/60'/0'/0/{index}` — `MetaMask`, Trezor, Exodus (most common).
     #[default]
     Standard,
     /// `m/44'/60'/{index}'/0/0` — Ledger Live.
     LedgerLive,
-    /// `m/44'/60'/0'/{index}` — Ledger Legacy / MEW / MyCrypto.
+    /// `m/44'/60'/0'/{index}` — Ledger Legacy / MEW / `MyCrypto`.
     LedgerLegacy,
 }
 
@@ -112,7 +108,7 @@ impl<'a> Deriver<'a> {
         let address = Address::from_slice(&addr_hash[12..]);
 
         Ok(DerivedAccount::new(
-            path.to_string(),
+            path.to_owned(),
             key.private_key_hex(),
             key.uncompressed_pubkey_hex(),
             address.to_checksum(None),

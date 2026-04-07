@@ -66,7 +66,7 @@ impl<'a> Deriver<'a> {
         })
     }
 
-    /// Derive a Bitcoin address using P2WPKH (Native SegWit) by default.
+    /// Derive a Bitcoin address using P2WPKH (Native `SegWit`) by default.
     ///
     /// Uses path: `m/84'/0'/0'/0/{index}` for mainnet
     ///
@@ -86,7 +86,7 @@ impl<'a> Deriver<'a> {
     ///
     /// This method supports different address formats:
     /// - **P2pkh** (Legacy): `m/44'/coin'/0'/0/{index}`
-    /// - **P2shP2wpkh** (Nested SegWit): `m/49'/coin'/0'/0/{index}`
+    /// - **`P2shP2wpkh`** (Nested SegWit): `m/49'/coin'/0'/0/{index}`
     /// - **P2wpkh** (Native SegWit): `m/84'/coin'/0'/0/{index}`
     /// - **P2tr** (Taproot): `m/86'/coin'/0'/0/{index}`
     ///
@@ -108,7 +108,7 @@ impl<'a> Deriver<'a> {
         self.derive_path(&path, address_type)
     }
 
-    /// Derive multiple addresses using P2WPKH (Native SegWit) by default.
+    /// Derive multiple addresses using P2WPKH (Native `SegWit`) by default.
     ///
     /// # Arguments
     ///

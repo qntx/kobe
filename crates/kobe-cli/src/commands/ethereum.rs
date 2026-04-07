@@ -64,7 +64,7 @@ enum EthereumSubcommand {
 }
 
 impl EthereumCommand {
-    pub fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
+    pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
         match self.command {
             EthereumSubcommand::New {
                 words,
@@ -109,7 +109,7 @@ fn build_hd(
         chain: "ethereum",
         network: None,
         address_type: None,
-        mnemonic: wallet.mnemonic().to_string(),
+        mnemonic: wallet.mnemonic().to_owned(),
         passphrase_protected: wallet.has_passphrase(),
         derivation_style: Some(style.name()),
         accounts: accounts

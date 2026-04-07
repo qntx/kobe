@@ -1,16 +1,12 @@
 //! Cosmos address derivation from a unified wallet.
 
 #[cfg(feature = "alloc")]
-use alloc::{
-    format,
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::{format, string::String, vec::Vec};
 
 pub use kobe_primitives::DerivedAccount;
 use kobe_primitives::{Derive, Wallet};
-use ripemd::{Digest as RipemdDigest, Ripemd160};
-use sha2::{Digest as Sha2Digest, Sha256};
+use ripemd::Ripemd160;
+use sha2::{Digest, Sha256};
 
 use crate::Error;
 
@@ -29,12 +25,12 @@ pub struct Deriver<'a> {
 }
 
 impl<'a> Deriver<'a> {
-    /// Create a Cosmos Hub deriver (`cosmos1...`, coin_type 118).
+    /// Create a Cosmos Hub deriver (`cosmos1...`, `coin_type` 118).
     #[must_use]
     pub fn new(wallet: &'a Wallet) -> Self {
         Self {
             wallet,
-            hrp: "cosmos".to_string(),
+            hrp: "cosmos".to_owned(),
             coin_type: 118,
         }
     }
@@ -48,7 +44,7 @@ impl<'a> Deriver<'a> {
     pub fn with_config(wallet: &'a Wallet, hrp: &str, coin_type: u32) -> Self {
         Self {
             wallet,
-            hrp: hrp.to_string(),
+            hrp: hrp.to_owned(),
             coin_type,
         }
     }
@@ -60,7 +56,7 @@ impl<'a> Deriver<'a> {
         let address = encode_bech32_address(&self.hrp, &pubkey_bytes)?;
 
         Ok(DerivedAccount::new(
-            path.to_string(),
+            path.to_owned(),
             key.private_key_hex(),
             key.compressed_pubkey_hex(),
             address,

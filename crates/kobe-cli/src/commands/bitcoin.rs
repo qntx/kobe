@@ -112,7 +112,7 @@ const fn network_str(n: Network) -> &'static str {
 }
 
 impl BitcoinCommand {
-    pub fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
+    pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
         match self.command {
             BitcoinSubcommand::New {
                 testnet,
@@ -162,7 +162,7 @@ fn build_hd(
         chain: "bitcoin",
         network: Some(network_str(net)),
         address_type: Some(addr_type.name()),
-        mnemonic: wallet.mnemonic().to_string(),
+        mnemonic: wallet.mnemonic().to_owned(),
         passphrase_protected: wallet.has_passphrase(),
         derivation_style: None,
         accounts: addresses

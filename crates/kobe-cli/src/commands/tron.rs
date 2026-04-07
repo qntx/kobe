@@ -40,7 +40,7 @@ enum TronSubcommand {
 }
 
 impl TronCommand {
-    pub fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
+    pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
         match self.command {
             TronSubcommand::New {
                 words,
@@ -79,7 +79,7 @@ fn build(
         chain,
         network: None,
         address_type: None,
-        mnemonic: wallet.mnemonic().to_string(),
+        mnemonic: wallet.mnemonic().to_owned(),
         passphrase_protected: wallet.has_passphrase(),
         derivation_style: None,
         accounts: accounts

@@ -40,7 +40,7 @@ enum TonSubcommand {
 }
 
 impl TonCommand {
-    pub fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
+    pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
         match self.command {
             TonSubcommand::New {
                 words,
@@ -73,7 +73,7 @@ fn build(wallet: &Wallet, accounts: &[kobe::DerivedAccount]) -> HdWalletOutput {
         chain: "ton",
         network: None,
         address_type: None,
-        mnemonic: wallet.mnemonic().to_string(),
+        mnemonic: wallet.mnemonic().to_owned(),
         passphrase_protected: wallet.has_passphrase(),
         derivation_style: None,
         accounts: accounts

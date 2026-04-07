@@ -1,7 +1,7 @@
 //! Tron address derivation from a unified wallet.
 
 #[cfg(feature = "alloc")]
-use alloc::{format, string::ToString, vec};
+use alloc::{format, vec};
 
 pub use kobe_primitives::DerivedAccount;
 use kobe_primitives::{Derive, Wallet};
@@ -37,7 +37,7 @@ impl<'a> Deriver<'a> {
         let address = bs58::encode(&prefixed).with_check().into_string();
 
         Ok(DerivedAccount::new(
-            path.to_string(),
+            path.to_owned(),
             key.private_key_hex(),
             key.uncompressed_pubkey_hex(),
             address,

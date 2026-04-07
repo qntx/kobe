@@ -1,7 +1,7 @@
 //! Sui address derivation from a unified wallet.
 
 #[cfg(feature = "alloc")]
-use alloc::{format, string::ToString, vec::Vec};
+use alloc::{format, vec::Vec};
 
 use blake2::Blake2bVar;
 use blake2::digest::{Update, VariableOutput};
@@ -46,7 +46,7 @@ impl<'a> Deriver<'a> {
         let hash = blake2b_256(&buf);
 
         Ok(DerivedAccount::new(
-            path.to_string(),
+            path.to_owned(),
             Zeroizing::new(hex::encode(signing_key.to_bytes())),
             hex::encode(pubkey_bytes),
             format!("0x{}", hex::encode(hash)),

@@ -48,7 +48,7 @@ enum CosmosSubcommand {
 }
 
 impl CosmosCommand {
-    pub fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
+    pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
         match self.command {
             CosmosSubcommand::New {
                 words,
@@ -89,7 +89,7 @@ fn build_hd(wallet: &Wallet, accounts: &[kobe::DerivedAccount]) -> HdWalletOutpu
         chain: "cosmos",
         network: None,
         address_type: None,
-        mnemonic: wallet.mnemonic().to_string(),
+        mnemonic: wallet.mnemonic().to_owned(),
         passphrase_protected: wallet.has_passphrase(),
         derivation_style: None,
         accounts: accounts

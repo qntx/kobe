@@ -8,7 +8,7 @@
 use alloc::format;
 
 use ed25519_dalek::SigningKey;
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use sha2::Sha512;
 use zeroize::Zeroizing;
 
