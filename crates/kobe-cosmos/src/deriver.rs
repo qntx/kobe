@@ -30,7 +30,7 @@ impl<'a> Deriver<'a> {
     pub fn new(wallet: &'a Wallet) -> Self {
         Self {
             wallet,
-            hrp: "cosmos".to_owned(),
+            hrp: String::from("cosmos"),
             coin_type: 118,
         }
     }
@@ -44,7 +44,7 @@ impl<'a> Deriver<'a> {
     pub fn with_config(wallet: &'a Wallet, hrp: &str, coin_type: u32) -> Self {
         Self {
             wallet,
-            hrp: hrp.to_owned(),
+            hrp: String::from(hrp),
             coin_type,
         }
     }
@@ -56,7 +56,7 @@ impl<'a> Deriver<'a> {
         let address = encode_bech32_address(&self.hrp, &pubkey_bytes)?;
 
         Ok(DerivedAccount::new(
-            path.to_owned(),
+            String::from(path),
             key.private_key_hex(),
             key.compressed_pubkey_hex(),
             address,

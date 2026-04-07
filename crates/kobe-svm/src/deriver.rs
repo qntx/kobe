@@ -145,7 +145,7 @@ impl<'a> Deriver<'a> {
     /// Returns an error if derivation fails.
     pub fn derive_path(&self, path: &str) -> Result<DerivedAddress, DeriveError> {
         let derived = DerivedKey::derive_path(self.wallet.seed(), path)?;
-        Ok(build_derived_address(&derived, path.to_owned()))
+        Ok(build_derived_address(&derived, String::from(path)))
     }
 }
 

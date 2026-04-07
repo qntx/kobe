@@ -1,7 +1,7 @@
 //! Spark address derivation from a unified wallet.
 
 #[cfg(feature = "alloc")]
-use alloc::format;
+use alloc::{format, string::String};
 
 pub use kobe_primitives::DerivedAccount;
 use kobe_primitives::{Derive, Wallet};
@@ -32,7 +32,7 @@ impl<'a> Deriver<'a> {
         let pubkey_hex = key.compressed_pubkey_hex();
 
         Ok(DerivedAccount::new(
-            path.to_owned(),
+            String::from(path),
             key.private_key_hex(),
             pubkey_hex.clone(),
             format!("spark:{pubkey_hex}"),

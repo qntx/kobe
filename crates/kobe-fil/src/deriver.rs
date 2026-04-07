@@ -48,7 +48,7 @@ impl<'a> Deriver<'a> {
         addr_bytes.extend_from_slice(&checksum);
 
         Ok(DerivedAccount::new(
-            path.to_owned(),
+            String::from(path),
             key.private_key_hex(),
             key.uncompressed_pubkey_hex(),
             format!("f1{}", base32_encode(&addr_bytes)?),

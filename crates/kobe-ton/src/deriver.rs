@@ -107,7 +107,7 @@ impl<'a> Deriver<'a> {
         let address = encode_address(0, &state_hash, false);
 
         Ok(DerivedAccount::new(
-            path.to_owned(),
+            String::from(path),
             Zeroizing::new(hex::encode(signing_key.to_bytes())),
             hex::encode(pubkey_bytes),
             address,

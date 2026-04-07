@@ -124,7 +124,7 @@ impl<'a> Deriver<'a> {
         );
 
         Ok(DerivedAccount::new(
-            path.to_owned(),
+            String::from(path),
             key.private_key_hex(),
             key.uncompressed_pubkey_hex(),
             address.to_checksum(None),
