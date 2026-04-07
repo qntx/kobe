@@ -1,8 +1,8 @@
 #![allow(
     clippy::print_stdout,
     clippy::print_stderr,
-    clippy::missing_docs_in_private_items,
-    missing_docs
+    missing_docs,
+    reason = "CLI binary legitimately prints to stdout/stderr and does not require public docs"
 )]
 //! Kobe — multi-chain cryptocurrency wallet CLI.
 

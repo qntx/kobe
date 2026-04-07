@@ -34,9 +34,9 @@ pub use bip39::Language;
 pub use bip39::rand_core;
 #[cfg(feature = "alloc")]
 pub use derive::{Derive, DeriveExt, DerivedAccount};
-pub use error::Error;
+pub use error::DeriveError;
 #[cfg(feature = "alloc")]
 pub use wallet::Wallet;
 
 /// Convenient Result alias.
-pub type Result<T> = core::result::Result<T, Error>;
+pub type Result<T> = core::result::Result<T, DeriveError>;

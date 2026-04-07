@@ -8,7 +8,7 @@ use crate::output::{self, AccountOutput, HdWalletOutput};
 
 /// Filecoin wallet operations.
 #[derive(Args)]
-pub struct FilecoinCommand {
+pub(crate) struct FilecoinCommand {
     #[command(subcommand)]
     command: FilecoinSubcommand,
 }

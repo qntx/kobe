@@ -8,7 +8,7 @@ use crate::output::{self, AccountOutput, HdWalletOutput};
 
 /// Ethereum wallet operations.
 #[derive(Args)]
-pub struct EthereumCommand {
+pub(crate) struct EthereumCommand {
     #[command(subcommand)]
     command: EthereumSubcommand,
 }

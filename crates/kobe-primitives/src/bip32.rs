@@ -10,7 +10,7 @@ use bip32_crate::{DerivationPath, XPrv};
 use k256::ecdsa::SigningKey;
 use zeroize::Zeroizing;
 
-use crate::Error;
+use crate::DeriveError;
 
 /// A secp256k1 key pair derived via BIP-32.
 ///
@@ -33,12 +33,12 @@ impl DerivedSecp256k1Key {
     /// # Errors
     ///
     /// Returns an error if the path is invalid or derivation fails.
-    pub fn derive(seed: &[u8; 64], path: &str) -> Result<Self, Error> {
+    pub fn derive(seed: &[u8; 64], path: &str) -> Result<Self, DeriveError> {
         let dp: DerivationPath = path
             .parse()
-            .map_err(|e| Error::Bip32Derivation(format!("invalid path: {e}")))?;
+            .map_err(|e| DeriveError::Bip32Derivation(format!("invalid path: {e}")))?;
         let xprv = XPrv::derive_from_path(seed, &dp)
-            .map_err(|e| Error::Bip32Derivation(format!("derivation failed: {e}")))?;
+            .map_err(|e| DeriveError::Bip32Derivation(format!("derivation failed: {e}")))?;
         Ok(Self { xprv })
     }
 
@@ -100,7 +100,6 @@ impl core::fmt::Debug for DerivedSecp256k1Key {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

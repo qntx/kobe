@@ -7,7 +7,7 @@ use bitcoin::Network as BtcNetwork;
 
 /// Supported Bitcoin networks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
-#[allow(clippy::exhaustive_enums)]
+#[non_exhaustive]
 pub enum Network {
     /// Bitcoin mainnet.
     #[default]
@@ -81,7 +81,6 @@ impl FromStr for Network {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

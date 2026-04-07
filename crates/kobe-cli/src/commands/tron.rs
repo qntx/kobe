@@ -8,7 +8,7 @@ use crate::output::{self, AccountOutput, HdWalletOutput};
 
 /// Tron wallet operations.
 #[derive(Args)]
-pub struct TronCommand {
+pub(crate) struct TronCommand {
     #[command(subcommand)]
     command: TronSubcommand,
 }

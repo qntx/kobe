@@ -4,14 +4,13 @@
 use alloc::{format, string::String, vec::Vec};
 use core::fmt;
 
-use ed25519_dalek::VerifyingKey;
 pub use kobe_primitives::DerivedAccount;
 use kobe_primitives::slip10::DerivedKey;
 use kobe_primitives::{Derive, Wallet};
 use sha2::{Digest, Sha256};
 use zeroize::Zeroizing;
 
-use crate::Error;
+use crate::DeriveError;
 
 /// TON derivation path styles.
 ///
@@ -64,8 +63,7 @@ const WALLET_V5R1_CODE_DEPTH: u16 = 6;
 
 /// Default walletId for mainnet workchain 0.
 /// Computed as: `networkGlobalId(-239) XOR context(0x80000000)`
-#[allow(clippy::cast_possible_wrap)]
-const DEFAULT_WALLET_ID: i32 = 0x7FFF_FF11_u32 as i32;
+const DEFAULT_WALLET_ID: i32 = 0x7FFF_FF11;
 
 /// TON address deriver from a unified wallet seed.
 ///
@@ -84,15 +82,23 @@ impl<'a> Deriver<'a> {
     }
 
     /// Derive with a specific [`DerivationStyle`].
-    pub fn derive_with(&self, style: DerivationStyle, index: u32) -> Result<DerivedAccount, Error> {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key derivation or address encoding fails.
+    pub fn derive_with(
+        &self,
+        style: DerivationStyle,
+        index: u32,
+    ) -> Result<DerivedAccount, DeriveError> {
         self.derive_at_path(&style.path(index))
     }
 
     /// Internal: derive at an arbitrary SLIP-10 path.
-    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         let derived_key = DerivedKey::derive_path(self.wallet.seed(), path)?;
         let signing_key = derived_key.to_signing_key();
-        let verifying_key: VerifyingKey = signing_key.verifying_key();
+        let verifying_key = signing_key.verifying_key();
         let pubkey_bytes: &[u8; 32] = verifying_key.as_bytes();
 
         let data_hash = data_cell_hash(pubkey_bytes);
@@ -110,13 +116,13 @@ impl<'a> Deriver<'a> {
 }
 
 impl Derive for Deriver<'_> {
-    type Error = Error;
+    type Error = DeriveError;
 
-    fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
+    fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
         self.derive_with(DerivationStyle::Standard, index)
     }
 
-    fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+    fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         self.derive_at_path(path)
     }
 }
@@ -180,10 +186,9 @@ fn state_init_hash(code_hash: &[u8; 32], code_depth: u16, data_hash: &[u8; 32]) 
     repr.push(0x34); // 00110 + completion tag '100' = 0b00110100
 
     // Depths (2 bytes big-endian each)
-    #[allow(clippy::cast_possible_truncation)]
-    repr.push((code_depth >> 8) as u8);
-    #[allow(clippy::cast_possible_truncation)]
-    repr.push(code_depth as u8);
+    let depth_bytes = code_depth.to_be_bytes();
+    repr.push(depth_bytes[0]);
+    repr.push(depth_bytes[1]);
     repr.push(0); // data cell depth = 0
     repr.push(0);
 
@@ -200,15 +205,13 @@ fn encode_address(workchain: i8, hash: &[u8; 32], bounceable: bool) -> String {
     let tag: u8 = if bounceable { 0x11 } else { 0x51 };
     let mut addr = Vec::with_capacity(36);
     addr.push(tag);
-    #[allow(clippy::cast_sign_loss)]
-    addr.push(workchain as u8);
+    addr.push(workchain.to_ne_bytes()[0]);
     addr.extend_from_slice(hash);
 
     let crc = crc16_ccitt(&addr);
-    #[allow(clippy::cast_possible_truncation)]
-    addr.push((crc >> 8) as u8);
-    #[allow(clippy::cast_possible_truncation)]
-    addr.push(crc as u8);
+    let crc_bytes = crc.to_be_bytes();
+    addr.push(crc_bytes[0]);
+    addr.push(crc_bytes[1]);
 
     base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&addr)
 }
@@ -230,7 +233,6 @@ fn crc16_ccitt(data: &[u8]) -> u16 {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::cast_possible_truncation)]
 mod tests {
     use super::*;
 
@@ -294,8 +296,9 @@ mod tests {
         assert_eq!(decoded[1], 0x00); // workchain 0
 
         let crc = crc16_ccitt(&decoded[..34]);
-        assert_eq!(decoded[34], (crc >> 8) as u8);
-        assert_eq!(decoded[35], crc as u8);
+        let crc_bytes = crc.to_be_bytes();
+        assert_eq!(decoded[34], crc_bytes[0]);
+        assert_eq!(decoded[35], crc_bytes[1]);
     }
 
     #[test]

@@ -8,7 +8,7 @@ use blake2::digest::{Update, VariableOutput};
 pub use kobe_primitives::DerivedAccount;
 use kobe_primitives::{Derive, Wallet};
 
-use crate::Error;
+use crate::DeriveError;
 
 /// Filecoin lowercase base32 alphabet (RFC 4648, no padding).
 const BASE32_ALPHABET: &[u8; 32] = b"abcdefghijklmnopqrstuvwxyz234567";
@@ -30,18 +30,19 @@ impl<'a> Deriver<'a> {
     }
 
     /// Internal: derive at an arbitrary BIP-32 path.
-    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         let key = kobe_primitives::bip32::DerivedSecp256k1Key::derive(self.wallet.seed(), path)?;
         let pubkey_bytes = key.uncompressed_pubkey();
 
-        let payload = blake2b(&pubkey_bytes, 20);
+        let payload = blake2b(&pubkey_bytes, 20)?;
         let protocol: u8 = 1;
-        let checksum = {
+        let checksum_input = {
             let mut data = Vec::with_capacity(1 + payload.len());
             data.push(protocol);
             data.extend_from_slice(&payload);
-            blake2b(&data, 4)
+            data
         };
+        let checksum = blake2b(&checksum_input, 4)?;
         let mut addr_bytes = Vec::with_capacity(payload.len() + checksum.len());
         addr_bytes.extend_from_slice(&payload);
         addr_bytes.extend_from_slice(&checksum);
@@ -50,38 +51,36 @@ impl<'a> Deriver<'a> {
             path.to_owned(),
             key.private_key_hex(),
             key.uncompressed_pubkey_hex(),
-            format!("f1{}", base32_encode(&addr_bytes)),
+            format!("f1{}", base32_encode(&addr_bytes)?),
         ))
     }
 }
 
 impl Derive for Deriver<'_> {
-    type Error = Error;
+    type Error = DeriveError;
 
-    fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
+    fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
         self.derive_at_path(&format!("m/44'/461'/0'/0/{index}"))
     }
 
-    fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+    fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         self.derive_at_path(path)
     }
 }
 
 /// Compute a Blake2b hash with a variable output length.
-fn blake2b(data: &[u8], output_len: usize) -> Vec<u8> {
-    #[allow(clippy::expect_used)]
-    let mut hasher = Blake2bVar::new(output_len).expect("valid output length");
+fn blake2b(data: &[u8], output_len: usize) -> Result<Vec<u8>, DeriveError> {
+    let mut hasher = Blake2bVar::new(output_len).map_err(|_| DeriveError::Hashing)?;
     hasher.update(data);
     let mut buf = vec![0u8; output_len];
-    #[allow(clippy::expect_used)]
     hasher
         .finalize_variable(&mut buf)
-        .expect("valid output length");
-    buf
+        .map_err(|_| DeriveError::Hashing)?;
+    Ok(buf)
 }
 
 /// Encode bytes using Filecoin's lowercase base32 (no padding).
-fn base32_encode(data: &[u8]) -> String {
+fn base32_encode(data: &[u8]) -> Result<String, DeriveError> {
     let mut result = String::new();
     let mut buffer: u64 = 0;
     let mut bits_in_buffer = 0;
@@ -92,20 +91,19 @@ fn base32_encode(data: &[u8]) -> String {
         while bits_in_buffer >= 5 {
             bits_in_buffer -= 5;
             let index = ((buffer >> bits_in_buffer) & 0x1f) as usize;
-            result.push(BASE32_ALPHABET[index] as char);
+            result.push(*BASE32_ALPHABET.get(index).ok_or(DeriveError::Hashing)? as char);
         }
     }
 
     if bits_in_buffer > 0 {
         let index = ((buffer << (5 - bits_in_buffer)) & 0x1f) as usize;
-        result.push(BASE32_ALPHABET[index] as char);
+        result.push(*BASE32_ALPHABET.get(index).ok_or(DeriveError::Hashing)? as char);
     }
 
-    result
+    Ok(result)
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
@@ -151,11 +149,11 @@ mod tests {
 
     #[test]
     fn base32_encode_known_vectors() {
-        assert_eq!(base32_encode(b""), "");
-        assert_eq!(base32_encode(b"f"), "my");
-        assert_eq!(base32_encode(b"fo"), "mzxq");
-        assert_eq!(base32_encode(b"foo"), "mzxw6");
-        assert_eq!(base32_encode(b"foobar"), "mzxw6ytboi");
+        assert_eq!(base32_encode(b"").unwrap(), "");
+        assert_eq!(base32_encode(b"f").unwrap(), "my");
+        assert_eq!(base32_encode(b"fo").unwrap(), "mzxq");
+        assert_eq!(base32_encode(b"foo").unwrap(), "mzxw6");
+        assert_eq!(base32_encode(b"foobar").unwrap(), "mzxw6ytboi");
     }
 
     #[test]

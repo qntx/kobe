@@ -12,25 +12,25 @@ mod ton;
 mod tron;
 mod xrpl;
 
-pub use bitcoin::BitcoinCommand;
+pub(crate) use bitcoin::BitcoinCommand;
 use clap::{Parser, Subcommand};
-pub use cosmos::CosmosCommand;
-pub use ethereum::EthereumCommand;
-pub use filecoin::FilecoinCommand;
-pub use mnemonic::MnemonicCommand;
-pub use solana::SolanaCommand;
-pub use spark::SparkCommand;
-pub use sui::SuiCommand;
-pub use ton::TonCommand;
-pub use tron::TronCommand;
-pub use xrpl::XrplCommand;
+pub(crate) use cosmos::CosmosCommand;
+pub(crate) use ethereum::EthereumCommand;
+pub(crate) use filecoin::FilecoinCommand;
+pub(crate) use mnemonic::MnemonicCommand;
+pub(crate) use solana::SolanaCommand;
+pub(crate) use spark::SparkCommand;
+pub(crate) use sui::SuiCommand;
+pub(crate) use ton::TonCommand;
+pub(crate) use tron::TronCommand;
+pub(crate) use xrpl::XrplCommand;
 
 /// Kobe - A multi-chain cryptocurrency wallet CLI tool.
 #[derive(Parser)]
 #[command(name = "kobe")]
 #[command(version, about, long_about = None)]
 #[command(propagate_version = true)]
-pub struct Cli {
+pub(crate) struct Cli {
     /// Output results in JSON format for programmatic/agent consumption.
     #[arg(long, global = true)]
     pub json: bool,
@@ -41,7 +41,7 @@ pub struct Cli {
 
 /// Available blockchain commands.
 #[derive(Subcommand)]
-pub enum Commands {
+pub(crate) enum Commands {
     /// Bitcoin wallet operations.
     #[command(name = "btc", alias = "bitcoin")]
     Bitcoin(BitcoinCommand),

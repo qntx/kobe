@@ -18,7 +18,6 @@ pub enum CliDerivationStyle {
     Legacy,
 }
 
-#[allow(deprecated)]
 impl From<CliDerivationStyle> for DerivationStyle {
     fn from(style: CliDerivationStyle) -> Self {
         match style {
@@ -32,7 +31,7 @@ impl From<CliDerivationStyle> for DerivationStyle {
 
 /// Solana wallet operations.
 #[derive(Args)]
-pub struct SolanaCommand {
+pub(crate) struct SolanaCommand {
     #[command(subcommand)]
     command: SolanaSubcommand,
 }

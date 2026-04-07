@@ -19,7 +19,7 @@ use kobe_primitives::{Derive, Wallet};
 use ripemd::Ripemd160;
 use sha2::{Digest, Sha256};
 
-use crate::Error;
+use crate::DeriveError;
 
 /// XRPL base58 alphabet (differs from Bitcoin's).
 ///
@@ -46,7 +46,7 @@ impl<'a> Deriver<'a> {
     }
 
     /// Derive at an arbitrary path (internal).
-    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         let key = kobe_primitives::bip32::DerivedSecp256k1Key::derive(self.wallet.seed(), path)?;
         let pubkey_bytes = key.compressed_pubkey();
         let address = encode_classic_address(&pubkey_bytes);
@@ -61,14 +61,14 @@ impl<'a> Deriver<'a> {
 }
 
 impl Derive for Deriver<'_> {
-    type Error = Error;
+    type Error = DeriveError;
 
-    fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
+    fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
         let path = format!("m/44'/144'/0'/0/{index}");
         self.derive_at_path(&path)
     }
 
-    fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+    fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         self.derive_at_path(path)
     }
 }
@@ -112,7 +112,6 @@ fn encode_classic_address(compressed_pubkey: &[u8]) -> String {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use kobe_primitives::DeriveExt;
 

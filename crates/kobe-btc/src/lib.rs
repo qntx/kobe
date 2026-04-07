@@ -19,11 +19,11 @@ mod types;
 
 #[cfg(feature = "alloc")]
 pub use deriver::{DerivedAddress, Deriver};
-pub use error::Error;
+pub use error::DeriveError;
 pub use network::{Network, ParseNetworkError};
 #[cfg(feature = "alloc")]
 pub use types::DerivationPath;
 pub use types::{AddressType, ParseAddressTypeError};
 
 /// Convenient Result alias.
-pub type Result<T> = core::result::Result<T, Error>;
+pub type Result<T> = core::result::Result<T, DeriveError>;

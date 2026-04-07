@@ -8,7 +8,7 @@ use kobe_primitives::{Derive, Wallet};
 use ripemd::Ripemd160;
 use sha2::{Digest, Sha256};
 
-use crate::Error;
+use crate::DeriveError;
 
 /// Cosmos address deriver.
 ///
@@ -50,7 +50,7 @@ impl<'a> Deriver<'a> {
     }
 
     /// Derive at an arbitrary path (internal).
-    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         let key = kobe_primitives::bip32::DerivedSecp256k1Key::derive(self.wallet.seed(), path)?;
         let pubkey_bytes = key.compressed_pubkey();
         let address = encode_bech32_address(&self.hrp, &pubkey_bytes)?;
@@ -65,14 +65,14 @@ impl<'a> Deriver<'a> {
 }
 
 impl Derive for Deriver<'_> {
-    type Error = Error;
+    type Error = DeriveError;
 
-    fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
+    fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
         let path = format!("m/44'/{}'/0'/0/{index}", self.coin_type);
         self.derive_at_path(&path)
     }
 
-    fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+    fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         self.derive_at_path(path)
     }
 }
@@ -83,16 +83,15 @@ fn hash160(data: &[u8]) -> Vec<u8> {
 }
 
 /// Encode a compressed public key as a bech32 Cosmos address.
-fn encode_bech32_address(hrp: &str, compressed_pubkey: &[u8]) -> Result<String, Error> {
+fn encode_bech32_address(hrp: &str, compressed_pubkey: &[u8]) -> Result<String, DeriveError> {
     let hash = hash160(compressed_pubkey);
-    let hrp_parsed =
-        bech32::Hrp::parse(hrp).map_err(|e| Error::AddressEncoding(format!("invalid HRP: {e}")))?;
+    let hrp_parsed = bech32::Hrp::parse(hrp)
+        .map_err(|e| DeriveError::AddressEncoding(format!("invalid HRP: {e}")))?;
     bech32::encode::<bech32::Bech32>(hrp_parsed, &hash)
-        .map_err(|e| Error::AddressEncoding(format!("bech32 encoding failed: {e}")))
+        .map_err(|e| DeriveError::AddressEncoding(format!("bech32 encoding failed: {e}")))
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use kobe_primitives::DeriveExt;
 

@@ -8,7 +8,7 @@ use crate::output::{self, AccountOutput, HdWalletOutput};
 
 /// TON wallet operations.
 #[derive(Args)]
-pub struct TonCommand {
+pub(crate) struct TonCommand {
     #[command(subcommand)]
     command: TonSubcommand,
 }

@@ -8,7 +8,7 @@ use crate::output::{self, AccountOutput, HdWalletOutput};
 
 /// Sui wallet operations.
 #[derive(Args)]
-pub struct SuiCommand {
+pub(crate) struct SuiCommand {
     #[command(subcommand)]
     command: SuiSubcommand,
 }

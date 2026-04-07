@@ -8,7 +8,7 @@ use crate::output::{self, AccountOutput, HdWalletOutput};
 
 /// Bitcoin wallet operations.
 #[derive(Args)]
-pub struct BitcoinCommand {
+pub(crate) struct BitcoinCommand {
     #[command(subcommand)]
     /// The subcommand to execute.
     command: BitcoinSubcommand,
@@ -108,6 +108,7 @@ const fn network_str(n: Network) -> &'static str {
     match n {
         Network::Mainnet => "mainnet",
         Network::Testnet => "testnet",
+        _ => "unknown",
     }
 }
 

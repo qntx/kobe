@@ -12,7 +12,7 @@ use hmac::{Hmac, KeyInit, Mac};
 use sha2::Sha512;
 use zeroize::Zeroizing;
 
-use crate::Error;
+use crate::DeriveError;
 
 /// HMAC-SHA512 type alias.
 type HmacSha512 = Hmac<Sha512>;
@@ -47,16 +47,17 @@ impl DerivedKey {
     /// # Errors
     ///
     /// Returns an error if the HMAC key is invalid (should not happen in practice).
-    pub fn from_seed(seed: &[u8]) -> Result<Self, Error> {
-        let mut mac =
-            HmacSha512::new_from_slice(ED25519_CURVE).map_err(|_| Error::Slip10InvalidSeed)?;
+    pub fn from_seed(seed: &[u8]) -> Result<Self, DeriveError> {
+        let mut mac = HmacSha512::new_from_slice(ED25519_CURVE)
+            .map_err(|_| DeriveError::Slip10InvalidSeed)?;
         mac.update(seed);
         let result = mac.finalize().into_bytes();
 
+        let (pk_bytes, cc_bytes) = result.split_at(32);
         let mut private_key = Zeroizing::new([0u8; 32]);
         let mut chain_code = Zeroizing::new([0u8; 32]);
-        private_key.copy_from_slice(&result[..32]);
-        chain_code.copy_from_slice(&result[32..]);
+        private_key.copy_from_slice(pk_bytes);
+        chain_code.copy_from_slice(cc_bytes);
 
         Ok(Self {
             private_key,
@@ -72,20 +73,21 @@ impl DerivedKey {
     /// # Errors
     ///
     /// Returns an error if the HMAC key is invalid.
-    pub fn derive_hardened(&self, index: u32) -> Result<Self, Error> {
+    pub fn derive_hardened(&self, index: u32) -> Result<Self, DeriveError> {
         let hardened_index = index | 0x8000_0000;
 
-        let mut mac =
-            HmacSha512::new_from_slice(&*self.chain_code).map_err(|_| Error::Slip10InvalidSeed)?;
+        let mut mac = HmacSha512::new_from_slice(&*self.chain_code)
+            .map_err(|_| DeriveError::Slip10InvalidSeed)?;
         mac.update(&[0x00]);
         mac.update(&*self.private_key);
         mac.update(&hardened_index.to_be_bytes());
         let result = mac.finalize().into_bytes();
 
+        let (pk_bytes, cc_bytes) = result.split_at(32);
         let mut private_key = Zeroizing::new([0u8; 32]);
         let mut chain_code = Zeroizing::new([0u8; 32]);
-        private_key.copy_from_slice(&result[..32]);
-        chain_code.copy_from_slice(&result[32..]);
+        private_key.copy_from_slice(pk_bytes);
+        chain_code.copy_from_slice(cc_bytes);
 
         Ok(Self {
             private_key,
@@ -101,14 +103,14 @@ impl DerivedKey {
     /// # Errors
     ///
     /// Returns an error if the path is malformed or derivation fails.
-    pub fn derive_path(seed: &[u8], path: &str) -> Result<Self, Error> {
+    pub fn derive_path(seed: &[u8], path: &str) -> Result<Self, DeriveError> {
         let trimmed = path.trim();
         let remainder = if trimmed == "m" {
             ""
         } else if let Some(rest) = trimmed.strip_prefix("m/") {
             rest
         } else {
-            return Err(Error::Slip10InvalidPath(
+            return Err(DeriveError::Slip10InvalidPath(
                 "path must start with 'm/' or be exactly 'm'".into(),
             ));
         };
@@ -129,15 +131,14 @@ impl DerivedKey {
 }
 
 /// Parse a single path component like `"44'"` or `"501h"` into a u32 index.
-fn parse_path_component(component: &str) -> Result<u32, Error> {
+fn parse_path_component(component: &str) -> Result<u32, DeriveError> {
     let stripped = component.trim_end_matches('\'').trim_end_matches('h');
     stripped
         .parse::<u32>()
-        .map_err(|_| Error::Slip10InvalidPath(format!("invalid path component: {component}")))
+        .map_err(|_| DeriveError::Slip10InvalidPath(format!("invalid path component: {component}")))
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

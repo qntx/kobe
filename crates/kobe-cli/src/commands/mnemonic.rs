@@ -6,7 +6,7 @@ use crate::output::{self, CamouflageOutput};
 
 /// Mnemonic utility operations.
 #[derive(Args)]
-pub struct MnemonicCommand {
+pub(crate) struct MnemonicCommand {
     /// The subcommand to execute.
     #[command(subcommand)]
     command: MnemonicSubcommand,

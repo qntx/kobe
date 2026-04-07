@@ -60,15 +60,12 @@ pub enum DerivationStyle {
     /// - Address index: 0' (hardened, fixed)
     LedgerLive,
 
-    /// Legacy derivation path (deprecated).
+    /// Legacy derivation path (**not recommended for new wallets**).
     ///
     /// Path format: `m/501'/{index}'/0'/0'`
     ///
     /// Used by older versions of Phantom and Sollet.
-    /// Only use for recovering old wallets.
-    #[deprecated(
-        note = "Use Standard style for new wallets. Legacy is only for recovering old Phantom/Sollet wallets."
-    )]
+    /// Only use for recovering old wallets; prefer [`Standard`](Self::Standard) for new ones.
     Legacy,
 }
 
@@ -83,7 +80,6 @@ impl DerivationStyle {
     ///
     /// A BIP-32 derivation path string.
     #[must_use]
-    #[allow(deprecated)]
     pub fn path(self, index: u32) -> String {
         match self {
             Self::Standard => format!("m/44'/501'/{index}'/0'"),
@@ -95,7 +91,6 @@ impl DerivationStyle {
 
     /// Get the human-readable name of this derivation style.
     #[must_use]
-    #[allow(deprecated)]
     pub const fn name(self) -> &'static str {
         match self {
             Self::Standard => "Standard (Phantom/Backpack)",
@@ -107,7 +102,6 @@ impl DerivationStyle {
 
     /// Get a short identifier for CLI usage.
     #[must_use]
-    #[allow(deprecated)]
     pub const fn id(self) -> &'static str {
         match self {
             Self::Standard => "standard",
@@ -119,7 +113,6 @@ impl DerivationStyle {
 
     /// Get all available derivation styles.
     #[must_use]
-    #[allow(deprecated)]
     pub const fn all() -> &'static [Self] {
         &[Self::Standard, Self::Trust, Self::LedgerLive, Self::Legacy]
     }
@@ -148,7 +141,6 @@ impl fmt::Display for ParseDerivationStyleError {
 #[cfg(feature = "std")]
 impl std::error::Error for ParseDerivationStyleError {}
 
-#[allow(deprecated)]
 impl FromStr for DerivationStyle {
     type Err = ParseDerivationStyleError;
 
@@ -170,7 +162,6 @@ impl FromStr for DerivationStyle {
 }
 
 #[cfg(test)]
-#[allow(deprecated, clippy::unwrap_used)]
 mod tests {
     use super::*;
 

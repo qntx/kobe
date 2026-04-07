@@ -9,7 +9,7 @@ use alloc::vec::Vec;
 
 use zeroize::Zeroizing;
 
-use crate::Error;
+use crate::DeriveError;
 
 /// A derived account from any chain.
 ///
@@ -65,12 +65,20 @@ impl DerivedAccount {
 /// ```
 pub trait Derive {
     /// The error type returned by derivation operations.
-    type Error: core::fmt::Debug + core::fmt::Display + From<Error>;
+    type Error: core::fmt::Debug + core::fmt::Display + From<DeriveError>;
 
     /// Derive an account at the given index using the chain's default path.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key derivation or address encoding fails.
     fn derive(&self, index: u32) -> Result<DerivedAccount, Self::Error>;
 
     /// Derive an account at a custom path string.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the path is invalid or derivation fails.
     fn derive_path(&self, path: &str) -> Result<DerivedAccount, Self::Error>;
 }
 
@@ -82,9 +90,9 @@ pub trait DeriveExt: Derive {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::IndexOverflow`] if `start + count` overflows `u32`.
+    /// Returns [`DeriveError::IndexOverflow`] if `start + count` overflows `u32`.
     fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAccount>, Self::Error> {
-        let end = start.checked_add(count).ok_or(Error::IndexOverflow)?;
+        let end = start.checked_add(count).ok_or(DeriveError::IndexOverflow)?;
         (start..end).map(|i| self.derive(i)).collect()
     }
 }

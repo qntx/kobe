@@ -27,7 +27,7 @@ use hmac::{Hmac, KeyInit, Mac};
 use sha2::Sha256;
 use zeroize::Zeroizing;
 
-use crate::Error;
+use crate::DeriveError;
 
 /// PBKDF2 iteration count (OWASP 2023 recommendation for HMAC-SHA256).
 const PBKDF2_ITERATIONS: u32 = 600_000;
@@ -58,7 +58,7 @@ const MAX_ENTROPY_LEN: usize = 32;
 /// # Errors
 ///
 /// Returns an error if the mnemonic is invalid or if key derivation fails.
-pub fn encrypt(phrase: &str, password: &str) -> Result<Zeroizing<String>, Error> {
+pub fn encrypt(phrase: &str, password: &str) -> Result<Zeroizing<String>, DeriveError> {
     transform(Language::English, phrase, password)
 }
 
@@ -74,7 +74,7 @@ pub fn encrypt_in(
     language: Language,
     phrase: &str,
     password: &str,
-) -> Result<Zeroizing<String>, Error> {
+) -> Result<Zeroizing<String>, DeriveError> {
     transform(language, phrase, password)
 }
 
@@ -91,7 +91,7 @@ pub fn encrypt_in(
 /// # Errors
 ///
 /// Returns an error if the mnemonic is invalid or if key derivation fails.
-pub fn decrypt(camouflaged: &str, password: &str) -> Result<Zeroizing<String>, Error> {
+pub fn decrypt(camouflaged: &str, password: &str) -> Result<Zeroizing<String>, DeriveError> {
     transform(Language::English, camouflaged, password)
 }
 
@@ -107,7 +107,7 @@ pub fn decrypt_in(
     language: Language,
     camouflaged: &str,
     password: &str,
-) -> Result<Zeroizing<String>, Error> {
+) -> Result<Zeroizing<String>, DeriveError> {
     transform(language, camouflaged, password)
 }
 
@@ -115,9 +115,13 @@ pub fn decrypt_in(
 ///
 /// Since XOR is self-inverse, this single function handles both encryption
 /// and decryption.
-fn transform(language: Language, phrase: &str, password: &str) -> Result<Zeroizing<String>, Error> {
+fn transform(
+    language: Language,
+    phrase: &str,
+    password: &str,
+) -> Result<Zeroizing<String>, DeriveError> {
     if password.is_empty() {
-        return Err(Error::EmptyPassword);
+        return Err(DeriveError::EmptyPassword);
     }
 
     // Parse the mnemonic and extract raw entropy.
@@ -130,12 +134,21 @@ fn transform(language: Language, phrase: &str, password: &str) -> Result<Zeroizi
 
     // XOR the entropy with the derived key.
     let mut new_entropy = Zeroizing::new([0u8; MAX_ENTROPY_LEN]);
-    for i in 0..entropy_len {
-        new_entropy[i] = entropy[i] ^ key[i];
+    for (dst, (ent, kb)) in new_entropy
+        .iter_mut()
+        .zip(entropy.iter().zip(key.iter()))
+        .take(entropy_len)
+    {
+        *dst = ent ^ kb;
     }
 
     // Re-encode as a valid BIP-39 mnemonic (checksum is recalculated automatically).
-    let new_mnemonic = Mnemonic::from_entropy_in(language, &new_entropy[..entropy_len])?;
+    let new_mnemonic = Mnemonic::from_entropy_in(
+        language,
+        new_entropy
+            .get(..entropy_len)
+            .ok_or(DeriveError::KeyDerivation)?,
+    )?;
     Ok(Zeroizing::new(new_mnemonic.to_string()))
 }
 
@@ -145,7 +158,7 @@ const HMAC_SHA256_LEN: usize = 32;
 /// XOR `src` into `dest` (`dest[i] ^= src[i]`).
 ///
 /// Handles the case where `dest` is shorter than `src` (last-block truncation).
-#[inline(always)]
+#[inline]
 fn xor_buf(dest: &mut [u8], src: &[u8]) {
     dest.iter_mut().zip(src).for_each(|(d, s)| *d ^= s);
 }
@@ -163,8 +176,8 @@ fn pbkdf2_hmac_sha256(
     salt: &[u8],
     iterations: u32,
     output: &mut [u8],
-) -> Result<(), Error> {
-    let prf = Hmac::<Sha256>::new_from_slice(password).map_err(|_| Error::KeyDerivation)?;
+) -> Result<(), DeriveError> {
+    let prf = Hmac::<Sha256>::new_from_slice(password).map_err(|_| DeriveError::KeyDerivation)?;
 
     for (i, chunk) in output.chunks_mut(HMAC_SHA256_LEN).enumerate() {
         chunk.fill(0);
@@ -172,16 +185,16 @@ fn pbkdf2_hmac_sha256(
         // U_1 = PRF(password, salt || INT(i + 1))
         let mut mac = prf.clone();
         mac.update(salt);
-        #[allow(clippy::cast_possible_truncation)]
-        mac.update(&(i as u32 + 1).to_be_bytes());
+        let block_num = u32::try_from(i + 1).map_err(|_| DeriveError::KeyDerivation)?;
+        mac.update(&block_num.to_be_bytes());
         let mut u = mac.finalize().into_bytes();
-        xor_buf(chunk, &u);
+        chunk.copy_from_slice(u.get(..chunk.len()).ok_or(DeriveError::KeyDerivation)?);
 
         // U_2 .. U_c
         for _ in 1..iterations {
-            let mut mac = prf.clone();
-            mac.update(&u);
-            u = mac.finalize().into_bytes();
+            let mut inner_mac = prf.clone();
+            inner_mac.update(&u);
+            u = inner_mac.finalize().into_bytes();
             xor_buf(chunk, &u);
         }
     }
@@ -192,19 +205,18 @@ fn pbkdf2_hmac_sha256(
 /// Derive a key from a password using [`pbkdf2_hmac_sha256`].
 ///
 /// Returns a [`Zeroizing`] buffer of exactly `len` bytes.
-fn derive_key(password: &str, len: usize) -> Result<Zeroizing<[u8; MAX_ENTROPY_LEN]>, Error> {
+fn derive_key(password: &str, len: usize) -> Result<Zeroizing<[u8; MAX_ENTROPY_LEN]>, DeriveError> {
     let mut key = Zeroizing::new([0u8; MAX_ENTROPY_LEN]);
     pbkdf2_hmac_sha256(
         password.as_bytes(),
         PBKDF2_SALT,
         PBKDF2_ITERATIONS,
-        &mut key[..len],
+        key.get_mut(..len).ok_or(DeriveError::KeyDerivation)?,
     )?;
     Ok(key)
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

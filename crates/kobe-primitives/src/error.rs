@@ -6,7 +6,7 @@ use alloc::{string::String, vec::Vec};
 /// Errors that can occur during wallet operations.
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
-pub enum Error {
+pub enum DeriveError {
     /// Invalid mnemonic phrase.
     #[error("invalid mnemonic: {0}")]
     Mnemonic(#[cfg_attr(feature = "std", from)] bip39::Error),
@@ -71,7 +71,7 @@ pub enum Error {
 }
 
 #[cfg(not(feature = "std"))]
-impl From<bip39::Error> for Error {
+impl From<bip39::Error> for DeriveError {
     fn from(e: bip39::Error) -> Self {
         Self::Mnemonic(e)
     }

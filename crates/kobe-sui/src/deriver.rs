@@ -5,13 +5,12 @@ use alloc::{format, vec::Vec};
 
 use blake2::Blake2bVar;
 use blake2::digest::{Update, VariableOutput};
-use ed25519_dalek::VerifyingKey;
 pub use kobe_primitives::DerivedAccount;
 use kobe_primitives::slip10::DerivedKey;
 use kobe_primitives::{Derive, Wallet};
 use zeroize::Zeroizing;
 
-use crate::Error;
+use crate::DeriveError;
 
 /// Ed25519 signature scheme flag used by Sui.
 const ED25519_FLAG: u8 = 0x00;
@@ -34,16 +33,16 @@ impl<'a> Deriver<'a> {
     }
 
     /// Internal: derive at an arbitrary SLIP-10 path.
-    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         let derived_key = DerivedKey::derive_path(self.wallet.seed(), path)?;
         let signing_key = derived_key.to_signing_key();
-        let verifying_key: VerifyingKey = signing_key.verifying_key();
+        let verifying_key = signing_key.verifying_key();
         let pubkey_bytes: &[u8; 32] = verifying_key.as_bytes();
 
         let mut buf = Vec::with_capacity(33);
         buf.push(ED25519_FLAG);
         buf.extend_from_slice(pubkey_bytes);
-        let hash = blake2b_256(&buf);
+        let hash = blake2b_256(&buf)?;
 
         Ok(DerivedAccount::new(
             path.to_owned(),
@@ -55,30 +54,29 @@ impl<'a> Deriver<'a> {
 }
 
 impl Derive for Deriver<'_> {
-    type Error = Error;
+    type Error = DeriveError;
 
-    fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
+    fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
         self.derive_at_path(&format!("m/44'/784'/{index}'/0'/0'"))
     }
 
-    fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+    fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         self.derive_at_path(path)
     }
 }
 
 /// Compute BLAKE2b-256.
-fn blake2b_256(data: &[u8]) -> [u8; 32] {
-    #[allow(clippy::expect_used)]
-    let mut hasher = Blake2bVar::new(32).expect("valid output size");
+fn blake2b_256(data: &[u8]) -> Result<[u8; 32], DeriveError> {
+    let mut hasher = Blake2bVar::new(32).map_err(|_| DeriveError::Hashing)?;
     hasher.update(data);
     let mut out = [0u8; 32];
-    #[allow(clippy::expect_used)]
-    hasher.finalize_variable(&mut out).expect("correct length");
-    out
+    hasher
+        .finalize_variable(&mut out)
+        .map_err(|_| DeriveError::Hashing)?;
+    Ok(out)
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

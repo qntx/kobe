@@ -8,7 +8,7 @@ use crate::output::{self, AccountOutput, HdWalletOutput};
 
 /// Spark (Bitcoin L2) wallet operations.
 #[derive(Args)]
-pub struct SparkCommand {
+pub(crate) struct SparkCommand {
     #[command(subcommand)]
     command: SparkSubcommand,
 }

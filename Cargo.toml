@@ -4,7 +4,7 @@ default-members = ["crates/kobe"]
 resolver = "3"
 
 [workspace.package]
-version = "0.7.8"
+version = "0.8.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/qntx/kobe"
@@ -13,18 +13,18 @@ keywords = ["crypto", "wallet", "bitcoin", "ethereum", "solana"]
 categories = ["cryptography::cryptocurrencies"]
 
 [workspace.dependencies]
-kobe-primitives = { version = "0.7", path = "crates/kobe-primitives", default-features = false }
-kobe = { version = "0.7", path = "crates/kobe", default-features = false }
-kobe-btc = { version = "0.7", path = "crates/kobe-btc", default-features = false }
-kobe-cosmos = { version = "0.7", path = "crates/kobe-cosmos", default-features = false }
-kobe-evm = { version = "0.7", path = "crates/kobe-evm", default-features = false }
-kobe-fil = { version = "0.7", path = "crates/kobe-fil", default-features = false }
-kobe-spark = { version = "0.7", path = "crates/kobe-spark", default-features = false }
-kobe-sui = { version = "0.7", path = "crates/kobe-sui", default-features = false }
-kobe-svm = { version = "0.7", path = "crates/kobe-svm", default-features = false }
-kobe-ton = { version = "0.7", path = "crates/kobe-ton", default-features = false }
-kobe-tron = { version = "0.7", path = "crates/kobe-tron", default-features = false }
-kobe-xrpl = { version = "0.7", path = "crates/kobe-xrpl", default-features = false }
+kobe-primitives = { version = "0.8", path = "crates/kobe-primitives", default-features = false }
+kobe = { version = "0.8", path = "crates/kobe", default-features = false }
+kobe-btc = { version = "0.8", path = "crates/kobe-btc", default-features = false }
+kobe-cosmos = { version = "0.8", path = "crates/kobe-cosmos", default-features = false }
+kobe-evm = { version = "0.8", path = "crates/kobe-evm", default-features = false }
+kobe-fil = { version = "0.8", path = "crates/kobe-fil", default-features = false }
+kobe-spark = { version = "0.8", path = "crates/kobe-spark", default-features = false }
+kobe-sui = { version = "0.8", path = "crates/kobe-sui", default-features = false }
+kobe-svm = { version = "0.8", path = "crates/kobe-svm", default-features = false }
+kobe-ton = { version = "0.8", path = "crates/kobe-ton", default-features = false }
+kobe-tron = { version = "0.8", path = "crates/kobe-tron", default-features = false }
+kobe-xrpl = { version = "0.8", path = "crates/kobe-xrpl", default-features = false }
 
 alloy-primitives = { version = "1.5.7", default-features = false, features = ["k256"] }
 base64 = { version = "0.22.1", default-features = false, features = ["alloc"] }
@@ -142,7 +142,6 @@ rc_mutex = "warn"
 
 fallible_impl_from = "warn"
 error_impl_error = "warn"
-try_err = "warn"
 let_underscore_must_use = "warn"
 
 rest_pat_in_fully_bound_structs = "warn"
@@ -153,6 +152,7 @@ implicit_hasher = "warn"
 redundant_type_annotations = "warn"
 
 str_to_string = "warn"
+string_to_string = "warn"
 string_lit_as_bytes = "warn"
 needless_raw_string_hashes = "warn"
 format_push_string = "warn"
@@ -186,7 +186,6 @@ allow_attributes_without_reason = "warn"
 missing_assert_message = "warn"
 empty_line_after_doc_comments = "warn"
 empty_line_after_outer_attr = "warn"
-redundant_clone = "warn"
 
 missing_docs_in_private_items = "allow"
 missing_errors_doc = "warn"
@@ -207,3 +206,4 @@ multiple_crate_versions = "allow"
 cargo_common_metadata = "allow"
 semicolon_inside_block = "allow"
 semicolon_outside_block = "allow"
+redundant_pub_crate = "allow"

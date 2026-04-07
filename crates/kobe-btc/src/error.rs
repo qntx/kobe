@@ -6,10 +6,10 @@ use alloc::string::String;
 /// Errors from Bitcoin HD derivation.
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
-pub enum Error {
+pub enum DeriveError {
     /// Core kobe error (index overflow, etc.).
     #[error(transparent)]
-    Core(#[from] kobe_primitives::Error),
+    Core(#[from] kobe_primitives::DeriveError),
 
     /// BIP-32 derivation error.
     #[error("bip32: {0}")]
@@ -30,14 +30,14 @@ pub enum Error {
 }
 
 #[cfg(not(feature = "std"))]
-impl From<bitcoin::bip32::Error> for Error {
+impl From<bitcoin::bip32::Error> for DeriveError {
     fn from(e: bitcoin::bip32::Error) -> Self {
         Self::Bip32(e)
     }
 }
 
 #[cfg(not(feature = "std"))]
-impl From<bitcoin::secp256k1::Error> for Error {
+impl From<bitcoin::secp256k1::Error> for DeriveError {
     fn from(e: bitcoin::secp256k1::Error) -> Self {
         Self::Secp256k1(e)
     }

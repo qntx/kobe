@@ -8,7 +8,7 @@ use crate::output::{self, AccountOutput, HdWalletOutput};
 
 /// Cosmos wallet operations.
 #[derive(Args)]
-pub struct CosmosCommand {
+pub(crate) struct CosmosCommand {
     #[command(subcommand)]
     command: CosmosSubcommand,
 }

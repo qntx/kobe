@@ -12,7 +12,7 @@ use kobe_primitives::{Derive, DerivedAccount, Wallet};
 use zeroize::Zeroizing;
 
 use crate::address::create_address;
-use crate::{AddressType, DerivationPath, Error, Network};
+use crate::{AddressType, DerivationPath, DeriveError, Network};
 
 /// Bitcoin address deriver from a unified wallet seed.
 ///
@@ -55,7 +55,7 @@ impl<'a> Deriver<'a> {
     ///
     /// Returns an error if the master key derivation fails.
     #[inline]
-    pub fn new(wallet: &'a Wallet, network: Network) -> Result<Self, Error> {
+    pub fn new(wallet: &'a Wallet, network: Network) -> Result<Self, DeriveError> {
         let master_key = Xpriv::new_master(network.to_bitcoin_network(), wallet.seed())?;
 
         Ok(Self {
@@ -78,7 +78,7 @@ impl<'a> Deriver<'a> {
     ///
     /// Returns an error if derivation fails.
     #[inline]
-    pub fn derive(&self, index: u32) -> Result<DerivedAddress, Error> {
+    pub fn derive(&self, index: u32) -> Result<DerivedAddress, DeriveError> {
         self.derive_with(AddressType::P2wpkh, index)
     }
 
@@ -103,7 +103,7 @@ impl<'a> Deriver<'a> {
         &self,
         address_type: AddressType,
         index: u32,
-    ) -> Result<DerivedAddress, Error> {
+    ) -> Result<DerivedAddress, DeriveError> {
         let path = DerivationPath::bip_standard(address_type, self.network, 0, false, index)?;
         self.derive_path(&path, address_type)
     }
@@ -119,7 +119,7 @@ impl<'a> Deriver<'a> {
     ///
     /// Returns an error if any derivation fails.
     #[inline]
-    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAddress>, Error> {
+    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAddress>, DeriveError> {
         self.derive_many_with(AddressType::P2wpkh, start, count)
     }
 
@@ -139,9 +139,11 @@ impl<'a> Deriver<'a> {
         address_type: AddressType,
         start: u32,
         count: u32,
-    ) -> Result<Vec<DerivedAddress>, Error> {
+    ) -> Result<Vec<DerivedAddress>, DeriveError> {
         let end = start.checked_add(count).ok_or_else(|| {
-            Error::InvalidDerivationPath("index overflow: start + count exceeds u32::MAX".into())
+            DeriveError::InvalidDerivationPath(
+                "index overflow: start + count exceeds u32::MAX".into(),
+            )
         })?;
         (start..end)
             .map(|index| self.derive_with(address_type, index))
@@ -170,12 +172,12 @@ impl<'a> Deriver<'a> {
         &self,
         path: &DerivationPath,
         address_type: AddressType,
-    ) -> Result<DerivedAddress, Error> {
+    ) -> Result<DerivedAddress, DeriveError> {
         let derived = self.master_key.derive_priv(&self.secp, path.inner())?;
 
         let private_key = PrivateKey::new(derived.private_key, self.network.to_bitcoin_network());
         let public_key = CompressedPublicKey::from_private_key(&self.secp, &private_key)
-            .map_err(|_| Error::InvalidPrivateKey)?;
+            .map_err(|_| DeriveError::InvalidPrivateKey)?;
 
         let address = create_address(&public_key, self.network, address_type);
 
@@ -198,7 +200,7 @@ impl<'a> Deriver<'a> {
     }
 
     /// Internal: derive a [`DerivedAccount`] at a string path with default P2WPKH.
-    fn derive_account_at_path(&self, path_str: &str) -> Result<DerivedAccount, Error> {
+    fn derive_account_at_path(&self, path_str: &str) -> Result<DerivedAccount, DeriveError> {
         let path = DerivationPath::from_path_str(path_str)?;
         let da = self.derive_path(&path, AddressType::P2wpkh)?;
         Ok(DerivedAccount::new(
@@ -211,9 +213,9 @@ impl<'a> Deriver<'a> {
 }
 
 impl Derive for Deriver<'_> {
-    type Error = Error;
+    type Error = DeriveError;
 
-    fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
+    fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
         let da = self.derive_with(AddressType::P2wpkh, index)?;
         Ok(DerivedAccount::new(
             da.path.to_string(),
@@ -223,13 +225,12 @@ impl Derive for Deriver<'_> {
         ))
     }
 
-    fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+    fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         self.derive_account_at_path(path)
     }
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

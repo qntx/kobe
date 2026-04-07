@@ -8,7 +8,7 @@ use crate::output::{self, AccountOutput, HdWalletOutput};
 
 /// XRP Ledger wallet operations.
 #[derive(Args)]
-pub struct XrplCommand {
+pub(crate) struct XrplCommand {
     #[command(subcommand)]
     command: XrplSubcommand,
 }

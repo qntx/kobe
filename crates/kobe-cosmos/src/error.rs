@@ -6,10 +6,10 @@ use alloc::string::String;
 /// Errors that can occur during Cosmos wallet operations.
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
-pub enum Error {
+pub enum DeriveError {
     /// Core kobe error (index overflow, BIP-32 derivation, etc.).
     #[error(transparent)]
-    Core(#[from] kobe_primitives::Error),
+    Core(#[from] kobe_primitives::DeriveError),
 
     /// Address encoding error.
     #[cfg(feature = "alloc")]

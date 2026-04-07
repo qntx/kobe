@@ -18,7 +18,7 @@ mod error;
 pub use derivation_style::{DerivationStyle, ParseDerivationStyleError};
 #[cfg(feature = "alloc")]
 pub use deriver::{DerivedAddress, Deriver};
-pub use error::Error;
+pub use error::DeriveError;
 
 /// Convenient Result alias.
-pub type Result<T> = core::result::Result<T, Error>;
+pub type Result<T> = core::result::Result<T, DeriveError>;

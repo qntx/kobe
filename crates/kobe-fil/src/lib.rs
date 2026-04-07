@@ -13,7 +13,7 @@ mod error;
 
 #[cfg(feature = "alloc")]
 pub use deriver::{DerivedAccount, Deriver};
-pub use error::Error;
+pub use error::DeriveError;
 
 /// A convenient Result type alias for kobe-fil operations.
-pub type Result<T> = core::result::Result<T, Error>;
+pub type Result<T> = core::result::Result<T, DeriveError>;

@@ -3,12 +3,11 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use ed25519_dalek::VerifyingKey;
 use kobe_primitives::slip10::DerivedKey;
 use kobe_primitives::{Derive, DerivedAccount, Wallet};
 use zeroize::Zeroizing;
 
-use crate::Error;
+use crate::DeriveError;
 use crate::derivation_style::DerivationStyle;
 
 /// A derived Solana address with associated keys.
@@ -59,7 +58,7 @@ impl<'a> Deriver<'a> {
     ///
     /// Returns an error if derivation fails.
     #[inline]
-    pub fn derive(&self, index: u32) -> Result<DerivedAddress, Error> {
+    pub fn derive(&self, index: u32) -> Result<DerivedAddress, DeriveError> {
         self.derive_with(DerivationStyle::Standard, index)
     }
 
@@ -79,8 +78,11 @@ impl<'a> Deriver<'a> {
     /// # Errors
     ///
     /// Returns an error if derivation fails.
-    #[allow(deprecated)]
-    pub fn derive_with(&self, style: DerivationStyle, index: u32) -> Result<DerivedAddress, Error> {
+    pub fn derive_with(
+        &self,
+        style: DerivationStyle,
+        index: u32,
+    ) -> Result<DerivedAddress, DeriveError> {
         let path = style.path(index);
         let derived = DerivedKey::derive_path(self.wallet.seed(), &path)?;
         Ok(build_derived_address(&derived, path))
@@ -97,7 +99,7 @@ impl<'a> Deriver<'a> {
     ///
     /// Returns an error if any derivation fails.
     #[inline]
-    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAddress>, Error> {
+    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAddress>, DeriveError> {
         self.derive_many_with(DerivationStyle::Standard, start, count)
     }
 
@@ -117,10 +119,10 @@ impl<'a> Deriver<'a> {
         style: DerivationStyle,
         start: u32,
         count: u32,
-    ) -> Result<Vec<DerivedAddress>, Error> {
+    ) -> Result<Vec<DerivedAddress>, DeriveError> {
         let end = start
             .checked_add(count)
-            .ok_or(kobe_primitives::Error::IndexOverflow)?;
+            .ok_or(kobe_primitives::DeriveError::IndexOverflow)?;
         (start..end)
             .map(|index| self.derive_with(style, index))
             .collect()
@@ -141,16 +143,16 @@ impl<'a> Deriver<'a> {
     /// # Errors
     ///
     /// Returns an error if derivation fails.
-    pub fn derive_path(&self, path: &str) -> Result<DerivedAddress, Error> {
+    pub fn derive_path(&self, path: &str) -> Result<DerivedAddress, DeriveError> {
         let derived = DerivedKey::derive_path(self.wallet.seed(), path)?;
         Ok(build_derived_address(&derived, path.to_owned()))
     }
 }
 
 impl Derive for Deriver<'_> {
-    type Error = Error;
+    type Error = DeriveError;
 
-    fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
+    fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
         let da = self.derive_with(DerivationStyle::Standard, index)?;
         Ok(DerivedAccount::new(
             da.path,
@@ -160,7 +162,7 @@ impl Derive for Deriver<'_> {
         ))
     }
 
-    fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+    fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         let da = Deriver::derive_path(self, path)?;
         Ok(DerivedAccount::new(
             da.path,
@@ -174,12 +176,13 @@ impl Derive for Deriver<'_> {
 /// Build a [`DerivedAddress`] from a raw [`DerivedKey`] and path string.
 fn build_derived_address(derived: &DerivedKey, path: String) -> DerivedAddress {
     let signing_key = derived.to_signing_key();
-    let verifying_key: VerifyingKey = signing_key.verifying_key();
+    let verifying_key = signing_key.verifying_key();
     let public_key_bytes = verifying_key.as_bytes();
 
     let mut keypair_bytes = Zeroizing::new([0u8; 64]);
-    keypair_bytes[..32].copy_from_slice(derived.private_key.as_slice());
-    keypair_bytes[32..].copy_from_slice(public_key_bytes);
+    let (left, right) = keypair_bytes.split_at_mut(32);
+    left.copy_from_slice(derived.private_key.as_slice());
+    right.copy_from_slice(public_key_bytes);
     let keypair_b58 = bs58::encode(&*keypair_bytes).into_string();
 
     DerivedAddress {
@@ -192,7 +195,6 @@ fn build_derived_address(derived: &DerivedKey, path: String) -> DerivedAddress {
 }
 
 #[cfg(test)]
-#[allow(deprecated, clippy::unwrap_used)]
 mod tests {
     use super::*;
 

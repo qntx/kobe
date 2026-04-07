@@ -6,11 +6,11 @@ use core::fmt;
 use core::str::FromStr;
 
 #[cfg(feature = "alloc")]
-use crate::{Error, Network};
+use crate::{DeriveError, Network};
 
 /// Bitcoin address types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-#[allow(clippy::exhaustive_enums)]
+#[non_exhaustive]
 pub enum AddressType {
     /// Pay to Public Key Hash (Legacy) - starts with 1 or m/n
     P2pkh,
@@ -109,7 +109,7 @@ impl DerivationPath {
         account: u32,
         change: bool,
         address_index: u32,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, DeriveError> {
         let purpose = address_type.purpose();
         let coin_type = network.coin_type();
         let change_val = i32::from(change);
@@ -117,7 +117,7 @@ impl DerivationPath {
         let path_str = format!("m/{purpose}'/{coin_type}'/{account}'/{change_val}/{address_index}");
 
         let inner = bitcoin::bip32::DerivationPath::from_str(&path_str)
-            .map_err(|e| Error::InvalidDerivationPath(e.to_string()))?;
+            .map_err(|e| DeriveError::InvalidDerivationPath(e.to_string()))?;
         Ok(Self { inner })
     }
 
@@ -126,9 +126,9 @@ impl DerivationPath {
     /// # Errors
     ///
     /// Returns an error if the path string is invalid.
-    pub fn from_path_str(path: &str) -> Result<Self, Error> {
+    pub fn from_path_str(path: &str) -> Result<Self, DeriveError> {
         let inner = bitcoin::bip32::DerivationPath::from_str(path)
-            .map_err(|e| Error::InvalidDerivationPath(e.to_string()))?;
+            .map_err(|e| DeriveError::InvalidDerivationPath(e.to_string()))?;
         Ok(Self { inner })
     }
 
@@ -155,7 +155,6 @@ impl AsRef<bitcoin::bip32::DerivationPath> for DerivationPath {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

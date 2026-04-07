@@ -27,7 +27,7 @@ use alloc::vec::Vec;
 
 use bip39::Language;
 
-use crate::Error;
+use crate::DeriveError;
 
 /// Minimum prefix length required for unambiguous word expansion.
 ///
@@ -48,10 +48,10 @@ const MIN_PREFIX_LEN: usize = 4;
 ///
 /// # Errors
 ///
-/// Returns [`Error::UnknownPrefix`] if a token does not match any word.
-/// Returns [`Error::AmbiguousPrefix`] if a token matches multiple words.
-/// Returns [`Error::PrefixTooShort`] if a non-exact token has fewer than 4 characters.
-pub fn expand(phrase: &str) -> Result<String, Error> {
+/// Returns [`DeriveError::UnknownPrefix`] if a token does not match any word.
+/// Returns [`DeriveError::AmbiguousPrefix`] if a token matches multiple words.
+/// Returns [`DeriveError::PrefixTooShort`] if a non-exact token has fewer than 4 characters.
+pub fn expand(phrase: &str) -> Result<String, DeriveError> {
     expand_in(Language::English, phrase)
 }
 
@@ -61,10 +61,10 @@ pub fn expand(phrase: &str) -> Result<String, Error> {
 ///
 /// # Errors
 ///
-/// Returns [`Error::UnknownPrefix`] if a token does not match any word.
-/// Returns [`Error::AmbiguousPrefix`] if a token matches multiple words.
-/// Returns [`Error::PrefixTooShort`] if a non-exact token has fewer than 4 characters.
-pub fn expand_in(language: Language, phrase: &str) -> Result<String, Error> {
+/// Returns [`DeriveError::UnknownPrefix`] if a token does not match any word.
+/// Returns [`DeriveError::AmbiguousPrefix`] if a token matches multiple words.
+/// Returns [`DeriveError::PrefixTooShort`] if a non-exact token has fewer than 4 characters.
+pub fn expand_in(language: Language, phrase: &str) -> Result<String, DeriveError> {
     let word_list = language.word_list();
     let tokens: Vec<&str> = phrase.split_whitespace().collect();
 
@@ -82,15 +82,18 @@ pub fn expand_in(language: Language, phrase: &str) -> Result<String, Error> {
 /// Resolve a single token against the wordlist.
 ///
 /// Returns the full word if the token is an exact match or a unique prefix.
-fn resolve_token<'a>(word_list: &'a [&'a str; 2048], token: &str) -> Result<&'a str, Error> {
+fn resolve_token<'a>(word_list: &'a [&'a str; 2048], token: &str) -> Result<&'a str, DeriveError> {
     // Fast path: exact match via binary search (wordlist is sorted).
     if let Ok(idx) = word_list.binary_search(&token) {
-        return Ok(word_list[idx]);
+        return word_list
+            .get(idx)
+            .copied()
+            .ok_or_else(|| DeriveError::UnknownPrefix(String::from(token)));
     }
 
     // Token is not an exact word — treat as prefix.
     if token.len() < MIN_PREFIX_LEN {
-        return Err(Error::PrefixTooShort {
+        return Err(DeriveError::PrefixTooShort {
             prefix: String::from(token),
             min_len: MIN_PREFIX_LEN,
         });
@@ -98,16 +101,21 @@ fn resolve_token<'a>(word_list: &'a [&'a str; 2048], token: &str) -> Result<&'a 
 
     // Binary search for the prefix range (wordlist is sorted).
     let start = word_list.partition_point(|w| *w < token);
-    let matches: Vec<&str> = word_list[start..]
+    let matches: Vec<&str> = word_list
+        .get(start..)
+        .unwrap_or_default()
         .iter()
         .take_while(|w| w.starts_with(token))
         .copied()
         .collect();
 
     match matches.len() {
-        0 => Err(Error::UnknownPrefix(String::from(token))),
-        1 => Ok(matches[0]),
-        _ => Err(Error::AmbiguousPrefix {
+        0 => Err(DeriveError::UnknownPrefix(String::from(token))),
+        1 => matches
+            .first()
+            .copied()
+            .ok_or_else(|| DeriveError::UnknownPrefix(String::from(token))),
+        _ => Err(DeriveError::AmbiguousPrefix {
             prefix: String::from(token),
             candidates: matches.iter().map(|w| String::from(*w)).collect(),
         }),
@@ -115,7 +123,6 @@ fn resolve_token<'a>(word_list: &'a [&'a str; 2048], token: &str) -> Result<&'a 
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
@@ -156,7 +163,7 @@ mod tests {
         let result = expand("aba aba aba aba aba aba aba aba aba aba aba aba");
         assert!(result.is_err());
         assert!(
-            matches!(result, Err(Error::PrefixTooShort { .. })),
+            matches!(result, Err(DeriveError::PrefixTooShort { .. })),
             "expected PrefixTooShort error"
         );
     }
@@ -166,7 +173,7 @@ mod tests {
         let result = expand("aban aban aban aban aban aban aban aban aban aban aban zzzz");
         assert!(result.is_err());
         assert!(
-            matches!(result, Err(Error::UnknownPrefix(_))),
+            matches!(result, Err(DeriveError::UnknownPrefix(_))),
             "expected UnknownPrefix error"
         );
     }

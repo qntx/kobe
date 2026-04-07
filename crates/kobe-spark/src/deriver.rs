@@ -6,7 +6,7 @@ use alloc::format;
 pub use kobe_primitives::DerivedAccount;
 use kobe_primitives::{Derive, Wallet};
 
-use crate::Error;
+use crate::DeriveError;
 
 /// Spark address deriver from a unified wallet seed.
 ///
@@ -27,7 +27,7 @@ impl<'a> Deriver<'a> {
     }
 
     /// Internal: derive at an arbitrary BIP-32 path.
-    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         let key = kobe_primitives::bip32::DerivedSecp256k1Key::derive(self.wallet.seed(), path)?;
         let pubkey_hex = key.compressed_pubkey_hex();
 
@@ -41,19 +41,18 @@ impl<'a> Deriver<'a> {
 }
 
 impl Derive for Deriver<'_> {
-    type Error = Error;
+    type Error = DeriveError;
 
-    fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
+    fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
         self.derive_at_path(&format!("m/84'/0'/0'/0/{index}"))
     }
 
-    fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+    fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         self.derive_at_path(path)
     }
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

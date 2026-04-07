@@ -8,7 +8,7 @@ use alloy_primitives::{Address, keccak256};
 pub use kobe_primitives::DerivedAccount;
 use kobe_primitives::{Derive, Wallet};
 
-use crate::Error;
+use crate::DeriveError;
 
 /// Derivation path styles for different wallet software.
 ///
@@ -55,14 +55,14 @@ impl fmt::Display for DerivationStyle {
 }
 
 impl FromStr for DerivationStyle {
-    type Err = Error;
+    type Err = DeriveError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "standard" | "metamask" | "trezor" | "bip44" => Ok(Self::Standard),
             "ledger-live" | "ledgerlive" | "live" => Ok(Self::LedgerLive),
             "ledger-legacy" | "ledgerlegacy" | "legacy" | "mew" => Ok(Self::LedgerLegacy),
-            _ => Err(Error::UnknownDerivationStyle(s.into())),
+            _ => Err(DeriveError::UnknownDerivationStyle(s.into())),
         }
     }
 }
@@ -82,30 +82,46 @@ impl<'a> Deriver<'a> {
     }
 
     /// Derive with a specific [`DerivationStyle`].
-    pub fn derive_with(&self, style: DerivationStyle, index: u32) -> Result<DerivedAccount, Error> {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key derivation fails.
+    pub fn derive_with(
+        &self,
+        style: DerivationStyle,
+        index: u32,
+    ) -> Result<DerivedAccount, DeriveError> {
         self.derive_at_path(&style.path(index))
     }
 
     /// Derive `count` accounts starting at `start` with a specific style.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if any individual derivation fails or `start + count` overflows.
     pub fn derive_many_with(
         &self,
         style: DerivationStyle,
         start: u32,
         count: u32,
-    ) -> Result<Vec<DerivedAccount>, Error> {
+    ) -> Result<Vec<DerivedAccount>, DeriveError> {
         let end = start
             .checked_add(count)
-            .ok_or(kobe_primitives::Error::IndexOverflow)?;
+            .ok_or(kobe_primitives::DeriveError::IndexOverflow)?;
         (start..end).map(|i| self.derive_with(style, i)).collect()
     }
 
     /// Internal: derive at an arbitrary path.
-    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         let key = kobe_primitives::bip32::DerivedSecp256k1Key::derive(self.wallet.seed(), path)?;
         let uncompressed = key.uncompressed_pubkey();
 
         let addr_hash = keccak256(&uncompressed[1..]);
-        let address = Address::from_slice(&addr_hash[12..]);
+        let address = Address::from_slice(
+            addr_hash
+                .get(12..)
+                .ok_or(kobe_primitives::DeriveError::IndexOverflow)?,
+        );
 
         Ok(DerivedAccount::new(
             path.to_owned(),
@@ -117,19 +133,18 @@ impl<'a> Deriver<'a> {
 }
 
 impl Derive for Deriver<'_> {
-    type Error = Error;
+    type Error = DeriveError;
 
-    fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
+    fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
         self.derive_with(DerivationStyle::Standard, index)
     }
 
-    fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
+    fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         self.derive_at_path(path)
     }
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use kobe_primitives::DeriveExt;
 

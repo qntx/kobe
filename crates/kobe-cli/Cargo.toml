@@ -17,7 +17,6 @@ path = "src/main.rs"
 kobe = { workspace = true, features = ["std", "rand", "camouflage", "all-chains"] }
 clap.workspace = true
 colored.workspace = true
-zeroize.workspace = true
 qrcode.workspace = true
 serde.workspace = true
 serde_json.workspace = true

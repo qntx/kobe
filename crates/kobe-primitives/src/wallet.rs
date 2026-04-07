@@ -5,7 +5,7 @@ use alloc::string::{String, ToString};
 use bip39::{Language, Mnemonic};
 use zeroize::Zeroizing;
 
-use crate::Error;
+use crate::DeriveError;
 
 /// A unified HD wallet that can derive keys for multiple cryptocurrencies.
 ///
@@ -46,7 +46,7 @@ impl Wallet {
     ///
     /// This function requires the `rand` feature to be enabled.
     #[cfg(feature = "rand")]
-    pub fn generate(word_count: usize, passphrase: Option<&str>) -> Result<Self, Error> {
+    pub fn generate(word_count: usize, passphrase: Option<&str>) -> Result<Self, DeriveError> {
         Self::generate_in(Language::English, word_count, passphrase)
     }
 
@@ -70,9 +70,9 @@ impl Wallet {
         language: Language,
         word_count: usize,
         passphrase: Option<&str>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, DeriveError> {
         if !matches!(word_count, 12 | 15 | 18 | 21 | 24) {
-            return Err(Error::InvalidWordCount(word_count));
+            return Err(DeriveError::InvalidWordCount(word_count));
         }
 
         let mnemonic = Mnemonic::generate_in(language, word_count)?;
@@ -104,12 +104,12 @@ impl Wallet {
         language: Language,
         word_count: usize,
         passphrase: Option<&str>,
-    ) -> Result<Self, Error>
+    ) -> Result<Self, DeriveError>
     where
         R: bip39::rand_core::RngCore + bip39::rand_core::CryptoRng,
     {
         if !matches!(word_count, 12 | 15 | 18 | 21 | 24) {
-            return Err(Error::InvalidWordCount(word_count));
+            return Err(DeriveError::InvalidWordCount(word_count));
         }
 
         let mnemonic = Mnemonic::generate_in_with(rng, language, word_count)?;
@@ -129,7 +129,7 @@ impl Wallet {
     /// # Errors
     ///
     /// Returns an error if the entropy length is invalid.
-    pub fn from_entropy(entropy: &[u8], passphrase: Option<&str>) -> Result<Self, Error> {
+    pub fn from_entropy(entropy: &[u8], passphrase: Option<&str>) -> Result<Self, DeriveError> {
         Self::from_entropy_in(Language::English, entropy, passphrase)
     }
 
@@ -151,7 +151,7 @@ impl Wallet {
         language: Language,
         entropy: &[u8],
         passphrase: Option<&str>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, DeriveError> {
         let mnemonic = Mnemonic::from_entropy_in(language, entropy)?;
         Ok(Self::from_parts(&mnemonic, language, passphrase))
     }
@@ -168,7 +168,7 @@ impl Wallet {
     /// # Errors
     ///
     /// Returns an error if the mnemonic is invalid.
-    pub fn from_mnemonic(phrase: &str, passphrase: Option<&str>) -> Result<Self, Error> {
+    pub fn from_mnemonic(phrase: &str, passphrase: Option<&str>) -> Result<Self, DeriveError> {
         let mnemonic: Mnemonic = phrase.parse()?;
         let language = mnemonic.language();
         Ok(Self::from_parts(&mnemonic, language, passphrase))
@@ -189,7 +189,7 @@ impl Wallet {
         language: Language,
         phrase: &str,
         passphrase: Option<&str>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, DeriveError> {
         let mnemonic = Mnemonic::parse_in(language, phrase)?;
         Ok(Self::from_parts(&mnemonic, language, passphrase))
     }
@@ -248,7 +248,6 @@ impl Wallet {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
