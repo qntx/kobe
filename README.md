@@ -19,9 +19,9 @@
 [rust-badge]: https://img.shields.io/badge/rust-edition%202024-orange.svg
 [rust-url]: https://doc.rust-lang.org/edition-guide/
 
-**Modular, `no_std`-compatible Rust toolkit for multi-chain HD wallet derivation — 11 chains, one seed, zero hand-written cryptography.**
+**Modular, `no_std`-compatible Rust toolkit for multi-chain HD wallet derivation — 12 chains, one seed, zero hand-written cryptography.**
 
-Kobe derives standards-compliant addresses for Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, and XRP Ledger from a single BIP-39 mnemonic. All library crates compile under `no_std + alloc` and zeroize sensitive material on drop.
+Kobe derives standards-compliant addresses for Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, and XRP Ledger from a single BIP-39 mnemonic. All library crates compile under `no_std + alloc` and zeroize sensitive material on drop.
 
 <p align="center">
   <img src="demo.gif" alt="Kobe CLI Demo"/>
@@ -56,9 +56,10 @@ cargo install kobe-cli
 kobe btc new                              # Bitcoin (Native SegWit)
 kobe btc new -a taproot -w 24 -c 5        # 5 Taproot addresses, 24 words
 kobe evm new                              # Ethereum (MetaMask-compatible)
-kobe evm new --style ledger-live -c 3    # Ledger Live style, 3 accounts
+kobe evm new --style ledger-live -c 3     # Ledger Live style, 3 accounts
 kobe svm new                              # Solana (Phantom-compatible)
 kobe cosmos new                           # Cosmos Hub
+kobe aptos new                            # Aptos
 kobe sui new                              # Sui
 kobe ton new                              # TON
 
@@ -99,7 +100,7 @@ println!("Mnemonic: {}", wallet.mnemonic());
 
 ## Design
 
-- **11 chains** — Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger — one BIP-39 seed
+- **11 chains** — Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger — one BIP-39 seed
 - **HD standards** — BIP-32, BIP-39, BIP-44/49/84/86, SLIP-10
 - **Derivation styles** — Standard, Ledger Live, Ledger Legacy, Trust, Phantom, Backpack
 - **`no_std` + `alloc`** — All library crates compile without `std`; embedded / WASM ready

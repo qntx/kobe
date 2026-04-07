@@ -1,5 +1,6 @@
 //! CLI command definitions and handlers.
 
+mod aptos;
 mod bitcoin;
 mod cosmos;
 mod ethereum;
@@ -12,6 +13,7 @@ mod ton;
 mod tron;
 mod xrpl;
 
+pub(crate) use aptos::AptosCommand;
 pub(crate) use bitcoin::BitcoinCommand;
 use clap::{Parser, Subcommand};
 pub(crate) use cosmos::CosmosCommand;
@@ -42,6 +44,10 @@ pub(crate) struct Cli {
 /// Available blockchain commands.
 #[derive(Subcommand)]
 pub(crate) enum Commands {
+    /// Aptos wallet operations.
+    #[command(name = "aptos", alias = "apt")]
+    Aptos(AptosCommand),
+
     /// Bitcoin wallet operations.
     #[command(name = "btc", alias = "bitcoin")]
     Bitcoin(BitcoinCommand),

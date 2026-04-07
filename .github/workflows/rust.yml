@@ -53,6 +53,8 @@ jobs:
         run: cargo check -p kobe-primitives --target thumbv7m-none-eabi --no-default-features --features alloc
       - name: kobe-primitives (alloc + all optional)
         run: cargo check -p kobe-primitives --target thumbv7m-none-eabi --no-default-features --features "alloc,bip32,slip10,camouflage"
+      - name: kobe-aptos (no_std)
+        run: cargo check -p kobe-aptos --target thumbv7m-none-eabi --no-default-features --features alloc
       - name: kobe-btc (no_std)
         run: cargo check -p kobe-btc --target thumbv7m-none-eabi --no-default-features --features alloc
       - name: kobe-evm (no_std)

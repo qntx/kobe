@@ -4,6 +4,7 @@
 | --- | --- | --- |
 | **[`kobe`](kobe/)** | [![crates.io][kobe-crate]][kobe-crate-url] [![docs.rs][kobe-doc]][kobe-doc-url] | Umbrella crate — re-exports `kobe-primitives` + feature-gated chain crates |
 | **[`kobe-primitives`](kobe-primitives/)** | [![crates.io][kobe-primitives-crate]][kobe-primitives-crate-url] [![docs.rs][kobe-primitives-doc]][kobe-primitives-doc-url] | Core library — BIP-39/32, SLIP-10, Wallet, `no_std` + `alloc` |
+| **[`kobe-aptos`](kobe-aptos/)** | [![crates.io][kobe-aptos-crate]][kobe-aptos-crate-url] [![docs.rs][kobe-aptos-doc]][kobe-aptos-doc-url] | Aptos — SLIP-10 Ed25519 + SHA3-256 |
 | **[`kobe-btc`](kobe-btc/)** | [![crates.io][kobe-btc-crate]][kobe-btc-crate-url] [![docs.rs][kobe-btc-doc]][kobe-btc-doc-url] | Bitcoin — P2PKH, P2SH-P2WPKH, P2WPKH, P2TR |
 | **[`kobe-evm`](kobe-evm/)** | [![crates.io][kobe-evm-crate]][kobe-evm-crate-url] [![docs.rs][kobe-evm-doc]][kobe-evm-doc-url] | Ethereum — MetaMask / Ledger Live / Ledger Legacy styles |
 | **[`kobe-svm`](kobe-svm/)** | [![crates.io][kobe-svm-crate]][kobe-svm-crate-url] [![docs.rs][kobe-svm-doc]][kobe-svm-doc-url] | Solana — Phantom / Trust / Ledger Live styles |
@@ -22,6 +23,7 @@
 kobe-cli
   └── kobe (umbrella)
         ├── kobe-primitives
+        ├── kobe-aptos  ── kobe-primitives/slip10
         ├── kobe-btc    ── kobe-primitives (bitcoin Xpriv)
         ├── kobe-evm    ── kobe-primitives/bip32
         ├── kobe-svm    ── kobe-primitives/slip10
@@ -53,6 +55,7 @@ The umbrella `kobe` crate provides fine-grained feature control:
 | `fil` | | Filecoin chain support (enables `bip32`) |
 | `ton` | | TON chain support (enables `slip10`) |
 | `sui` | | Sui chain support (enables `slip10`) |
+| `aptos` | | Aptos chain support (enables `slip10`) |
 | `xrpl` | | XRP Ledger chain support (enables `bip32`) |
 | `all-chains` | | Enable all chain crates |
 
@@ -60,6 +63,8 @@ The umbrella `kobe` crate provides fine-grained feature control:
 [kobe-crate-url]: https://crates.io/crates/kobe
 [kobe-primitives-crate]: https://img.shields.io/crates/v/kobe-primitives.svg
 [kobe-primitives-crate-url]: https://crates.io/crates/kobe-primitives
+[kobe-aptos-crate]: https://img.shields.io/crates/v/kobe-aptos.svg
+[kobe-aptos-crate-url]: https://crates.io/crates/kobe-aptos
 [kobe-btc-crate]: https://img.shields.io/crates/v/kobe-btc.svg
 [kobe-btc-crate-url]: https://crates.io/crates/kobe-btc
 [kobe-evm-crate]: https://img.shields.io/crates/v/kobe-evm.svg
@@ -84,6 +89,8 @@ The umbrella `kobe` crate provides fine-grained feature control:
 [kobe-doc-url]: https://docs.rs/kobe
 [kobe-primitives-doc]: https://img.shields.io/docsrs/kobe-primitives.svg
 [kobe-primitives-doc-url]: https://docs.rs/kobe-primitives
+[kobe-aptos-doc]: https://img.shields.io/docsrs/kobe-aptos.svg
+[kobe-aptos-doc-url]: https://docs.rs/kobe-aptos
 [kobe-btc-doc]: https://img.shields.io/docsrs/kobe-btc.svg
 [kobe-btc-doc-url]: https://docs.rs/kobe-btc
 [kobe-evm-doc]: https://img.shields.io/docsrs/kobe-evm.svg

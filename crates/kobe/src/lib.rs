@@ -21,6 +21,8 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+#[cfg(feature = "aptos")]
+pub use kobe_aptos as aptos;
 #[cfg(feature = "btc")]
 pub use kobe_btc as btc;
 #[cfg(feature = "cosmos")]

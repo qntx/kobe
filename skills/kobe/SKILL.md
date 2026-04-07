@@ -2,15 +2,15 @@
 name: kobe
 description: >-
   Multi-chain cryptocurrency wallet CLI tool for generating, importing, and
-  managing HD wallets across 11 chains: Bitcoin, Ethereum, Solana, Cosmos, Tron,
-  Sui, TON, Filecoin, Spark, and XRP Ledger. Use when the user asks to create wallets,
+  managing HD wallets across 12 chains: Aptos, Bitcoin, Ethereum, Solana, Cosmos,
+  Tron, Sui, TON, Filecoin, Spark, and XRP Ledger. Use when the user asks to create wallets,
   generate addresses, derive keys, import mnemonics, or perform any
   cryptocurrency wallet operation. Supports JSON output via --json flag.
 ---
 
 # Kobe CLI — Multi-Chain HD Wallet Tool
 
-`kobe` is a single binary CLI for generating and managing cryptocurrency wallets across **10 chains**: Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, and XRP Ledger. It supports BIP-39 mnemonic generation, HD key derivation (BIP-32/44/49/84/86, SLIP-10), multiple derivation styles for hardware wallet compatibility, and mnemonic camouflage encryption.
+`kobe` is a single binary CLI for generating and managing cryptocurrency wallets across **11 chains**: Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, and XRP Ledger. It supports BIP-39 mnemonic generation, HD key derivation (BIP-32/44/49/84/86, SLIP-10), multiple derivation styles for hardware wallet compatibility, and mnemonic camouflage encryption.
 
 ## Installation
 
@@ -48,6 +48,7 @@ The `--json` flag is **global** and must appear **before** the chain subcommand.
 
 | Chain      | Primary    | Aliases           |
 | ---------- | ---------- | ----------------- |
+| Aptos      | `aptos`    | `apt`             |
 | Bitcoin    | `btc`      | `bitcoin`         |
 | Ethereum   | `evm`      | `eth`, `ethereum` |
 | Solana     | `svm`      | `sol`, `solana`   |
@@ -204,6 +205,16 @@ kobe ton new
 kobe ton import -m "abandon abandon ..."
 ```
 
+### Aptos
+
+```bash
+# Generate an Aptos wallet
+kobe aptos new
+
+# Import from mnemonic
+kobe aptos import -m "abandon abandon ..."
+```
+
 ### Other Chains
 
 ```bash
@@ -284,6 +295,7 @@ All errors in JSON mode return exit code 1 with:
 
 | Chain      | Format in `private_key` field                            |
 | ---------- | -------------------------------------------------------- |
+| Aptos      | 64-char hex string (Ed25519 secret key)                  |
 | Bitcoin    | WIF (Wallet Import Format), e.g. `L1a...` or `5H...`     |
 | Ethereum   | `0x`-prefixed 64-char hex string                         |
 | Solana     | Base58-encoded 64-byte keypair (secret 32B + public 32B) |
@@ -330,6 +342,12 @@ All errors in JSON mode return exit code 1 with:
 | Cosmos Hub  | `m/44'/118'/0'/0/{i}` | 118       |
 | Osmosis     | `m/44'/118'/0'/0/{i}` | 118       |
 | Terra       | `m/44'/330'/0'/0/{i}` | 330       |
+
+### Aptos (SLIP-10 Ed25519)
+
+| Path Pattern              | Notes                            |
+| ------------------------- | -------------------------------- |
+| `m/44'/637'/{i}'/0'/0'`   | SHA3-256(0x00 \|\| pubkey)       |
 
 ### Sui (SLIP-10 Ed25519)
 

@@ -35,6 +35,7 @@ fn main() -> std::process::ExitCode {
 fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     let json = cli.json;
     match cli.command {
+        Commands::Aptos(cmd) => cmd.execute(json)?,
         Commands::Bitcoin(cmd) => cmd.execute(json)?,
         Commands::Ethereum(cmd) => cmd.execute(json)?,
         Commands::Solana(cmd) => cmd.execute(json)?,

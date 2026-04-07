@@ -713,6 +713,7 @@ dependencies = [
 name = "kobe"
 version = "0.8.0"
 dependencies = [
+ "kobe-aptos",
  "kobe-btc",
  "kobe-cosmos",
  "kobe-evm",
@@ -724,6 +725,17 @@ dependencies = [
  "kobe-ton",
  "kobe-tron",
  "kobe-xrpl",
+]
+
+[[package]]
+name = "kobe-aptos"
+version = "0.8.0"
+dependencies = [
+ "hex",
+ "kobe-primitives",
+ "sha3 0.11.0",
+ "thiserror",
+ "zeroize",
 ]
 
 [[package]]
