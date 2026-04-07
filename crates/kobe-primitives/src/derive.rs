@@ -56,10 +56,10 @@ impl DerivedAccount {
 ///
 /// # Example
 ///
-/// ```ignore
-/// use kobe::{Derive, DeriveExt};
+/// ```no_run
+/// use kobe_primitives::{Derive, DeriveExt, DerivedAccount};
 ///
-/// fn derive_first_account(d: &impl Derive) -> kobe::DerivedAccount {
+/// fn derive_first_account<D: Derive>(d: &D) -> DerivedAccount {
 ///     d.derive(0).unwrap()
 /// }
 /// ```

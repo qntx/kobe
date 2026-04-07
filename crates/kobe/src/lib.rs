@@ -5,15 +5,18 @@
 //!
 //! ```toml
 //! [dependencies]
-//! kobe = { version = "0.7", features = ["evm", "btc", "svm"] }
+//! kobe = { version = "0.8", features = ["evm", "btc", "svm"] }
 //! ```
 //!
-//! ```ignore
+//! ```no_run
 //! use kobe::{Wallet, Derive, DeriveExt};
 //! use kobe::evm::Deriver;
 //!
-//! let wallet = Wallet::from_mnemonic("abandon ...", None)?;
-//! let addr = Deriver::new(&wallet).derive(0)?;
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! let wallet = Wallet::from_mnemonic("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", None)?;
+//! let account = Deriver::new(&wallet).derive(0)?;
+//! # Ok(())
+//! # }
 //! ```
 
 #![cfg_attr(not(feature = "std"), no_std)]

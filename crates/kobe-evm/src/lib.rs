@@ -1,6 +1,6 @@
 //! Ethereum HD wallet derivation.
 //!
-//! Derives Ethereum (EIP-55 checksummed) addresses from a [`kobe::Wallet`]
+//! Derives Ethereum (EIP-55 checksummed) addresses from a [`kobe_primitives::Wallet`]
 //! seed following BIP-32/44. Supports `MetaMask`, Ledger Live, and Ledger Legacy
 //! derivation styles.
 

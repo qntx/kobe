@@ -1,6 +1,6 @@
 //! Cosmos wallet utilities for Kobe.
 //!
-//! Provides Cosmos address derivation from a unified [`kobe::Wallet`].
+//! Provides Cosmos address derivation from a unified [`kobe_primitives::Wallet`].
 //! Supports configurable bech32 human-readable parts (e.g. "cosmos", "osmo").
 
 #![cfg_attr(not(feature = "std"), no_std)]

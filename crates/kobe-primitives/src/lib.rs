@@ -3,10 +3,14 @@
 //! Core [`Wallet`] type holds a BIP-39 mnemonic and derives seeds for
 //! chain-specific derivers (`kobe-evm`, `kobe-btc`, `kobe-svm`, etc.).
 //!
-//! ```ignore
-//! let wallet = kobe::Wallet::from_mnemonic("abandon ...", None)?;
-//! let eth = kobe_evm::Deriver::new(&wallet).derive(0)?;
-//! let btc = kobe_btc::Deriver::new(&wallet, kobe_btc::Network::Mainnet)?.derive(0)?;
+//! ```no_run
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! let wallet = kobe_primitives::Wallet::from_mnemonic(
+//!     "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+//!     None,
+//! )?;
+//! # Ok(())
+//! # }
 //! ```
 
 #![cfg_attr(not(feature = "std"), no_std)]

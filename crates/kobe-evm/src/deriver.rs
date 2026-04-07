@@ -117,11 +117,8 @@ impl<'a> Deriver<'a> {
         let uncompressed = key.uncompressed_pubkey();
 
         let addr_hash = keccak256(&uncompressed[1..]);
-        let address = Address::from_slice(
-            addr_hash
-                .get(12..)
-                .ok_or(kobe_primitives::DeriveError::IndexOverflow)?,
-        );
+        let (_, addr_bytes) = addr_hash.split_at(12);
+        let address = Address::from_slice(addr_bytes);
 
         Ok(DerivedAccount::new(
             String::from(path),

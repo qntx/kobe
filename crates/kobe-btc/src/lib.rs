@@ -1,6 +1,6 @@
 //! Bitcoin HD wallet derivation for Kobe.
 //!
-//! Derives Bitcoin addresses from a [`kobe::Wallet`] seed following
+//! Derives Bitcoin addresses from a [`kobe_primitives::Wallet`] seed following
 //! BIP-32/44/49/84/86. Supports P2PKH, P2SH-P2WPKH, P2WPKH, and P2TR
 //! address types across mainnet and testnet.
 

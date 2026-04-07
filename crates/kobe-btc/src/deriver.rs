@@ -16,7 +16,7 @@ use crate::{AddressType, DerivationPath, DeriveError, Network};
 
 /// Bitcoin address deriver from a unified wallet seed.
 ///
-/// This deriver takes a seed from [`kobe::Wallet`] and derives
+/// This deriver takes a seed from [`kobe_primitives::Wallet`] and derives
 /// Bitcoin addresses following BIP32/44/49/84 standards.
 #[derive(Debug)]
 pub struct Deriver<'a> {

@@ -1,6 +1,6 @@
 //! Solana HD wallet derivation for Kobe.
 //!
-//! Derives Solana addresses from a [`kobe::Wallet`] seed using SLIP-10 Ed25519.
+//! Derives Solana addresses from a [`kobe_primitives::Wallet`] seed using SLIP-10 Ed25519.
 //! Supports Phantom/Backpack, Trust Wallet, and Ledger Live derivation styles.
 
 #![cfg_attr(not(feature = "std"), no_std)]

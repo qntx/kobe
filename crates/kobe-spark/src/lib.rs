@@ -1,6 +1,6 @@
 //! Spark (Bitcoin L2) wallet utilities for Kobe.
 //!
-//! Provides Spark address derivation from a unified [`kobe::Wallet`].
+//! Provides Spark address derivation from a unified [`kobe_primitives::Wallet`].
 //! Spark reuses Bitcoin's BIP-84 derivation path since it operates on the same keys.
 
 #![cfg_attr(not(feature = "std"), no_std)]

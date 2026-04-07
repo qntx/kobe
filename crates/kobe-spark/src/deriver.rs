@@ -30,12 +30,13 @@ impl<'a> Deriver<'a> {
     fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         let key = kobe_primitives::bip32::DerivedSecp256k1Key::derive(self.wallet.seed(), path)?;
         let pubkey_hex = key.compressed_pubkey_hex();
+        let address = format!("spark:{pubkey_hex}");
 
         Ok(DerivedAccount::new(
             String::from(path),
             key.private_key_hex(),
-            pubkey_hex.clone(),
-            format!("spark:{pubkey_hex}"),
+            pubkey_hex,
+            address,
         ))
     }
 }

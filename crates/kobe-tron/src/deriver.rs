@@ -32,10 +32,9 @@ impl<'a> Deriver<'a> {
         let uncompressed = key.uncompressed_pubkey();
 
         let hash = Keccak256::digest(&uncompressed[1..]);
+        let (_, addr_bytes) = hash.split_at(12);
         let mut prefixed = vec![0x41u8];
-        prefixed.extend_from_slice(hash.get(12..).ok_or(DeriveError::Core(
-            kobe_primitives::DeriveError::IndexOverflow,
-        ))?);
+        prefixed.extend_from_slice(addr_bytes);
         let address = bs58::encode(&prefixed).with_check().into_string();
 
         Ok(DerivedAccount::new(
