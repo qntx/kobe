@@ -4,7 +4,7 @@ use clap::{Args, Subcommand};
 use kobe::fil::Deriver;
 use kobe::{DeriveExt, Wallet};
 
-use crate::output::{self, AccountOutput, HdWalletOutput};
+use crate::output::{self, HdWalletOutput};
 
 /// Filecoin wallet operations.
 #[derive(Args)]
@@ -50,7 +50,11 @@ impl FilecoinCommand {
             } => {
                 let wallet = Wallet::generate(words, passphrase.as_deref())?;
                 let accounts = Deriver::new(&wallet).derive_many(0, count)?;
-                output::render_hd_wallet(&build(&wallet, &accounts), json, qr)?;
+                output::render_hd_wallet(
+                    &HdWalletOutput::simple("filecoin", &wallet, &accounts),
+                    json,
+                    qr,
+                )?;
             }
             FilecoinSubcommand::Import {
                 mnemonic,
@@ -61,30 +65,13 @@ impl FilecoinCommand {
                 let expanded = kobe::mnemonic::expand(&mnemonic)?;
                 let wallet = Wallet::from_mnemonic(&expanded, passphrase.as_deref())?;
                 let accounts = Deriver::new(&wallet).derive_many(0, count)?;
-                output::render_hd_wallet(&build(&wallet, &accounts), json, qr)?;
+                output::render_hd_wallet(
+                    &HdWalletOutput::simple("filecoin", &wallet, &accounts),
+                    json,
+                    qr,
+                )?;
             }
         }
         Ok(())
-    }
-}
-
-fn build(wallet: &Wallet, accounts: &[kobe::DerivedAccount]) -> HdWalletOutput {
-    HdWalletOutput {
-        chain: "filecoin",
-        network: None,
-        address_type: None,
-        mnemonic: wallet.mnemonic().to_owned(),
-        passphrase_protected: wallet.has_passphrase(),
-        derivation_style: None,
-        accounts: accounts
-            .iter()
-            .enumerate()
-            .map(|(i, a)| AccountOutput {
-                index: u32::try_from(i).unwrap_or(u32::MAX),
-                derivation_path: a.path.clone(),
-                address: a.address.clone(),
-                private_key: a.private_key.to_string(),
-            })
-            .collect(),
     }
 }

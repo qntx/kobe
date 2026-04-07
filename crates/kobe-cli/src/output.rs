@@ -5,6 +5,7 @@
 //! then calls the shared render functions.
 
 use colored::Colorize;
+use kobe::{DerivedAccount, Wallet};
 use serde::Serialize;
 
 /// Output for HD wallet operations (new, import).
@@ -56,6 +57,39 @@ pub struct CamouflageOutput {
     pub input: String,
     /// Output mnemonic (camouflaged for encrypt, recovered for decrypt).
     pub output: String,
+}
+
+impl HdWalletOutput {
+    /// Build output for a simple chain (no network, no address type, no derivation style).
+    #[must_use]
+    pub fn simple(chain: &'static str, wallet: &Wallet, accounts: &[DerivedAccount]) -> Self {
+        Self {
+            chain,
+            network: None,
+            address_type: None,
+            mnemonic: wallet.mnemonic().to_owned(),
+            passphrase_protected: wallet.has_passphrase(),
+            derivation_style: None,
+            accounts: accounts
+                .iter()
+                .enumerate()
+                .map(|(i, a)| AccountOutput::from_derived(i, a))
+                .collect(),
+        }
+    }
+}
+
+impl AccountOutput {
+    /// Build from a [`DerivedAccount`] with a sequential index.
+    #[must_use]
+    pub fn from_derived(index: usize, account: &DerivedAccount) -> Self {
+        Self {
+            index: u32::try_from(index).unwrap_or(u32::MAX),
+            derivation_path: account.path.clone(),
+            address: account.address.clone(),
+            private_key: account.private_key.to_string(),
+        }
+    }
 }
 
 /// Structured error output for JSON mode.

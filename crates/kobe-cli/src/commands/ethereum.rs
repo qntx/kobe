@@ -1,8 +1,8 @@
 //! Ethereum wallet CLI commands.
 
 use clap::{Args, Subcommand, ValueEnum};
-use kobe::Wallet;
 use kobe::evm::{DerivationStyle, Deriver};
+use kobe::{DerivedAccount, Wallet};
 
 use crate::output::{self, AccountOutput, HdWalletOutput};
 
@@ -103,7 +103,7 @@ impl EthereumCommand {
 fn build_hd(
     wallet: &Wallet,
     style: DerivationStyle,
-    accounts: &[kobe::DerivedAccount],
+    accounts: &[DerivedAccount],
 ) -> HdWalletOutput {
     HdWalletOutput {
         chain: "ethereum",
@@ -115,11 +115,10 @@ fn build_hd(
         accounts: accounts
             .iter()
             .enumerate()
-            .map(|(i, a)| AccountOutput {
-                index: u32::try_from(i).unwrap_or(u32::MAX),
-                derivation_path: a.path.clone(),
-                address: a.address.clone(),
-                private_key: format!("0x{}", a.private_key.as_str()),
+            .map(|(i, a)| {
+                let mut out = AccountOutput::from_derived(i, a);
+                out.private_key = format!("0x{}", a.private_key.as_str());
+                out
             })
             .collect(),
     }

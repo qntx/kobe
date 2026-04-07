@@ -4,7 +4,7 @@ use clap::{Args, Subcommand};
 use kobe::tron::Deriver;
 use kobe::{DeriveExt, Wallet};
 
-use crate::output::{self, AccountOutput, HdWalletOutput};
+use crate::output::{self, HdWalletOutput};
 
 /// Tron wallet operations.
 #[derive(Args)]
@@ -51,7 +51,11 @@ impl TronCommand {
                 let wallet = Wallet::generate(words, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet);
                 let accounts = deriver.derive_many(0, count)?;
-                output::render_hd_wallet(&build("tron", &wallet, &accounts), json, qr)?;
+                output::render_hd_wallet(
+                    &HdWalletOutput::simple("tron", &wallet, &accounts),
+                    json,
+                    qr,
+                )?;
             }
             TronSubcommand::Import {
                 mnemonic,
@@ -63,34 +67,13 @@ impl TronCommand {
                 let wallet = Wallet::from_mnemonic(&expanded, passphrase.as_deref())?;
                 let deriver = Deriver::new(&wallet);
                 let accounts = deriver.derive_many(0, count)?;
-                output::render_hd_wallet(&build("tron", &wallet, &accounts), json, qr)?;
+                output::render_hd_wallet(
+                    &HdWalletOutput::simple("tron", &wallet, &accounts),
+                    json,
+                    qr,
+                )?;
             }
         }
         Ok(())
-    }
-}
-
-fn build(
-    chain: &'static str,
-    wallet: &Wallet,
-    accounts: &[kobe::DerivedAccount],
-) -> HdWalletOutput {
-    HdWalletOutput {
-        chain,
-        network: None,
-        address_type: None,
-        mnemonic: wallet.mnemonic().to_owned(),
-        passphrase_protected: wallet.has_passphrase(),
-        derivation_style: None,
-        accounts: accounts
-            .iter()
-            .enumerate()
-            .map(|(i, a)| AccountOutput {
-                index: u32::try_from(i).unwrap_or(u32::MAX),
-                derivation_path: a.path.clone(),
-                address: a.address.clone(),
-                private_key: a.private_key.to_string(),
-            })
-            .collect(),
     }
 }
