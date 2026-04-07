@@ -195,6 +195,7 @@ fn build_derived_address(derived: &DerivedKey, path: String) -> DerivedAddress {
 }
 
 #[cfg(test)]
+#[allow(clippy::indexing_slicing, reason = "test assertions")]
 mod tests {
     use super::*;
 

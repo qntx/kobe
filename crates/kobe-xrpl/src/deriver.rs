@@ -112,6 +112,7 @@ fn encode_classic_address(compressed_pubkey: &[u8]) -> String {
 }
 
 #[cfg(test)]
+#[allow(clippy::indexing_slicing, reason = "test assertions")]
 mod tests {
     use kobe_primitives::DeriveExt;
 

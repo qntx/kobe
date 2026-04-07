@@ -60,6 +60,7 @@ impl Derive for Deriver<'_> {
 }
 
 #[cfg(test)]
+#[allow(clippy::indexing_slicing, reason = "test assertions")]
 mod tests {
     use super::*;
 

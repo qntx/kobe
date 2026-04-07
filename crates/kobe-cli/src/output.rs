@@ -67,6 +67,10 @@ pub struct ErrorOutput {
 }
 
 /// Render an HD wallet result as JSON or colored text.
+///
+/// # Errors
+///
+/// Returns an error if JSON serialization fails.
 #[rustfmt::skip]
 pub fn render_hd_wallet(
     out: &HdWalletOutput,
@@ -113,6 +117,10 @@ pub fn render_hd_wallet(
 }
 
 /// Render a camouflage result as JSON or colored text.
+///
+/// # Errors
+///
+/// Returns an error if JSON serialization fails.
 #[rustfmt::skip]
 pub fn render_camouflage(
     out: &CamouflageOutput,
@@ -144,6 +152,10 @@ pub fn render_camouflage(
 }
 
 /// Serialize a value as pretty-printed JSON and write to stdout.
+///
+/// # Errors
+///
+/// Returns an error if serialization fails.
 pub fn print_json<T: Serialize>(value: &T) -> Result<(), serde_json::Error> {
     let json = serde_json::to_string_pretty(value)?;
     println!("{json}");

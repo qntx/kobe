@@ -34,7 +34,7 @@ pub fn render_to_terminal(data: &str) {
     for y in 0..width {
         let mut row = vec![false; quiet_zone];
         for x in 0..width {
-            let is_dark = colors[y * width + x] == qrcode::Color::Dark;
+            let is_dark = colors.get(y * width + x) == Some(&qrcode::Color::Dark);
             row.push(is_dark);
         }
         row.extend(vec![false; quiet_zone]);
@@ -54,10 +54,12 @@ pub fn render_to_terminal(data: &str) {
     println!();
     for y in (0..height).step_by(2) {
         print!("{indent}");
-        let top_row = &matrix[y];
+        let Some(top_row) = matrix.get(y) else {
+            continue;
+        };
         let bottom_row = matrix.get(y + 1);
         for (idx, &top) in top_row.iter().enumerate().take(total_width) {
-            let bottom = bottom_row.is_some_and(|row| row[idx]);
+            let bottom = bottom_row.is_some_and(|row| row.get(idx).copied().unwrap_or(false));
 
             // ▀ = top half, ▄ = bottom half, █ = full, ' ' = empty
             let ch = match (top, bottom) {

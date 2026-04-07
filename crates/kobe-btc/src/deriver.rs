@@ -300,8 +300,10 @@ mod tests {
         let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
         let addrs = deriver.derive_many(0, 5).unwrap();
         assert_eq!(addrs.len(), 5);
-        let set: std::collections::HashSet<_> = addrs.iter().map(|a| &a.address).collect();
-        assert_eq!(set.len(), 5);
+        let mut unique: Vec<_> = addrs.iter().map(|a| &a.address).collect();
+        unique.sort();
+        unique.dedup();
+        assert_eq!(unique.len(), 5);
     }
 
     #[test]

@@ -233,6 +233,7 @@ fn crc16_ccitt(data: &[u8]) -> u16 {
 }
 
 #[cfg(test)]
+#[allow(clippy::indexing_slicing, reason = "test assertions")]
 mod tests {
     use super::*;
 

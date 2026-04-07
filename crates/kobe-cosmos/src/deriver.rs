@@ -92,6 +92,7 @@ fn encode_bech32_address(hrp: &str, compressed_pubkey: &[u8]) -> Result<String, 
 }
 
 #[cfg(test)]
+#[allow(clippy::indexing_slicing, reason = "test assertions")]
 mod tests {
     use kobe_primitives::DeriveExt;
 

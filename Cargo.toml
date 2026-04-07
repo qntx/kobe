@@ -152,7 +152,6 @@ implicit_hasher = "warn"
 redundant_type_annotations = "warn"
 
 str_to_string = "warn"
-string_to_string = "warn"
 string_lit_as_bytes = "warn"
 needless_raw_string_hashes = "warn"
 format_push_string = "warn"

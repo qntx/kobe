@@ -13,7 +13,7 @@ pub mod qr;
 use clap::Parser;
 use commands::{Cli, Commands};
 
-fn main() {
+fn main() -> std::process::ExitCode {
     let cli = Cli::parse();
     let json = cli.json;
 
@@ -22,12 +22,13 @@ fn main() {
             let err = output::ErrorOutput {
                 error: e.to_string(),
             };
-            let _ = output::print_json(&err);
+            output::print_json(&err).ok();
         } else {
             eprintln!("Error: {e}");
         }
-        std::process::exit(1);
+        return std::process::ExitCode::FAILURE;
     }
+    std::process::ExitCode::SUCCESS
 }
 
 /// Dispatch CLI commands and propagate errors.
