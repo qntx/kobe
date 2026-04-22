@@ -15,6 +15,7 @@
 | **[`kobe-fil`](kobe-fil/)** | [![crates.io][kobe-fil-crate]][kobe-fil-crate-url] [![docs.rs][kobe-fil-doc]][kobe-fil-doc-url] | Filecoin — f1 secp256k1 addresses |
 | **[`kobe-spark`](kobe-spark/)** | [![crates.io][kobe-spark-crate]][kobe-spark-crate-url] [![docs.rs][kobe-spark-doc]][kobe-spark-doc-url] | Spark — Lightning-compatible addresses |
 | **[`kobe-xrpl`](kobe-xrpl/)** | [![crates.io][kobe-xrpl-crate]][kobe-xrpl-crate-url] [![docs.rs][kobe-xrpl-doc]][kobe-xrpl-doc-url] | XRP Ledger — classic `r`-addresses, secp256k1 |
+| **[`kobe-nostr`](kobe-nostr/)** | [![crates.io][kobe-nostr-crate]][kobe-nostr-crate-url] [![docs.rs][kobe-nostr-doc]][kobe-nostr-doc-url] | Nostr — NIP-06 key derivation, NIP-19 bech32 `nsec`/`npub` |
 | **[`kobe-cli`](kobe-cli/)** | [![crates.io][kobe-cli-crate]][kobe-cli-crate-url] | CLI — generate, import, derive across all chains |
 
 ## Dependency Graph
@@ -33,7 +34,8 @@ kobe-cli
         ├── kobe-fil    ── kobe-primitives/bip32
         ├── kobe-ton    ── kobe-primitives/slip10
         ├── kobe-sui    ── kobe-primitives/slip10
-        └── kobe-xrpl   ── kobe-primitives/bip32
+        ├── kobe-xrpl   ── kobe-primitives/bip32
+        └── kobe-nostr  ── kobe-primitives/bip32
 ```
 
 ## Feature Flags
@@ -57,6 +59,7 @@ The umbrella `kobe` crate provides fine-grained feature control:
 | `sui` | | Sui chain support (enables `slip10`) |
 | `aptos` | | Aptos chain support (enables `slip10`) |
 | `xrpl` | | XRP Ledger chain support (enables `bip32`) |
+| `nostr` | | Nostr chain support (enables `bip32`) |
 | `all-chains` | | Enable all chain crates |
 
 [kobe-crate]: https://img.shields.io/crates/v/kobe.svg
@@ -113,3 +116,7 @@ The umbrella `kobe` crate provides fine-grained feature control:
 [kobe-xrpl-crate-url]: https://crates.io/crates/kobe-xrpl
 [kobe-xrpl-doc]: https://img.shields.io/docsrs/kobe-xrpl.svg
 [kobe-xrpl-doc-url]: https://docs.rs/kobe-xrpl
+[kobe-nostr-crate]: https://img.shields.io/crates/v/kobe-nostr.svg
+[kobe-nostr-crate-url]: https://crates.io/crates/kobe-nostr
+[kobe-nostr-doc]: https://img.shields.io/docsrs/kobe-nostr.svg
+[kobe-nostr-doc-url]: https://docs.rs/kobe-nostr

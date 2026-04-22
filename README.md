@@ -21,7 +21,7 @@
 
 **Modular, `no_std`-compatible Rust toolkit for multi-chain HD wallet derivation — 12 chains, one seed, zero hand-written cryptography.**
 
-Kobe derives standards-compliant addresses for Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, and XRP Ledger from a single BIP-39 mnemonic. All library crates compile under `no_std + alloc` and zeroize sensitive material on drop.
+Kobe derives standards-compliant addresses for Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger, and Nostr (NIP-06/NIP-19) from a single BIP-39 mnemonic. All library crates compile under `no_std + alloc` and zeroize sensitive material on drop.
 
 <p align="center">
   <img src="demo.gif" alt="Kobe CLI Demo"/>
@@ -62,6 +62,7 @@ kobe cosmos new                           # Cosmos Hub
 kobe aptos new                            # Aptos
 kobe sui new                              # Sui
 kobe ton new                              # TON
+kobe nostr new                            # Nostr (NIP-06, nsec/npub)
 
 # Import from mnemonic
 kobe evm import -m "abandon abandon ... about"
@@ -100,8 +101,8 @@ println!("Mnemonic: {}", wallet.mnemonic());
 
 ## Design
 
-- **11 chains** — Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger — one BIP-39 seed
-- **HD standards** — BIP-32, BIP-39, BIP-44/49/84/86, SLIP-10
+- **12 chains** — Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger, Nostr — one BIP-39 seed
+- **HD standards** — BIP-32, BIP-39, BIP-44/49/84/86, SLIP-10, NIP-06, NIP-19
 - **Derivation styles** — Standard, Ledger Live, Ledger Legacy, Trust, Phantom, Backpack
 - **`no_std` + `alloc`** — All library crates compile without `std`; embedded / WASM ready
 - **Zeroizing** — Private keys, seeds, and intermediate material wrapped in `Zeroizing<T>`

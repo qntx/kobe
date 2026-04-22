@@ -6,6 +6,7 @@ mod cosmos;
 mod ethereum;
 mod filecoin;
 mod mnemonic;
+mod nostr;
 mod simple;
 mod solana;
 mod spark;
@@ -21,6 +22,7 @@ pub(crate) use cosmos::CosmosCommand;
 pub(crate) use ethereum::EthereumCommand;
 pub(crate) use filecoin::FilecoinCommand;
 pub(crate) use mnemonic::MnemonicCommand;
+pub(crate) use nostr::NostrCommand;
 pub(crate) use simple::SimpleSubcommand;
 pub(crate) use solana::SolanaCommand;
 pub(crate) use spark::SparkCommand;
@@ -89,6 +91,10 @@ pub(crate) enum Commands {
     /// XRP Ledger wallet operations.
     #[command(name = "xrpl", alias = "xrp", alias = "ripple")]
     Xrpl(XrplCommand),
+
+    /// Nostr wallet operations (NIP-06 / NIP-19).
+    #[command(name = "nostr")]
+    Nostr(NostrCommand),
 
     /// Mnemonic utilities (camouflage encrypt/decrypt).
     #[command(name = "mnemonic", alias = "mn")]

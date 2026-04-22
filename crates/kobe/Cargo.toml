@@ -11,8 +11,8 @@ categories = ["cryptography::cryptocurrencies"]
 
 [features]
 default = ["std", "btc", "evm", "svm"]
-std = ["alloc", "kobe-primitives/std", "kobe-aptos?/std", "kobe-btc?/std", "kobe-evm?/std", "kobe-svm?/std", "kobe-cosmos?/std", "kobe-tron?/std", "kobe-spark?/std", "kobe-fil?/std", "kobe-ton?/std", "kobe-sui?/std", "kobe-xrpl?/std"]
-alloc = ["kobe-primitives/alloc", "kobe-aptos?/alloc", "kobe-btc?/alloc", "kobe-evm?/alloc", "kobe-svm?/alloc", "kobe-cosmos?/alloc", "kobe-tron?/alloc", "kobe-spark?/alloc", "kobe-fil?/alloc", "kobe-ton?/alloc", "kobe-sui?/alloc", "kobe-xrpl?/alloc"]
+std = ["alloc", "kobe-primitives/std", "kobe-aptos?/std", "kobe-btc?/std", "kobe-evm?/std", "kobe-svm?/std", "kobe-cosmos?/std", "kobe-tron?/std", "kobe-spark?/std", "kobe-fil?/std", "kobe-ton?/std", "kobe-sui?/std", "kobe-nostr?/std", "kobe-xrpl?/std"]
+alloc = ["kobe-primitives/alloc", "kobe-aptos?/alloc", "kobe-btc?/alloc", "kobe-evm?/alloc", "kobe-svm?/alloc", "kobe-cosmos?/alloc", "kobe-tron?/alloc", "kobe-spark?/alloc", "kobe-fil?/alloc", "kobe-ton?/alloc", "kobe-sui?/alloc", "kobe-nostr?/alloc", "kobe-xrpl?/alloc"]
 rand = ["kobe-primitives/rand"]
 rand_core = ["kobe-primitives/rand_core"]
 camouflage = ["kobe-primitives/camouflage"]
@@ -29,8 +29,9 @@ fil = ["dep:kobe-fil", "bip32"]
 ton = ["dep:kobe-ton", "slip10"]
 sui = ["dep:kobe-sui", "slip10"]
 aptos = ["dep:kobe-aptos", "slip10"]
+nostr = ["dep:kobe-nostr", "bip32"]
 xrpl = ["dep:kobe-xrpl", "bip32"]
-all-chains = ["aptos", "btc", "evm", "svm", "cosmos", "tron", "spark", "fil", "ton", "sui", "xrpl"]
+all-chains = ["aptos", "btc", "evm", "svm", "cosmos", "tron", "spark", "fil", "ton", "sui", "nostr", "xrpl"]
 
 [dependencies]
 kobe-primitives = { workspace = true, features = ["alloc"] }
@@ -44,6 +45,7 @@ kobe-spark = { workspace = true, optional = true }
 kobe-fil = { workspace = true, optional = true }
 kobe-ton = { workspace = true, optional = true }
 kobe-sui = { workspace = true, optional = true }
+kobe-nostr = { workspace = true, optional = true }
 kobe-xrpl = { workspace = true, optional = true }
 
 [lints]

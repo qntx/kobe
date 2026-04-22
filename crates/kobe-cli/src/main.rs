@@ -46,6 +46,7 @@ fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
         Commands::Ton(cmd) => cmd.execute(json)?,
         Commands::Sui(cmd) => cmd.execute(json)?,
         Commands::Xrpl(cmd) => cmd.execute(json)?,
+        Commands::Nostr(cmd) => cmd.execute(json)?,
         Commands::Mnemonic(cmd) => cmd.execute(json)?,
     }
     Ok(())

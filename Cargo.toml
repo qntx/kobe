@@ -25,6 +25,7 @@ kobe-svm = { version = "0.8", path = "crates/kobe-svm", default-features = false
 kobe-ton = { version = "0.8", path = "crates/kobe-ton", default-features = false }
 kobe-tron = { version = "0.8", path = "crates/kobe-tron", default-features = false }
 kobe-aptos = { version = "0.8", path = "crates/kobe-aptos", default-features = false }
+kobe-nostr = { version = "0.8", path = "crates/kobe-nostr", default-features = false }
 kobe-xrpl = { version = "0.8", path = "crates/kobe-xrpl", default-features = false }
 
 alloy-primitives = { version = "1.5.7", default-features = false, features = ["k256"] }

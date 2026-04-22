@@ -31,6 +31,8 @@ pub use kobe_cosmos as cosmos;
 pub use kobe_evm as evm;
 #[cfg(feature = "fil")]
 pub use kobe_fil as fil;
+#[cfg(feature = "nostr")]
+pub use kobe_nostr as nostr;
 pub use kobe_primitives::*;
 #[cfg(feature = "spark")]
 pub use kobe_spark as spark;

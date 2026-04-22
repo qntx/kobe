@@ -718,6 +718,7 @@ dependencies = [
  "kobe-cosmos",
  "kobe-evm",
  "kobe-fil",
+ "kobe-nostr",
  "kobe-primitives",
  "kobe-spark",
  "kobe-sui",
@@ -787,6 +788,17 @@ dependencies = [
  "blake2",
  "kobe-primitives",
  "thiserror",
+]
+
+[[package]]
+name = "kobe-nostr"
+version = "0.8.1"
+dependencies = [
+ "bech32",
+ "hex",
+ "kobe-primitives",
+ "thiserror",
+ "zeroize",
 ]
 
 [[package]]

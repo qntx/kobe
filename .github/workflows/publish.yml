@@ -8,6 +8,6 @@ jobs:
   publish:
     uses: qntx/workflows/.github/workflows/publish-crates.yml@main
     with:
-      packages: "kobe-primitives kobe-aptos kobe-btc kobe-evm kobe-svm kobe-cosmos kobe-tron kobe-spark kobe-fil kobe-ton kobe-sui kobe-xrpl kobe kobe-cli"
+      packages: "kobe-primitives kobe-aptos kobe-btc kobe-evm kobe-svm kobe-cosmos kobe-tron kobe-spark kobe-fil kobe-ton kobe-sui kobe-xrpl kobe-nostr kobe kobe-cli"
     secrets:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
