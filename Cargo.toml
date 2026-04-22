@@ -4,7 +4,7 @@ default-members = ["crates/kobe"]
 resolver = "3"
 
 [workspace.package]
-version = "0.8.0"
+version = "0.8.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/qntx/kobe"
@@ -45,7 +45,7 @@ sha3 = { version = "0.11.0", default-features = false }
 thiserror = { version = "2.0.18", default-features = false }
 zeroize = { version = "1.8.2", default-features = false, features = ["derive"] }
 
-clap = { version = "4.6.0", features = ["derive"] }
+clap = { version = "4.6.1", features = ["derive"] }
 colored = "3.1.1"
 qrcode = "0.14.1"
 serde = { version = "1.0.228", features = ["derive"] }

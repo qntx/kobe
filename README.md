@@ -12,8 +12,8 @@
 [crates-url]: https://crates.io/crates/kobe
 [docs-badge]: https://img.shields.io/docsrs/kobe.svg
 [docs-url]: https://docs.rs/kobe
-[ci-badge]: https://github.com/qntx/kobe/actions/workflows/rust.yml/badge.svg
-[ci-url]: https://github.com/qntx/kobe/actions/workflows/rust.yml
+[ci-badge]: https://github.com/qntx/kobe/actions/workflows/ci.yml/badge.svg
+[ci-url]: https://github.com/qntx/kobe/actions/workflows/ci.yml
 [license-badge]: https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg
 [license-url]: LICENSE-MIT
 [rust-badge]: https://img.shields.io/badge/rust-edition%202024-orange.svg
@@ -33,7 +33,7 @@ Kobe derives standards-compliant addresses for Aptos, Bitcoin, Ethereum, Solana,
 
 **Shell** (macOS / Linux):
 
-```sh
+```bash
 curl -fsSL https://sh.qntx.fun/kobe | sh
 ```
 
