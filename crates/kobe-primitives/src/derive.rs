@@ -44,6 +44,38 @@ impl DerivedAccount {
             address,
         }
     }
+
+    /// Decode the hex-encoded private key into raw 32-byte material.
+    ///
+    /// Every chain deriver in this workspace produces a 32-byte scalar
+    /// (secp256k1 for EVM/BTC/Cosmos/Tron/Spark/Filecoin/XRPL/Nostr,
+    /// Ed25519 for SVM/SUI/TON/Aptos), so the output is fixed-length.
+    /// The returned buffer is zeroized on drop.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the stored hex is malformed or not exactly
+    /// 32 bytes. Derivers in this workspace never produce malformed data,
+    /// so this error is unexpected in normal use.
+    pub fn private_key_bytes(&self) -> Result<Zeroizing<[u8; 32]>, DeriveError> {
+        let mut buf = Zeroizing::new([0u8; 32]);
+        hex::decode_to_slice(self.private_key.as_str(), buf.as_mut_slice())
+            .map_err(|e| DeriveError::InvalidHex(alloc::format!("private_key: {e}")))?;
+        Ok(buf)
+    }
+
+    /// Decode the hex-encoded public key into raw bytes.
+    ///
+    /// Length is chain-specific: 33 for compressed secp256k1, 65 for
+    /// uncompressed, 32 for Ed25519 / x-only secp256k1.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the stored hex is malformed.
+    pub fn public_key_bytes(&self) -> Result<Vec<u8>, DeriveError> {
+        hex::decode(&self.public_key)
+            .map_err(|e| DeriveError::InvalidHex(alloc::format!("public_key: {e}")))
+    }
 }
 
 /// Unified derivation trait implemented by all chain derivers.
@@ -98,3 +130,63 @@ pub trait DeriveExt: Derive {
 }
 
 impl<T: Derive> DeriveExt for T {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_account() -> DerivedAccount {
+        DerivedAccount::new(
+            String::from("m/44'/60'/0'/0/0"),
+            Zeroizing::new(String::from(
+                "1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727",
+            )),
+            String::from("0237b0bb7a8288d38ed49a524b5dc98cff3eb5ca824c9f9dc0dfdb3d9cd600f299"),
+            String::from("0x9858EfFD232B4033E47d90003D41EC34EcaEda94"),
+        )
+    }
+
+    #[test]
+    fn private_key_bytes_roundtrip() {
+        let acct = sample_account();
+        let bytes = acct.private_key_bytes().unwrap();
+        assert_eq!(bytes.len(), 32);
+        assert_eq!(hex::encode(*bytes), acct.private_key.as_str());
+    }
+
+    #[test]
+    fn public_key_bytes_roundtrip() {
+        let acct = sample_account();
+        let bytes = acct.public_key_bytes().unwrap();
+        assert_eq!(bytes.len(), 33);
+        assert_eq!(hex::encode(&bytes), acct.public_key);
+    }
+
+    #[test]
+    fn private_key_bytes_rejects_short_hex() {
+        let bad = DerivedAccount::new(
+            String::from("m/0"),
+            Zeroizing::new(String::from("deadbeef")),
+            String::new(),
+            String::new(),
+        );
+        assert!(matches!(
+            bad.private_key_bytes(),
+            Err(DeriveError::InvalidHex(_))
+        ));
+    }
+
+    #[test]
+    fn public_key_bytes_rejects_non_hex() {
+        let bad = DerivedAccount::new(
+            String::from("m/0"),
+            Zeroizing::new(String::new()),
+            String::from("not-hex!"),
+            String::new(),
+        );
+        assert!(matches!(
+            bad.public_key_bytes(),
+            Err(DeriveError::InvalidHex(_))
+        ));
+    }
+}

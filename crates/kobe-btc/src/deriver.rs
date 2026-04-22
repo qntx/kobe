@@ -51,6 +51,37 @@ pub struct DerivedAddress {
     pub address_type: AddressType,
 }
 
+impl DerivedAddress {
+    /// Decode the hex-encoded private key into raw 32-byte material.
+    ///
+    /// Returned buffer is zeroized on drop.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the stored hex is malformed or not exactly 32
+    /// bytes. Never produced by this workspace's derivers under normal use.
+    pub fn private_key_bytes(&self) -> Result<Zeroizing<[u8; 32]>, DeriveError> {
+        let mut buf = Zeroizing::new([0u8; 32]);
+        hex::decode_to_slice(self.private_key_hex.as_str(), buf.as_mut_slice()).map_err(|e| {
+            kobe_primitives::DeriveError::InvalidHex(alloc::format!("private_key_hex: {e}"))
+        })?;
+        Ok(buf)
+    }
+
+    /// Decode the hex-encoded compressed public key (33 bytes).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the stored hex is malformed.
+    pub fn public_key_bytes(&self) -> Result<Vec<u8>, DeriveError> {
+        hex::decode(&self.public_key_hex)
+            .map_err(|e| {
+                kobe_primitives::DeriveError::InvalidHex(alloc::format!("public_key_hex: {e}"))
+            })
+            .map_err(Into::into)
+    }
+}
+
 impl<'a> Deriver<'a> {
     /// Create a new Bitcoin deriver from a wallet.
     ///
@@ -316,5 +347,20 @@ mod tests {
         let d1 = Deriver::new(&wallet1, Network::Mainnet).unwrap();
         let d2 = Deriver::new(&wallet2, Network::Mainnet).unwrap();
         assert_ne!(d1.derive(0).unwrap().address, d2.derive(0).unwrap().address);
+    }
+
+    #[test]
+    fn bytes_accessors_roundtrip() {
+        let wallet = test_wallet();
+        let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
+        let da = deriver.derive_with(AddressType::P2wpkh, 0).unwrap();
+
+        let sk = da.private_key_bytes().unwrap();
+        assert_eq!(sk.len(), 32);
+        assert_eq!(hex::encode(*sk), da.private_key_hex.as_str());
+
+        let pk = da.public_key_bytes().unwrap();
+        assert_eq!(pk.len(), 33);
+        assert_eq!(hex::encode(&pk), da.public_key_hex);
     }
 }

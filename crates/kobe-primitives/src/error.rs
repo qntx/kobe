@@ -68,6 +68,16 @@ pub enum DeriveError {
     #[cfg(feature = "bip32")]
     #[error("BIP-32: {0}")]
     Bip32Derivation(String),
+
+    /// Stored hex material is malformed.
+    ///
+    /// Produced by the byte-level accessors on `DerivedAccount` /
+    /// `DerivedAddress` when decoding their hex fields. Derivers in this
+    /// workspace never produce malformed hex, so this error indicates
+    /// externally-constructed data.
+    #[cfg(feature = "alloc")]
+    #[error("invalid hex: {0}")]
+    InvalidHex(String),
 }
 
 #[cfg(not(feature = "std"))]

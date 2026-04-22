@@ -28,6 +28,37 @@ pub struct DerivedAddress {
     pub address: String,
 }
 
+impl DerivedAddress {
+    /// Decode the hex-encoded Ed25519 secret key into raw 32-byte material.
+    ///
+    /// Returned buffer is zeroized on drop.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the stored hex is malformed or not exactly 32
+    /// bytes. Never produced by this workspace's derivers under normal use.
+    pub fn private_key_bytes(&self) -> Result<Zeroizing<[u8; 32]>, DeriveError> {
+        let mut buf = Zeroizing::new([0u8; 32]);
+        hex::decode_to_slice(self.private_key_hex.as_str(), buf.as_mut_slice()).map_err(|e| {
+            kobe_primitives::DeriveError::InvalidHex(alloc::format!("private_key_hex: {e}"))
+        })?;
+        Ok(buf)
+    }
+
+    /// Decode the hex-encoded Ed25519 public key (32 bytes).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the stored hex is malformed.
+    pub fn public_key_bytes(&self) -> Result<Vec<u8>, DeriveError> {
+        hex::decode(&self.public_key_hex)
+            .map_err(|e| {
+                kobe_primitives::DeriveError::InvalidHex(alloc::format!("public_key_hex: {e}"))
+            })
+            .map_err(Into::into)
+    }
+}
+
 /// Solana address deriver from a unified wallet seed.
 ///
 /// This deriver takes a seed from [`kobe_primitives::Wallet`] and derives
@@ -289,5 +320,19 @@ mod tests {
         let wallet = test_wallet();
         let addr = Deriver::new(&wallet).derive(0).unwrap();
         assert_eq!(addr.address, "HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk");
+    }
+
+    #[test]
+    fn bytes_accessors_roundtrip() {
+        let wallet = test_wallet();
+        let addr = Deriver::new(&wallet).derive(0).unwrap();
+
+        let sk = addr.private_key_bytes().unwrap();
+        assert_eq!(sk.len(), 32);
+        assert_eq!(hex::encode(*sk), addr.private_key_hex.as_str());
+
+        let pk = addr.public_key_bytes().unwrap();
+        assert_eq!(pk.len(), 32);
+        assert_eq!(hex::encode(&pk), addr.public_key_hex);
     }
 }
