@@ -48,15 +48,17 @@ test:
 bench:
 	cargo bench --all-features
 
-# Run Clippy linter with nightly toolchain (check only, for CI)
-# Uses workspace lints from Cargo.toml
+# Run Clippy linter (nightly is only required for a few unstable lints).
+# Uses workspace lints from Cargo.toml. Falls back to stable cleanly.
+# Prerequisites: `rustup toolchain install nightly --component clippy`
 clippy:
 	cargo +nightly clippy --workspace \
 		--all-targets \
 		--all-features \
 		-- -D warnings
 
-# Run Clippy linter with auto-fix (for development)
+# Run Clippy linter with auto-fix (for development).
+# Prerequisites: `rustup toolchain install nightly --component clippy`
 clippy-fix:
 	cargo +nightly clippy --workspace \
 		--fix \
@@ -66,10 +68,13 @@ clippy-fix:
 		--allow-staged \
 		-- -D warnings
 
-# Format the code using rustfmt with nightly toolchain
+# Format the code using rustfmt (nightly provides import grouping).
+# Prerequisites: `rustup toolchain install nightly --component rustfmt`
 fmt:
-	cargo +nightly fmt
+	cargo +nightly fmt --all -- \
+		--config unstable_features=true,group_imports=StdExternalCrate,imports_granularity=Module
 
-# Generate documentation for all crates and open it in the browser
+# Generate documentation for all crates and open it in the browser.
+# Prerequisites: `rustup toolchain install nightly`
 doc:
 	cargo +nightly doc --all-features --no-deps --open

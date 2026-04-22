@@ -4,7 +4,7 @@ edition = "2024"
 max_width = 100
 use_small_heuristics = "Default"
 
-# Import organization
+# Import organization (stable)
 reorder_imports = true
 reorder_modules = true
 group_imports = "StdExternalCrate"  # nightly-only; enforce manually: std → external → crate
@@ -16,3 +16,4 @@ use_try_shorthand = true
 
 # Function formatting
 fn_params_layout = "Tall"
+

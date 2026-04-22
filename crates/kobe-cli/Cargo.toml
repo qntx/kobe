@@ -12,6 +12,9 @@ categories = ["command-line-utilities", "cryptography"]
 [[bin]]
 name = "kobe"
 path = "src/main.rs"
+# The binary `kobe` shares its name with the `kobe` library crate.
+# Disable bin-level rustdoc to avoid cargo-6313 output filename collision.
+doc = false
 
 [dependencies]
 kobe = { workspace = true, features = ["std", "rand", "camouflage", "all-chains"] }

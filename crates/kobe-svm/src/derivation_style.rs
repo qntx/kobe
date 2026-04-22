@@ -3,7 +3,8 @@
 //! Different wallet software (Phantom, Ledger, Trust Wallet) use different
 //! BIP-44 derivation paths. This module provides predefined styles for compatibility.
 
-use alloc::{format, string::String};
+use alloc::format;
+use alloc::string::String;
 use core::fmt;
 use core::str::FromStr;
 

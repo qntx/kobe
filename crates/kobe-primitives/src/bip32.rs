@@ -4,7 +4,8 @@
 //! chain crates (EVM, Cosmos, Tron, Spark, Filecoin) to avoid duplicating
 //! the `XPrv::derive_from_path` → `SigningKey` → public key pipeline.
 
-use alloc::{format, string::String};
+use alloc::format;
+use alloc::string::String;
 
 use bip32_crate::{DerivationPath, XPrv};
 use k256::ecdsa::SigningKey;

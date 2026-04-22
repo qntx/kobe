@@ -7,7 +7,10 @@ use alloc::{
 };
 use core::marker::PhantomData;
 
-use bitcoin::{PrivateKey, bip32::Xpriv, key::CompressedPublicKey, secp256k1::Secp256k1};
+use bitcoin::PrivateKey;
+use bitcoin::bip32::Xpriv;
+use bitcoin::key::CompressedPublicKey;
+use bitcoin::secp256k1::Secp256k1;
 use kobe_primitives::{Derive, DerivedAccount, Wallet};
 use zeroize::Zeroizing;
 

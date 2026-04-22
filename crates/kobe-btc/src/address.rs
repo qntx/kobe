@@ -3,7 +3,9 @@
 //! This module provides shared address creation functionality used by both
 //! HD derivation and standard wallet implementations.
 
-use bitcoin::{Address, PublicKey, key::CompressedPublicKey, secp256k1::Secp256k1};
+use bitcoin::key::CompressedPublicKey;
+use bitcoin::secp256k1::Secp256k1;
+use bitcoin::{Address, PublicKey};
 
 use crate::{AddressType, Network};
 

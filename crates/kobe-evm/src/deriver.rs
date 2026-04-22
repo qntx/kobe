@@ -1,6 +1,8 @@
 //! Ethereum address derivation from an HD wallet seed.
 
-use alloc::{format, string::String, vec::Vec};
+use alloc::format;
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::fmt;
 use core::str::FromStr;
 
