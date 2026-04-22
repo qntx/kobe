@@ -104,14 +104,6 @@ const fn network(testnet: bool) -> Network {
     }
 }
 
-const fn network_str(n: Network) -> &'static str {
-    match n {
-        Network::Mainnet => "mainnet",
-        Network::Testnet => "testnet",
-        _ => "unknown",
-    }
-}
-
 impl BitcoinCommand {
     pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
         match self.command {
@@ -161,7 +153,7 @@ fn build_hd(
 ) -> HdWalletOutput {
     HdWalletOutput {
         chain: "bitcoin",
-        network: Some(network_str(net)),
+        network: Some(net.name()),
         address_type: Some(addr_type.name()),
         mnemonic: wallet.mnemonic().to_owned(),
         passphrase_protected: wallet.has_passphrase(),

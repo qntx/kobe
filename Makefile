@@ -2,7 +2,7 @@
 
 .PHONY: all build check check-no-std run test bench clippy clippy-fix fmt doc update
 
-all: fmt clippy-fix
+all: fmt clippy-fix check-no-std
 
 # Build the project with all features enabled in release mode
 build:

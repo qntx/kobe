@@ -1,11 +1,11 @@
 //! Aptos address derivation from a unified wallet.
 
 #[cfg(feature = "alloc")]
-use alloc::{format, string::String};
+use alloc::{format, string::String, vec::Vec};
 
 pub use kobe_primitives::DerivedAccount;
 use kobe_primitives::slip10::DerivedKey;
-use kobe_primitives::{Derive, Wallet};
+use kobe_primitives::{Derive, DeriveExt, Wallet};
 use sha3::{Digest, Sha3_256};
 use zeroize::Zeroizing;
 
@@ -29,6 +29,17 @@ impl<'a> Deriver<'a> {
     #[must_use]
     pub const fn new(wallet: &'a Wallet) -> Self {
         Self { wallet }
+    }
+
+    /// Derive `count` accounts starting at `start` using the default Aptos path.
+    ///
+    /// Equivalent to [`DeriveExt::derive_many`] but available as an inherent method.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if any derivation fails or `start + count` overflows.
+    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAccount>, DeriveError> {
+        <Self as DeriveExt>::derive_many(self, start, count)
     }
 
     /// Internal: derive at an arbitrary SLIP-10 path.

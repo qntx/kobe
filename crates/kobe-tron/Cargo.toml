@@ -16,7 +16,6 @@ alloc = ["kobe-primitives/alloc"]
 
 [dependencies]
 kobe-primitives = { workspace = true, features = ["bip32"] }
-thiserror.workspace = true
 sha3.workspace = true
 bs58 = { workspace = true, features = ["check"] }
 
