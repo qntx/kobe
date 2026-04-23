@@ -4,10 +4,11 @@ use clap::{Args, Subcommand, ValueEnum};
 use kobe::Wallet;
 use kobe::svm::{DerivationStyle, Deriver, SvmAccount};
 
+use crate::commands::simple::SimpleArgs;
 use crate::output::{self, AccountOutput, HdWalletOutput};
 
 #[derive(Debug, Clone, Copy, Default, ValueEnum)]
-pub enum CliDerivationStyle {
+enum CliDerivationStyle {
     #[default]
     #[value(alias = "phantom", alias = "backpack")]
     Standard,
@@ -40,65 +41,51 @@ pub(crate) struct SolanaCommand {
 enum SolanaSubcommand {
     /// Generate a new wallet (with mnemonic).
     New {
-        #[arg(short, long, default_value = "12")]
-        words: usize,
-        #[arg(short, long)]
-        passphrase: Option<String>,
-        #[arg(short, long, default_value = "1")]
-        count: u32,
-        #[arg(short, long, default_value = "standard")]
-        style: CliDerivationStyle,
-        #[arg(long)]
-        qr: bool,
+        #[command(flatten)]
+        args: SolanaArgs,
     },
     /// Import wallet from mnemonic phrase.
     Import {
+        /// BIP39 mnemonic phrase.
         #[arg(short, long)]
         mnemonic: String,
-        #[arg(short, long)]
-        passphrase: Option<String>,
-        #[arg(short, long, default_value = "1")]
-        count: u32,
-        #[arg(short, long, default_value = "standard")]
-        style: CliDerivationStyle,
-        #[arg(long)]
-        qr: bool,
+
+        #[command(flatten)]
+        args: SolanaArgs,
     },
+}
+
+/// Solana-specific CLI flags, on top of the shared mnemonic / count options.
+#[derive(Args, Debug, Clone)]
+struct SolanaArgs {
+    /// Derivation path style (standard, trust, ledger-live, legacy).
+    #[arg(short, long, default_value = "standard")]
+    style: CliDerivationStyle,
+
+    #[command(flatten)]
+    common: SimpleArgs,
 }
 
 impl SolanaCommand {
     pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
-        match self.command {
-            SolanaSubcommand::New {
-                words,
-                passphrase,
-                count,
-                style,
-                qr,
-            } => {
-                let ds = DerivationStyle::from(style);
-                let wallet = Wallet::generate(words, passphrase.as_deref())?;
-                let deriver = Deriver::new(&wallet);
-                let addresses = deriver.derive_many_with(ds, 0, count)?;
-                let out = build_hd(&wallet, ds, &addresses);
-                output::render_hd_wallet(&out, json, qr)?;
+        let (wallet, args) = match self.command {
+            SolanaSubcommand::New { args } => {
+                let wallet =
+                    Wallet::generate(args.common.words, args.common.passphrase.as_deref())?;
+                (wallet, args)
             }
-            SolanaSubcommand::Import {
-                mnemonic,
-                passphrase,
-                count,
-                style,
-                qr,
-            } => {
-                let ds = DerivationStyle::from(style);
+            SolanaSubcommand::Import { mnemonic, args } => {
                 let expanded = kobe::mnemonic::expand(&mnemonic)?;
-                let wallet = Wallet::from_mnemonic(&expanded, passphrase.as_deref())?;
-                let deriver = Deriver::new(&wallet);
-                let addresses = deriver.derive_many_with(ds, 0, count)?;
-                let out = build_hd(&wallet, ds, &addresses);
-                output::render_hd_wallet(&out, json, qr)?;
+                let wallet = Wallet::from_mnemonic(&expanded, args.common.passphrase.as_deref())?;
+                (wallet, args)
             }
-        }
+        };
+
+        let ds = DerivationStyle::from(args.style);
+        let deriver = Deriver::new(&wallet);
+        let addresses = deriver.derive_many_with(ds, 0, args.common.count)?;
+        let out = build_hd(&wallet, ds, &addresses);
+        output::render_hd_wallet(&out, json, args.common.qr)?;
         Ok(())
     }
 }

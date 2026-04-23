@@ -341,6 +341,9 @@ mod tests {
     fn verifying_key_matches_public_key_bytes() {
         let seed = hex::decode(TV1_SEED).unwrap();
         let derived = DerivedEd25519Key::from_seed(&seed).unwrap();
-        assert_eq!(derived.verifying_key().as_bytes(), &derived.public_key_bytes());
+        assert_eq!(
+            derived.verifying_key().as_bytes(),
+            &derived.public_key_bytes()
+        );
     }
 }

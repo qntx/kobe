@@ -4,6 +4,7 @@ use clap::{Args, Subcommand, ValueEnum};
 use kobe::evm::{DerivationStyle, Deriver};
 use kobe::{DerivedAccount, Wallet};
 
+use crate::commands::simple::SimpleArgs;
 use crate::output::{self, AccountOutput, HdWalletOutput};
 
 /// Ethereum wallet operations.
@@ -14,7 +15,7 @@ pub(crate) struct EthereumCommand {
 }
 
 #[derive(Debug, Clone, Copy, Default, ValueEnum)]
-pub enum CliDerivationStyle {
+enum CliDerivationStyle {
     #[default]
     Standard,
     #[value(name = "ledger-live")]
@@ -37,65 +38,51 @@ impl From<CliDerivationStyle> for DerivationStyle {
 enum EthereumSubcommand {
     /// Generate a new wallet (with mnemonic).
     New {
-        #[arg(short, long, default_value = "12")]
-        words: usize,
-        #[arg(short, long)]
-        passphrase: Option<String>,
-        #[arg(short, long, default_value = "1")]
-        count: u32,
-        #[arg(short, long, default_value = "standard")]
-        style: CliDerivationStyle,
-        #[arg(long)]
-        qr: bool,
+        #[command(flatten)]
+        args: EthereumArgs,
     },
     /// Import wallet from mnemonic phrase.
     Import {
+        /// BIP39 mnemonic phrase.
         #[arg(short, long)]
         mnemonic: String,
-        #[arg(short, long)]
-        passphrase: Option<String>,
-        #[arg(short, long, default_value = "1")]
-        count: u32,
-        #[arg(short, long, default_value = "standard")]
-        style: CliDerivationStyle,
-        #[arg(long)]
-        qr: bool,
+
+        #[command(flatten)]
+        args: EthereumArgs,
     },
+}
+
+/// Ethereum-specific CLI flags, on top of the shared mnemonic / count options.
+#[derive(Args, Debug, Clone)]
+struct EthereumArgs {
+    /// Derivation path style (standard / ledger-live / ledger-legacy).
+    #[arg(short, long, default_value = "standard")]
+    style: CliDerivationStyle,
+
+    #[command(flatten)]
+    common: SimpleArgs,
 }
 
 impl EthereumCommand {
     pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
-        match self.command {
-            EthereumSubcommand::New {
-                words,
-                passphrase,
-                count,
-                style,
-                qr,
-            } => {
-                let ds = DerivationStyle::from(style);
-                let wallet = Wallet::generate(words, passphrase.as_deref())?;
-                let deriver = Deriver::new(&wallet);
-                let accounts = deriver.derive_many_with(ds, 0, count)?;
-                let out = build_hd(&wallet, ds, &accounts);
-                output::render_hd_wallet(&out, json, qr)?;
+        let (wallet, args) = match self.command {
+            EthereumSubcommand::New { args } => {
+                let wallet =
+                    Wallet::generate(args.common.words, args.common.passphrase.as_deref())?;
+                (wallet, args)
             }
-            EthereumSubcommand::Import {
-                mnemonic,
-                passphrase,
-                count,
-                style,
-                qr,
-            } => {
-                let ds = DerivationStyle::from(style);
+            EthereumSubcommand::Import { mnemonic, args } => {
                 let expanded = kobe::mnemonic::expand(&mnemonic)?;
-                let wallet = Wallet::from_mnemonic(&expanded, passphrase.as_deref())?;
-                let deriver = Deriver::new(&wallet);
-                let accounts = deriver.derive_many_with(ds, 0, count)?;
-                let out = build_hd(&wallet, ds, &accounts);
-                output::render_hd_wallet(&out, json, qr)?;
+                let wallet = Wallet::from_mnemonic(&expanded, args.common.passphrase.as_deref())?;
+                (wallet, args)
             }
-        }
+        };
+
+        let ds = DerivationStyle::from(args.style);
+        let deriver = Deriver::new(&wallet);
+        let accounts = deriver.derive_many_with(ds, 0, args.common.count)?;
+        let out = build_hd(&wallet, ds, &accounts);
+        output::render_hd_wallet(&out, json, args.common.qr)?;
         Ok(())
     }
 }

@@ -4,6 +4,7 @@ use clap::{Args, Subcommand, ValueEnum};
 use kobe::Wallet;
 use kobe::btc::{AddressType, Deriver, Network};
 
+use crate::commands::simple::SimpleArgs;
 use crate::output::{self, AccountOutput, HdWalletOutput};
 
 /// Bitcoin wallet operations.
@@ -19,61 +20,37 @@ pub(crate) struct BitcoinCommand {
 enum BitcoinSubcommand {
     /// Generate a new wallet (with mnemonic).
     New {
-        /// Use testnet instead of mainnet.
-        #[arg(short, long)]
-        testnet: bool,
-
-        /// Number of mnemonic words (12, 15, 18, 21, or 24).
-        #[arg(short, long, default_value = "12")]
-        words: usize,
-
-        /// BIP39 passphrase (optional extra security).
-        #[arg(short, long)]
-        passphrase: Option<String>,
-
-        /// Address type to generate.
-        #[arg(short, long, value_enum, default_value = "native-segwit")]
-        address_type: CliAddressType,
-
-        /// Number of addresses to derive.
-        #[arg(short, long, default_value = "1")]
-        count: u32,
-
-        /// Display QR code for each address.
-        #[arg(long)]
-        qr: bool,
+        #[command(flatten)]
+        args: BitcoinArgs,
     },
-
     /// Import wallet from mnemonic phrase.
     Import {
         /// BIP39 mnemonic phrase.
         #[arg(short, long)]
         mnemonic: String,
 
-        /// BIP39 passphrase (if used when creating).
-        #[arg(short, long)]
-        passphrase: Option<String>,
-
-        /// Use testnet instead of mainnet.
-        #[arg(short, long)]
-        testnet: bool,
-
-        /// Address type to generate.
-        #[arg(short, long, value_enum, default_value = "native-segwit")]
-        address_type: CliAddressType,
-
-        /// Number of addresses to derive.
-        #[arg(short, long, default_value = "1")]
-        count: u32,
-
-        /// Display QR code for each address.
-        #[arg(long)]
-        qr: bool,
+        #[command(flatten)]
+        args: BitcoinArgs,
     },
 }
 
+/// Bitcoin-specific CLI flags, on top of the shared mnemonic / count options.
+#[derive(Args, Debug, Clone)]
+struct BitcoinArgs {
+    /// Use testnet instead of mainnet.
+    #[arg(short, long)]
+    testnet: bool,
+
+    /// Address type to generate.
+    #[arg(short, long, value_enum, default_value = "native-segwit")]
+    address_type: CliAddressType,
+
+    #[command(flatten)]
+    common: SimpleArgs,
+}
+
 /// CLI-compatible address type enum.
-#[derive(Clone, Copy, ValueEnum)]
+#[derive(Clone, Copy, Debug, ValueEnum)]
 enum CliAddressType {
     /// Legacy P2PKH (starts with 1)
     Legacy,
@@ -106,41 +83,25 @@ const fn network(testnet: bool) -> Network {
 
 impl BitcoinCommand {
     pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
-        match self.command {
-            BitcoinSubcommand::New {
-                testnet,
-                words,
-                passphrase,
-                address_type,
-                count,
-                qr,
-            } => {
-                let net = network(testnet);
-                let addr_type = AddressType::from(address_type);
-                let wallet = Wallet::generate(words, passphrase.as_deref())?;
-                let deriver = Deriver::new(&wallet, net)?;
-                let addresses = deriver.derive_many_with(addr_type, 0, count)?;
-                let out = build_hd(&wallet, net, addr_type, &addresses);
-                output::render_hd_wallet(&out, json, qr)?;
+        let (wallet, args) = match self.command {
+            BitcoinSubcommand::New { args } => {
+                let wallet =
+                    Wallet::generate(args.common.words, args.common.passphrase.as_deref())?;
+                (wallet, args)
             }
-            BitcoinSubcommand::Import {
-                mnemonic,
-                passphrase,
-                testnet,
-                address_type,
-                count,
-                qr,
-            } => {
-                let net = network(testnet);
-                let addr_type = AddressType::from(address_type);
+            BitcoinSubcommand::Import { mnemonic, args } => {
                 let expanded = kobe::mnemonic::expand(&mnemonic)?;
-                let wallet = Wallet::from_mnemonic(&expanded, passphrase.as_deref())?;
-                let deriver = Deriver::new(&wallet, net)?;
-                let addresses = deriver.derive_many_with(addr_type, 0, count)?;
-                let out = build_hd(&wallet, net, addr_type, &addresses);
-                output::render_hd_wallet(&out, json, qr)?;
+                let wallet = Wallet::from_mnemonic(&expanded, args.common.passphrase.as_deref())?;
+                (wallet, args)
             }
-        }
+        };
+
+        let net = network(args.testnet);
+        let addr_type = AddressType::from(args.address_type);
+        let deriver = Deriver::new(&wallet, net)?;
+        let addresses = deriver.derive_many_with(addr_type, 0, args.common.count)?;
+        let out = build_hd(&wallet, net, addr_type, &addresses);
+        output::render_hd_wallet(&out, json, args.common.qr)?;
         Ok(())
     }
 }

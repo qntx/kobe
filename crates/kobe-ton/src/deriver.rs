@@ -4,7 +4,9 @@
 use alloc::{format, string::String, vec::Vec};
 use core::fmt;
 
-use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet, derive_range};
+use kobe_primitives::{
+    Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet, derive_range,
+};
 use sha2::{Digest, Sha256};
 use zeroize::Zeroizing;
 

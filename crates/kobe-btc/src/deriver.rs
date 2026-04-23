@@ -9,7 +9,7 @@ use core::marker::PhantomData;
 use core::ops::Deref;
 
 use bitcoin::PrivateKey;
-use bitcoin::bip32::Xpriv;
+use bitcoin::bip32::{ChildNumber, Xpriv};
 use bitcoin::key::CompressedPublicKey;
 use bitcoin::secp256k1::Secp256k1;
 use kobe_primitives::{
@@ -234,9 +234,38 @@ impl Derive for Deriver<'_> {
         self.derive_with(AddressType::P2wpkh, index)
     }
 
+    /// Derive a [`BtcAccount`] at an arbitrary BIP-32 path, inferring the
+    /// [`AddressType`] from the path's BIP-44 *purpose* segment.
+    ///
+    /// The first hardened index is interpreted as the BIP purpose and mapped
+    /// to an [`AddressType`] via [`AddressType::from_purpose`]:
+    /// `44' → P2PKH`, `49' → P2SH-P2WPKH`, `84' → P2WPKH`, `86' → P2TR`.
+    ///
+    /// For non-standard paths (custom purpose, unhardened first segment),
+    /// callers must use [`Deriver::derive_bip32_path`] to specify the address
+    /// type explicitly; this method returns [`DeriveError::Path`] in that case.
     fn derive_path(&self, path: &str) -> Result<BtcAccount, DeriveError> {
         let parsed = DerivationPath::from_path_str(path)?;
-        self.derive_bip32_path(&parsed, AddressType::P2wpkh)
+        let address_type = infer_address_type(&parsed).ok_or_else(|| {
+            DeriveError::Path(alloc::format!(
+                "bitcoin: cannot infer address type from path '{path}'; \
+                 purpose must be 44'/49'/84'/86'. \
+                 Use Deriver::derive_bip32_path(path, address_type) for custom paths."
+            ))
+        })?;
+        self.derive_bip32_path(&parsed, address_type)
+    }
+}
+
+/// Infer the [`AddressType`] from the BIP-44 purpose segment of `path`.
+///
+/// Returns `None` if the path is empty, its first segment is non-hardened,
+/// or the hardened value does not map to a standard BIP purpose.
+fn infer_address_type(path: &DerivationPath) -> Option<AddressType> {
+    let first = path.inner().into_iter().next()?;
+    match first {
+        ChildNumber::Hardened { index } => AddressType::from_purpose(*index),
+        ChildNumber::Normal { .. } => None,
     }
 }
 
@@ -395,5 +424,56 @@ mod tests {
                 .address(),
             deriver(&w, Network::Mainnet).derive(0).unwrap().address(),
         );
+    }
+
+    /// `Derive::derive_path` must infer the [`AddressType`] from the purpose
+    /// segment so that `m/44'` → P2PKH, `m/49'` → P2SH-P2WPKH, `m/84'` → P2WPKH,
+    /// and `m/86'` → P2TR on the canonical `abandon…about` mnemonic. Regression
+    /// test against the previous hard-coded P2WPKH behaviour, which produced
+    /// `bc1q…` for BIP-44/49/86 paths and silently misrepresented user intent.
+    #[test]
+    fn derive_path_infers_address_type_from_purpose() {
+        let w = test_wallet();
+        let d = deriver(&w, Network::Mainnet);
+
+        let legacy = d.derive_path("m/44'/0'/0'/0/0").unwrap();
+        assert_eq!(legacy.address_type(), AddressType::P2pkh);
+        assert!(legacy.address().starts_with('1'));
+
+        let nested = d.derive_path("m/49'/0'/0'/0/0").unwrap();
+        assert_eq!(nested.address_type(), AddressType::P2shP2wpkh);
+        assert!(nested.address().starts_with('3'));
+
+        let native = d.derive_path("m/84'/0'/0'/0/0").unwrap();
+        assert_eq!(native.address_type(), AddressType::P2wpkh);
+        assert!(native.address().starts_with("bc1q"));
+
+        let taproot = d.derive_path("m/86'/0'/0'/0/0").unwrap();
+        assert_eq!(taproot.address_type(), AddressType::P2tr);
+        assert!(taproot.address().starts_with("bc1p"));
+    }
+
+    /// Non-standard paths (unknown purpose or non-hardened first segment)
+    /// must surface a [`DeriveError::Path`] pointing callers at
+    /// [`Deriver::derive_bip32_path`], rather than silently defaulting to
+    /// P2WPKH.
+    #[test]
+    fn derive_path_rejects_non_standard_purpose() {
+        let w = test_wallet();
+        let d = deriver(&w, Network::Mainnet);
+
+        let err = d.derive_path("m/1'/2'/3'").unwrap_err();
+        let DeriveError::Path(msg) = &err else {
+            unreachable!("expected DeriveError::Path, got {err:?}");
+        };
+        assert!(
+            msg.contains("cannot infer address type"),
+            "unexpected error message: {msg}"
+        );
+
+        let err = d.derive_path("m/44/0'/0'/0/0").unwrap_err();
+        let DeriveError::Path(_) = &err else {
+            unreachable!("non-hardened purpose must fail with Path error, got {err:?}");
+        };
     }
 }

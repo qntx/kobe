@@ -39,6 +39,22 @@ impl AddressType {
         }
     }
 
+    /// Infer the address type from a BIP-44 / 49 / 84 / 86 `purpose` index.
+    ///
+    /// Returns `None` for any `purpose` that is not a standard BIP purpose.
+    /// This is the inverse of [`AddressType::purpose`].
+    #[inline]
+    #[must_use]
+    pub const fn from_purpose(purpose: u32) -> Option<Self> {
+        match purpose {
+            44 => Some(Self::P2pkh),
+            49 => Some(Self::P2shP2wpkh),
+            84 => Some(Self::P2wpkh),
+            86 => Some(Self::P2tr),
+            _ => None,
+        }
+    }
+
     /// Get address type name.
     #[inline]
     #[must_use]

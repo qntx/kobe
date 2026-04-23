@@ -4,6 +4,7 @@ use clap::{Args, Subcommand};
 use kobe::cosmos::{ChainConfig, Deriver};
 use kobe::{DeriveExt, Wallet};
 
+use crate::commands::simple::SimpleArgs;
 use crate::output::{self, HdWalletOutput};
 
 /// Cosmos wallet operations.
@@ -17,69 +18,54 @@ pub(crate) struct CosmosCommand {
 enum CosmosSubcommand {
     /// Generate a new Cosmos wallet (with mnemonic).
     New {
-        #[arg(short, long, default_value = "12")]
-        words: usize,
-        #[arg(short, long)]
-        passphrase: Option<String>,
-        #[arg(short, long, default_value = "1")]
-        count: u32,
-        #[arg(long, default_value = "cosmos")]
-        hrp: String,
-        #[arg(long, default_value = "118")]
-        coin_type: u32,
-        #[arg(long)]
-        qr: bool,
+        #[command(flatten)]
+        args: CosmosArgs,
     },
     /// Import wallet from mnemonic phrase.
     Import {
+        /// BIP-39 mnemonic phrase (supports 4-letter prefix expansion).
         #[arg(short, long)]
         mnemonic: String,
-        #[arg(short, long)]
-        passphrase: Option<String>,
-        #[arg(short, long, default_value = "1")]
-        count: u32,
-        #[arg(long, default_value = "cosmos")]
-        hrp: String,
-        #[arg(long, default_value = "118")]
-        coin_type: u32,
-        #[arg(long)]
-        qr: bool,
+
+        #[command(flatten)]
+        args: CosmosArgs,
     },
+}
+
+/// Cosmos-specific CLI flags (bech32 HRP + BIP-44 coin type).
+#[derive(Args, Debug, Clone)]
+struct CosmosArgs {
+    /// Bech32 human-readable prefix (e.g. `cosmos`, `osmo`, `terra`).
+    #[arg(long, default_value = "cosmos")]
+    hrp: String,
+
+    /// BIP-44 coin type (118 for Cosmos Hub/Osmosis, 330 for Terra, …).
+    #[arg(long, default_value = "118")]
+    coin_type: u32,
+
+    #[command(flatten)]
+    common: SimpleArgs,
 }
 
 impl CosmosCommand {
     pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
-        match self.command {
-            CosmosSubcommand::New {
-                words,
-                passphrase,
-                count,
-                hrp,
-                coin_type,
-                qr,
-            } => {
-                let wallet = Wallet::generate(words, passphrase.as_deref())?;
-                let deriver = Deriver::with_config(&wallet, ChainConfig::new(hrp, coin_type));
-                let accounts = deriver.derive_many(0, count)?;
-                let out = HdWalletOutput::simple("cosmos", &wallet, &accounts);
-                output::render_hd_wallet(&out, json, qr)?;
+        let (wallet, args) = match self.command {
+            CosmosSubcommand::New { args } => {
+                let wallet =
+                    Wallet::generate(args.common.words, args.common.passphrase.as_deref())?;
+                (wallet, args)
             }
-            CosmosSubcommand::Import {
-                mnemonic,
-                passphrase,
-                count,
-                hrp,
-                coin_type,
-                qr,
-            } => {
+            CosmosSubcommand::Import { mnemonic, args } => {
                 let expanded = kobe::mnemonic::expand(&mnemonic)?;
-                let wallet = Wallet::from_mnemonic(&expanded, passphrase.as_deref())?;
-                let deriver = Deriver::with_config(&wallet, ChainConfig::new(hrp, coin_type));
-                let accounts = deriver.derive_many(0, count)?;
-                let out = HdWalletOutput::simple("cosmos", &wallet, &accounts);
-                output::render_hd_wallet(&out, json, qr)?;
+                let wallet = Wallet::from_mnemonic(&expanded, args.common.passphrase.as_deref())?;
+                (wallet, args)
             }
-        }
+        };
+
+        let deriver = Deriver::with_config(&wallet, ChainConfig::new(args.hrp, args.coin_type));
+        let accounts = deriver.derive_many(0, args.common.count)?;
+        let out = HdWalletOutput::simple("cosmos", &wallet, &accounts);
+        output::render_hd_wallet(&out, json, args.common.qr)?;
         Ok(())
     }
 }
