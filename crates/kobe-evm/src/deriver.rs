@@ -7,10 +7,9 @@ use core::fmt;
 use core::str::FromStr;
 
 use alloy_primitives::{Address, keccak256};
-pub use kobe_primitives::DerivedAccount;
-use kobe_primitives::{Derive, Wallet, derive_range};
-
-use crate::DeriveError;
+use kobe_primitives::{
+    Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet, derive_range,
+};
 
 /// Derivation path styles for different wallet software.
 ///
@@ -64,7 +63,9 @@ impl FromStr for DerivationStyle {
             "standard" | "metamask" | "trezor" | "bip44" => Ok(Self::Standard),
             "ledger-live" | "ledgerlive" | "live" => Ok(Self::LedgerLive),
             "ledger-legacy" | "ledgerlegacy" | "legacy" | "mew" => Ok(Self::LedgerLegacy),
-            _ => Err(DeriveError::UnknownDerivationStyle(s.into())),
+            _ => Err(DeriveError::Input(format!(
+                "unknown EVM derivation style: {s}"
+            ))),
         }
     }
 }
@@ -93,7 +94,7 @@ impl<'a> Deriver<'a> {
         style: DerivationStyle,
         index: u32,
     ) -> Result<DerivedAccount, DeriveError> {
-        self.derive_at_path(&style.path(index))
+        self.derive_at(&style.path(index))
     }
 
     /// Derive `count` accounts starting at `start` with a specific style.
@@ -110,8 +111,12 @@ impl<'a> Deriver<'a> {
         derive_range(start, count, |i| self.derive_with(style, i))
     }
 
-    /// Internal: derive at an arbitrary path.
-    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
+    /// Derive at an arbitrary BIP-32 path.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key derivation fails.
+    pub fn derive_at(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         let key = self.wallet.derive_secp256k1(path)?;
         let uncompressed = key.uncompressed_pubkey();
 
@@ -122,13 +127,14 @@ impl<'a> Deriver<'a> {
         Ok(DerivedAccount::new(
             String::from(path),
             key.private_key_bytes(),
-            uncompressed.to_vec(),
+            DerivedPublicKey::Secp256k1Uncompressed(uncompressed),
             address.to_checksum(None),
         ))
     }
 }
 
 impl Derive for Deriver<'_> {
+    type Account = DerivedAccount;
     type Error = DeriveError;
 
     fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
@@ -136,7 +142,7 @@ impl Derive for Deriver<'_> {
     }
 
     fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
-        self.derive_at_path(path)
+        self.derive_at(path)
     }
 }
 

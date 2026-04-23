@@ -711,7 +711,7 @@ dependencies = [
 
 [[package]]
 name = "kobe"
-version = "1.1.1"
+version = "2.0.0"
 dependencies = [
  "kobe-aptos",
  "kobe-btc",
@@ -730,29 +730,27 @@ dependencies = [
 
 [[package]]
 name = "kobe-aptos"
-version = "1.1.1"
+version = "2.0.0"
 dependencies = [
  "hex",
  "kobe-primitives",
  "sha3 0.11.0",
- "thiserror",
  "zeroize",
 ]
 
 [[package]]
 name = "kobe-btc"
-version = "1.1.1"
+version = "2.0.0"
 dependencies = [
  "bitcoin",
  "hex",
  "kobe-primitives",
- "thiserror",
  "zeroize",
 ]
 
 [[package]]
 name = "kobe-cli"
-version = "1.1.1"
+version = "2.0.0"
 dependencies = [
  "clap",
  "colored",
@@ -764,46 +762,42 @@ dependencies = [
 
 [[package]]
 name = "kobe-cosmos"
-version = "1.1.1"
+version = "2.0.0"
 dependencies = [
  "bech32",
  "kobe-primitives",
  "ripemd 0.2.0",
  "sha2 0.11.0",
- "thiserror",
 ]
 
 [[package]]
 name = "kobe-evm"
-version = "1.1.1"
+version = "2.0.0"
 dependencies = [
  "alloy-primitives",
  "kobe-primitives",
- "thiserror",
 ]
 
 [[package]]
 name = "kobe-fil"
-version = "1.1.1"
+version = "2.0.0"
 dependencies = [
  "blake2",
  "kobe-primitives",
- "thiserror",
 ]
 
 [[package]]
 name = "kobe-nostr"
-version = "1.1.1"
+version = "2.0.0"
 dependencies = [
  "bech32",
  "kobe-primitives",
- "thiserror",
  "zeroize",
 ]
 
 [[package]]
 name = "kobe-primitives"
-version = "1.1.1"
+version = "2.0.0"
 dependencies = [
  "bip32",
  "bip39",
@@ -818,65 +812,59 @@ dependencies = [
 
 [[package]]
 name = "kobe-spark"
-version = "1.1.1"
+version = "2.0.0"
 dependencies = [
  "bech32",
  "hex",
  "kobe-primitives",
- "thiserror",
 ]
 
 [[package]]
 name = "kobe-sui"
-version = "1.1.1"
+version = "2.0.0"
 dependencies = [
  "blake2",
  "hex",
  "kobe-primitives",
- "thiserror",
  "zeroize",
 ]
 
 [[package]]
 name = "kobe-svm"
-version = "1.1.1"
+version = "2.0.0"
 dependencies = [
  "bs58",
  "kobe-primitives",
- "thiserror",
  "zeroize",
 ]
 
 [[package]]
 name = "kobe-ton"
-version = "1.1.1"
+version = "2.0.0"
 dependencies = [
  "base64",
  "kobe-primitives",
  "sha2 0.11.0",
- "thiserror",
  "zeroize",
 ]
 
 [[package]]
 name = "kobe-tron"
-version = "1.1.1"
+version = "2.0.0"
 dependencies = [
  "bs58",
  "kobe-primitives",
  "sha3 0.11.0",
- "thiserror",
 ]
 
 [[package]]
 name = "kobe-xrpl"
-version = "1.1.1"
+version = "2.0.0"
 dependencies = [
  "bs58",
  "kobe-primitives",
  "ripemd 0.2.0",
  "sha2 0.11.0",
- "thiserror",
 ]
 
 [[package]]

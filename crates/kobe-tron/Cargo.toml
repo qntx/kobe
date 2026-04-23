@@ -18,7 +18,6 @@ alloc = ["kobe-primitives/alloc"]
 kobe-primitives = { workspace = true, features = ["bip32"] }
 sha3.workspace = true
 bs58 = { workspace = true, features = ["check"] }
-thiserror.workspace = true
 
 [lints]
 workspace = true

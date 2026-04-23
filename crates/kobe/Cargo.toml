@@ -10,7 +10,10 @@ keywords = ["crypto", "wallet", "bitcoin", "ethereum", "solana"]
 categories = ["cryptography::cryptocurrencies"]
 
 [features]
-default = ["std", "btc", "evm", "svm"]
+# Minimal default: only `std` core. Opt into chains explicitly or via presets
+# (`mainstream`, `all-chains`) to keep binary size and compile time predictable.
+default = ["std"]
+
 std = ["alloc", "kobe-primitives/std", "kobe-aptos?/std", "kobe-btc?/std", "kobe-evm?/std", "kobe-svm?/std", "kobe-cosmos?/std", "kobe-tron?/std", "kobe-spark?/std", "kobe-fil?/std", "kobe-ton?/std", "kobe-sui?/std", "kobe-nostr?/std", "kobe-xrpl?/std"]
 alloc = ["kobe-primitives/alloc", "kobe-aptos?/alloc", "kobe-btc?/alloc", "kobe-evm?/alloc", "kobe-svm?/alloc", "kobe-cosmos?/alloc", "kobe-tron?/alloc", "kobe-spark?/alloc", "kobe-fil?/alloc", "kobe-ton?/alloc", "kobe-sui?/alloc", "kobe-nostr?/alloc", "kobe-xrpl?/alloc"]
 rand = ["kobe-primitives/rand"]
@@ -31,6 +34,10 @@ sui = ["dep:kobe-sui", "slip10"]
 aptos = ["dep:kobe-aptos", "slip10"]
 nostr = ["dep:kobe-nostr", "bip32"]
 xrpl = ["dep:kobe-xrpl", "bip32"]
+
+# Preset: the three most requested chains (previous 1.x default).
+mainstream = ["btc", "evm", "svm"]
+# Preset: every chain crate.
 all-chains = ["aptos", "btc", "evm", "svm", "cosmos", "tron", "spark", "fil", "ton", "sui", "nostr", "xrpl"]
 
 [dependencies]

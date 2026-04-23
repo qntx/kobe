@@ -5,15 +5,12 @@
 //! bech32 entities (`nsec` for the private key, `npub` for the x-only public key).
 
 #[cfg(feature = "alloc")]
-use alloc::{format, string::String, vec::Vec};
+use alloc::{format, string::String};
 use core::ops::Deref;
 
 use bech32::{Bech32, Hrp};
-pub use kobe_primitives::DerivedAccount;
-use kobe_primitives::{Derive, Wallet, derive_range};
+use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
 use zeroize::Zeroizing;
-
-use crate::DeriveError;
 
 /// NIP-19 human-readable part for secret keys.
 pub const NSEC_HRP: &str = "nsec";
@@ -110,17 +107,7 @@ impl<'a> Deriver<'a> {
     /// Returns an error if key derivation or bech32 encoding fails.
     #[inline]
     pub fn derive(&self, index: u32) -> Result<NostrAccount, DeriveError> {
-        self.derive_at_path(&format!("m/44'/1237'/{index}'/0/0"))
-    }
-
-    /// Derive `count` accounts starting at `start` using the default NIP-06 layout.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if any derivation fails or `start + count` overflows.
-    #[inline]
-    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<NostrAccount>, DeriveError> {
-        derive_range(start, count, |i| self.derive(i))
+        self.derive_at(&format!("m/44'/1237'/{index}'/0/0"))
     }
 
     /// Derive a Nostr account at an arbitrary BIP-32 path.
@@ -128,7 +115,7 @@ impl<'a> Deriver<'a> {
     /// # Errors
     ///
     /// Returns an error if the path is invalid or derivation fails.
-    pub fn derive_at_path(&self, path: &str) -> Result<NostrAccount, DeriveError> {
+    pub fn derive_at(&self, path: &str) -> Result<NostrAccount, DeriveError> {
         let key = self.wallet.derive_secp256k1(path)?;
 
         // NIP-19 / BIP-340: the x-only public key is the last 32 bytes of the
@@ -136,24 +123,29 @@ impl<'a> Deriver<'a> {
         // is dropped).
         let compressed = key.compressed_pubkey();
         let mut xonly = [0u8; 32];
-        xonly.copy_from_slice(
-            compressed
-                .get(1..)
-                .ok_or_else(|| DeriveError::Bech32(String::from("unreachable: short pubkey")))?,
-        );
+        xonly.copy_from_slice(compressed.get(1..).ok_or_else(|| {
+            DeriveError::Crypto(String::from(
+                "nostr: compressed pubkey shorter than 33 bytes",
+            ))
+        })?);
 
         let npub_hrp = Hrp::parse(NPUB_HRP)
-            .map_err(|e| DeriveError::Bech32(format!("invalid npub HRP: {e}")))?;
+            .map_err(|e| DeriveError::AddressEncoding(format!("nostr: invalid npub HRP: {e}")))?;
         let npub = bech32::encode::<Bech32>(npub_hrp, &xonly)
-            .map_err(|e| DeriveError::Bech32(format!("npub encoding failed: {e}")))?;
+            .map_err(|e| DeriveError::AddressEncoding(format!("nostr npub encoding: {e}")))?;
 
         let nsec_hrp = Hrp::parse(NSEC_HRP)
-            .map_err(|e| DeriveError::Bech32(format!("invalid nsec HRP: {e}")))?;
+            .map_err(|e| DeriveError::AddressEncoding(format!("nostr: invalid nsec HRP: {e}")))?;
         let sk_bytes = key.private_key_bytes();
         let nsec = bech32::encode::<Bech32>(nsec_hrp, sk_bytes.as_slice())
-            .map_err(|e| DeriveError::Bech32(format!("nsec encoding failed: {e}")))?;
+            .map_err(|e| DeriveError::AddressEncoding(format!("nostr nsec encoding: {e}")))?;
 
-        let inner = DerivedAccount::new(String::from(path), sk_bytes, xonly.to_vec(), npub);
+        let inner = DerivedAccount::new(
+            String::from(path),
+            sk_bytes,
+            DerivedPublicKey::Secp256k1XOnly(xonly),
+            npub,
+        );
 
         Ok(NostrAccount {
             inner,
@@ -163,18 +155,27 @@ impl<'a> Deriver<'a> {
 }
 
 impl Derive for Deriver<'_> {
+    type Account = NostrAccount;
     type Error = DeriveError;
 
     /// Derive a Nostr account at the given NIP-06 `account` index.
     ///
-    /// Returns the unified [`DerivedAccount`]; use [`Deriver::derive`] for the
-    /// [`NostrAccount`] newtype that also exposes the NIP-19 `nsec`.
-    fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
-        Ok(Deriver::derive(self, index)?.into_derived_account())
+    /// The returned [`NostrAccount`] wraps a [`DerivedAccount`] plus the
+    /// NIP-19 `nsec` bech32 encoding; `Deref` / `AsRef<DerivedAccount>`
+    /// expose the unified view.
+    fn derive(&self, index: u32) -> Result<NostrAccount, DeriveError> {
+        Deriver::derive(self, index)
     }
 
-    fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
-        Ok(self.derive_at_path(path)?.into_derived_account())
+    fn derive_path(&self, path: &str) -> Result<NostrAccount, DeriveError> {
+        self.derive_at(path)
+    }
+}
+
+impl AsRef<DerivedAccount> for NostrAccount {
+    #[inline]
+    fn as_ref(&self) -> &DerivedAccount {
+        &self.inner
     }
 }
 
@@ -231,21 +232,20 @@ mod tests {
         assert_eq!(a.nsec().as_str(), TV2_NSEC);
     }
 
-    /// `derive_many` (inherent) and the `DeriveExt` blanket impl must
-    /// agree on every index and produce `NostrAccount` / `DerivedAccount`
-    /// views that share the same NIP-19 `npub`.
+    /// `derive_many` from [`DeriveExt`] must agree with scalar `derive` for
+    /// every index and preserve the NIP-19 `npub` emitted by
+    /// [`NostrAccount`].
     #[test]
-    fn derive_many_matches_individual_and_derive_ext() {
+    fn derive_many_matches_individual() {
         let w = wallet(TV1_MNEMONIC);
         let d = Deriver::new(&w);
-        let inherent = d.derive_many(0, 3).unwrap();
-        let ext: Vec<DerivedAccount> = DeriveExt::derive_many(&d, 0, 3).unwrap();
-        let single: Vec<_> = (0..3).map(|i| d.derive(i).unwrap()).collect();
+        let batch = d.derive_many(0, 3).unwrap();
+        let single: Vec<NostrAccount> = (0..3).map(|i| d.derive(i).unwrap()).collect();
         for i in 0..3 {
-            assert_eq!(inherent[i].address(), single[i].address());
-            assert_eq!(inherent[i].path(), single[i].path());
-            assert_eq!(ext[i].address(), inherent[i].address());
-            assert_eq!(ext[i].path(), format!("m/44'/1237'/{i}'/0/0"));
+            assert_eq!(batch[i].address(), single[i].address());
+            assert_eq!(batch[i].path(), single[i].path());
+            assert_eq!(batch[i].npub(), single[i].npub());
+            assert_eq!(batch[i].nsec().as_str(), single[i].nsec().as_str());
         }
     }
 

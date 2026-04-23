@@ -3,12 +3,9 @@
 #[cfg(feature = "alloc")]
 use alloc::{format, string::String};
 
-pub use kobe_primitives::DerivedAccount;
-use kobe_primitives::{Derive, Wallet};
+use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
 use sha3::{Digest, Sha3_256};
 use zeroize::Zeroizing;
-
-use crate::DeriveError;
 
 /// Ed25519 secret key size in bytes.
 const ED25519_SECRET_SIZE: usize = 32;
@@ -33,8 +30,12 @@ impl<'a> Deriver<'a> {
         Self { wallet }
     }
 
-    /// Internal: derive at an arbitrary SLIP-10 path.
-    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
+    /// Derive at an arbitrary SLIP-10 path.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key derivation fails.
+    pub fn derive_at(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         let derived_key = self.wallet.derive_ed25519(path)?;
         let signing_key = derived_key.to_signing_key();
         let verifying_key = signing_key.verifying_key();
@@ -54,21 +55,22 @@ impl<'a> Deriver<'a> {
         Ok(DerivedAccount::new(
             String::from(path),
             sk_bytes,
-            pubkey_bytes.to_vec(),
+            DerivedPublicKey::Ed25519(*pubkey_bytes),
             format!("0x{}", hex::encode(hash)),
         ))
     }
 }
 
 impl Derive for Deriver<'_> {
+    type Account = DerivedAccount;
     type Error = DeriveError;
 
     fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
-        self.derive_at_path(&format!("m/44'/637'/{index}'/0'/0'"))
+        self.derive_at(&format!("m/44'/637'/{index}'/0'/0'"))
     }
 
     fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
-        self.derive_at_path(path)
+        self.derive_at(path)
     }
 }
 

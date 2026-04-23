@@ -5,10 +5,11 @@ use alloc::vec::Vec;
 use core::ops::Deref;
 
 use kobe_primitives::slip10::DerivedKey;
-use kobe_primitives::{Derive, DerivedAccount, Wallet, derive_range};
+use kobe_primitives::{
+    Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet, derive_range,
+};
 use zeroize::Zeroizing;
 
-use crate::DeriveError;
 use crate::derivation_style::DerivationStyle;
 
 /// A Solana-specific derived account — [`DerivedAccount`] plus Phantom-style keypair.
@@ -119,16 +120,6 @@ impl<'a> Deriver<'a> {
         Ok(build_svm_account(&derived, path))
     }
 
-    /// Derive multiple accounts using the Standard derivation style.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if any derivation fails.
-    #[inline]
-    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<SvmAccount>, DeriveError> {
-        self.derive_many_with(DerivationStyle::Standard, start, count)
-    }
-
     /// Derive multiple accounts with a specific [`DerivationStyle`].
     ///
     /// # Errors
@@ -151,23 +142,29 @@ impl<'a> Deriver<'a> {
     /// # Errors
     ///
     /// Returns an error if derivation fails.
-    pub fn derive_at_path(&self, path: &str) -> Result<SvmAccount, DeriveError> {
+    pub fn derive_at(&self, path: &str) -> Result<SvmAccount, DeriveError> {
         let derived = self.wallet.derive_ed25519(path)?;
         Ok(build_svm_account(&derived, String::from(path)))
     }
 }
 
 impl Derive for Deriver<'_> {
+    type Account = SvmAccount;
     type Error = DeriveError;
 
-    fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
-        Ok(self
-            .derive_with(DerivationStyle::Standard, index)?
-            .into_derived_account())
+    fn derive(&self, index: u32) -> Result<SvmAccount, DeriveError> {
+        self.derive_with(DerivationStyle::Standard, index)
     }
 
-    fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
-        Ok(self.derive_at_path(path)?.into_derived_account())
+    fn derive_path(&self, path: &str) -> Result<SvmAccount, DeriveError> {
+        self.derive_at(path)
+    }
+}
+
+impl AsRef<DerivedAccount> for SvmAccount {
+    #[inline]
+    fn as_ref(&self) -> &DerivedAccount {
+        &self.inner
     }
 }
 
@@ -175,12 +172,12 @@ impl Derive for Deriver<'_> {
 fn build_svm_account(derived: &DerivedKey, path: String) -> SvmAccount {
     let signing_key = derived.to_signing_key();
     let verifying_key = signing_key.verifying_key();
-    let public_key_bytes = verifying_key.as_bytes();
+    let public_key_bytes: [u8; 32] = *verifying_key.as_bytes();
 
     let mut keypair_bytes = Zeroizing::new([0u8; 64]);
     let (left, right) = keypair_bytes.split_at_mut(32);
     left.copy_from_slice(derived.private_key.as_slice());
-    right.copy_from_slice(public_key_bytes);
+    right.copy_from_slice(&public_key_bytes);
     let keypair_b58 = bs58::encode(&*keypair_bytes).into_string();
 
     let mut sk_bytes = Zeroizing::new([0u8; 32]);
@@ -189,8 +186,8 @@ fn build_svm_account(derived: &DerivedKey, path: String) -> SvmAccount {
     let inner = DerivedAccount::new(
         path,
         sk_bytes,
-        public_key_bytes.to_vec(),
-        bs58::encode(public_key_bytes).into_string(),
+        DerivedPublicKey::Ed25519(public_key_bytes),
+        bs58::encode(&public_key_bytes).into_string(),
     );
 
     SvmAccount {
@@ -202,6 +199,8 @@ fn build_svm_account(derived: &DerivedKey, path: String) -> SvmAccount {
 #[cfg(test)]
 #[allow(clippy::indexing_slicing, reason = "test assertions")]
 mod tests {
+    use kobe_primitives::DeriveExt;
+
     use super::*;
 
     /// Canonical BIP-39 test mnemonic (12 × `abandon` + `about`).

@@ -17,7 +17,6 @@ alloc = ["kobe-primitives/alloc", "hex/alloc", "zeroize/alloc"]
 [dependencies]
 kobe-primitives = { workspace = true, features = ["slip10"] }
 hex.workspace = true
-thiserror.workspace = true
 zeroize.workspace = true
 blake2.workspace = true
 

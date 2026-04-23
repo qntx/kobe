@@ -13,13 +13,12 @@ extern crate alloc;
 mod address;
 #[cfg(feature = "alloc")]
 mod deriver;
-mod error;
 mod network;
 mod types;
 
 #[cfg(feature = "alloc")]
 pub use deriver::{BtcAccount, Deriver};
-pub use error::DeriveError;
+pub use kobe_primitives::{DeriveError, DerivedAccount, DerivedPublicKey};
 pub use network::{Network, ParseNetworkError};
 #[cfg(feature = "alloc")]
 pub use types::DerivationPath;

@@ -13,6 +13,14 @@
 //! The resulting "camouflaged" mnemonic is indistinguishable from any other valid
 //! BIP-39 mnemonic. Decryption uses the exact same process (XOR is its own inverse).
 //!
+//! # Versioning
+//!
+//! The salt and iteration count are tagged by [`Version`]. [`Version::V1`] is
+//! the only variant today and is the default everywhere. Future algorithm
+//! changes (e.g. Argon2id) will land as new enum variants, never by silently
+//! mutating the constants — this lets downstream users continue to decrypt
+//! older ciphertexts with [`decrypt_with`](decrypt_with).
+//!
 //! # Security
 //!
 //! - The camouflaged mnemonic is a fully valid BIP-39 mnemonic.
@@ -29,96 +37,133 @@ use zeroize::Zeroizing;
 
 use crate::DeriveError;
 
-/// PBKDF2 iteration count (OWASP 2023 recommendation for HMAC-SHA256).
-const PBKDF2_ITERATIONS: u32 = 600_000;
-
-/// Fixed salt for deterministic key derivation.
+/// Camouflage algorithm / parameter version.
 ///
-/// Using a fixed, domain-specific salt is acceptable here because:
-/// - The goal is deterministic, stateless encryption (no stored state).
-/// - PBKDF2's high iteration count provides brute-force resistance.
-/// - Each unique password still produces a unique derived key.
-const PBKDF2_SALT: &[u8] = b"kobe-mnemonic-camouflage-v1";
+/// Bump a new variant whenever the KDF, iteration count, or salt changes.
+/// Old ciphertexts must remain decryptable via their original version.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[non_exhaustive]
+pub enum Version {
+    /// v1: PBKDF2-HMAC-SHA256, 600 000 iterations, salt `"kobe-mnemonic-camouflage-v1"`.
+    #[default]
+    V1,
+}
+
+impl Version {
+    /// PBKDF2 iteration count for this version.
+    #[must_use]
+    pub const fn iterations(self) -> u32 {
+        match self {
+            Self::V1 => 600_000,
+        }
+    }
+
+    /// PBKDF2 salt for this version.
+    #[must_use]
+    pub const fn salt(self) -> &'static [u8] {
+        match self {
+            Self::V1 => b"kobe-mnemonic-camouflage-v1",
+        }
+    }
+}
 
 /// Maximum supported entropy length in bytes (256 bits for 24-word mnemonic).
 const MAX_ENTROPY_LEN: usize = 32;
 
-/// Encrypt a mnemonic phrase into a camouflaged mnemonic using the given password.
+/// Encrypt a mnemonic phrase with the current default [`Version`].
 ///
-/// The output is a valid BIP-39 mnemonic that looks indistinguishable from any
-/// other mnemonic. The original can only be recovered with the same password.
-///
+/// The output is a valid BIP-39 mnemonic indistinguishable from any other.
 /// Supports 12, 15, 18, 21, and 24-word mnemonics.
 ///
-/// # Arguments
-///
-/// * `phrase` - A valid BIP-39 mnemonic phrase
-/// * `password` - Password used to derive the encryption key
-///
 /// # Errors
 ///
-/// Returns an error if the mnemonic is invalid or if key derivation fails.
+/// Returns an error if the mnemonic is invalid, the password is empty, or
+/// key derivation fails.
 pub fn encrypt(phrase: &str, password: &str) -> Result<Zeroizing<String>, DeriveError> {
-    transform(Language::English, phrase, password)
+    transform(Language::English, phrase, password, Version::default())
 }
 
-/// Encrypt a mnemonic phrase in the specified language.
-///
-/// See [`encrypt`] for details.
+/// Encrypt in the specified language with the current default [`Version`].
 ///
 /// # Errors
 ///
-/// Returns an error if the mnemonic is invalid, the password is empty,
-/// or key derivation fails.
+/// Returns an error if the mnemonic is invalid, the password is empty, or
+/// key derivation fails.
 pub fn encrypt_in(
     language: Language,
     phrase: &str,
     password: &str,
 ) -> Result<Zeroizing<String>, DeriveError> {
-    transform(language, phrase, password)
+    transform(language, phrase, password, Version::default())
 }
 
-/// Decrypt a camouflaged mnemonic back to the original using the given password.
-///
-/// This is functionally identical to [`encrypt`] because XOR is its own inverse.
-/// Provided as a separate function for API clarity.
-///
-/// # Arguments
-///
-/// * `camouflaged` - A camouflaged BIP-39 mnemonic phrase
-/// * `password` - The same password used during encryption
+/// Encrypt with an explicit [`Version`] (use for forward compatibility tests
+/// or when pinning to a specific KDF parameter set).
 ///
 /// # Errors
 ///
-/// Returns an error if the mnemonic is invalid or if key derivation fails.
+/// Returns an error if the mnemonic is invalid, the password is empty, or
+/// key derivation fails.
+pub fn encrypt_with(
+    language: Language,
+    phrase: &str,
+    password: &str,
+    version: Version,
+) -> Result<Zeroizing<String>, DeriveError> {
+    transform(language, phrase, password, version)
+}
+
+/// Decrypt a camouflaged mnemonic with the current default [`Version`].
+///
+/// Functionally identical to [`encrypt`] because XOR is self-inverse; the
+/// separate name is kept for API clarity.
+///
+/// # Errors
+///
+/// Returns an error if the mnemonic is invalid, the password is empty, or
+/// key derivation fails.
 pub fn decrypt(camouflaged: &str, password: &str) -> Result<Zeroizing<String>, DeriveError> {
-    transform(Language::English, camouflaged, password)
+    transform(Language::English, camouflaged, password, Version::default())
 }
 
-/// Decrypt a camouflaged mnemonic in the specified language.
-///
-/// See [`decrypt`] for details.
+/// Decrypt in the specified language with the current default [`Version`].
 ///
 /// # Errors
 ///
-/// Returns an error if the mnemonic is invalid, the password is empty,
-/// or key derivation fails.
+/// Returns an error if the mnemonic is invalid, the password is empty, or
+/// key derivation fails.
 pub fn decrypt_in(
     language: Language,
     camouflaged: &str,
     password: &str,
 ) -> Result<Zeroizing<String>, DeriveError> {
-    transform(language, camouflaged, password)
+    transform(language, camouflaged, password, Version::default())
 }
 
-/// Core transformation: XOR the mnemonic's entropy with a password-derived key.
+/// Decrypt with an explicit [`Version`]. Required for decrypting ciphertexts
+/// produced by a non-default version.
 ///
-/// Since XOR is self-inverse, this single function handles both encryption
-/// and decryption.
+/// # Errors
+///
+/// Returns an error if the mnemonic is invalid, the password is empty, or
+/// key derivation fails.
+pub fn decrypt_with(
+    language: Language,
+    camouflaged: &str,
+    password: &str,
+    version: Version,
+) -> Result<Zeroizing<String>, DeriveError> {
+    transform(language, camouflaged, password, version)
+}
+
+/// Core transformation: XOR the mnemonic's entropy with a password-derived
+/// key. Since XOR is self-inverse, this single function handles both encrypt
+/// and decrypt, parameterised by [`Version`].
 fn transform(
     language: Language,
     phrase: &str,
     password: &str,
+    version: Version,
 ) -> Result<Zeroizing<String>, DeriveError> {
     if password.is_empty() {
         return Err(DeriveError::Input(String::from(
@@ -126,15 +171,12 @@ fn transform(
         )));
     }
 
-    // Parse the mnemonic and extract raw entropy.
     let mnemonic = Mnemonic::parse_in(language, phrase)?;
     let entropy = Zeroizing::new(mnemonic.to_entropy());
     let entropy_len = entropy.len();
 
-    // Derive a key from the password using PBKDF2-HMAC-SHA256.
-    let key = derive_key(password, entropy_len)?;
+    let key = derive_key(password, entropy_len, version)?;
 
-    // XOR the entropy with the derived key.
     let mut new_entropy = Zeroizing::new([0u8; MAX_ENTROPY_LEN]);
     for (dst, (ent, kb)) in new_entropy
         .iter_mut()
@@ -144,7 +186,6 @@ fn transform(
         *dst = ent ^ kb;
     }
 
-    // Re-encode as a valid BIP-39 mnemonic (checksum is recalculated automatically).
     let new_mnemonic = Mnemonic::from_entropy_in(
         language,
         new_entropy.get(..entropy_len).ok_or_else(|| {
@@ -210,15 +251,20 @@ fn pbkdf2_hmac_sha256(
     Ok(())
 }
 
-/// Derive a key from a password using [`pbkdf2_hmac_sha256`].
+/// Derive a key from a password using [`pbkdf2_hmac_sha256`] parameterised
+/// by a [`Version`].
 ///
 /// Returns a [`Zeroizing`] buffer of exactly `len` bytes.
-fn derive_key(password: &str, len: usize) -> Result<Zeroizing<[u8; MAX_ENTROPY_LEN]>, DeriveError> {
+fn derive_key(
+    password: &str,
+    len: usize,
+    version: Version,
+) -> Result<Zeroizing<[u8; MAX_ENTROPY_LEN]>, DeriveError> {
     let mut key = Zeroizing::new([0u8; MAX_ENTROPY_LEN]);
     pbkdf2_hmac_sha256(
         password.as_bytes(),
-        PBKDF2_SALT,
-        PBKDF2_ITERATIONS,
+        version.salt(),
+        version.iterations(),
         key.get_mut(..len).ok_or_else(|| {
             DeriveError::Crypto(String::from("pbkdf2: key buffer truncation failed"))
         })?,

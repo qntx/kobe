@@ -1,8 +1,8 @@
 //! Nostr wallet CLI commands (NIP-06 / NIP-19).
 
 use clap::{Args, Subcommand};
-use kobe::Wallet;
 use kobe::nostr::{Deriver, NostrAccount};
+use kobe::{DeriveExt, Wallet};
 
 use crate::commands::simple::SimpleArgs;
 use crate::output::{self, AccountOutput, HdWalletOutput};

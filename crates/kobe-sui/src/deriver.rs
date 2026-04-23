@@ -5,11 +5,8 @@ use alloc::{format, string::String, vec::Vec};
 
 use blake2::Blake2bVar;
 use blake2::digest::{Update, VariableOutput};
-pub use kobe_primitives::DerivedAccount;
-use kobe_primitives::{Derive, Wallet};
+use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
 use zeroize::Zeroizing;
-
-use crate::DeriveError;
 
 /// Ed25519 signature scheme flag used by Sui.
 const ED25519_FLAG: u8 = 0x00;
@@ -31,8 +28,12 @@ impl<'a> Deriver<'a> {
         Self { wallet }
     }
 
-    /// Internal: derive at an arbitrary SLIP-10 path.
-    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
+    /// Derive at an arbitrary SLIP-10 path.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key derivation or `BLAKE2b` hashing fails.
+    pub fn derive_at(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         let derived_key = self.wallet.derive_ed25519(path)?;
         let signing_key = derived_key.to_signing_key();
         let verifying_key = signing_key.verifying_key();
@@ -49,32 +50,34 @@ impl<'a> Deriver<'a> {
         Ok(DerivedAccount::new(
             String::from(path),
             sk_bytes,
-            pubkey_bytes.to_vec(),
+            DerivedPublicKey::Ed25519(*pubkey_bytes),
             format!("0x{}", hex::encode(hash)),
         ))
     }
 }
 
 impl Derive for Deriver<'_> {
+    type Account = DerivedAccount;
     type Error = DeriveError;
 
     fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
-        self.derive_at_path(&format!("m/44'/784'/{index}'/0'/0'"))
+        self.derive_at(&format!("m/44'/784'/{index}'/0'/0'"))
     }
 
     fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
-        self.derive_at_path(path)
+        self.derive_at(path)
     }
 }
 
 /// Compute BLAKE2b-256.
 fn blake2b_256(data: &[u8]) -> Result<[u8; 32], DeriveError> {
-    let mut hasher = Blake2bVar::new(32).map_err(|_| DeriveError::Hashing)?;
+    let mut hasher =
+        Blake2bVar::new(32).map_err(|e| DeriveError::Crypto(format!("blake2b init: {e}")))?;
     hasher.update(data);
     let mut out = [0u8; 32];
     hasher
         .finalize_variable(&mut out)
-        .map_err(|_| DeriveError::Hashing)?;
+        .map_err(|e| DeriveError::Crypto(format!("blake2b finalize: {e}")))?;
     Ok(out)
 }
 

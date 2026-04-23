@@ -3,12 +3,9 @@
 #[cfg(feature = "alloc")]
 use alloc::{borrow::Cow, format, string::String, vec::Vec};
 
-pub use kobe_primitives::DerivedAccount;
-use kobe_primitives::{Derive, Wallet};
+use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
 use ripemd::Ripemd160;
 use sha2::{Digest, Sha256};
-
-use crate::DeriveError;
 
 /// Configuration for a Cosmos SDK chain.
 ///
@@ -125,8 +122,12 @@ impl<'a> Deriver<'a> {
         &self.config
     }
 
-    /// Derive at an arbitrary path (internal).
-    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
+    /// Derive at an arbitrary BIP-32 path.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key derivation or Bech32 encoding fails.
+    pub fn derive_at(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         let key = self.wallet.derive_secp256k1(path)?;
         let pubkey_bytes = key.compressed_pubkey();
         let address = encode_bech32_address(&self.config.hrp, &pubkey_bytes)?;
@@ -134,22 +135,23 @@ impl<'a> Deriver<'a> {
         Ok(DerivedAccount::new(
             String::from(path),
             key.private_key_bytes(),
-            pubkey_bytes.to_vec(),
+            DerivedPublicKey::Secp256k1Compressed(pubkey_bytes),
             address,
         ))
     }
 }
 
 impl Derive for Deriver<'_> {
+    type Account = DerivedAccount;
     type Error = DeriveError;
 
     fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
         let path = format!("m/44'/{}'/0'/0/{index}", self.config.coin_type);
-        self.derive_at_path(&path)
+        self.derive_at(&path)
     }
 
     fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
-        self.derive_at_path(path)
+        self.derive_at(path)
     }
 }
 
@@ -162,9 +164,9 @@ fn hash160(data: &[u8]) -> Vec<u8> {
 fn encode_bech32_address(hrp: &str, compressed_pubkey: &[u8]) -> Result<String, DeriveError> {
     let hash = hash160(compressed_pubkey);
     let hrp_parsed = bech32::Hrp::parse(hrp)
-        .map_err(|e| DeriveError::AddressEncoding(format!("invalid HRP: {e}")))?;
+        .map_err(|e| DeriveError::AddressEncoding(format!("cosmos: invalid HRP: {e}")))?;
     bech32::encode::<bech32::Bech32>(hrp_parsed, &hash)
-        .map_err(|e| DeriveError::AddressEncoding(format!("bech32 encoding failed: {e}")))
+        .map_err(|e| DeriveError::AddressEncoding(format!("cosmos bech32 encoding: {e}")))
 }
 
 #[cfg(test)]

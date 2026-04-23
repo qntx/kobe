@@ -2,6 +2,128 @@
 
 All notable changes to this workspace are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.0]
+
+Major API redesign for long-term maintainability. Every chain crate is touched; the changes are sweeping but bring the workspace to a single consistent shape: one error type, one public-key enum, one derivation trait with associated types, and minimal default features.
+
+### Breaking: unified public-key type
+
+- New [`DerivedPublicKey`](crates/kobe-primitives/src/derive.rs) enum replaces the opaque `Vec<u8>` field on `DerivedAccount`. Each variant fixes its algorithm and length at the type level: `Secp256k1Compressed([u8; 33])`, `Secp256k1Uncompressed([u8; 65])`, `Ed25519([u8; 32])`, `Secp256k1XOnly([u8; 32])`. Cross-chain code can now pattern match on the variant instead of guessing the layout from the byte length.
+- New `PublicKeyKind` tag enum for cases where the bytes are not needed (`kind()` on `DerivedPublicKey`).
+- `DerivedAccount::new` now takes `DerivedPublicKey` instead of `Vec<u8>`. `public_key_bytes()`/`public_key_hex()` remain available and delegate to the enum, so read-only call sites are unaffected.
+- New `DerivedPublicKey::compressed` / `uncompressed` fallible constructors for call sites that start from a byte slice.
+
+### Breaking: `Derive` trait with associated `Account` type
+
+- `Derive::Account: AsRef<DerivedAccount>` — every chain now declares the concrete account type it returns, so chain-specific newtypes (`BtcAccount`, `SvmAccount`, `NostrAccount`) are returned *without* erasure.
+- `DeriveExt::derive_many` returns `Vec<Self::Account>` instead of `Vec<DerivedAccount>`. Previously `btc_deriver.derive_many(...)` returned a `Vec<BtcAccount>` from the inherent method but a `Vec<DerivedAccount>` through the trait — the two silently disagreed. They now both return the newtype.
+- Removed the BTC/SVM/Nostr inherent `derive_many` methods that duplicated the trait method. Call `DeriveExt::derive_many` (in scope via `use kobe::DeriveExt`). The `derive_many_with` inherent methods stay because they take a chain-specific `style` / `address_type` argument.
+- `DerivedAccount` now implements `AsRef<Self>`; `BtcAccount`, `SvmAccount`, and `NostrAccount` implement `AsRef<DerivedAccount>` on top of their existing `Deref`.
+
+### Breaking: one error type across the workspace
+
+- Every chain crate now re-exports `kobe_primitives::DeriveError` instead of defining its own. Twelve `error.rs` files deleted; the `Core(#[from] ...)` wrapper variants are gone.
+- New [`DeriveError::AddressEncoding(String)`](crates/kobe-primitives/src/error.rs) variant absorbs the former chain-local `Bech32(String)` (Nostr/Spark/TON), `AddressEncoding(String)` (Cosmos), and Filecoin/Sui base32/BLAKE2 failures. `Hashing` without context is replaced by `Crypto(String)` everywhere.
+- BTC `InvalidPrivateKey`, `Bip32Error`, and `Secp256k1Error` map onto `DeriveError::Crypto(String)`.
+- EVM `UnknownDerivationStyle(String)` maps onto `DeriveError::Input(String)`.
+- SVM `Signature` is removed (never triggered in practice).
+
+### Breaking: `derive_at_path` renamed to `derive_at`
+
+Affects every chain with a custom-path entry point (EVM, Cosmos, Tron, Filecoin, XRPL, Sui, Aptos, TON, Spark, Nostr, SVM). The `Derive::derive_path` trait method is unchanged.
+
+### Breaking: minimal default features on the `kobe` umbrella crate
+
+- `default` is now `["std"]` only. The previous default set (`btc + evm + svm`) is available as the `mainstream` preset.
+- `all-chains` preset unchanged.
+- Binary size and compile time drop by ~50% for users that only need a subset of chains. Users on the old defaults should add `features = ["mainstream"]`.
+
+### Added
+
+- `DerivedPublicKey`, `PublicKeyKind` re-exported from `kobe_primitives` and every chain crate.
+- `camouflage::Version` enum and `encrypt_with`/`decrypt_with` entry points. The salt and iteration count are now attached to a versioned tag so future KDF changes can coexist with old ciphertexts. `Version::V1` is the default and matches 1.x behaviour bit-for-bit.
+- `kobe::mainstream` feature (BTC + EVM + SVM) as a drop-in replacement for the 1.x default.
+
+### Migration
+
+```rust
+// 1.x — opaque bytes, manual length inspection
+let bytes: &[u8] = account.public_key_bytes();
+match bytes.len() {
+    33 => { /* compressed secp256k1 */ }
+    65 => { /* uncompressed secp256k1 */ }
+    32 => { /* ed25519 or x-only */ }
+    _ => unreachable!(),
+}
+
+// 2.0 — typed enum, exhaustive match
+use kobe::DerivedPublicKey;
+match account.public_key() {
+    DerivedPublicKey::Secp256k1Compressed(b) => { /* 33-byte compressed */ }
+    DerivedPublicKey::Secp256k1Uncompressed(b) => { /* 65-byte uncompressed */ }
+    DerivedPublicKey::Ed25519(b) => { /* 32-byte ed25519 */ }
+    DerivedPublicKey::Secp256k1XOnly(b) => { /* 32-byte x-only */ }
+    _ => { /* future-proof */ }
+}
+```
+
+```rust
+// 1.x — silently loses BtcAccount's WIF
+let acct: DerivedAccount = deriver.derive(0)?;
+
+// 2.0 — Derive::Account = BtcAccount, WIF preserved
+let acct: BtcAccount = deriver.derive(0)?;
+let wif = acct.private_key_wif();
+```
+
+```rust
+// 1.x
+match err {
+    kobe_btc::DeriveError::Core(inner) => match inner { /* primitives */ },
+    kobe_btc::DeriveError::Bip32(e) => /* ... */,
+    kobe_btc::DeriveError::Secp256k1(e) => /* ... */,
+    kobe_btc::DeriveError::InvalidPrivateKey => /* ... */,
+}
+
+// 2.0
+use kobe::DeriveError;
+match err {
+    DeriveError::Mnemonic(e) => /* ... */,
+    DeriveError::Path(s) => /* ... */,
+    DeriveError::Crypto(s) => /* BIP-32, secp256k1, BLAKE2, … */,
+    DeriveError::Input(s) => /* ... */,
+    DeriveError::AddressEncoding(s) => /* Bech32, base58, base32, … */,
+    _ => /* future-proof */,
+}
+```
+
+```toml
+# 1.x — opt out of the btc+evm+svm default set
+kobe = { version = "1", default-features = false, features = ["std", "nostr"] }
+
+# 2.0 — defaults are minimal; opt in to chains
+kobe = { version = "2", features = ["nostr"] }           # just nostr + std
+kobe = { version = "2", features = ["mainstream"] }      # previous 1.x default
+kobe = { version = "2", features = ["all-chains"] }      # every chain
+```
+
+```rust
+// 1.x — inherent derive_many on BTC / SVM / Nostr
+let accounts: Vec<BtcAccount> = deriver.derive_many(0, 10)?;
+
+// 2.0 — DeriveExt::derive_many returns Vec<Self::Account>
+use kobe::DeriveExt;
+let accounts: Vec<BtcAccount> = deriver.derive_many(0, 10)?;
+```
+
+```rust
+// 1.x
+let a = deriver.derive_at_path("m/44'/60'/0'/0/0")?;
+
+// 2.0 — renamed for consistency
+let a = deriver.derive_at("m/44'/60'/0'/0/0")?;
+```
+
 ## [1.1.0]
 
 Breaking across every crate. The most impactful changes are **address correctness fixes on Aptos and TON** and a complete rewrite of the **Spark** address encoder to match the official protocol.

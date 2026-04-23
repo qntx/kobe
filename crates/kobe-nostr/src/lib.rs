@@ -36,11 +36,10 @@ extern crate alloc;
 
 #[cfg(feature = "alloc")]
 mod deriver;
-mod error;
 
 #[cfg(feature = "alloc")]
-pub use deriver::{DerivedAccount, Deriver, NPUB_HRP, NSEC_HRP, NostrAccount};
-pub use error::DeriveError;
+pub use deriver::{Deriver, NPUB_HRP, NSEC_HRP, NostrAccount};
+pub use kobe_primitives::{DeriveError, DerivedAccount, DerivedPublicKey};
 
 /// A convenient Result type alias for kobe-nostr operations.
 pub type Result<T> = core::result::Result<T, DeriveError>;

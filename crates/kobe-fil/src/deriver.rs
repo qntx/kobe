@@ -5,10 +5,7 @@ use alloc::{format, string::String, vec, vec::Vec};
 
 use blake2::Blake2bVar;
 use blake2::digest::{Update, VariableOutput};
-pub use kobe_primitives::DerivedAccount;
-use kobe_primitives::{Derive, Wallet};
-
-use crate::DeriveError;
+use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
 
 /// Filecoin lowercase base32 alphabet (RFC 4648, no padding).
 const BASE32_ALPHABET: &[u8; 32] = b"abcdefghijklmnopqrstuvwxyz234567";
@@ -29,8 +26,13 @@ impl<'a> Deriver<'a> {
         Self { wallet }
     }
 
-    /// Internal: derive at an arbitrary BIP-32 path.
-    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
+    /// Derive at an arbitrary BIP-32 path.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key derivation, `BLAKE2b` hashing, or base32
+    /// encoding fails.
+    pub fn derive_at(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         let key = self.wallet.derive_secp256k1(path)?;
         let pubkey_bytes = key.uncompressed_pubkey();
 
@@ -50,32 +52,34 @@ impl<'a> Deriver<'a> {
         Ok(DerivedAccount::new(
             String::from(path),
             key.private_key_bytes(),
-            pubkey_bytes.to_vec(),
+            DerivedPublicKey::Secp256k1Uncompressed(pubkey_bytes),
             format!("f1{}", base32_encode(&addr_bytes)?),
         ))
     }
 }
 
 impl Derive for Deriver<'_> {
+    type Account = DerivedAccount;
     type Error = DeriveError;
 
     fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
-        self.derive_at_path(&format!("m/44'/461'/0'/0/{index}"))
+        self.derive_at(&format!("m/44'/461'/0'/0/{index}"))
     }
 
     fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
-        self.derive_at_path(path)
+        self.derive_at(path)
     }
 }
 
 /// Compute a Blake2b hash with a variable output length.
 fn blake2b(data: &[u8], output_len: usize) -> Result<Vec<u8>, DeriveError> {
-    let mut hasher = Blake2bVar::new(output_len).map_err(|_| DeriveError::Hashing)?;
+    let mut hasher = Blake2bVar::new(output_len)
+        .map_err(|e| DeriveError::Crypto(format!("blake2b init: {e}")))?;
     hasher.update(data);
     let mut buf = vec![0u8; output_len];
     hasher
         .finalize_variable(&mut buf)
-        .map_err(|_| DeriveError::Hashing)?;
+        .map_err(|e| DeriveError::Crypto(format!("blake2b finalize: {e}")))?;
     Ok(buf)
 }
 
@@ -91,13 +95,21 @@ fn base32_encode(data: &[u8]) -> Result<String, DeriveError> {
         while bits_in_buffer >= 5 {
             bits_in_buffer -= 5;
             let index = ((buffer >> bits_in_buffer) & 0x1f) as usize;
-            result.push(*BASE32_ALPHABET.get(index).ok_or(DeriveError::Hashing)? as char);
+            result.push(char::from(*BASE32_ALPHABET.get(index).ok_or_else(
+                || {
+                    DeriveError::AddressEncoding(String::from(
+                        "filecoin base32: index out of range",
+                    ))
+                },
+            )?));
         }
     }
 
     if bits_in_buffer > 0 {
         let index = ((buffer << (5 - bits_in_buffer)) & 0x1f) as usize;
-        result.push(*BASE32_ALPHABET.get(index).ok_or(DeriveError::Hashing)? as char);
+        result.push(char::from(*BASE32_ALPHABET.get(index).ok_or_else(
+            || DeriveError::AddressEncoding(String::from("filecoin base32: index out of range")),
+        )?));
     }
 
     Ok(result)

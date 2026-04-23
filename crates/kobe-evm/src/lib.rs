@@ -11,11 +11,10 @@ extern crate alloc;
 
 #[cfg(feature = "alloc")]
 mod deriver;
-mod error;
 
 #[cfg(feature = "alloc")]
-pub use deriver::{DerivationStyle, DerivedAccount, Deriver};
-pub use error::DeriveError;
+pub use deriver::{DerivationStyle, Deriver};
+pub use kobe_primitives::{DeriveError, DerivedAccount, DerivedPublicKey};
 
 /// Convenient Result alias.
 pub type Result<T> = core::result::Result<T, DeriveError>;

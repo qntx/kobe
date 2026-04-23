@@ -19,10 +19,7 @@
 use alloc::{format, string::String, vec::Vec};
 
 use bech32::{Bech32m, Hrp};
-pub use kobe_primitives::DerivedAccount;
-use kobe_primitives::{Derive, Wallet};
-
-use crate::DeriveError;
+use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
 
 /// Spark protocol networks, each bound to a distinct Bech32 HRP.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -127,7 +124,7 @@ impl<'a> Deriver<'a> {
     /// Returns an error if key derivation or address encoding fails.
     #[inline]
     pub fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
-        self.derive_at_path(&format!("m/{SPARK_PURPOSE}'/{index}'/0'"))
+        self.derive_at(&format!("m/{SPARK_PURPOSE}'/{index}'/0'"))
     }
 
     /// Derive at an arbitrary BIP-32 path.
@@ -136,7 +133,7 @@ impl<'a> Deriver<'a> {
     ///
     /// Returns an error if the path is malformed, derivation fails, or the
     /// resulting pubkey cannot be Bech32m-encoded.
-    pub fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
+    pub fn derive_at(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         let key = self.wallet.derive_secp256k1(path)?;
         let pubkey_bytes = key.compressed_pubkey();
         let address = encode_spark_address(&pubkey_bytes, self.network)?;
@@ -144,13 +141,14 @@ impl<'a> Deriver<'a> {
         Ok(DerivedAccount::new(
             String::from(path),
             key.private_key_bytes(),
-            pubkey_bytes.to_vec(),
+            DerivedPublicKey::Secp256k1Compressed(pubkey_bytes),
             address,
         ))
     }
 }
 
 impl Derive for Deriver<'_> {
+    type Account = DerivedAccount;
     type Error = DeriveError;
 
     fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
@@ -158,7 +156,7 @@ impl Derive for Deriver<'_> {
     }
 
     fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
-        self.derive_at_path(path)
+        self.derive_at(path)
     }
 }
 
@@ -180,10 +178,10 @@ fn encode_spark_address(
     payload.push(COMPRESSED_PUBKEY_LEN);
     payload.extend_from_slice(compressed_pubkey);
 
-    let hrp =
-        Hrp::parse(network.hrp()).map_err(|e| DeriveError::Bech32(format!("invalid HRP: {e}")))?;
+    let hrp = Hrp::parse(network.hrp())
+        .map_err(|e| DeriveError::AddressEncoding(format!("spark: invalid HRP: {e}")))?;
     bech32::encode::<Bech32m>(hrp, &payload)
-        .map_err(|e| DeriveError::Bech32(format!("encoding failed: {e}")))
+        .map_err(|e| DeriveError::AddressEncoding(format!("spark bech32m: {e}")))
 }
 
 #[cfg(test)]

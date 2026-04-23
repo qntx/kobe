@@ -3,11 +3,8 @@
 #[cfg(feature = "alloc")]
 use alloc::{format, string::String, vec};
 
-pub use kobe_primitives::DerivedAccount;
-use kobe_primitives::{Derive, Wallet};
+use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
 use sha3::{Digest, Keccak256};
-
-use crate::DeriveError;
 
 /// Tron address deriver from a unified wallet seed.
 ///
@@ -26,8 +23,12 @@ impl<'a> Deriver<'a> {
         Self { wallet }
     }
 
-    /// Internal derivation at arbitrary path.
-    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
+    /// Derive at an arbitrary BIP-32 path.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key derivation fails.
+    pub fn derive_at(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         let key = self.wallet.derive_secp256k1(path)?;
         let uncompressed = key.uncompressed_pubkey();
 
@@ -40,21 +41,22 @@ impl<'a> Deriver<'a> {
         Ok(DerivedAccount::new(
             String::from(path),
             key.private_key_bytes(),
-            uncompressed.to_vec(),
+            DerivedPublicKey::Secp256k1Uncompressed(uncompressed),
             address,
         ))
     }
 }
 
 impl Derive for Deriver<'_> {
+    type Account = DerivedAccount;
     type Error = DeriveError;
 
     fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
-        self.derive_at_path(&format!("m/44'/195'/0'/0/{index}"))
+        self.derive_at(&format!("m/44'/195'/0'/0/{index}"))
     }
 
     fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
-        self.derive_at_path(path)
+        self.derive_at(path)
     }
 }
 

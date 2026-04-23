@@ -10,7 +10,7 @@
 extern crate alloc;
 
 mod deriver;
-mod error;
 
-pub use deriver::{DerivedAccount, Deriver};
-pub use error::DeriveError;
+#[cfg(feature = "alloc")]
+pub use deriver::Deriver;
+pub use kobe_primitives::{DeriveError, DerivedAccount, DerivedPublicKey};

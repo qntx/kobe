@@ -37,7 +37,9 @@ pub use bip39::Language;
 #[cfg(feature = "rand_core")]
 pub use bip39::rand_core;
 #[cfg(feature = "alloc")]
-pub use derive::{Derive, DeriveExt, DerivedAccount, derive_range};
+pub use derive::{
+    Derive, DeriveExt, DerivedAccount, DerivedPublicKey, PublicKeyKind, derive_range,
+};
 pub use error::DeriveError;
 #[cfg(feature = "alloc")]
 pub use wallet::Wallet;

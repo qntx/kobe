@@ -4,12 +4,9 @@
 use alloc::{format, string::String, vec::Vec};
 use core::fmt;
 
-pub use kobe_primitives::DerivedAccount;
-use kobe_primitives::{Derive, Wallet};
+use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
 use sha2::{Digest, Sha256};
 use zeroize::Zeroizing;
-
-use crate::DeriveError;
 
 /// TON derivation path styles.
 ///
@@ -206,11 +203,15 @@ impl<'a> Deriver<'a> {
         style: DerivationStyle,
         index: u32,
     ) -> Result<DerivedAccount, DeriveError> {
-        self.derive_at_path(&style.path(index))
+        self.derive_at(&style.path(index))
     }
 
-    /// Internal: derive at an arbitrary SLIP-10 path.
-    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
+    /// Derive at an arbitrary SLIP-10 path using the deriver's address format.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key derivation fails.
+    pub fn derive_at(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         let derived_key = self.wallet.derive_ed25519(path)?;
         let signing_key = derived_key.to_signing_key();
         let verifying_key = signing_key.verifying_key();
@@ -232,13 +233,14 @@ impl<'a> Deriver<'a> {
         Ok(DerivedAccount::new(
             String::from(path),
             sk_bytes,
-            pubkey_bytes.to_vec(),
+            DerivedPublicKey::Ed25519(*pubkey_bytes),
             address,
         ))
     }
 }
 
 impl Derive for Deriver<'_> {
+    type Account = DerivedAccount;
     type Error = DeriveError;
 
     fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
@@ -246,7 +248,7 @@ impl Derive for Deriver<'_> {
     }
 
     fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
-        self.derive_at_path(path)
+        self.derive_at(path)
     }
 }
 

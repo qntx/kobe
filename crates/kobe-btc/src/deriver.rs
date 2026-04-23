@@ -12,11 +12,13 @@ use bitcoin::PrivateKey;
 use bitcoin::bip32::Xpriv;
 use bitcoin::key::CompressedPublicKey;
 use bitcoin::secp256k1::Secp256k1;
-use kobe_primitives::{Derive, DerivedAccount, Wallet, derive_range};
+use kobe_primitives::{
+    Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet, derive_range,
+};
 use zeroize::Zeroizing;
 
 use crate::address::create_address;
-use crate::{AddressType, DerivationPath, DeriveError, Network};
+use crate::{AddressType, DerivationPath, Network};
 
 /// Bitcoin address deriver from a unified wallet seed.
 ///
@@ -116,7 +118,8 @@ impl<'a> Deriver<'a> {
     /// Returns an error if the master key derivation fails.
     #[inline]
     pub fn new(wallet: &'a Wallet, network: Network) -> Result<Self, DeriveError> {
-        let master_key = Xpriv::new_master(network.to_bitcoin_network(), wallet.seed().as_slice())?;
+        let master_key = Xpriv::new_master(network.to_bitcoin_network(), wallet.seed().as_slice())
+            .map_err(|e| DeriveError::Crypto(alloc::format!("bitcoin bip32 master: {e}")))?;
 
         Ok(Self {
             master_key,
@@ -159,16 +162,6 @@ impl<'a> Deriver<'a> {
         self.derive_bip32_path(&path, address_type)
     }
 
-    /// Derive multiple accounts using P2WPKH (Native `SegWit`) by default.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if any derivation fails.
-    #[inline]
-    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<BtcAccount>, DeriveError> {
-        self.derive_many_with(AddressType::P2wpkh, start, count)
-    }
-
     /// Derive multiple accounts with a specific [`AddressType`].
     ///
     /// # Errors
@@ -197,21 +190,24 @@ impl<'a> Deriver<'a> {
         path: &DerivationPath,
         address_type: AddressType,
     ) -> Result<BtcAccount, DeriveError> {
-        let derived = self.master_key.derive_priv(&self.secp, path.inner())?;
+        let derived = self
+            .master_key
+            .derive_priv(&self.secp, path.inner())
+            .map_err(|e| DeriveError::Crypto(alloc::format!("bitcoin bip32 derive: {e}")))?;
 
         let private_key = PrivateKey::new(derived.private_key, self.network.to_bitcoin_network());
         let public_key = CompressedPublicKey::from_private_key(&self.secp, &private_key)
-            .map_err(|_| DeriveError::InvalidPrivateKey)?;
+            .map_err(|e| DeriveError::Crypto(alloc::format!("bitcoin secp256k1: {e}")))?;
 
         let address = create_address(&public_key, self.network, address_type);
 
         let sk_bytes = Zeroizing::new(derived.private_key.secret_bytes());
-        let pk_bytes = public_key.to_bytes();
+        let pk_bytes: [u8; 33] = public_key.to_bytes();
 
         let inner = DerivedAccount::new(
             path.to_string(),
             sk_bytes,
-            pk_bytes.to_vec(),
+            DerivedPublicKey::Secp256k1Compressed(pk_bytes),
             address.to_string(),
         );
 
@@ -231,25 +227,30 @@ impl<'a> Deriver<'a> {
 }
 
 impl Derive for Deriver<'_> {
+    type Account = BtcAccount;
     type Error = DeriveError;
 
-    fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
-        Ok(self
-            .derive_with(AddressType::P2wpkh, index)?
-            .into_derived_account())
+    fn derive(&self, index: u32) -> Result<BtcAccount, DeriveError> {
+        self.derive_with(AddressType::P2wpkh, index)
     }
 
-    fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
+    fn derive_path(&self, path: &str) -> Result<BtcAccount, DeriveError> {
         let parsed = DerivationPath::from_path_str(path)?;
-        Ok(self
-            .derive_bip32_path(&parsed, AddressType::P2wpkh)?
-            .into_derived_account())
+        self.derive_bip32_path(&parsed, AddressType::P2wpkh)
+    }
+}
+
+impl AsRef<DerivedAccount> for BtcAccount {
+    #[inline]
+    fn as_ref(&self) -> &DerivedAccount {
+        &self.inner
     }
 }
 
 #[cfg(test)]
 mod tests {
     use bitcoin::PrivateKey;
+    use kobe_primitives::DeriveExt;
 
     use super::*;
 

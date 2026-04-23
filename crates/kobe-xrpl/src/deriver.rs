@@ -14,12 +14,9 @@
 #[cfg(feature = "alloc")]
 use alloc::{format, string::String, vec::Vec};
 
-pub use kobe_primitives::DerivedAccount;
-use kobe_primitives::{Derive, Wallet};
+use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
 use ripemd::Ripemd160;
 use sha2::{Digest, Sha256};
-
-use crate::DeriveError;
 
 /// XRPL base58 alphabet (differs from Bitcoin's).
 ///
@@ -45,8 +42,12 @@ impl<'a> Deriver<'a> {
         Self { wallet }
     }
 
-    /// Derive at an arbitrary path (internal).
-    fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
+    /// Derive at an arbitrary BIP-32 path.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key derivation fails.
+    pub fn derive_at(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         let key = self.wallet.derive_secp256k1(path)?;
         let pubkey_bytes = key.compressed_pubkey();
         let address = encode_classic_address(&pubkey_bytes);
@@ -54,22 +55,23 @@ impl<'a> Deriver<'a> {
         Ok(DerivedAccount::new(
             path.into(),
             key.private_key_bytes(),
-            pubkey_bytes.to_vec(),
+            DerivedPublicKey::Secp256k1Compressed(pubkey_bytes),
             address,
         ))
     }
 }
 
 impl Derive for Deriver<'_> {
+    type Account = DerivedAccount;
     type Error = DeriveError;
 
     fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
         let path = format!("m/44'/144'/0'/0/{index}");
-        self.derive_at_path(&path)
+        self.derive_at(&path)
     }
 
     fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
-        self.derive_at_path(path)
+        self.derive_at(path)
     }
 }
 
