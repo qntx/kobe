@@ -40,9 +40,12 @@ impl<'a> Deriver<'a> {
         let verifying_key = signing_key.verifying_key();
         let pubkey_bytes: &[u8; 32] = verifying_key.as_bytes();
 
+        // Aptos authentication key = SHA3-256(pubkey || scheme_byte).
+        // Scheme byte is appended AFTER the public key per
+        // <https://aptos.dev/move-reference/mainnet/aptos-stdlib/ed25519>.
         let mut buf = [0u8; 33];
-        buf[0] = ED25519_SCHEME;
-        buf[1..].copy_from_slice(pubkey_bytes);
+        buf[..32].copy_from_slice(pubkey_bytes);
+        buf[32] = ED25519_SCHEME;
         let hash = Sha3_256::digest(buf);
 
         let mut sk_bytes = Zeroizing::new([0u8; ED25519_SECRET_SIZE]);
@@ -121,15 +124,20 @@ mod tests {
         );
     }
 
+    /// Regression-lock the Aptos address derived from the canonical
+    /// `abandon…about` mnemonic at path `m/44'/637'/0'/0'/0'`.
+    ///
+    /// Auth key follows the Aptos spec:
+    /// `SHA3-256(pubkey || SIGNATURE_SCHEME_ID)` with `SIGNATURE_SCHEME_ID =
+    /// 0x00` for Ed25519, per the `aptos-stdlib` Move source at
+    /// <https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-stdlib/sources/cryptography/ed25519.move>.
     #[test]
     fn kat_aptos_index0() {
-        // Cross-verified with SLIP-10 Ed25519 m/44'/637'/0'/0'/0'
-        // pubkey → SHA3-256(0x00 || pubkey)
         let wallet = test_wallet();
         let a = Deriver::new(&wallet).derive(0).unwrap();
         assert_eq!(
             a.address(),
-            "0x00eb1449854fda728475c94f8078b7fd7670c1ed31deaf1e4f88e3bfe2cc2b6a"
+            "0xeb663b681209e7087d681c5d3eed12aaa8e1915e7c87794542c3f96e94b3d3bf"
         );
     }
 }

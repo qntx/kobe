@@ -19,8 +19,9 @@ camouflage = ["dep:hmac", "dep:sha2", "alloc"]
 slip10 = ["dep:ed25519-dalek", "dep:hmac", "dep:sha2", "alloc"]
 bip32 = ["dep:bip32-crate", "dep:k256", "alloc"]
 # Expose well-known BIP-39 test vectors under `kobe_primitives::test_vectors`;
-# intended for downstream test suites only.
-test-vectors = ["alloc"]
+# intended for downstream test suites only. Pure `&'static str` constants,
+# no `alloc` required.
+test-vectors = []
 
 [dependencies]
 bip39.workspace = true
@@ -32,6 +33,10 @@ k256 = { workspace = true, optional = true }
 hex = { version = "0.4.3", default-features = false, features = ["alloc"], optional = true }
 thiserror.workspace = true
 zeroize = { workspace = true, optional = true }
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [lints]
 workspace = true

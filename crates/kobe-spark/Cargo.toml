@@ -16,7 +16,11 @@ alloc = ["kobe-primitives/alloc"]
 
 [dependencies]
 kobe-primitives = { workspace = true, features = ["bip32"] }
+bech32.workspace = true
 thiserror.workspace = true
+
+[dev-dependencies]
+hex.workspace = true
 
 [lints]
 workspace = true

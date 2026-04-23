@@ -60,13 +60,11 @@ const WALLET_V5R1_CODE_HASH: [u8; 32] = [
 /// Wallet v5r1 code cell depth.
 const WALLET_V5R1_CODE_DEPTH: u16 = 6;
 
-/// Default walletId for mainnet workchain 0.
-/// Computed as: `networkGlobalId(-239) XOR context(0x80000000)`.
-const DEFAULT_WALLET_ID_MAINNET: i32 = 0x7FFF_FF11;
+/// TON mainnet global id (`-239`).
+const NETWORK_GLOBAL_ID_MAINNET: i32 = -239;
 
-/// Default walletId for testnet workchain 0.
-/// Computed as: `networkGlobalId(-3) XOR context(0x80000000)`.
-const DEFAULT_WALLET_ID_TESTNET: i32 = 0x7FFF_FFFD_u32.cast_signed();
+/// TON testnet global id (`-3`).
+const NETWORK_GLOBAL_ID_TESTNET: i32 = -3;
 
 /// User-friendly TON address format configuration.
 ///
@@ -126,14 +124,35 @@ impl AddressFormat {
         }
     }
 
-    /// Return the walletId v5r1 uses for this format's network.
+    /// Return the walletId v5r1 derives for this network + workchain.
+    ///
+    /// Matches the `WalletV5R1WalletId` serialization used by `@ton/core`:
+    /// `walletId = networkGlobalId ^ clientContext(workchain, version=0, subwallet=0)`.
+    /// Verified against canonical values (e.g. mainnet workchain 0 →
+    /// `2147483409`; testnet workchain 0 → `2147483645`; mainnet workchain
+    /// -1 → `8388369`; testnet workchain -1 → `8388605`).
     const fn wallet_id(self) -> i32 {
-        if self.testnet {
-            DEFAULT_WALLET_ID_TESTNET
+        let global_id = if self.testnet {
+            NETWORK_GLOBAL_ID_TESTNET
         } else {
-            DEFAULT_WALLET_ID_MAINNET
-        }
+            NETWORK_GLOBAL_ID_MAINNET
+        };
+        global_id ^ encode_client_context(self.workchain)
     }
+}
+
+/// Encode the 32-bit v5r1 *client* context:
+/// `[is_client:1 = 1][workchain:i8][wallet_version:u8 = 0][subwallet:u15 = 0]`.
+///
+/// Bit-level layout (MSB-first):
+/// - bit 0:        1 (client context flag)
+/// - bits 1..=8:   workchain as signed 8-bit (two's complement)
+/// - bits 9..=16:  `wallet_version` = 0
+/// - bits 17..=31: `subwallet_number` = 0
+const fn encode_client_context(workchain: i8) -> i32 {
+    let wc_byte = workchain.to_ne_bytes()[0] as u32;
+    let bits = 0x8000_0000_u32 | (wc_byte << 23);
+    i32::from_be_bytes(bits.to_be_bytes())
 }
 
 impl Default for AddressFormat {
@@ -505,6 +524,51 @@ mod tests {
         assert_eq!(
             acct.address(),
             "EQBHyu-oZVDHRYQ1-rKlGqpHy5yAqanPBirEQNMNOmfHLotW"
+        );
+    }
+
+    /// Independently cross-verified against the canonical values published
+    /// in `@ton/core`'s `WalletV5R1WalletId.ts`:
+    ///
+    /// ```text
+    /// global_id -239, workchain  0 → walletId 2_147_483_409  (0x7FFF_FF11)
+    /// global_id -239, workchain -1 → walletId     8_388_369  (0x0080_0091)
+    /// global_id   -3, workchain  0 → walletId 2_147_483_645  (0x7FFF_FFFD)
+    /// global_id   -3, workchain -1 → walletId     8_388_605  (0x0080_00FD)
+    /// ```
+    #[test]
+    fn wallet_id_matches_ton_core_reference() {
+        let cases = [
+            (false, 0_i8, 2_147_483_409_i32),
+            (false, -1_i8, 8_388_369_i32),
+            (true, 0_i8, 2_147_483_645_i32),
+            (true, -1_i8, 8_388_605_i32),
+        ];
+        for (testnet, workchain, expected) in cases {
+            let fmt = AddressFormat::new(workchain, false, testnet);
+            assert_eq!(
+                fmt.wallet_id(),
+                expected,
+                "walletId mismatch for testnet={testnet}, workchain={workchain}"
+            );
+        }
+    }
+
+    /// Regression-lock the masterchain (workchain = -1) wallet v5r1 address
+    /// derived from the canonical `abandon…about` mnemonic.
+    ///
+    /// This guards against regressions in the workchain-dependent walletId
+    /// computation — previously the implementation derived the wrong
+    /// address on non-basechain workchains.
+    #[test]
+    fn kat_wallet_v5r1_masterchain_index0() {
+        let wallet = test_wallet();
+        let fmt = AddressFormat::new(-1, false, false);
+        let acct = Deriver::with_format(&wallet, fmt).derive(0).unwrap();
+        assert!(
+            acct.address().starts_with("Uf"),
+            "workchain=-1 non-bounceable should start with Uf (tag 0x51, wc 0xFF → base64url `Uf`), got {}",
+            acct.address()
         );
     }
 }

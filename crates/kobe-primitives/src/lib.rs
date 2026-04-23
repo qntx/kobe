@@ -48,8 +48,9 @@ pub type Result<T> = core::result::Result<T, DeriveError>;
 /// Well-known BIP-39 / SLIP-10 test vectors, exposed for downstream test suites.
 ///
 /// Gated on the `test-vectors` feature so they do **not** ship with the
-/// default binary/`lib` build.
-#[cfg(all(feature = "alloc", feature = "test-vectors"))]
+/// default binary/`lib` build. The module contains only `&'static str`
+/// constants and is available in `no_std + no_alloc` environments.
+#[cfg(feature = "test-vectors")]
 pub mod test_vectors {
     /// All-zero 128-bit entropy — yields the canonical BIP-39 test mnemonic
     /// (`"abandon abandon … about"`). Cross-verified against the BIP-39
