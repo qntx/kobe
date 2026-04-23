@@ -68,8 +68,8 @@ impl<'a> Deriver<'a> {
 
         Ok(DerivedAccount::new(
             String::from(path),
-            key.private_key_hex(),
-            key.compressed_pubkey_hex(),
+            key.private_key_bytes(),
+            pubkey_bytes.to_vec(),
             address,
         ))
     }
@@ -117,7 +117,7 @@ mod tests {
     fn cosmos_hub_address() {
         let w = wallet();
         let a = Deriver::new(&w).derive(0).unwrap();
-        assert!(a.address.starts_with("cosmos1"));
+        assert!(a.address().starts_with("cosmos1"));
     }
 
     #[test]
@@ -125,21 +125,24 @@ mod tests {
         let w = wallet();
         let a1 = Deriver::new(&w).derive(0).unwrap();
         let a2 = Deriver::new(&w).derive(0).unwrap();
-        assert_eq!(a1.address, a2.address);
+        assert_eq!(a1.address(), a2.address());
     }
 
     #[test]
     fn different_indices() {
         let w = wallet();
         let d = Deriver::new(&w);
-        assert_ne!(d.derive(0).unwrap().address, d.derive(1).unwrap().address);
+        assert_ne!(
+            d.derive(0).unwrap().address(),
+            d.derive(1).unwrap().address()
+        );
     }
 
     #[test]
     fn osmosis_hrp() {
         let w = wallet();
         let a = Deriver::with_config(&w, "osmo", 118).derive(0).unwrap();
-        assert!(a.address.starts_with("osmo1"));
+        assert!(a.address().starts_with("osmo1"));
     }
 
     #[test]
@@ -147,8 +150,8 @@ mod tests {
         let w = wallet();
         let cosmos = Deriver::new(&w).derive(0).unwrap();
         let osmo = Deriver::with_config(&w, "osmo", 118).derive(0).unwrap();
-        let (_, cd) = bech32::decode(&cosmos.address).unwrap();
-        let (_, od) = bech32::decode(&osmo.address).unwrap();
+        let (_, cd) = bech32::decode(cosmos.address()).unwrap();
+        let (_, od) = bech32::decode(osmo.address()).unwrap();
         assert_eq!(cd, od);
     }
 
@@ -157,8 +160,8 @@ mod tests {
         let w = wallet();
         let cosmos = Deriver::new(&w).derive(0).unwrap();
         let terra = Deriver::with_config(&w, "terra", 330).derive(0).unwrap();
-        assert!(terra.address.starts_with("terra1"));
-        assert_ne!(cosmos.address, terra.address);
+        assert!(terra.address().starts_with("terra1"));
+        assert_ne!(cosmos.address(), terra.address());
     }
 
     #[test]
@@ -166,14 +169,14 @@ mod tests {
         let w = wallet();
         let accounts = Deriver::new(&w).derive_many(0, 3).unwrap();
         assert_eq!(accounts.len(), 3);
-        assert_ne!(accounts[0].address, accounts[1].address);
+        assert_ne!(accounts[0].address(), accounts[1].address());
     }
 
     #[test]
     fn derive_path_custom() {
         let w = wallet();
         let a = Deriver::new(&w).derive_path("m/44'/118'/0'/0/5").unwrap();
-        assert!(a.address.starts_with("cosmos1"));
+        assert!(a.address().starts_with("cosmos1"));
     }
 
     #[test]
@@ -181,8 +184,8 @@ mod tests {
         let w1 = Wallet::from_mnemonic(MNEMONIC, None).unwrap();
         let w2 = Wallet::from_mnemonic(MNEMONIC, Some("pass")).unwrap();
         assert_ne!(
-            Deriver::new(&w1).derive(0).unwrap().address,
-            Deriver::new(&w2).derive(0).unwrap().address,
+            Deriver::new(&w1).derive(0).unwrap().address(),
+            Deriver::new(&w2).derive(0).unwrap().address(),
         );
     }
 
@@ -191,6 +194,6 @@ mod tests {
         // Cross-verified with Python coincurve + SHA256 + RIPEMD160 + bech32
         let w = wallet();
         let a = Deriver::new(&w).derive(0).unwrap();
-        assert_eq!(a.address, "cosmos19rl4cm2hmr8afy4kldpxz3fka4jguq0auqdal4");
+        assert_eq!(a.address(), "cosmos19rl4cm2hmr8afy4kldpxz3fka4jguq0auqdal4");
     }
 }

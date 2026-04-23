@@ -37,9 +37,9 @@ impl DerivedSecp256k1Key {
     pub fn derive(seed: &[u8; 64], path: &str) -> Result<Self, DeriveError> {
         let dp: DerivationPath = path
             .parse()
-            .map_err(|e| DeriveError::Bip32Derivation(format!("invalid path: {e}")))?;
+            .map_err(|e| DeriveError::Path(format!("bip32: {e}")))?;
         let xprv = XPrv::derive_from_path(seed, &dp)
-            .map_err(|e| DeriveError::Bip32Derivation(format!("derivation failed: {e}")))?;
+            .map_err(|e| DeriveError::Crypto(format!("bip32 derivation failed: {e}")))?;
         Ok(Self { xprv })
     }
 

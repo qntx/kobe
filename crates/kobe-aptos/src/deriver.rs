@@ -11,6 +11,9 @@ use zeroize::Zeroizing;
 
 use crate::DeriveError;
 
+/// Ed25519 secret key size in bytes.
+const ED25519_SECRET_SIZE: usize = 32;
+
 /// Ed25519 single-signature scheme identifier used by Aptos.
 const ED25519_SCHEME: u8 = 0x00;
 
@@ -54,10 +57,13 @@ impl<'a> Deriver<'a> {
         buf[1..].copy_from_slice(pubkey_bytes);
         let hash = Sha3_256::digest(buf);
 
+        let mut sk_bytes = Zeroizing::new([0u8; ED25519_SECRET_SIZE]);
+        sk_bytes.copy_from_slice(&signing_key.to_bytes());
+
         Ok(DerivedAccount::new(
             String::from(path),
-            Zeroizing::new(hex::encode(signing_key.to_bytes())),
-            hex::encode(pubkey_bytes),
+            sk_bytes,
+            pubkey_bytes.to_vec(),
             format!("0x{}", hex::encode(hash)),
         ))
     }
@@ -89,7 +95,7 @@ mod tests {
     fn derive_starts_with_0x() {
         let wallet = test_wallet();
         let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert!(derived.address.starts_with("0x"));
+        assert!(derived.address().starts_with("0x"));
     }
 
     #[test]
@@ -97,28 +103,34 @@ mod tests {
         let wallet = test_wallet();
         let derived = Deriver::new(&wallet).derive(0).unwrap();
         // 0x + 64 hex chars = 66 total
-        assert_eq!(derived.address.len(), 66);
+        assert_eq!(derived.address().len(), 66);
     }
 
     #[test]
     fn derive_correct_path() {
         let wallet = test_wallet();
         let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(derived.path, "m/44'/637'/0'/0'/0'");
+        assert_eq!(derived.path(), "m/44'/637'/0'/0'/0'");
     }
 
     #[test]
     fn different_indices_differ() {
         let wallet = test_wallet();
         let d = Deriver::new(&wallet);
-        assert_ne!(d.derive(0).unwrap().address, d.derive(1).unwrap().address);
+        assert_ne!(
+            d.derive(0).unwrap().address(),
+            d.derive(1).unwrap().address()
+        );
     }
 
     #[test]
     fn deterministic() {
         let wallet = test_wallet();
         let d = Deriver::new(&wallet);
-        assert_eq!(d.derive(0).unwrap().address, d.derive(0).unwrap().address);
+        assert_eq!(
+            d.derive(0).unwrap().address(),
+            d.derive(0).unwrap().address()
+        );
     }
 
     #[test]
@@ -128,7 +140,7 @@ mod tests {
         let wallet = test_wallet();
         let a = Deriver::new(&wallet).derive(0).unwrap();
         assert_eq!(
-            a.address,
+            a.address(),
             "0x00eb1449854fda728475c94f8078b7fd7670c1ed31deaf1e4f88e3bfe2cc2b6a"
         );
     }

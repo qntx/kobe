@@ -4,7 +4,7 @@ default-members = ["crates/kobe"]
 resolver = "3"
 
 [workspace.package]
-version = "0.8.2"
+version = "1.0.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/qntx/kobe"
@@ -13,20 +13,20 @@ keywords = ["crypto", "wallet", "bitcoin", "ethereum", "solana"]
 categories = ["cryptography::cryptocurrencies"]
 
 [workspace.dependencies]
-kobe-primitives = { version = "0.8", path = "crates/kobe-primitives", default-features = false }
-kobe = { version = "0.8", path = "crates/kobe", default-features = false }
-kobe-btc = { version = "0.8", path = "crates/kobe-btc", default-features = false }
-kobe-cosmos = { version = "0.8", path = "crates/kobe-cosmos", default-features = false }
-kobe-evm = { version = "0.8", path = "crates/kobe-evm", default-features = false }
-kobe-fil = { version = "0.8", path = "crates/kobe-fil", default-features = false }
-kobe-spark = { version = "0.8", path = "crates/kobe-spark", default-features = false }
-kobe-sui = { version = "0.8", path = "crates/kobe-sui", default-features = false }
-kobe-svm = { version = "0.8", path = "crates/kobe-svm", default-features = false }
-kobe-ton = { version = "0.8", path = "crates/kobe-ton", default-features = false }
-kobe-tron = { version = "0.8", path = "crates/kobe-tron", default-features = false }
-kobe-aptos = { version = "0.8", path = "crates/kobe-aptos", default-features = false }
-kobe-nostr = { version = "0.8", path = "crates/kobe-nostr", default-features = false }
-kobe-xrpl = { version = "0.8", path = "crates/kobe-xrpl", default-features = false }
+kobe-primitives = { version = "1.0", path = "crates/kobe-primitives", default-features = false }
+kobe = { version = "1.0", path = "crates/kobe", default-features = false }
+kobe-btc = { version = "1.0", path = "crates/kobe-btc", default-features = false }
+kobe-cosmos = { version = "1.0", path = "crates/kobe-cosmos", default-features = false }
+kobe-evm = { version = "1.0", path = "crates/kobe-evm", default-features = false }
+kobe-fil = { version = "1.0", path = "crates/kobe-fil", default-features = false }
+kobe-spark = { version = "1.0", path = "crates/kobe-spark", default-features = false }
+kobe-sui = { version = "1.0", path = "crates/kobe-sui", default-features = false }
+kobe-svm = { version = "1.0", path = "crates/kobe-svm", default-features = false }
+kobe-ton = { version = "1.0", path = "crates/kobe-ton", default-features = false }
+kobe-tron = { version = "1.0", path = "crates/kobe-tron", default-features = false }
+kobe-aptos = { version = "1.0", path = "crates/kobe-aptos", default-features = false }
+kobe-nostr = { version = "1.0", path = "crates/kobe-nostr", default-features = false }
+kobe-xrpl = { version = "1.0", path = "crates/kobe-xrpl", default-features = false }
 
 alloy-primitives = { version = "1.5.7", default-features = false, features = ["k256"] }
 base64 = { version = "0.22.1", default-features = false, features = ["alloc"] }

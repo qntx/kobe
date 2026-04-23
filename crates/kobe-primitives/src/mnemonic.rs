@@ -48,9 +48,8 @@ const MIN_PREFIX_LEN: usize = 4;
 ///
 /// # Errors
 ///
-/// Returns [`DeriveError::UnknownPrefix`] if a token does not match any word.
-/// Returns [`DeriveError::AmbiguousPrefix`] if a token matches multiple words.
-/// Returns [`DeriveError::PrefixTooShort`] if a non-exact token has fewer than 4 characters.
+/// Returns [`DeriveError::Input`] if a token does not match any word,
+/// matches multiple words, or is a non-exact token shorter than 4 characters.
 pub fn expand(phrase: &str) -> Result<String, DeriveError> {
     expand_in(Language::English, phrase)
 }
@@ -61,9 +60,8 @@ pub fn expand(phrase: &str) -> Result<String, DeriveError> {
 ///
 /// # Errors
 ///
-/// Returns [`DeriveError::UnknownPrefix`] if a token does not match any word.
-/// Returns [`DeriveError::AmbiguousPrefix`] if a token matches multiple words.
-/// Returns [`DeriveError::PrefixTooShort`] if a non-exact token has fewer than 4 characters.
+/// Returns [`DeriveError::Input`] if any token fails to resolve to a single
+/// BIP-39 word.
 pub fn expand_in(language: Language, phrase: &str) -> Result<String, DeriveError> {
     let word_list = language.word_list();
     let tokens: Vec<&str> = phrase.split_whitespace().collect();
@@ -88,15 +86,14 @@ fn resolve_token<'a>(word_list: &'a [&'a str; 2048], token: &str) -> Result<&'a 
         return word_list
             .get(idx)
             .copied()
-            .ok_or_else(|| DeriveError::UnknownPrefix(String::from(token)));
+            .ok_or_else(|| DeriveError::Input(alloc::format!("mnemonic: unknown word '{token}'")));
     }
 
     // Token is not an exact word — treat as prefix.
     if token.len() < MIN_PREFIX_LEN {
-        return Err(DeriveError::PrefixTooShort {
-            prefix: String::from(token),
-            min_len: MIN_PREFIX_LEN,
-        });
+        return Err(DeriveError::Input(alloc::format!(
+            "mnemonic: prefix '{token}' is too short (minimum {MIN_PREFIX_LEN} characters)"
+        )));
     }
 
     // Binary search for the prefix range (wordlist is sorted).
@@ -109,16 +106,15 @@ fn resolve_token<'a>(word_list: &'a [&'a str; 2048], token: &str) -> Result<&'a 
         .copied()
         .collect();
 
-    match matches.len() {
-        0 => Err(DeriveError::UnknownPrefix(String::from(token))),
-        1 => matches
-            .first()
-            .copied()
-            .ok_or_else(|| DeriveError::UnknownPrefix(String::from(token))),
-        _ => Err(DeriveError::AmbiguousPrefix {
-            prefix: String::from(token),
-            candidates: matches.iter().map(|w| String::from(*w)).collect(),
-        }),
+    match matches.as_slice() {
+        [] => Err(DeriveError::Input(alloc::format!(
+            "mnemonic: prefix '{token}' does not match any BIP-39 word"
+        ))),
+        [only] => Ok(*only),
+        many => Err(DeriveError::Input(alloc::format!(
+            "mnemonic: prefix '{token}' is ambiguous, matches: {}",
+            many.join(", ")
+        ))),
     }
 }
 
@@ -161,21 +157,21 @@ mod tests {
     #[test]
     fn prefix_too_short_rejected() {
         let result = expand("aba aba aba aba aba aba aba aba aba aba aba aba");
-        assert!(result.is_err());
-        assert!(
-            matches!(result, Err(DeriveError::PrefixTooShort { .. })),
-            "expected PrefixTooShort error"
-        );
+        let err = result.unwrap_err();
+        let DeriveError::Input(msg) = &err else {
+            unreachable!("expected Input error, got {err:?}");
+        };
+        assert!(msg.contains("too short"), "unexpected message: {msg}");
     }
 
     #[test]
     fn unknown_prefix_rejected() {
         let result = expand("aban aban aban aban aban aban aban aban aban aban aban zzzz");
-        assert!(result.is_err());
-        assert!(
-            matches!(result, Err(DeriveError::UnknownPrefix(_))),
-            "expected UnknownPrefix error"
-        );
+        let err = result.unwrap_err();
+        let DeriveError::Input(msg) = &err else {
+            unreachable!("expected Input error, got {err:?}");
+        };
+        assert!(msg.contains("does not match"), "unexpected message: {msg}");
     }
 
     #[test]

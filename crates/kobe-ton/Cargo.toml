@@ -11,12 +11,11 @@ categories = ["cryptography", "no-std"]
 
 [features]
 default = ["std"]
-std = ["alloc", "kobe-primitives/std", "hex/std", "zeroize/std"]
-alloc = ["kobe-primitives/alloc", "hex/alloc", "zeroize/alloc"]
+std = ["alloc", "kobe-primitives/std", "zeroize/std"]
+alloc = ["kobe-primitives/alloc", "zeroize/alloc"]
 
 [dependencies]
 kobe-primitives = { workspace = true, features = ["slip10"] }
-hex.workspace = true
 zeroize.workspace = true
 sha2.workspace = true
 base64.workspace = true

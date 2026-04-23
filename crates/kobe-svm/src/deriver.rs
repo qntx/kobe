@@ -2,6 +2,7 @@
 
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::ops::Deref;
 
 use kobe_primitives::slip10::DerivedKey;
 use kobe_primitives::{Derive, DerivedAccount, Wallet};
@@ -10,52 +11,60 @@ use zeroize::Zeroizing;
 use crate::DeriveError;
 use crate::derivation_style::DerivationStyle;
 
-/// A derived Solana address with associated keys.
+/// A Solana-specific derived account — [`DerivedAccount`] plus Phantom-style keypair.
+///
+/// Wraps the unified [`DerivedAccount`] (path, 32-byte private key, 32-byte
+/// public key, Base58 address) and adds the Solana-native 64-byte keypair
+/// (`secret || public`) Base58-encoded for Phantom / Backpack / Solflare
+/// import.
+///
+/// Implements `Deref<Target = DerivedAccount>`, so all shared accessors
+/// (`address()`, `public_key_bytes()`, etc.) are available directly.
 #[derive(Debug, Clone)]
-#[non_exhaustive]
-pub struct DerivedAddress {
-    /// Derivation path used (e.g., `m/44'/501'/0'/0'`).
-    pub path: String,
-    /// Private key in hex format (zeroized on drop).
-    pub private_key_hex: Zeroizing<String>,
-    /// Full keypair in base58 format (64 bytes: secret 32B + public 32B, zeroized on drop).
-    ///
-    /// This is the standard format used by Phantom, Backpack, Solflare wallets.
-    pub keypair_base58: Zeroizing<String>,
-    /// Public key in hex format.
-    pub public_key_hex: String,
-    /// Solana address (Base58 encoded public key).
-    pub address: String,
+pub struct SvmAccount {
+    inner: DerivedAccount,
+    keypair_base58: Zeroizing<String>,
 }
 
-impl DerivedAddress {
-    /// Decode the hex-encoded Ed25519 secret key into raw 32-byte material.
+impl SvmAccount {
+    /// Full keypair in Base58 format (64 bytes: secret 32 B + public 32 B), zeroized on drop.
     ///
-    /// Returned buffer is zeroized on drop.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the stored hex is malformed or not exactly 32
-    /// bytes. Never produced by this workspace's derivers under normal use.
-    pub fn private_key_bytes(&self) -> Result<Zeroizing<[u8; 32]>, DeriveError> {
-        let mut buf = Zeroizing::new([0u8; 32]);
-        hex::decode_to_slice(self.private_key_hex.as_str(), buf.as_mut_slice()).map_err(|e| {
-            kobe_primitives::DeriveError::InvalidHex(alloc::format!("private_key_hex: {e}"))
-        })?;
-        Ok(buf)
+    /// Standard import format used by Phantom, Backpack, and Solflare.
+    #[inline]
+    #[must_use]
+    pub const fn keypair_base58(&self) -> &Zeroizing<String> {
+        &self.keypair_base58
     }
 
-    /// Decode the hex-encoded Ed25519 public key (32 bytes).
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the stored hex is malformed.
-    pub fn public_key_bytes(&self) -> Result<Vec<u8>, DeriveError> {
-        hex::decode(&self.public_key_hex)
-            .map_err(|e| {
-                kobe_primitives::DeriveError::InvalidHex(alloc::format!("public_key_hex: {e}"))
-            })
-            .map_err(Into::into)
+    /// The underlying unified [`DerivedAccount`].
+    #[inline]
+    #[must_use]
+    pub const fn as_derived_account(&self) -> &DerivedAccount {
+        &self.inner
+    }
+
+    /// Consume and yield the underlying [`DerivedAccount`], dropping the
+    /// Solana-specific keypair field.
+    #[inline]
+    #[must_use]
+    pub fn into_derived_account(self) -> DerivedAccount {
+        self.inner
+    }
+}
+
+impl Deref for SvmAccount {
+    type Target = DerivedAccount;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl From<SvmAccount> for DerivedAccount {
+    #[inline]
+    fn from(svm: SvmAccount) -> Self {
+        svm.inner
     }
 }
 
@@ -77,34 +86,25 @@ impl<'a> Deriver<'a> {
         Self { wallet }
     }
 
-    /// Derive a Solana address using the Standard derivation style.
+    /// Derive a Solana account using the Standard derivation style.
     ///
-    /// Uses path: `m/44'/501'/index'/0'` (Phantom, Backpack, etc.)
-    ///
-    /// # Arguments
-    ///
-    /// * `index` - The address index
+    /// Uses path `m/44'/501'/{index}'/0'` (Phantom, Backpack, Solflare).
     ///
     /// # Errors
     ///
     /// Returns an error if derivation fails.
     #[inline]
-    pub fn derive(&self, index: u32) -> Result<DerivedAddress, DeriveError> {
+    pub fn derive(&self, index: u32) -> Result<SvmAccount, DeriveError> {
         self.derive_with(DerivationStyle::Standard, index)
     }
 
-    /// Derive a Solana address with a specific derivation style.
+    /// Derive a Solana account with a specific [`DerivationStyle`].
     ///
-    /// This method supports different wallet path formats:
-    /// - **Standard** (Phantom/Backpack): `m/44'/501'/index'/0'`
-    /// - **Trust**: `m/44'/501'/index'`
-    /// - **Ledger Live**: `m/44'/501'/index'/0'/0'`
+    /// Supported path layouts:
+    /// - **Standard** (Phantom/Backpack): `m/44'/501'/{index}'/0'`
+    /// - **Trust**: `m/44'/501'/{index}'`
+    /// - **Ledger Live**: `m/44'/501'/{index}'/0'/0'`
     /// - **Legacy**: `m/501'/{index}'/0'/0'`
-    ///
-    /// # Arguments
-    ///
-    /// * `style` - The derivation style to use
-    /// * `index` - The address/account index
     ///
     /// # Errors
     ///
@@ -113,34 +113,23 @@ impl<'a> Deriver<'a> {
         &self,
         style: DerivationStyle,
         index: u32,
-    ) -> Result<DerivedAddress, DeriveError> {
+    ) -> Result<SvmAccount, DeriveError> {
         let path = style.path(index);
         let derived = DerivedKey::derive_path(self.wallet.seed(), &path)?;
-        Ok(build_derived_address(&derived, path))
+        Ok(build_svm_account(&derived, path))
     }
 
-    /// Derive multiple addresses using the Standard derivation style.
-    ///
-    /// # Arguments
-    ///
-    /// * `start` - Starting address index
-    /// * `count` - Number of addresses to derive
+    /// Derive multiple accounts using the Standard derivation style.
     ///
     /// # Errors
     ///
     /// Returns an error if any derivation fails.
     #[inline]
-    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAddress>, DeriveError> {
+    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<SvmAccount>, DeriveError> {
         self.derive_many_with(DerivationStyle::Standard, start, count)
     }
 
-    /// Derive multiple addresses with a specific derivation style.
-    ///
-    /// # Arguments
-    ///
-    /// * `style` - The derivation style to use
-    /// * `start` - Starting index
-    /// * `count` - Number of addresses to derive
+    /// Derive multiple accounts with a specific [`DerivationStyle`].
     ///
     /// # Errors
     ///
@@ -150,33 +139,28 @@ impl<'a> Deriver<'a> {
         style: DerivationStyle,
         start: u32,
         count: u32,
-    ) -> Result<Vec<DerivedAddress>, DeriveError> {
-        let end = start
-            .checked_add(count)
-            .ok_or(kobe_primitives::DeriveError::IndexOverflow)?;
+    ) -> Result<Vec<SvmAccount>, DeriveError> {
+        let end = start.checked_add(count).ok_or_else(|| {
+            kobe_primitives::DeriveError::Input(alloc::string::String::from(
+                "derive_many: start + count overflows u32",
+            ))
+        })?;
         (start..end)
             .map(|index| self.derive_with(style, index))
             .collect()
     }
 
-    /// Derive an address at a custom derivation path.
+    /// Derive an account at a custom SLIP-0010 path.
     ///
-    /// This is the lowest-level derivation method, allowing full control
-    /// over the derivation path.
-    ///
-    /// **Note**: Ed25519 (Solana) only supports hardened derivation.
-    /// All path components will be treated as hardened.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - SLIP-0010 derivation path (e.g., `m/44'/501'/0'/0'`)
+    /// **Note**: Ed25519 (Solana) only supports hardened derivation;
+    /// all path components are treated as hardened.
     ///
     /// # Errors
     ///
     /// Returns an error if derivation fails.
-    pub fn derive_path(&self, path: &str) -> Result<DerivedAddress, DeriveError> {
+    pub fn derive_at_path(&self, path: &str) -> Result<SvmAccount, DeriveError> {
         let derived = DerivedKey::derive_path(self.wallet.seed(), path)?;
-        Ok(build_derived_address(&derived, String::from(path)))
+        Ok(build_svm_account(&derived, String::from(path)))
     }
 }
 
@@ -184,28 +168,18 @@ impl Derive for Deriver<'_> {
     type Error = DeriveError;
 
     fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
-        let da = self.derive_with(DerivationStyle::Standard, index)?;
-        Ok(DerivedAccount::new(
-            da.path,
-            da.private_key_hex,
-            da.public_key_hex,
-            da.address,
-        ))
+        Ok(self
+            .derive_with(DerivationStyle::Standard, index)?
+            .into_derived_account())
     }
 
     fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
-        let da = Deriver::derive_path(self, path)?;
-        Ok(DerivedAccount::new(
-            da.path,
-            da.private_key_hex,
-            da.public_key_hex,
-            da.address,
-        ))
+        Ok(self.derive_at_path(path)?.into_derived_account())
     }
 }
 
-/// Build a [`DerivedAddress`] from a raw [`DerivedKey`] and path string.
-fn build_derived_address(derived: &DerivedKey, path: String) -> DerivedAddress {
+/// Build an [`SvmAccount`] from a raw [`DerivedKey`] and path string.
+fn build_svm_account(derived: &DerivedKey, path: String) -> SvmAccount {
     let signing_key = derived.to_signing_key();
     let verifying_key = signing_key.verifying_key();
     let public_key_bytes = verifying_key.as_bytes();
@@ -216,12 +190,19 @@ fn build_derived_address(derived: &DerivedKey, path: String) -> DerivedAddress {
     right.copy_from_slice(public_key_bytes);
     let keypair_b58 = bs58::encode(&*keypair_bytes).into_string();
 
-    DerivedAddress {
+    let mut sk_bytes = Zeroizing::new([0u8; 32]);
+    sk_bytes.copy_from_slice(derived.private_key.as_slice());
+
+    let inner = DerivedAccount::new(
         path,
-        private_key_hex: Zeroizing::new(hex::encode(derived.private_key.as_slice())),
+        sk_bytes,
+        public_key_bytes.to_vec(),
+        bs58::encode(public_key_bytes).into_string(),
+    );
+
+    SvmAccount {
+        inner,
         keypair_base58: Zeroizing::new(keypair_b58),
-        public_key_hex: hex::encode(public_key_bytes),
-        address: bs58::encode(public_key_bytes).into_string(),
     }
 }
 
@@ -242,11 +223,11 @@ mod tests {
     fn test_derive_address() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet);
-        let addr = deriver.derive(0).unwrap();
+        let acct = deriver.derive(0).unwrap();
 
         // Solana addresses are 32-44 characters in Base58
-        assert!(addr.address.len() >= 32 && addr.address.len() <= 44);
-        assert_eq!(addr.path, "m/44'/501'/0'/0'");
+        assert!(acct.address().len() >= 32 && acct.address().len() <= 44);
+        assert_eq!(acct.path(), "m/44'/501'/0'/0'");
     }
 
     #[test]
@@ -256,13 +237,13 @@ mod tests {
         let addresses = deriver.derive_many(0, 3).unwrap();
 
         assert_eq!(addresses.len(), 3);
-        assert_eq!(addresses[0].path, "m/44'/501'/0'/0'");
-        assert_eq!(addresses[1].path, "m/44'/501'/1'/0'");
-        assert_eq!(addresses[2].path, "m/44'/501'/2'/0'");
+        assert_eq!(addresses[0].path(), "m/44'/501'/0'/0'");
+        assert_eq!(addresses[1].path(), "m/44'/501'/1'/0'");
+        assert_eq!(addresses[2].path(), "m/44'/501'/2'/0'");
 
         // All addresses should be unique
-        assert_ne!(addresses[0].address, addresses[1].address);
-        assert_ne!(addresses[1].address, addresses[2].address);
+        assert_ne!(addresses[0].address(), addresses[1].address());
+        assert_ne!(addresses[1].address(), addresses[2].address());
     }
 
     #[test]
@@ -270,31 +251,31 @@ mod tests {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet);
 
-        let addr1 = deriver.derive(0).unwrap();
-        let addr2 = deriver.derive(0).unwrap();
+        let acct1 = deriver.derive(0).unwrap();
+        let acct2 = deriver.derive(0).unwrap();
 
-        assert_eq!(addr1.address, addr2.address);
-        assert_eq!(*addr1.private_key_hex, *addr2.private_key_hex);
+        assert_eq!(acct1.address(), acct2.address());
+        assert_eq!(acct1.private_key_bytes(), acct2.private_key_bytes());
     }
 
     #[test]
     fn test_derive_with_trust() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet);
-        let addr = deriver.derive_with(DerivationStyle::Trust, 0).unwrap();
+        let acct = deriver.derive_with(DerivationStyle::Trust, 0).unwrap();
 
-        assert_eq!(addr.path, "m/44'/501'/0'");
-        assert!(addr.address.len() >= 32 && addr.address.len() <= 44);
+        assert_eq!(acct.path(), "m/44'/501'/0'");
+        assert!(acct.address().len() >= 32 && acct.address().len() <= 44);
     }
 
     #[test]
     fn test_derive_with_ledger_live() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet);
-        let addr = deriver.derive_with(DerivationStyle::LedgerLive, 0).unwrap();
+        let acct = deriver.derive_with(DerivationStyle::LedgerLive, 0).unwrap();
 
-        assert_eq!(addr.path, "m/44'/501'/0'/0'/0'");
-        assert!(addr.address.len() >= 32 && addr.address.len() <= 44);
+        assert_eq!(acct.path(), "m/44'/501'/0'/0'/0'");
+        assert!(acct.address().len() >= 32 && acct.address().len() <= 44);
     }
 
     #[test]
@@ -308,31 +289,40 @@ mod tests {
         let legacy = deriver.derive_with(DerivationStyle::Legacy, 0).unwrap();
 
         // All styles should produce different addresses
-        assert_ne!(standard.address, trust.address);
-        assert_ne!(standard.address, ledger_live.address);
-        assert_ne!(standard.address, legacy.address);
-        assert_ne!(trust.address, ledger_live.address);
+        assert_ne!(standard.address(), trust.address());
+        assert_ne!(standard.address(), ledger_live.address());
+        assert_ne!(standard.address(), legacy.address());
+        assert_ne!(trust.address(), ledger_live.address());
     }
 
     #[test]
     fn kat_solana_standard_index0() {
         // Cross-verified with Python SLIP-10 + nacl.signing + base58
         let wallet = test_wallet();
-        let addr = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(addr.address, "HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk");
+        let acct = Deriver::new(&wallet).derive(0).unwrap();
+        assert_eq!(
+            acct.address(),
+            "HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk"
+        );
+    }
+
+    #[test]
+    fn keypair_base58_is_populated() {
+        let wallet = test_wallet();
+        let acct = Deriver::new(&wallet).derive(0).unwrap();
+        assert!(!acct.keypair_base58().is_empty());
     }
 
     #[test]
     fn bytes_accessors_roundtrip() {
         let wallet = test_wallet();
-        let addr = Deriver::new(&wallet).derive(0).unwrap();
+        let acct = Deriver::new(&wallet).derive(0).unwrap();
 
-        let sk = addr.private_key_bytes().unwrap();
+        let sk = acct.private_key_bytes();
         assert_eq!(sk.len(), 32);
-        assert_eq!(hex::encode(*sk), addr.private_key_hex.as_str());
 
-        let pk = addr.public_key_bytes().unwrap();
+        let pk = acct.public_key_bytes();
         assert_eq!(pk.len(), 32);
-        assert_eq!(hex::encode(&pk), addr.public_key_hex);
+        assert_eq!(hex::encode(pk), acct.public_key_hex());
     }
 }

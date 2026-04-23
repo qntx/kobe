@@ -6,6 +6,7 @@ use alloc::{
     vec::Vec,
 };
 use core::marker::PhantomData;
+use core::ops::Deref;
 
 use bitcoin::PrivateKey;
 use bitcoin::bip32::Xpriv;
@@ -33,52 +34,77 @@ pub struct Deriver<'a> {
     _wallet: PhantomData<&'a Wallet>,
 }
 
-/// A derived Bitcoin address with associated keys and metadata.
+/// A Bitcoin-specific derived account — [`DerivedAccount`] plus chain-specific metadata.
+///
+/// Wraps the unified [`DerivedAccount`] (path, 32-byte private key, 33-byte
+/// compressed public key, address string) and adds Bitcoin-only fields:
+/// [`WIF`](Self::private_key_wif), [`AddressType`](Self::address_type), and
+/// the structured [`DerivationPath`](Self::bip32_path).
+///
+/// Implements `Deref<Target = DerivedAccount>`, so all shared accessors
+/// (`address()`, `public_key_bytes()`, etc.) are available directly.
 #[derive(Debug, Clone)]
-#[non_exhaustive]
-pub struct DerivedAddress {
-    /// Derivation path used (e.g., `m/84'/0'/0'/0/0`).
-    pub path: DerivationPath,
-    /// Private key in hex format (zeroized on drop).
-    pub private_key_hex: Zeroizing<String>,
-    /// Private key in WIF format (zeroized on drop).
-    pub private_key_wif: Zeroizing<String>,
-    /// Public key in compressed hex format.
-    pub public_key_hex: String,
-    /// Bitcoin address string.
-    pub address: String,
-    /// Address type used for derivation.
-    pub address_type: AddressType,
+pub struct BtcAccount {
+    inner: DerivedAccount,
+    private_key_wif: Zeroizing<String>,
+    address_type: AddressType,
+    bip32_path: DerivationPath,
 }
 
-impl DerivedAddress {
-    /// Decode the hex-encoded private key into raw 32-byte material.
-    ///
-    /// Returned buffer is zeroized on drop.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the stored hex is malformed or not exactly 32
-    /// bytes. Never produced by this workspace's derivers under normal use.
-    pub fn private_key_bytes(&self) -> Result<Zeroizing<[u8; 32]>, DeriveError> {
-        let mut buf = Zeroizing::new([0u8; 32]);
-        hex::decode_to_slice(self.private_key_hex.as_str(), buf.as_mut_slice()).map_err(|e| {
-            kobe_primitives::DeriveError::InvalidHex(alloc::format!("private_key_hex: {e}"))
-        })?;
-        Ok(buf)
+impl BtcAccount {
+    /// Private key in WIF (Wallet Import Format), zeroized on drop.
+    #[inline]
+    #[must_use]
+    pub const fn private_key_wif(&self) -> &Zeroizing<String> {
+        &self.private_key_wif
     }
 
-    /// Decode the hex-encoded compressed public key (33 bytes).
+    /// The [`AddressType`] used to derive this account.
+    #[inline]
+    #[must_use]
+    pub const fn address_type(&self) -> AddressType {
+        self.address_type
+    }
+
+    /// Structured BIP-32 derivation path.
     ///
-    /// # Errors
-    ///
-    /// Returns an error if the stored hex is malformed.
-    pub fn public_key_bytes(&self) -> Result<Vec<u8>, DeriveError> {
-        hex::decode(&self.public_key_hex)
-            .map_err(|e| {
-                kobe_primitives::DeriveError::InvalidHex(alloc::format!("public_key_hex: {e}"))
-            })
-            .map_err(Into::into)
+    /// Access the string form via [`DerivedAccount::path`](Self::path)
+    /// (inherited through `Deref`).
+    #[inline]
+    #[must_use]
+    pub const fn bip32_path(&self) -> &DerivationPath {
+        &self.bip32_path
+    }
+
+    /// The underlying unified [`DerivedAccount`].
+    #[inline]
+    #[must_use]
+    pub const fn as_derived_account(&self) -> &DerivedAccount {
+        &self.inner
+    }
+
+    /// Consume and yield the underlying [`DerivedAccount`], dropping
+    /// Bitcoin-specific metadata.
+    #[inline]
+    #[must_use]
+    pub fn into_derived_account(self) -> DerivedAccount {
+        self.inner
+    }
+}
+
+impl Deref for BtcAccount {
+    type Target = DerivedAccount;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl From<BtcAccount> for DerivedAccount {
+    #[inline]
+    fn from(btc: BtcAccount) -> Self {
+        btc.inner
     }
 }
 
@@ -100,34 +126,25 @@ impl<'a> Deriver<'a> {
         })
     }
 
-    /// Derive a Bitcoin address using P2WPKH (Native `SegWit`) by default.
+    /// Derive a Bitcoin account using P2WPKH (Native `SegWit`) by default.
     ///
-    /// Uses path: `m/84'/0'/0'/0/{index}` for mainnet
-    ///
-    /// # Arguments
-    ///
-    /// * `index` - The address index
+    /// Uses path: `m/84'/0'/0'/0/{index}` for mainnet.
     ///
     /// # Errors
     ///
     /// Returns an error if derivation fails.
     #[inline]
-    pub fn derive(&self, index: u32) -> Result<DerivedAddress, DeriveError> {
+    pub fn derive(&self, index: u32) -> Result<BtcAccount, DeriveError> {
         self.derive_with(AddressType::P2wpkh, index)
     }
 
-    /// Derive a Bitcoin address with a specific address type.
+    /// Derive a Bitcoin account with a specific [`AddressType`].
     ///
-    /// This method supports different address formats:
+    /// This method supports all four Bitcoin address formats:
     /// - **P2pkh** (Legacy): `m/44'/coin'/0'/0/{index}`
     /// - **`P2shP2wpkh`** (Nested SegWit): `m/49'/coin'/0'/0/{index}`
     /// - **P2wpkh** (Native SegWit): `m/84'/coin'/0'/0/{index}`
     /// - **P2tr** (Taproot): `m/86'/coin'/0'/0/{index}`
-    ///
-    /// # Arguments
-    ///
-    /// * `address_type` - Type of address (determines BIP purpose: 44/49/84/86)
-    /// * `index` - The address index
     ///
     /// # Errors
     ///
@@ -137,33 +154,22 @@ impl<'a> Deriver<'a> {
         &self,
         address_type: AddressType,
         index: u32,
-    ) -> Result<DerivedAddress, DeriveError> {
+    ) -> Result<BtcAccount, DeriveError> {
         let path = DerivationPath::bip_standard(address_type, self.network, 0, false, index)?;
-        self.derive_path(&path, address_type)
+        self.derive_bip32_path(&path, address_type)
     }
 
-    /// Derive multiple addresses using P2WPKH (Native `SegWit`) by default.
-    ///
-    /// # Arguments
-    ///
-    /// * `start` - Starting address index
-    /// * `count` - Number of addresses to derive
+    /// Derive multiple accounts using P2WPKH (Native `SegWit`) by default.
     ///
     /// # Errors
     ///
     /// Returns an error if any derivation fails.
     #[inline]
-    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAddress>, DeriveError> {
+    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<BtcAccount>, DeriveError> {
         self.derive_many_with(AddressType::P2wpkh, start, count)
     }
 
-    /// Derive multiple addresses with a specific address type.
-    ///
-    /// # Arguments
-    ///
-    /// * `address_type` - Type of address to derive
-    /// * `start` - Starting index
-    /// * `count` - Number of addresses to derive
+    /// Derive multiple accounts with a specific [`AddressType`].
     ///
     /// # Errors
     ///
@@ -173,7 +179,7 @@ impl<'a> Deriver<'a> {
         address_type: AddressType,
         start: u32,
         count: u32,
-    ) -> Result<Vec<DerivedAddress>, DeriveError> {
+    ) -> Result<Vec<BtcAccount>, DeriveError> {
         let end = start.checked_add(count).ok_or_else(|| {
             DeriveError::InvalidDerivationPath(
                 "index overflow: start + count exceeds u32::MAX".into(),
@@ -184,29 +190,20 @@ impl<'a> Deriver<'a> {
             .collect()
     }
 
-    /// Derive an address at a custom derivation path.
+    /// Derive a [`BtcAccount`] at a structured [`DerivationPath`] with the
+    /// requested [`AddressType`].
     ///
-    /// This is the lowest-level derivation method, allowing full control
-    /// over the derivation path.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - BIP-32 derivation path
-    /// * `address_type` - Type of address to generate
+    /// Lowest-level derivation method; all higher-level entry points funnel
+    /// through this.
     ///
     /// # Errors
     ///
     /// Returns an error if derivation fails.
-    ///
-    /// # Panics
-    ///
-    /// This function will not panic under normal circumstances.
-    /// The internal `expect` is guaranteed to succeed for valid private keys.
-    pub fn derive_path(
+    pub fn derive_bip32_path(
         &self,
         path: &DerivationPath,
         address_type: AddressType,
-    ) -> Result<DerivedAddress, DeriveError> {
+    ) -> Result<BtcAccount, DeriveError> {
         let derived = self.master_key.derive_priv(&self.secp, path.inner())?;
 
         let private_key = PrivateKey::new(derived.private_key, self.network.to_bitcoin_network());
@@ -215,15 +212,21 @@ impl<'a> Deriver<'a> {
 
         let address = create_address(&public_key, self.network, address_type);
 
-        let private_key_bytes = Zeroizing::new(derived.private_key.secret_bytes());
+        let sk_bytes = Zeroizing::new(derived.private_key.secret_bytes());
+        let pk_bytes = public_key.to_bytes();
 
-        Ok(DerivedAddress {
-            path: path.clone(),
-            private_key_hex: Zeroizing::new(hex::encode(private_key_bytes)),
+        let inner = DerivedAccount::new(
+            path.to_string(),
+            sk_bytes,
+            pk_bytes.to_vec(),
+            address.to_string(),
+        );
+
+        Ok(BtcAccount {
+            inner,
             private_key_wif: Zeroizing::new(private_key.to_wif()),
-            public_key_hex: public_key.to_string(),
-            address: address.to_string(),
             address_type,
+            bip32_path: path.clone(),
         })
     }
 
@@ -232,35 +235,22 @@ impl<'a> Deriver<'a> {
     pub const fn network(&self) -> Network {
         self.network
     }
-
-    /// Internal: derive a [`DerivedAccount`] at a string path with default P2WPKH.
-    fn derive_account_at_path(&self, path_str: &str) -> Result<DerivedAccount, DeriveError> {
-        let path = DerivationPath::from_path_str(path_str)?;
-        let da = self.derive_path(&path, AddressType::P2wpkh)?;
-        Ok(DerivedAccount::new(
-            da.path.to_string(),
-            da.private_key_hex,
-            da.public_key_hex,
-            da.address,
-        ))
-    }
 }
 
 impl Derive for Deriver<'_> {
     type Error = DeriveError;
 
     fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
-        let da = self.derive_with(AddressType::P2wpkh, index)?;
-        Ok(DerivedAccount::new(
-            da.path.to_string(),
-            da.private_key_hex,
-            da.public_key_hex,
-            da.address,
-        ))
+        Ok(self
+            .derive_with(AddressType::P2wpkh, index)?
+            .into_derived_account())
     }
 
     fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
-        self.derive_account_at_path(path)
+        let parsed = DerivationPath::from_path_str(path)?;
+        Ok(self
+            .derive_bip32_path(&parsed, AddressType::P2wpkh)?
+            .into_derived_account())
     }
 }
 
@@ -278,36 +268,37 @@ mod tests {
     fn kat_p2wpkh() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-        let addr = deriver.derive_with(AddressType::P2wpkh, 0).unwrap();
-        assert_eq!(addr.address, "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu");
-        assert_eq!(addr.path.to_string(), "m/84'/0'/0'/0/0");
+        let acct = deriver.derive_with(AddressType::P2wpkh, 0).unwrap();
+        assert_eq!(acct.address(), "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu");
+        assert_eq!(acct.path(), "m/84'/0'/0'/0/0");
+        assert_eq!(acct.address_type(), AddressType::P2wpkh);
     }
 
     #[test]
     fn kat_p2pkh() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-        let addr = deriver.derive_with(AddressType::P2pkh, 0).unwrap();
-        assert_eq!(addr.address, "1LqBGSKuX5yYUonjxT5qGfpUsXKYYWeabA");
-        assert_eq!(addr.path.to_string(), "m/44'/0'/0'/0/0");
+        let acct = deriver.derive_with(AddressType::P2pkh, 0).unwrap();
+        assert_eq!(acct.address(), "1LqBGSKuX5yYUonjxT5qGfpUsXKYYWeabA");
+        assert_eq!(acct.path(), "m/44'/0'/0'/0/0");
     }
 
     #[test]
     fn kat_p2sh_p2wpkh() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-        let addr = deriver.derive_with(AddressType::P2shP2wpkh, 0).unwrap();
-        assert_eq!(addr.address, "37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf");
-        assert_eq!(addr.path.to_string(), "m/49'/0'/0'/0/0");
+        let acct = deriver.derive_with(AddressType::P2shP2wpkh, 0).unwrap();
+        assert_eq!(acct.address(), "37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf");
+        assert_eq!(acct.path(), "m/49'/0'/0'/0/0");
     }
 
     #[test]
     fn p2tr_prefix() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-        let addr = deriver.derive_with(AddressType::P2tr, 0).unwrap();
-        assert!(addr.address.starts_with("bc1p"));
-        assert_eq!(addr.path.to_string(), "m/86'/0'/0'/0/0");
+        let acct = deriver.derive_with(AddressType::P2tr, 0).unwrap();
+        assert!(acct.address().starts_with("bc1p"));
+        assert_eq!(acct.path(), "m/86'/0'/0'/0/0");
     }
 
     #[test]
@@ -316,16 +307,16 @@ mod tests {
         let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
         let def = deriver.derive(0).unwrap();
         let explicit = deriver.derive_with(AddressType::P2wpkh, 0).unwrap();
-        assert_eq!(def.address, explicit.address);
+        assert_eq!(def.address(), explicit.address());
     }
 
     #[test]
     fn testnet_prefix() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet, Network::Testnet).unwrap();
-        let addr = deriver.derive(0).unwrap();
-        assert!(addr.address.starts_with("tb1q"));
-        assert_eq!(addr.path.to_string(), "m/84'/1'/0'/0/0");
+        let acct = deriver.derive(0).unwrap();
+        assert!(acct.address().starts_with("tb1q"));
+        assert_eq!(acct.path(), "m/84'/1'/0'/0/0");
     }
 
     #[test]
@@ -334,8 +325,8 @@ mod tests {
         let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
         let addrs = deriver.derive_many(0, 5).unwrap();
         assert_eq!(addrs.len(), 5);
-        let mut unique: Vec<_> = addrs.iter().map(|a| &a.address).collect();
-        unique.sort();
+        let mut unique: Vec<&str> = addrs.iter().map(|a| a.address()).collect();
+        unique.sort_unstable();
         unique.dedup();
         assert_eq!(unique.len(), 5);
     }
@@ -346,21 +337,32 @@ mod tests {
         let wallet2 = Wallet::from_mnemonic(TEST_MNEMONIC, Some("password")).unwrap();
         let d1 = Deriver::new(&wallet1, Network::Mainnet).unwrap();
         let d2 = Deriver::new(&wallet2, Network::Mainnet).unwrap();
-        assert_ne!(d1.derive(0).unwrap().address, d2.derive(0).unwrap().address);
+        assert_ne!(
+            d1.derive(0).unwrap().address(),
+            d2.derive(0).unwrap().address()
+        );
+    }
+
+    #[test]
+    fn wif_is_populated() {
+        let wallet = test_wallet();
+        let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
+        let acct = deriver.derive(0).unwrap();
+        assert!(!acct.private_key_wif().is_empty());
+        assert_eq!(acct.private_key_bytes().len(), 32);
     }
 
     #[test]
     fn bytes_accessors_roundtrip() {
         let wallet = test_wallet();
         let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-        let da = deriver.derive_with(AddressType::P2wpkh, 0).unwrap();
+        let acct = deriver.derive_with(AddressType::P2wpkh, 0).unwrap();
 
-        let sk = da.private_key_bytes().unwrap();
+        let sk = acct.private_key_bytes();
         assert_eq!(sk.len(), 32);
-        assert_eq!(hex::encode(*sk), da.private_key_hex.as_str());
 
-        let pk = da.public_key_bytes().unwrap();
+        let pk = acct.public_key_bytes();
         assert_eq!(pk.len(), 33);
-        assert_eq!(hex::encode(&pk), da.public_key_hex);
+        assert_eq!(hex::encode(pk), acct.public_key_hex());
     }
 }

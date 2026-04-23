@@ -6,6 +6,7 @@
 //! Reference: <https://github.com/satoshilabs/slips/blob/master/slip-0010.md>
 
 use alloc::format;
+use alloc::string::String;
 
 use ed25519_dalek::SigningKey;
 use hmac::{Hmac, KeyInit, Mac};
@@ -49,7 +50,7 @@ impl DerivedKey {
     /// Returns an error if the HMAC key is invalid (should not happen in practice).
     pub fn from_seed(seed: &[u8]) -> Result<Self, DeriveError> {
         let mut mac = HmacSha512::new_from_slice(ED25519_CURVE)
-            .map_err(|_| DeriveError::Slip10InvalidSeed)?;
+            .map_err(|_| DeriveError::Crypto(String::from("slip10: invalid seed length")))?;
         mac.update(seed);
         let result = mac.finalize().into_bytes();
 
@@ -76,8 +77,9 @@ impl DerivedKey {
     pub fn derive_hardened(&self, index: u32) -> Result<Self, DeriveError> {
         let hardened_index = index | 0x8000_0000;
 
-        let mut mac = HmacSha512::new_from_slice(&*self.chain_code)
-            .map_err(|_| DeriveError::Slip10InvalidSeed)?;
+        let mut mac = HmacSha512::new_from_slice(&*self.chain_code).map_err(|_| {
+            DeriveError::Crypto(String::from("slip10: chain code HMAC init failed"))
+        })?;
         mac.update(&[0x00]);
         mac.update(&*self.private_key);
         mac.update(&hardened_index.to_be_bytes());
@@ -110,9 +112,9 @@ impl DerivedKey {
         } else if let Some(rest) = trimmed.strip_prefix("m/") {
             rest
         } else {
-            return Err(DeriveError::Slip10InvalidPath(
-                "path must start with 'm/' or be exactly 'm'".into(),
-            ));
+            return Err(DeriveError::Path(String::from(
+                "slip10: path must start with 'm/' or be exactly 'm'",
+            )));
         };
 
         let mut current = Self::from_seed(seed)?;
@@ -135,7 +137,7 @@ fn parse_path_component(component: &str) -> Result<u32, DeriveError> {
     let stripped = component.trim_end_matches('\'').trim_end_matches('h');
     stripped
         .parse::<u32>()
-        .map_err(|_| DeriveError::Slip10InvalidPath(format!("invalid path component: {component}")))
+        .map_err(|_| DeriveError::Path(format!("slip10: invalid path component: {component}")))
 }
 
 #[cfg(test)]

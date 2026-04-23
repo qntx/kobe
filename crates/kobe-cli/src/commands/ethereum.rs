@@ -117,7 +117,7 @@ fn build_hd(
             .enumerate()
             .map(|(i, a)| {
                 let mut out = AccountOutput::from_derived(i, a);
-                out.private_key = format!("0x{}", a.private_key.as_str());
+                out.private_key = format!("0x{}", a.private_key_hex().as_str());
                 out
             })
             .collect(),

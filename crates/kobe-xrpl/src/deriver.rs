@@ -64,8 +64,8 @@ impl<'a> Deriver<'a> {
 
         Ok(DerivedAccount::new(
             path.into(),
-            key.private_key_hex(),
-            key.compressed_pubkey_hex(),
+            key.private_key_bytes(),
+            pubkey_bytes.to_vec(),
             address,
         ))
     }
@@ -138,9 +138,9 @@ mod tests {
         let w = wallet();
         let a = Deriver::new(&w).derive(0).unwrap();
         assert!(
-            a.address.starts_with('r'),
+            a.address().starts_with('r'),
             "XRPL address must start with 'r', got: {}",
-            a.address
+            a.address()
         );
     }
 
@@ -150,10 +150,10 @@ mod tests {
         let a = Deriver::new(&w).derive(0).unwrap();
         // XRPL classic addresses are 25-34 characters
         assert!(
-            (25..=34).contains(&a.address.len()),
+            (25..=34).contains(&a.address().len()),
             "XRPL address length must be 25-34, got: {} ({})",
-            a.address.len(),
-            a.address
+            a.address().len(),
+            a.address()
         );
     }
 
@@ -162,15 +162,18 @@ mod tests {
         let w = wallet();
         let a1 = Deriver::new(&w).derive(0).unwrap();
         let a2 = Deriver::new(&w).derive(0).unwrap();
-        assert_eq!(a1.address, a2.address);
-        assert_eq!(*a1.private_key, *a2.private_key);
+        assert_eq!(a1.address(), a2.address());
+        assert_eq!(a1.private_key_bytes(), a2.private_key_bytes());
     }
 
     #[test]
     fn different_indices() {
         let w = wallet();
         let d = Deriver::new(&w);
-        assert_ne!(d.derive(0).unwrap().address, d.derive(1).unwrap().address);
+        assert_ne!(
+            d.derive(0).unwrap().address(),
+            d.derive(1).unwrap().address()
+        );
     }
 
     #[test]
@@ -178,15 +181,15 @@ mod tests {
         let w = wallet();
         let accounts = Deriver::new(&w).derive_many(0, 3).unwrap();
         assert_eq!(accounts.len(), 3);
-        assert_ne!(accounts[0].address, accounts[1].address);
-        assert_ne!(accounts[1].address, accounts[2].address);
+        assert_ne!(accounts[0].address(), accounts[1].address());
+        assert_ne!(accounts[1].address(), accounts[2].address());
     }
 
     #[test]
     fn derive_path_custom() {
         let w = wallet();
         let a = Deriver::new(&w).derive_path("m/44'/144'/0'/0/5").unwrap();
-        assert!(a.address.starts_with('r'));
+        assert!(a.address().starts_with('r'));
     }
 
     #[test]
@@ -194,24 +197,24 @@ mod tests {
         let w1 = Wallet::from_mnemonic(MNEMONIC, None).unwrap();
         let w2 = Wallet::from_mnemonic(MNEMONIC, Some("pass")).unwrap();
         assert_ne!(
-            Deriver::new(&w1).derive(0).unwrap().address,
-            Deriver::new(&w2).derive(0).unwrap().address,
+            Deriver::new(&w1).derive(0).unwrap().address(),
+            Deriver::new(&w2).derive(0).unwrap().address(),
         );
     }
 
     #[test]
-    fn private_key_is_64_hex_chars() {
+    fn private_key_is_32_bytes() {
         let w = wallet();
         let a = Deriver::new(&w).derive(0).unwrap();
-        assert_eq!(a.private_key.len(), 64);
-        assert!(hex::decode(&*a.private_key).is_ok());
+        assert_eq!(a.private_key_bytes().len(), 32);
+        assert_eq!(a.private_key_hex().as_str().len(), 64);
     }
 
     #[test]
     fn public_key_is_compressed_33_bytes() {
         let w = wallet();
         let a = Deriver::new(&w).derive(0).unwrap();
-        let pk_bytes = hex::decode(&a.public_key).unwrap();
+        let pk_bytes = a.public_key_bytes();
         assert_eq!(pk_bytes.len(), 33);
         assert!(pk_bytes[0] == 0x02 || pk_bytes[0] == 0x03);
     }
@@ -221,7 +224,7 @@ mod tests {
         let w = wallet();
         let a = Deriver::new(&w).derive(0).unwrap();
         // Decode with XRPL alphabet to verify roundtrip
-        let decoded = bs58::decode(&a.address)
+        let decoded = bs58::decode(a.address())
             .with_alphabet(&XRPL_ALPHABET)
             .into_vec()
             .unwrap();

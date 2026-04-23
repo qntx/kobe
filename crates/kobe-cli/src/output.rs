@@ -85,9 +85,9 @@ impl AccountOutput {
     pub fn from_derived(index: usize, account: &DerivedAccount) -> Self {
         Self {
             index: u32::try_from(index).unwrap_or(u32::MAX),
-            derivation_path: account.path.clone(),
-            address: account.address.clone(),
-            private_key: account.private_key.to_string(),
+            derivation_path: account.path().to_owned(),
+            address: account.address().to_owned(),
+            private_key: account.private_key_hex().to_string(),
         }
     }
 }

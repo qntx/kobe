@@ -23,7 +23,7 @@
 //!     None,
 //! )?;
 //! let account = Deriver::new(&wallet).derive(0)?;
-//! assert!(account.address.starts_with("npub1"));
+//! assert!(account.address().starts_with("npub1"));
 //! # Ok(())
 //! # }
 //! ```
@@ -38,7 +38,7 @@ mod deriver;
 mod error;
 
 #[cfg(feature = "alloc")]
-pub use deriver::{DerivedAccount, Deriver};
+pub use deriver::{DerivedAccount, Deriver, NPUB_HRP, NSEC_HRP, account_nsec};
 pub use error::DeriveError;
 
 /// A convenient Result type alias for kobe-nostr operations.

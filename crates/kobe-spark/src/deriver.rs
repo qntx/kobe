@@ -40,13 +40,13 @@ impl<'a> Deriver<'a> {
     /// Internal: derive at an arbitrary BIP-32 path.
     fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         let key = kobe_primitives::bip32::DerivedSecp256k1Key::derive(self.wallet.seed(), path)?;
-        let pubkey_hex = key.compressed_pubkey_hex();
-        let address = format!("spark:{pubkey_hex}");
+        let pubkey_bytes = key.compressed_pubkey();
+        let address = format!("spark:{}", key.compressed_pubkey_hex());
 
         Ok(DerivedAccount::new(
             String::from(path),
-            key.private_key_hex(),
-            pubkey_hex,
+            key.private_key_bytes(),
+            pubkey_bytes.to_vec(),
             address,
         ))
     }
@@ -78,14 +78,14 @@ mod tests {
     fn derive_starts_with_spark() {
         let wallet = test_wallet();
         let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert!(derived.address.starts_with("spark:"));
+        assert!(derived.address().starts_with("spark:"));
     }
 
     #[test]
     fn derive_correct_path() {
         let wallet = test_wallet();
         let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(derived.path, "m/84'/0'/0'/0/0");
+        assert_eq!(derived.path(), "m/84'/0'/0'/0/0");
     }
 
     #[test]
@@ -94,21 +94,24 @@ mod tests {
         let w2 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
         let a1 = Deriver::new(&w1).derive(0).unwrap();
         let a2 = Deriver::new(&w2).derive(0).unwrap();
-        assert_eq!(a1.address, a2.address);
+        assert_eq!(a1.address(), a2.address());
     }
 
     #[test]
     fn different_indices_differ() {
         let wallet = test_wallet();
         let d = Deriver::new(&wallet);
-        assert_ne!(d.derive(0).unwrap().address, d.derive(1).unwrap().address);
+        assert_ne!(
+            d.derive(0).unwrap().address(),
+            d.derive(1).unwrap().address()
+        );
     }
 
     #[test]
     fn uses_same_path_as_bitcoin_bip84() {
         let wallet = test_wallet();
         let spark = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(spark.path, "m/84'/0'/0'/0/0");
+        assert_eq!(spark.path(), "m/84'/0'/0'/0/0");
     }
 
     #[test]
@@ -117,7 +120,7 @@ mod tests {
         let wallet = test_wallet();
         let a = Deriver::new(&wallet).derive(0).unwrap();
         assert_eq!(
-            a.address,
+            a.address(),
             "spark:0330d54fd0dd420a6e5f8d3624f5f3482cae350f79d5f0753bf5beef9c2d91af3c"
         );
     }

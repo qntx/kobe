@@ -117,10 +117,13 @@ impl<'a> Deriver<'a> {
             state_init_hash(&WALLET_V5R1_CODE_HASH, WALLET_V5R1_CODE_DEPTH, &data_hash);
         let address = encode_address(0, &state_hash, false);
 
+        let mut sk_bytes = Zeroizing::new([0u8; 32]);
+        sk_bytes.copy_from_slice(&signing_key.to_bytes());
+
         Ok(DerivedAccount::new(
             String::from(path),
-            Zeroizing::new(hex::encode(signing_key.to_bytes())),
-            hex::encode(pubkey_bytes),
+            sk_bytes,
+            pubkey_bytes.to_vec(),
             address,
         ))
     }
@@ -259,9 +262,9 @@ mod tests {
         let wallet = test_wallet();
         let derived = Deriver::new(&wallet).derive(0).unwrap();
         assert!(
-            derived.address.starts_with("UQ"),
+            derived.address().starts_with("UQ"),
             "non-bounceable address should start with UQ, got: {}",
-            derived.address
+            derived.address()
         );
     }
 
@@ -269,14 +272,14 @@ mod tests {
     fn derive_address_length() {
         let wallet = test_wallet();
         let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(derived.address.len(), 48);
+        assert_eq!(derived.address().len(), 48);
     }
 
     #[test]
     fn derive_correct_path() {
         let wallet = test_wallet();
         let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(derived.path, "m/44'/607'/0'");
+        assert_eq!(derived.path(), "m/44'/607'/0'");
     }
 
     #[test]
@@ -285,14 +288,17 @@ mod tests {
         let w2 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
         let a1 = Deriver::new(&w1).derive(0).unwrap();
         let a2 = Deriver::new(&w2).derive(0).unwrap();
-        assert_eq!(a1.address, a2.address);
+        assert_eq!(a1.address(), a2.address());
     }
 
     #[test]
     fn different_indices_differ() {
         let wallet = test_wallet();
         let d = Deriver::new(&wallet);
-        assert_ne!(d.derive(0).unwrap().address, d.derive(1).unwrap().address);
+        assert_ne!(
+            d.derive(0).unwrap().address(),
+            d.derive(1).unwrap().address()
+        );
     }
 
     #[test]
@@ -301,7 +307,7 @@ mod tests {
         let wallet = test_wallet();
         let derived = Deriver::new(&wallet).derive(0).unwrap();
         let decoded = base64::engine::general_purpose::URL_SAFE_NO_PAD
-            .decode(&derived.address)
+            .decode(derived.address())
             .unwrap();
         assert_eq!(decoded.len(), 36);
         assert_eq!(decoded[0], 0x51); // non-bounceable
@@ -318,11 +324,11 @@ mod tests {
         let wallet = test_wallet();
         let derived = Deriver::new(&wallet).derive(0).unwrap();
         assert_eq!(
-            derived.private_key.as_str(),
+            derived.private_key_hex().as_str(),
             "b477ef5ed17fb8a2b8faddd7a9835a227243a82c70b190c7af4896155aa7df9f"
         );
         assert_eq!(
-            derived.public_key,
+            derived.public_key_hex(),
             "7952e94118f34607c75e23258dd9220d66ccac5a3ee074125c25068e8107bfbf"
         );
     }

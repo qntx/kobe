@@ -121,7 +121,9 @@ fn transform(
     password: &str,
 ) -> Result<Zeroizing<String>, DeriveError> {
     if password.is_empty() {
-        return Err(DeriveError::EmptyPassword);
+        return Err(DeriveError::Input(String::from(
+            "password must not be empty",
+        )));
     }
 
     // Parse the mnemonic and extract raw entropy.
@@ -145,9 +147,9 @@ fn transform(
     // Re-encode as a valid BIP-39 mnemonic (checksum is recalculated automatically).
     let new_mnemonic = Mnemonic::from_entropy_in(
         language,
-        new_entropy
-            .get(..entropy_len)
-            .ok_or(DeriveError::KeyDerivation)?,
+        new_entropy.get(..entropy_len).ok_or_else(|| {
+            DeriveError::Crypto(String::from("camouflage: entropy truncation failed"))
+        })?,
     )?;
     Ok(Zeroizing::new(new_mnemonic.to_string()))
 }
@@ -177,7 +179,8 @@ fn pbkdf2_hmac_sha256(
     iterations: u32,
     output: &mut [u8],
 ) -> Result<(), DeriveError> {
-    let prf = Hmac::<Sha256>::new_from_slice(password).map_err(|_| DeriveError::KeyDerivation)?;
+    let prf = Hmac::<Sha256>::new_from_slice(password)
+        .map_err(|_| DeriveError::Crypto(String::from("pbkdf2: HMAC key init failed")))?;
 
     for (i, chunk) in output.chunks_mut(HMAC_SHA256_LEN).enumerate() {
         chunk.fill(0);
@@ -185,10 +188,15 @@ fn pbkdf2_hmac_sha256(
         // U_1 = PRF(password, salt || INT(i + 1))
         let mut mac = prf.clone();
         mac.update(salt);
-        let block_num = u32::try_from(i + 1).map_err(|_| DeriveError::KeyDerivation)?;
+        let block_num = u32::try_from(i + 1)
+            .map_err(|_| DeriveError::Crypto(String::from("pbkdf2: block counter overflow")))?;
         mac.update(&block_num.to_be_bytes());
         let mut u = mac.finalize().into_bytes();
-        chunk.copy_from_slice(u.get(..chunk.len()).ok_or(DeriveError::KeyDerivation)?);
+        chunk.copy_from_slice(
+            u.get(..chunk.len()).ok_or_else(|| {
+                DeriveError::Crypto(String::from("pbkdf2: output buffer overrun"))
+            })?,
+        );
 
         // U_2 .. U_c
         for _ in 1..iterations {
@@ -211,7 +219,9 @@ fn derive_key(password: &str, len: usize) -> Result<Zeroizing<[u8; MAX_ENTROPY_L
         password.as_bytes(),
         PBKDF2_SALT,
         PBKDF2_ITERATIONS,
-        key.get_mut(..len).ok_or(DeriveError::KeyDerivation)?,
+        key.get_mut(..len).ok_or_else(|| {
+            DeriveError::Crypto(String::from("pbkdf2: key buffer truncation failed"))
+        })?,
     )?;
     Ok(key)
 }

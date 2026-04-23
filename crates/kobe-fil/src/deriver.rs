@@ -60,8 +60,8 @@ impl<'a> Deriver<'a> {
 
         Ok(DerivedAccount::new(
             String::from(path),
-            key.private_key_hex(),
-            key.uncompressed_pubkey_hex(),
+            key.private_key_bytes(),
+            pubkey_bytes.to_vec(),
             format!("f1{}", base32_encode(&addr_bytes)?),
         ))
     }
@@ -129,9 +129,9 @@ mod tests {
         let wallet = test_wallet();
         let derived = Deriver::new(&wallet).derive(0).unwrap();
         assert!(
-            derived.address.starts_with("f1"),
+            derived.address().starts_with("f1"),
             "Filecoin address should start with f1, got: {}",
-            derived.address
+            derived.address()
         );
     }
 
@@ -139,7 +139,7 @@ mod tests {
     fn derive_correct_path() {
         let wallet = test_wallet();
         let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(derived.path, "m/44'/461'/0'/0/0");
+        assert_eq!(derived.path(), "m/44'/461'/0'/0/0");
     }
 
     #[test]
@@ -148,14 +148,17 @@ mod tests {
         let w2 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
         let a1 = Deriver::new(&w1).derive(0).unwrap();
         let a2 = Deriver::new(&w2).derive(0).unwrap();
-        assert_eq!(a1.address, a2.address);
+        assert_eq!(a1.address(), a2.address());
     }
 
     #[test]
     fn different_indices_differ() {
         let wallet = test_wallet();
         let d = Deriver::new(&wallet);
-        assert_ne!(d.derive(0).unwrap().address, d.derive(1).unwrap().address);
+        assert_ne!(
+            d.derive(0).unwrap().address(),
+            d.derive(1).unwrap().address()
+        );
     }
 
     #[test]
@@ -173,7 +176,7 @@ mod tests {
         let w2 = Wallet::from_mnemonic(TEST_MNEMONIC, Some("pass")).unwrap();
         let a1 = Deriver::new(&w1).derive(0).unwrap();
         let a2 = Deriver::new(&w2).derive(0).unwrap();
-        assert_ne!(a1.address, a2.address);
+        assert_ne!(a1.address(), a2.address());
     }
 
     #[test]
@@ -182,9 +185,9 @@ mod tests {
         let wallet = test_wallet();
         let a = Deriver::new(&wallet).derive(0).unwrap();
         assert_eq!(
-            a.private_key.as_str(),
+            a.private_key_hex().as_str(),
             "e1808079c6734eff9a187c917455dc1b2c70385e13f1cd6cecc94978e57f7f76"
         );
-        assert!(a.address.starts_with("f1"));
+        assert!(a.address().starts_with("f1"));
     }
 }

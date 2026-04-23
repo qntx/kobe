@@ -50,8 +50,8 @@ impl<'a> Deriver<'a> {
 
         Ok(DerivedAccount::new(
             String::from(path),
-            key.private_key_hex(),
-            key.uncompressed_pubkey_hex(),
+            key.private_key_bytes(),
+            uncompressed.to_vec(),
             address,
         ))
     }
@@ -85,9 +85,9 @@ mod tests {
         let wallet = test_wallet();
         let derived = Deriver::new(&wallet).derive(0).unwrap();
         assert!(
-            derived.address.starts_with('T'),
+            derived.address().starts_with('T'),
             "Tron address should start with T, got: {}",
-            derived.address
+            derived.address()
         );
     }
 
@@ -95,14 +95,14 @@ mod tests {
     fn derive_address_length() {
         let wallet = test_wallet();
         let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(derived.address.len(), 34);
+        assert_eq!(derived.address().len(), 34);
     }
 
     #[test]
     fn derive_correct_path() {
         let wallet = test_wallet();
         let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(derived.path, "m/44'/195'/0'/0/0");
+        assert_eq!(derived.path(), "m/44'/195'/0'/0/0");
     }
 
     #[test]
@@ -111,7 +111,7 @@ mod tests {
         let w2 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
         let a1 = Deriver::new(&w1).derive(0).unwrap();
         let a2 = Deriver::new(&w2).derive(0).unwrap();
-        assert_eq!(a1.address, a2.address);
+        assert_eq!(a1.address(), a2.address());
     }
 
     #[test]
@@ -120,14 +120,14 @@ mod tests {
         let d = Deriver::new(&wallet);
         let a0 = d.derive(0).unwrap();
         let a1 = d.derive(1).unwrap();
-        assert_ne!(a0.address, a1.address);
+        assert_ne!(a0.address(), a1.address());
     }
 
     #[test]
     fn base58check_roundtrip() {
         let wallet = test_wallet();
         let derived = Deriver::new(&wallet).derive(0).unwrap();
-        let decoded = bs58::decode(&derived.address)
+        let decoded = bs58::decode(derived.address())
             .with_check(None)
             .into_vec()
             .unwrap();
@@ -141,7 +141,7 @@ mod tests {
         let w2 = Wallet::from_mnemonic(TEST_MNEMONIC, Some("pass")).unwrap();
         let a1 = Deriver::new(&w1).derive(0).unwrap();
         let a2 = Deriver::new(&w2).derive(0).unwrap();
-        assert_ne!(a1.address, a2.address);
+        assert_ne!(a1.address(), a2.address());
     }
 
     #[test]
@@ -149,6 +149,6 @@ mod tests {
         // Cross-verified with Python coincurve + keccak256 + base58check(0x41 prefix)
         let wallet = test_wallet();
         let a = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(a.address, "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH");
+        assert_eq!(a.address(), "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH");
     }
 }

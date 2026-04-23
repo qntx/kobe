@@ -149,7 +149,7 @@ fn build_hd(
     wallet: &Wallet,
     net: Network,
     addr_type: AddressType,
-    addresses: &[kobe::btc::DerivedAddress],
+    addresses: &[kobe::btc::BtcAccount],
 ) -> HdWalletOutput {
     HdWalletOutput {
         chain: "bitcoin",
@@ -163,9 +163,9 @@ fn build_hd(
             .enumerate()
             .map(|(i, a)| AccountOutput {
                 index: u32::try_from(i).unwrap_or(u32::MAX),
-                derivation_path: a.path.to_string(),
-                address: a.address.clone(),
-                private_key: a.private_key_wif.to_string(),
+                derivation_path: a.path().to_owned(),
+                address: a.address().to_owned(),
+                private_key: a.private_key_wif().as_str().to_owned(),
             })
             .collect(),
     }

@@ -72,7 +72,9 @@ impl Wallet {
         passphrase: Option<&str>,
     ) -> Result<Self, DeriveError> {
         if !matches!(word_count, 12 | 15 | 18 | 21 | 24) {
-            return Err(DeriveError::InvalidWordCount(word_count));
+            return Err(DeriveError::Input(alloc::format!(
+                "word count must be 12, 15, 18, 21, or 24, got {word_count}"
+            )));
         }
 
         let mnemonic = Mnemonic::generate_in(language, word_count)?;
@@ -109,7 +111,9 @@ impl Wallet {
         R: bip39::rand_core::RngCore + bip39::rand_core::CryptoRng,
     {
         if !matches!(word_count, 12 | 15 | 18 | 21 | 24) {
-            return Err(DeriveError::InvalidWordCount(word_count));
+            return Err(DeriveError::Input(alloc::format!(
+                "word count must be 12, 15, 18, 21, or 24, got {word_count}"
+            )));
         }
 
         let mnemonic = Mnemonic::generate_in_with(rng, language, word_count)?;
@@ -201,7 +205,7 @@ impl Wallet {
         Self {
             mnemonic: Zeroizing::new(mnemonic.to_string()),
             seed: Zeroizing::new(seed_bytes),
-            has_passphrase: passphrase.is_some() && !passphrase_str.is_empty(),
+            has_passphrase: passphrase.is_some(),
             language,
         }
     }
@@ -226,7 +230,12 @@ impl Wallet {
         &self.seed
     }
 
-    /// Check if a passphrase was used to derive the seed.
+    /// Check if a passphrase was supplied at construction time.
+    ///
+    /// Returns `true` whenever the caller passed `Some(_)` to the constructor,
+    /// even if the passphrase string itself was empty. Callers relying on
+    /// "non-empty passphrase" semantics must check the passphrase string before
+    /// constructing the wallet.
     #[must_use]
     pub const fn has_passphrase(&self) -> bool {
         self.has_passphrase

@@ -55,10 +55,13 @@ impl<'a> Deriver<'a> {
         buf.extend_from_slice(pubkey_bytes);
         let hash = blake2b_256(&buf)?;
 
+        let mut sk_bytes = Zeroizing::new([0u8; 32]);
+        sk_bytes.copy_from_slice(&signing_key.to_bytes());
+
         Ok(DerivedAccount::new(
             String::from(path),
-            Zeroizing::new(hex::encode(signing_key.to_bytes())),
-            hex::encode(pubkey_bytes),
+            sk_bytes,
+            pubkey_bytes.to_vec(),
             format!("0x{}", hex::encode(hash)),
         ))
     }
@@ -101,28 +104,31 @@ mod tests {
     fn derive_starts_with_0x() {
         let wallet = test_wallet();
         let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert!(derived.address.starts_with("0x"));
+        assert!(derived.address().starts_with("0x"));
     }
 
     #[test]
     fn derive_address_length() {
         let wallet = test_wallet();
         let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(derived.address.len(), 66); // 0x + 64 hex chars
+        assert_eq!(derived.address().len(), 66); // 0x + 64 hex chars
     }
 
     #[test]
     fn derive_correct_path() {
         let wallet = test_wallet();
         let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(derived.path, "m/44'/784'/0'/0'/0'");
+        assert_eq!(derived.path(), "m/44'/784'/0'/0'/0'");
     }
 
     #[test]
     fn different_indices_differ() {
         let wallet = test_wallet();
         let d = Deriver::new(&wallet);
-        assert_ne!(d.derive(0).unwrap().address, d.derive(1).unwrap().address);
+        assert_ne!(
+            d.derive(0).unwrap().address(),
+            d.derive(1).unwrap().address()
+        );
     }
 
     #[test]
@@ -131,7 +137,7 @@ mod tests {
         let wallet = test_wallet();
         let a = Deriver::new(&wallet).derive(0).unwrap();
         assert_eq!(
-            a.address,
+            a.address(),
             "0x5e93a736d04fbb25737aa40bee40171ef79f65fae833749e3c089fe7cc2161f1"
         );
     }

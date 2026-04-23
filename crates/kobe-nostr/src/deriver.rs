@@ -15,6 +15,28 @@ use zeroize::Zeroizing;
 
 use crate::DeriveError;
 
+/// NIP-19 human-readable part for secret keys.
+pub const NSEC_HRP: &str = "nsec";
+/// NIP-19 human-readable part for public keys.
+pub const NPUB_HRP: &str = "npub";
+
+/// Encode the account's 32-byte secret key as a NIP-19 `nsec1…` bech32 string.
+///
+/// Pair with [`DerivedAccount::private_key_bytes`]; use this to render the
+/// canonical `nsec` form for CLI / UI display. Zeroizes on drop.
+///
+/// # Errors
+///
+/// Returns [`DeriveError::Bech32`] if the bech32 encoding fails (practically
+/// never, as HRP and data length are fixed at compile time).
+pub fn account_nsec(account: &DerivedAccount) -> Result<Zeroizing<String>, DeriveError> {
+    let hrp =
+        Hrp::parse(NSEC_HRP).map_err(|e| DeriveError::Bech32(format!("invalid nsec HRP: {e}")))?;
+    let encoded = bech32::encode::<Bech32>(hrp, account.private_key_bytes().as_slice())
+        .map_err(|e| DeriveError::Bech32(format!("nsec encoding failed: {e}")))?;
+    Ok(Zeroizing::new(encoded))
+}
+
 /// Nostr address deriver from a unified wallet seed.
 ///
 /// Follows NIP-06 with BIP-32 path `m/44'/1237'/{account}'/0/0`.
@@ -58,21 +80,15 @@ impl<'a> Deriver<'a> {
                 .ok_or_else(|| DeriveError::Bech32(String::from("unreachable: short pubkey")))?,
         );
 
-        let nsec_hrp = Hrp::parse("nsec")
-            .map_err(|e| DeriveError::Bech32(format!("invalid nsec HRP: {e}")))?;
-        let npub_hrp = Hrp::parse("npub")
+        let npub_hrp = Hrp::parse(NPUB_HRP)
             .map_err(|e| DeriveError::Bech32(format!("invalid npub HRP: {e}")))?;
-
-        let priv_bytes = key.private_key_bytes();
-        let nsec = bech32::encode::<Bech32>(nsec_hrp, &*priv_bytes)
-            .map_err(|e| DeriveError::Bech32(format!("nsec encoding failed: {e}")))?;
         let npub = bech32::encode::<Bech32>(npub_hrp, &xonly)
             .map_err(|e| DeriveError::Bech32(format!("npub encoding failed: {e}")))?;
 
         Ok(DerivedAccount::new(
             String::from(path),
-            Zeroizing::new(nsec),
-            hex::encode(xonly),
+            key.private_key_bytes(),
+            xonly.to_vec(),
             npub,
         ))
     }
@@ -122,61 +138,55 @@ mod tests {
     fn derive_correct_path() {
         let w = wallet(TV1_MNEMONIC);
         let a = Deriver::new(&w).derive(0).unwrap();
-        assert_eq!(a.path, "m/44'/1237'/0'/0/0");
+        assert_eq!(a.path(), "m/44'/1237'/0'/0/0");
     }
 
     #[test]
     fn derive_returns_npub_prefix() {
         let w = wallet(TV1_MNEMONIC);
         let a = Deriver::new(&w).derive(0).unwrap();
-        assert!(a.address.starts_with("npub1"));
-        assert!(a.private_key.starts_with("nsec1"));
+        assert!(a.address().starts_with("npub1"));
+        assert!(account_nsec(&a).unwrap().starts_with("nsec1"));
     }
 
     #[test]
     fn derive_pubkey_is_xonly_32_bytes() {
         let w = wallet(TV1_MNEMONIC);
         let a = Deriver::new(&w).derive(0).unwrap();
-        let bytes = hex::decode(&a.public_key).unwrap();
-        assert_eq!(bytes.len(), 32);
+        assert_eq!(a.public_key_bytes().len(), 32);
     }
 
     #[test]
     fn kat_nip06_vector1() {
         let w = wallet(TV1_MNEMONIC);
         let a = Deriver::new(&w).derive(0).unwrap();
-        assert_eq!(a.public_key, TV1_PUB_HEX);
-        assert_eq!(a.address, TV1_NPUB);
-        assert_eq!(a.private_key.as_str(), TV1_NSEC);
+        assert_eq!(a.public_key_hex(), TV1_PUB_HEX);
+        assert_eq!(a.address(), TV1_NPUB);
+        assert_eq!(account_nsec(&a).unwrap().as_str(), TV1_NSEC);
     }
 
     #[test]
-    fn kat_nip06_vector1_private_key_hex_roundtrip() {
-        // Decode the nsec back to raw bytes and verify they match the published
-        // private-key hex.
+    fn kat_nip06_vector1_private_key_hex() {
+        // The raw 32-byte private key matches the published vector.
         let w = wallet(TV1_MNEMONIC);
         let a = Deriver::new(&w).derive(0).unwrap();
-        let (hrp, data) = bech32::decode(a.private_key.as_str()).unwrap();
-        assert_eq!(hrp.as_str(), "nsec");
-        assert_eq!(hex::encode(data), TV1_PRIV_HEX);
+        assert_eq!(a.private_key_hex().as_str(), TV1_PRIV_HEX);
     }
 
     #[test]
     fn kat_nip06_vector2() {
         let w = wallet(TV2_MNEMONIC);
         let a = Deriver::new(&w).derive(0).unwrap();
-        assert_eq!(a.public_key, TV2_PUB_HEX);
-        assert_eq!(a.address, TV2_NPUB);
-        assert_eq!(a.private_key.as_str(), TV2_NSEC);
+        assert_eq!(a.public_key_hex(), TV2_PUB_HEX);
+        assert_eq!(a.address(), TV2_NPUB);
+        assert_eq!(account_nsec(&a).unwrap().as_str(), TV2_NSEC);
     }
 
     #[test]
-    fn kat_nip06_vector2_private_key_hex_roundtrip() {
+    fn kat_nip06_vector2_private_key_hex() {
         let w = wallet(TV2_MNEMONIC);
         let a = Deriver::new(&w).derive(0).unwrap();
-        let (hrp, data) = bech32::decode(a.private_key.as_str()).unwrap();
-        assert_eq!(hrp.as_str(), "nsec");
-        assert_eq!(hex::encode(data), TV2_PRIV_HEX);
+        assert_eq!(a.private_key_hex().as_str(), TV2_PRIV_HEX);
     }
 
     #[test]
@@ -185,11 +195,11 @@ mod tests {
         let d = Deriver::new(&w);
         let accounts = d.derive_many(0, 3).unwrap();
         assert_eq!(accounts.len(), 3);
-        assert_eq!(accounts[0].path, "m/44'/1237'/0'/0/0");
-        assert_eq!(accounts[1].path, "m/44'/1237'/1'/0/0");
-        assert_eq!(accounts[2].path, "m/44'/1237'/2'/0/0");
-        assert_ne!(accounts[0].address, accounts[1].address);
-        assert_ne!(accounts[1].address, accounts[2].address);
+        assert_eq!(accounts[0].path(), "m/44'/1237'/0'/0/0");
+        assert_eq!(accounts[1].path(), "m/44'/1237'/1'/0/0");
+        assert_eq!(accounts[2].path(), "m/44'/1237'/2'/0/0");
+        assert_ne!(accounts[0].address(), accounts[1].address());
+        assert_ne!(accounts[1].address(), accounts[2].address());
     }
 
     #[test]
@@ -198,8 +208,8 @@ mod tests {
         let w2 = wallet(TV1_MNEMONIC);
         let a1 = Deriver::new(&w1).derive(0).unwrap();
         let a2 = Deriver::new(&w2).derive(0).unwrap();
-        assert_eq!(a1.address, a2.address);
-        assert_eq!(a1.private_key.as_str(), a2.private_key.as_str());
+        assert_eq!(a1.address(), a2.address());
+        assert_eq!(a1.private_key_hex().as_str(), a2.private_key_hex().as_str());
     }
 
     #[test]
@@ -207,8 +217,8 @@ mod tests {
         let w1 = Wallet::from_mnemonic(TV1_MNEMONIC, None).unwrap();
         let w2 = Wallet::from_mnemonic(TV1_MNEMONIC, Some("pass")).unwrap();
         assert_ne!(
-            Deriver::new(&w1).derive(0).unwrap().address,
-            Deriver::new(&w2).derive(0).unwrap().address,
+            Deriver::new(&w1).derive(0).unwrap().address(),
+            Deriver::new(&w2).derive(0).unwrap().address(),
         );
     }
 
@@ -216,7 +226,7 @@ mod tests {
     fn derive_path_custom() {
         let w = wallet(TV1_MNEMONIC);
         let a = Deriver::new(&w).derive_path("m/44'/1237'/5'/0/0").unwrap();
-        assert_eq!(a.path, "m/44'/1237'/5'/0/0");
-        assert!(a.address.starts_with("npub1"));
+        assert_eq!(a.path(), "m/44'/1237'/5'/0/0");
+        assert!(a.address().starts_with("npub1"));
     }
 }

@@ -17,7 +17,7 @@ mod error;
 #[cfg(feature = "alloc")]
 pub use derivation_style::{DerivationStyle, ParseDerivationStyleError};
 #[cfg(feature = "alloc")]
-pub use deriver::{DerivedAddress, Deriver};
+pub use deriver::{Deriver, SvmAccount};
 pub use error::DeriveError;
 
 /// Convenient Result alias.

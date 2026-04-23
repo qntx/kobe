@@ -1,83 +1,39 @@
 //! Error types for core wallet operations.
 
 #[cfg(feature = "alloc")]
-use alloc::{string::String, vec::Vec};
+use alloc::string::String;
 
-/// Errors that can occur during wallet operations.
+/// Errors produced by core wallet and key-derivation operations.
+///
+/// The four variants partition errors by domain:
+///
+/// - [`Mnemonic`](Self::Mnemonic): BIP-39 decode / encode failures.
+/// - [`Path`](Self::Path): invalid or malformed derivation paths.
+/// - [`Crypto`](Self::Crypto): underlying cryptographic primitive failures
+///   (HMAC, SLIP-10 / BIP-32 key math, PBKDF2).
+/// - [`Input`](Self::Input): caller-supplied inputs that fail validation
+///   (word count, hex encoding, empty password, prefix expansion, index overflow).
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum DeriveError {
-    /// Invalid mnemonic phrase.
-    #[error("invalid mnemonic: {0}")]
+    /// BIP-39 mnemonic decoding / encoding failed.
+    #[error("mnemonic: {0}")]
     Mnemonic(#[cfg_attr(feature = "std", from)] bip39::Error),
 
-    /// Invalid word count for mnemonic.
-    #[error("invalid word count {0}, must be 12, 15, 18, 21, or 24")]
-    InvalidWordCount(usize),
-
-    /// Empty password provided for camouflage operation.
-    #[cfg(feature = "camouflage")]
-    #[error("password must not be empty")]
-    EmptyPassword,
-
-    /// PBKDF2 key derivation failed.
-    #[cfg(feature = "camouflage")]
-    #[error("PBKDF2 key derivation failed")]
-    KeyDerivation,
-
-    /// Mnemonic prefix is too short for unambiguous expansion.
+    /// Derivation path is malformed or unsupported.
     #[cfg(feature = "alloc")]
-    #[error("prefix \"{prefix}\" is too short (minimum {min_len} characters)")]
-    PrefixTooShort {
-        /// The prefix that was too short.
-        prefix: String,
-        /// Minimum required prefix length.
-        min_len: usize,
-    },
+    #[error("derivation path: {0}")]
+    Path(String),
 
-    /// Mnemonic prefix does not match any word in the wordlist.
+    /// A cryptographic primitive (HMAC, SLIP-10, BIP-32, PBKDF2) failed.
     #[cfg(feature = "alloc")]
-    #[error("prefix \"{0}\" does not match any BIP-39 word")]
-    UnknownPrefix(String),
+    #[error("cryptographic operation failed: {0}")]
+    Crypto(String),
 
-    /// Mnemonic prefix matches multiple words in the wordlist.
+    /// Caller-supplied input failed validation (word count, hex, index, etc.).
     #[cfg(feature = "alloc")]
-    #[error("prefix \"{prefix}\" is ambiguous, matches: {}", candidates.join(", "))]
-    AmbiguousPrefix {
-        /// The ambiguous prefix.
-        prefix: String,
-        /// Words that match the prefix.
-        candidates: Vec<String>,
-    },
-
-    /// Index overflow in batch derivation.
-    #[error("index overflow")]
-    IndexOverflow,
-
-    /// SLIP-10 Ed25519 derivation: invalid seed.
-    #[cfg(feature = "slip10")]
-    #[error("SLIP-10: invalid seed length")]
-    Slip10InvalidSeed,
-
-    /// SLIP-10 Ed25519 derivation: invalid path.
-    #[cfg(feature = "slip10")]
-    #[error("SLIP-10: {0}")]
-    Slip10InvalidPath(String),
-
-    /// BIP-32 secp256k1 derivation error.
-    #[cfg(feature = "bip32")]
-    #[error("BIP-32: {0}")]
-    Bip32Derivation(String),
-
-    /// Stored hex material is malformed.
-    ///
-    /// Produced by the byte-level accessors on `DerivedAccount` /
-    /// `DerivedAddress` when decoding their hex fields. Derivers in this
-    /// workspace never produce malformed hex, so this error indicates
-    /// externally-constructed data.
-    #[cfg(feature = "alloc")]
-    #[error("invalid hex: {0}")]
-    InvalidHex(String),
+    #[error("invalid input: {0}")]
+    Input(String),
 }
 
 #[cfg(not(feature = "std"))]

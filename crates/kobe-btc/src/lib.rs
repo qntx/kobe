@@ -18,7 +18,7 @@ mod network;
 mod types;
 
 #[cfg(feature = "alloc")]
-pub use deriver::{DerivedAddress, Deriver};
+pub use deriver::{BtcAccount, Deriver};
 pub use error::DeriveError;
 pub use network::{Network, ParseNetworkError};
 #[cfg(feature = "alloc")]
