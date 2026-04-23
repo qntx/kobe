@@ -23,20 +23,24 @@
 ```text
 kobe-cli
   └── kobe (umbrella)
-        ├── kobe-primitives
+        ├── kobe-primitives (Wallet, Derive, DeriveExt, bip32, slip10, camouflage)
         ├── kobe-aptos  ── kobe-primitives/slip10
         ├── kobe-btc    ── kobe-primitives (bitcoin Xpriv)
-        ├── kobe-evm    ── kobe-primitives/bip32
-        ├── kobe-svm    ── kobe-primitives/slip10
         ├── kobe-cosmos ── kobe-primitives/bip32
-        ├── kobe-tron   ── kobe-primitives/bip32
-        ├── kobe-spark  ── kobe-primitives/bip32
+        ├── kobe-evm    ── kobe-primitives/bip32
         ├── kobe-fil    ── kobe-primitives/bip32
-        ├── kobe-ton    ── kobe-primitives/slip10
+        ├── kobe-nostr  ── kobe-primitives/bip32
+        ├── kobe-spark  ── kobe-primitives/bip32
         ├── kobe-sui    ── kobe-primitives/slip10
-        ├── kobe-xrpl   ── kobe-primitives/bip32
-        └── kobe-nostr  ── kobe-primitives/bip32
+        ├── kobe-svm    ── kobe-primitives/slip10
+        ├── kobe-ton    ── kobe-primitives/slip10
+        ├── kobe-tron   ── kobe-primitives/bip32
+        └── kobe-xrpl   ── kobe-primitives/bip32
 ```
+
+All chain crates consume key derivation through the wallet-level shortcuts
+`Wallet::derive_secp256k1(path)` and `Wallet::derive_ed25519(path)`, so the
+raw BIP-39 seed never leaves `kobe-primitives::Wallet`.
 
 ## Feature Flags
 

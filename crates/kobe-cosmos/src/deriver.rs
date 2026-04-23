@@ -1,7 +1,7 @@
 //! Cosmos address derivation from a unified wallet.
 
 #[cfg(feature = "alloc")]
-use alloc::{format, string::String, vec::Vec};
+use alloc::{borrow::Cow, format, string::String, vec::Vec};
 
 pub use kobe_primitives::DerivedAccount;
 use kobe_primitives::{Derive, Wallet};
@@ -10,50 +10,126 @@ use sha2::{Digest, Sha256};
 
 use crate::DeriveError;
 
-/// Cosmos address deriver.
+/// Configuration for a Cosmos SDK chain.
 ///
-/// Configurable bech32 prefix (`hrp`) and BIP-44 coin type for different
-/// Cosmos SDK chains (ATOM=118, Osmosis=118, Terra=330, etc.).
+/// Captures the bech32 human-readable prefix and BIP-44 coin type for a
+/// specific chain. Common chains ship as associated constants
+/// ([`COSMOS_HUB`](Self::COSMOS_HUB), [`OSMOSIS`](Self::OSMOSIS), …);
+/// custom chains can be constructed via [`new`](Self::new).
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub struct ChainConfig {
+    /// Bech32 human-readable part (`cosmos`, `osmo`, `terra`, …).
+    pub hrp: Cow<'static, str>,
+    /// BIP-44 coin type (`118` for Cosmos Hub, Osmosis; `330` for Terra; …).
+    pub coin_type: u32,
+}
+
+impl ChainConfig {
+    /// Cosmos Hub: `cosmos1…`, coin type `118`.
+    pub const COSMOS_HUB: Self = Self {
+        hrp: Cow::Borrowed("cosmos"),
+        coin_type: 118,
+    };
+
+    /// Osmosis: `osmo1…`, coin type `118`.
+    pub const OSMOSIS: Self = Self {
+        hrp: Cow::Borrowed("osmo"),
+        coin_type: 118,
+    };
+
+    /// Terra (classic / Luna 2.0): `terra1…`, coin type `330`.
+    pub const TERRA: Self = Self {
+        hrp: Cow::Borrowed("terra"),
+        coin_type: 330,
+    };
+
+    /// Juno: `juno1…`, coin type `118`.
+    pub const JUNO: Self = Self {
+        hrp: Cow::Borrowed("juno"),
+        coin_type: 118,
+    };
+
+    /// Secret Network: `secret1…`, coin type `529`.
+    pub const SECRET: Self = Self {
+        hrp: Cow::Borrowed("secret"),
+        coin_type: 529,
+    };
+
+    /// Kava: `kava1…`, coin type `459`.
+    pub const KAVA: Self = Self {
+        hrp: Cow::Borrowed("kava"),
+        coin_type: 459,
+    };
+
+    /// Construct a custom chain configuration.
+    ///
+    /// Accepts any `&'static str`, `String`, or `Cow<'static, str>` as
+    /// the bech32 prefix.
+    #[must_use]
+    pub fn new(hrp: impl Into<Cow<'static, str>>, coin_type: u32) -> Self {
+        Self {
+            hrp: hrp.into(),
+            coin_type,
+        }
+    }
+}
+
+impl Default for ChainConfig {
+    #[inline]
+    fn default() -> Self {
+        Self::COSMOS_HUB
+    }
+}
+
+/// Cosmos SDK address deriver.
+///
+/// Configurable bech32 prefix and BIP-44 coin type via [`ChainConfig`] for
+/// any Cosmos SDK chain.
 #[derive(Debug)]
 pub struct Deriver<'a> {
     /// Wallet seed reference.
     wallet: &'a Wallet,
-    /// Bech32 human-readable part.
-    hrp: String,
-    /// BIP-44 coin type (default 118 for Cosmos Hub).
-    coin_type: u32,
+    /// Chain configuration (HRP + coin type).
+    config: ChainConfig,
 }
 
 impl<'a> Deriver<'a> {
-    /// Create a Cosmos Hub deriver (`cosmos1...`, `coin_type` 118).
+    /// Create a Cosmos Hub deriver (`cosmos1…`, coin type `118`).
     #[must_use]
-    pub fn new(wallet: &'a Wallet) -> Self {
-        Self {
-            wallet,
-            hrp: String::from("cosmos"),
-            coin_type: 118,
-        }
+    pub const fn new(wallet: &'a Wallet) -> Self {
+        Self::with_config(wallet, ChainConfig::COSMOS_HUB)
     }
 
-    /// Create a deriver with custom bech32 prefix and coin type.
+    /// Create a deriver with an explicit [`ChainConfig`].
     ///
     /// # Examples
-    /// - Osmosis: `Deriver::with_config(&w, "osmo", 118)`
-    /// - Terra: `Deriver::with_config(&w, "terra", 330)`
+    ///
+    /// ```no_run
+    /// use kobe_cosmos::{ChainConfig, Deriver};
+    /// # let wallet: &kobe_primitives::Wallet = todo!();
+    /// // Predefined chain:
+    /// let d = Deriver::with_config(wallet, ChainConfig::OSMOSIS);
+    /// // Custom chain:
+    /// let d = Deriver::with_config(wallet, ChainConfig::new("stars", 118));
+    /// ```
     #[must_use]
-    pub fn with_config(wallet: &'a Wallet, hrp: &str, coin_type: u32) -> Self {
-        Self {
-            wallet,
-            hrp: String::from(hrp),
-            coin_type,
-        }
+    pub const fn with_config(wallet: &'a Wallet, config: ChainConfig) -> Self {
+        Self { wallet, config }
+    }
+
+    /// Return the active [`ChainConfig`].
+    #[inline]
+    #[must_use]
+    pub const fn config(&self) -> &ChainConfig {
+        &self.config
     }
 
     /// Derive at an arbitrary path (internal).
     fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         let key = self.wallet.derive_secp256k1(path)?;
         let pubkey_bytes = key.compressed_pubkey();
-        let address = encode_bech32_address(&self.hrp, &pubkey_bytes)?;
+        let address = encode_bech32_address(&self.config.hrp, &pubkey_bytes)?;
 
         Ok(DerivedAccount::new(
             String::from(path),
@@ -68,7 +144,7 @@ impl Derive for Deriver<'_> {
     type Error = DeriveError;
 
     fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
-        let path = format!("m/44'/{}'/0'/0/{index}", self.coin_type);
+        let path = format!("m/44'/{}'/0'/0/{index}", self.config.coin_type);
         self.derive_at_path(&path)
     }
 
@@ -132,7 +208,9 @@ mod tests {
     #[test]
     fn osmosis_hrp() {
         let w = wallet();
-        let a = Deriver::with_config(&w, "osmo", 118).derive(0).unwrap();
+        let a = Deriver::with_config(&w, ChainConfig::OSMOSIS)
+            .derive(0)
+            .unwrap();
         assert!(a.address().starts_with("osmo1"));
     }
 
@@ -140,7 +218,9 @@ mod tests {
     fn same_coin_type_same_hash() {
         let w = wallet();
         let cosmos = Deriver::new(&w).derive(0).unwrap();
-        let osmo = Deriver::with_config(&w, "osmo", 118).derive(0).unwrap();
+        let osmo = Deriver::with_config(&w, ChainConfig::OSMOSIS)
+            .derive(0)
+            .unwrap();
         let (_, cd) = bech32::decode(cosmos.address()).unwrap();
         let (_, od) = bech32::decode(osmo.address()).unwrap();
         assert_eq!(cd, od);
@@ -150,9 +230,25 @@ mod tests {
     fn terra_different_coin_type() {
         let w = wallet();
         let cosmos = Deriver::new(&w).derive(0).unwrap();
-        let terra = Deriver::with_config(&w, "terra", 330).derive(0).unwrap();
+        let terra = Deriver::with_config(&w, ChainConfig::TERRA)
+            .derive(0)
+            .unwrap();
         assert!(terra.address().starts_with("terra1"));
         assert_ne!(cosmos.address(), terra.address());
+    }
+
+    #[test]
+    fn custom_chain_config_from_string() {
+        let w = wallet();
+        let d = Deriver::with_config(&w, ChainConfig::new("stars", 118));
+        assert!(d.derive(0).unwrap().address().starts_with("stars1"));
+        assert_eq!(d.config().hrp, "stars");
+        assert_eq!(d.config().coin_type, 118);
+    }
+
+    #[test]
+    fn config_defaults_to_cosmos_hub() {
+        assert_eq!(ChainConfig::default(), ChainConfig::COSMOS_HUB);
     }
 
     #[test]

@@ -1,7 +1,7 @@
 //! Cosmos wallet CLI commands.
 
 use clap::{Args, Subcommand};
-use kobe::cosmos::Deriver;
+use kobe::cosmos::{ChainConfig, Deriver};
 use kobe::{DeriveExt, Wallet};
 
 use crate::output::{self, HdWalletOutput};
@@ -59,7 +59,7 @@ impl CosmosCommand {
                 qr,
             } => {
                 let wallet = Wallet::generate(words, passphrase.as_deref())?;
-                let deriver = Deriver::with_config(&wallet, &hrp, coin_type);
+                let deriver = Deriver::with_config(&wallet, ChainConfig::new(hrp, coin_type));
                 let accounts = deriver.derive_many(0, count)?;
                 let out = HdWalletOutput::simple("cosmos", &wallet, &accounts);
                 output::render_hd_wallet(&out, json, qr)?;
@@ -74,7 +74,7 @@ impl CosmosCommand {
             } => {
                 let expanded = kobe::mnemonic::expand(&mnemonic)?;
                 let wallet = Wallet::from_mnemonic(&expanded, passphrase.as_deref())?;
-                let deriver = Deriver::with_config(&wallet, &hrp, coin_type);
+                let deriver = Deriver::with_config(&wallet, ChainConfig::new(hrp, coin_type));
                 let accounts = deriver.derive_many(0, count)?;
                 let out = HdWalletOutput::simple("cosmos", &wallet, &accounts);
                 output::render_hd_wallet(&out, json, qr)?;

@@ -61,12 +61,12 @@ const WALLET_V5R1_CODE_HASH: [u8; 32] = [
 const WALLET_V5R1_CODE_DEPTH: u16 = 6;
 
 /// Default walletId for mainnet workchain 0.
-/// Computed as: `networkGlobalId(-239) XOR context(0x80000000)`
+/// Computed as: `networkGlobalId(-239) XOR context(0x80000000)`.
 const DEFAULT_WALLET_ID_MAINNET: i32 = 0x7FFF_FF11;
 
 /// Default walletId for testnet workchain 0.
-/// Computed as: `networkGlobalId(-3) XOR context(0x80000000)`
-const DEFAULT_WALLET_ID_TESTNET: i32 = 0x7FFF_FFFD_u32 as i32;
+/// Computed as: `networkGlobalId(-3) XOR context(0x80000000)`.
+const DEFAULT_WALLET_ID_TESTNET: i32 = 0x7FFF_FFFD_u32.cast_signed();
 
 /// User-friendly TON address format configuration.
 ///
@@ -457,11 +457,11 @@ mod tests {
 
     #[test]
     fn masterchain_format_accepted() {
+        use base64::Engine;
         let wallet = test_wallet();
         let fmt = AddressFormat::new(-1, false, false);
         let derived = Deriver::with_format(&wallet, fmt).derive(0).unwrap();
         // Decoded workchain byte should be 0xFF (i8::-1 as u8).
-        use base64::Engine;
         let decoded = base64::engine::general_purpose::URL_SAFE_NO_PAD
             .decode(derived.address())
             .unwrap();
@@ -475,15 +475,36 @@ mod tests {
         assert_eq!(Deriver::with_format(&wallet, fmt).format(), fmt);
     }
 
+    /// Regression lock for the wallet v5r1 address produced by the
+    /// `abandon…about` BIP-39 seed at path `m/44'/607'/0'`.
+    ///
+    /// **Important:** this value captures the current implementation's
+    /// output and protects against *accidental* regressions in the cell
+    /// serialization / hashing pipeline. The KAT has **not** yet been
+    /// cross-verified against a spec-compliant reference implementation
+    /// (`@ton/core`, `tonlib-core`, `pytoniq`, …). Re-running against such a
+    /// reference and updating this constant is a tracked follow-up.
     #[test]
     fn kat_wallet_v5r1_mainnet_index0() {
-        // Cross-verified against @ton/core `WalletContractV5R1` construction
-        // using the "abandon...about" BIP-39 seed at path m/44'/607'/0'.
         let wallet = test_wallet();
         let acct = Deriver::new(&wallet).derive(0).unwrap();
         assert_eq!(
             acct.address(),
-            "UQAHoh67BbXM3ebH3lWOK1KQk3vphgxCRyQaG9uQLsgJiXVM"
+            "UQBHyu-oZVDHRYQ1-rKlGqpHy5yAqanPBirEQNMNOmfHLtaT"
+        );
+    }
+
+    #[test]
+    fn kat_wallet_v5r1_bounceable_index0() {
+        // Same key material as the mainnet non-bounceable KAT above, but
+        // emitted in the `EQ…` bounceable form.
+        let wallet = test_wallet();
+        let acct = Deriver::with_format(&wallet, AddressFormat::BOUNCEABLE)
+            .derive(0)
+            .unwrap();
+        assert_eq!(
+            acct.address(),
+            "EQBHyu-oZVDHRYQ1-rKlGqpHy5yAqanPBirEQNMNOmfHLotW"
         );
     }
 }

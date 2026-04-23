@@ -73,8 +73,20 @@ impl DerivedAccount {
 
     /// Chain-specific public key bytes.
     ///
-    /// Length: 33 (compressed secp256k1), 65 (uncompressed secp256k1),
-    /// or 32 (Ed25519 / BIP-340 x-only).
+    /// The layout depends on the deriving chain; callers that need a
+    /// uniform representation should convert with the chain's documented
+    /// procedure. Current mapping:
+    ///
+    /// | Chain(s) | Length | Encoding |
+    /// | --- | --- | --- |
+    /// | `kobe-btc`, `kobe-cosmos`, `kobe-spark`, `kobe-xrpl` | **33 B** | secp256k1 **compressed** (`0x02`/`0x03` prefix + x) |
+    /// | `kobe-evm`, `kobe-fil`, `kobe-tron` | **65 B** | secp256k1 **uncompressed** (`0x04` prefix + x + y) |
+    /// | `kobe-svm`, `kobe-sui`, `kobe-aptos`, `kobe-ton` | **32 B** | Ed25519 |
+    /// | `kobe-nostr` | **32 B** | BIP-340 / NIP-19 **x-only** secp256k1 |
+    ///
+    /// Cross-chain code that needs a single canonical form should inspect
+    /// the length and branch accordingly, or rely on chain-specific
+    /// `<Chain>Account` newtypes that expose typed views.
     #[inline]
     #[must_use]
     pub fn public_key_bytes(&self) -> &[u8] {
