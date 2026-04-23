@@ -3,14 +3,15 @@ name: kobe
 description: >-
   Multi-chain cryptocurrency wallet CLI tool for generating, importing, and
   managing HD wallets across 12 chains: Aptos, Bitcoin, Ethereum, Solana, Cosmos,
-  Tron, Sui, TON, Filecoin, Spark, and XRP Ledger. Use when the user asks to create wallets,
-  generate addresses, derive keys, import mnemonics, or perform any
-  cryptocurrency wallet operation. Supports JSON output via --json flag.
+  Tron, Sui, TON, Filecoin, Spark, XRP Ledger, and Nostr. Use when the user
+  asks to create wallets, generate addresses, derive keys, import mnemonics,
+  produce NIP-19 `npub` / `nsec` identities, or perform any cryptocurrency
+  wallet operation. Supports JSON output via --json flag.
 ---
 
 # Kobe CLI — Multi-Chain HD Wallet Tool
 
-`kobe` is a single binary CLI for generating and managing cryptocurrency wallets across **11 chains**: Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, and XRP Ledger. It supports BIP-39 mnemonic generation, HD key derivation (BIP-32/44/49/84/86, SLIP-10), multiple derivation styles for hardware wallet compatibility, and mnemonic camouflage encryption.
+`kobe` is a single binary CLI for generating and managing cryptocurrency wallets across **12 chains**: Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger, and Nostr. It supports BIP-39 mnemonic generation, HD key derivation (BIP-32/44/49/84/86, SLIP-10, NIP-06), multiple derivation styles for hardware wallet compatibility, NIP-19 bech32 output for Nostr, and mnemonic camouflage encryption.
 
 ## Installation
 
@@ -59,6 +60,7 @@ The `--json` flag is **global** and must appear **before** the chain subcommand.
 | Filecoin   | `fil`      | `filecoin`        |
 | Spark      | `spark`    | —                 |
 | XRP Ledger | `xrpl`     | `xrp`, `ripple`   |
+| Nostr      | `nostr`    | —                 |
 | Mnemonic   | `mnemonic` | `mn`              |
 
 ### Subcommands per chain
@@ -111,10 +113,10 @@ Aliases: `phantom`/`backpack` → `standard`, `ledger`/`keystone` → `trust`, `
 
 ### Cosmos-specific flags
 
-| Flag          | Short | Description                                      | Default   |
-| ------------- | ----- | ------------------------------------------------ | --------- |
-| `--hrp`       |       | Bech32 human-readable prefix                     | `cosmos`  |
-| `--coin-type` |       | BIP-44 coin type (118=Cosmos, 330=Terra, etc.)   | `118`     |
+| Flag          | Short | Description                                    | Default  |
+| ------------- | ----- | ---------------------------------------------- | -------- |
+| `--hrp`       |       | Bech32 human-readable prefix                   | `cosmos` |
+| `--coin-type` |       | BIP-44 coin type (118=Cosmos, 330=Terra, etc.) | `118`    |
 
 ## Usage Examples
 
@@ -231,6 +233,27 @@ kobe spark new
 kobe xrpl new
 ```
 
+### Nostr
+
+Nostr uses NIP-06 derivation (`m/44'/1237'/<account>'/0/0`) and NIP-19
+bech32 output. Each account exposes both the raw 64-char hex private key
+and the `nsec1…` form, plus the `npub1…` address alongside the 32-byte
+x-only public key.
+
+```bash
+# Generate a new Nostr identity (default: 1 account)
+kobe nostr new
+
+# Generate 3 distinct identities (NIP-06 iterates the *account* level)
+kobe nostr new -c 3
+
+# Import from an existing mnemonic
+kobe nostr import -m "abandon abandon ... about"
+
+# JSON output — exposes both `private_key` (hex) and NIP-19 forms
+kobe --json nostr new
+```
+
 ### Mnemonic Camouflage
 
 ```bash
@@ -293,19 +316,20 @@ All errors in JSON mode return exit code 1 with:
 
 ## Private Key Formats by Chain
 
-| Chain      | Format in `private_key` field                            |
-| ---------- | -------------------------------------------------------- |
-| Aptos      | 64-char hex string (Ed25519 secret key)                  |
-| Bitcoin    | WIF (Wallet Import Format), e.g. `L1a...` or `5H...`     |
-| Ethereum   | `0x`-prefixed 64-char hex string                         |
-| Solana     | Base58-encoded 64-byte keypair (secret 32B + public 32B) |
-| Cosmos     | 64-char hex string                                       |
-| Tron       | 64-char hex string                                       |
-| Sui        | 64-char hex string (Ed25519 secret key)                  |
-| TON        | 64-char hex string (Ed25519 secret key)                  |
-| Filecoin   | 64-char hex string                                       |
-| Spark      | 64-char hex string (compressed pubkey also provided)     |
-| XRP Ledger | 64-char hex string                                       |
+| Chain      | Format in `private_key` field                                            |
+| ---------- | ------------------------------------------------------------------------ |
+| Aptos      | 64-char hex string (Ed25519 secret key)                                  |
+| Bitcoin    | WIF (Wallet Import Format), e.g. `L1a...` or `5H...`                     |
+| Ethereum   | `0x`-prefixed 64-char hex string                                         |
+| Solana     | Base58-encoded 64-byte keypair (secret 32B + public 32B)                 |
+| Cosmos     | 64-char hex string                                                       |
+| Tron       | 64-char hex string                                                       |
+| Sui        | 64-char hex string (Ed25519 secret key)                                  |
+| TON        | 64-char hex string (Ed25519 secret key)                                  |
+| Filecoin   | 64-char hex string                                                       |
+| Spark      | 64-char hex string (compressed pubkey also provided)                     |
+| XRP Ledger | 64-char hex string                                                       |
+| Nostr      | NIP-19 bech32 `nsec1…` (64-char hex also available; address is `npub1…`) |
 
 ## Derivation Path Reference
 
@@ -337,35 +361,35 @@ All errors in JSON mode return exit code 1 with:
 
 ### Cosmos (BIP-44)
 
-| Chain       | Path Pattern          | Coin Type |
-| ----------- | --------------------- | --------- |
-| Cosmos Hub  | `m/44'/118'/0'/0/{i}` | 118       |
-| Osmosis     | `m/44'/118'/0'/0/{i}` | 118       |
-| Terra       | `m/44'/330'/0'/0/{i}` | 330       |
+| Chain      | Path Pattern          | Coin Type |
+| ---------- | --------------------- | --------- |
+| Cosmos Hub | `m/44'/118'/0'/0/{i}` | 118       |
+| Osmosis    | `m/44'/118'/0'/0/{i}` | 118       |
+| Terra      | `m/44'/330'/0'/0/{i}` | 330       |
 
 ### Aptos (SLIP-10 Ed25519)
 
-| Path Pattern              | Notes                            |
-| ------------------------- | -------------------------------- |
-| `m/44'/637'/{i}'/0'/0'`   | SHA3-256(0x00 \|\| pubkey)       |
+| Path Pattern            | Notes                      |
+| ----------------------- | -------------------------- |
+| `m/44'/637'/{i}'/0'/0'` | SHA3-256(0x00 \|\| pubkey) |
 
 ### Sui (SLIP-10 Ed25519)
 
-| Path Pattern              | Notes                   |
-| ------------------------- | ----------------------- |
-| `m/44'/784'/{i}'/0'/0'`   | All hardened components |
+| Path Pattern            | Notes                   |
+| ----------------------- | ----------------------- |
+| `m/44'/784'/{i}'/0'/0'` | All hardened components |
 
 ### TON (SLIP-10 Ed25519)
 
-| Path Pattern      | Notes                    |
-| ----------------- | ------------------------ |
-| `m/44'/607'/{i}'` | Tonkeeper-compatible     |
+| Path Pattern      | Notes                |
+| ----------------- | -------------------- |
+| `m/44'/607'/{i}'` | Tonkeeper-compatible |
 
 ### Tron (BIP-44)
 
-| Path Pattern          | Notes                    |
-| --------------------- | ------------------------ |
-| `m/44'/195'/0'/0/{i}` | Same as Ethereum format  |
+| Path Pattern          | Notes                   |
+| --------------------- | ----------------------- |
+| `m/44'/195'/0'/0/{i}` | Same as Ethereum format |
 
 ### Filecoin (BIP-44)
 
@@ -375,15 +399,21 @@ All errors in JSON mode return exit code 1 with:
 
 ### Spark (BIP-84)
 
-| Path Pattern          | Notes                         |
-| --------------------- | ----------------------------- |
-| `m/84'/0'/0'/0/{i}`   | Same as Bitcoin Native SegWit |
+| Path Pattern        | Notes                         |
+| ------------------- | ----------------------------- |
+| `m/84'/0'/0'/0/{i}` | Same as Bitcoin Native SegWit |
 
 ### XRP Ledger (BIP-44)
 
 | Path Pattern          | Address Format     |
 | --------------------- | ------------------ |
 | `m/44'/144'/0'/0/{i}` | Base58Check `r...` |
+
+### Nostr (NIP-06)
+
+| Path Pattern                 | Notes                                                              |
+| ---------------------------- | ------------------------------------------------------------------ |
+| `m/44'/1237'/{account}'/0/0` | NIP-06: `{account}` is the `-c` index; pubkey is x-only / `npub1…` |
 
 ## Agent Best Practices
 
