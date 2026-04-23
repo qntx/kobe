@@ -5,7 +5,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! kobe = { version = "0.8", features = ["evm", "btc", "svm"] }
+//! kobe = { version = "1.0", features = ["evm", "btc", "svm"] }
 //! ```
 //!
 //! ```no_run
@@ -15,6 +15,7 @@
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let wallet = Wallet::from_mnemonic("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", None)?;
 //! let account = Deriver::new(&wallet).derive(0)?;
+//! println!("path={} address={}", account.path(), account.address());
 //! # Ok(())
 //! # }
 //! ```

@@ -83,14 +83,19 @@ let wallet = Wallet::from_mnemonic(
     None,  // optional passphrase
 )?;
 
-// Derive addresses
+// Derive addresses (accessor methods — fields are private for zeroization safety)
 let eth = kobe::evm::Deriver::new(&wallet).derive(0)?;
 let btc = kobe::btc::Deriver::new(&wallet, kobe::btc::Network::Mainnet)?.derive(0)?;
 let sol = kobe::svm::Deriver::new(&wallet).derive(0)?;
 
-println!("ETH: {}", eth.address);  // 0x9858EfFD232B4033E47d90003D41EC34EcaEda94
-println!("BTC: {}", btc.address);  // bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu
-println!("SOL: {}", sol.address);  // HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk
+println!("ETH: {}", eth.address());  // 0x9858EfFD232B4033E47d90003D41EC34EcaEda94
+println!("BTC: {}", btc.address());  // bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu
+println!("SOL: {}", sol.address());  // HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk
+
+// Chain-specific extensions via newtypes: `BtcAccount` extends `DerivedAccount`
+// with `private_key_wif()`, `address_type()`, `bip32_path()`; `SvmAccount`
+// exposes `keypair_base58()`. Both `Deref` to the unified `DerivedAccount`.
+println!("BTC WIF: {}", btc.private_key_wif().as_str());
 ```
 
 ```rust

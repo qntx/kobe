@@ -48,5 +48,9 @@ kobe-sui = { workspace = true, optional = true }
 kobe-nostr = { workspace = true, optional = true }
 kobe-xrpl = { workspace = true, optional = true }
 
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
 [lints]
 workspace = true
