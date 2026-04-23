@@ -462,18 +462,18 @@ mod tests {
         let w = test_wallet();
         let d = deriver(&w, Network::Mainnet);
 
-        let err = d.derive_path("m/1'/2'/3'").unwrap_err();
-        let DeriveError::Path(msg) = &err else {
-            unreachable!("expected DeriveError::Path, got {err:?}");
+        let unknown_purpose_err = d.derive_path("m/1'/2'/3'").unwrap_err();
+        let DeriveError::Path(msg) = &unknown_purpose_err else {
+            unreachable!("expected DeriveError::Path, got {unknown_purpose_err:?}");
         };
         assert!(
             msg.contains("cannot infer address type"),
             "unexpected error message: {msg}"
         );
 
-        let err = d.derive_path("m/44/0'/0'/0/0").unwrap_err();
-        let DeriveError::Path(_) = &err else {
-            unreachable!("non-hardened purpose must fail with Path error, got {err:?}");
+        let non_hardened_err = d.derive_path("m/44/0'/0'/0/0").unwrap_err();
+        let DeriveError::Path(_) = &non_hardened_err else {
+            unreachable!("non-hardened purpose must fail with Path error, got {non_hardened_err:?}");
         };
     }
 }
