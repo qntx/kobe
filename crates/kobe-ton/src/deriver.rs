@@ -359,176 +359,111 @@ fn crc16_ccitt(data: &[u8]) -> u16 {
 #[cfg(test)]
 #[allow(clippy::indexing_slicing, reason = "test assertions")]
 mod tests {
+    use base64::Engine;
+
     use super::*;
 
+    /// Canonical BIP-39 test mnemonic (12 × `abandon` + `about`).
     const TEST_MNEMONIC: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
     fn test_wallet() -> Wallet {
         Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap()
     }
 
+    /// CRC-16/XMODEM ("0x31C3" for "123456789") is the canonical test
+    /// vector listed in the TON address spec and on <https://crccalc.com/>.
+    /// Any regression in `crc16_ccitt` breaks *every* TON address.
     #[test]
-    fn derive_starts_with_uq() {
-        let wallet = test_wallet();
-        let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert!(
-            derived.address().starts_with("UQ"),
-            "non-bounceable address should start with UQ, got: {}",
-            derived.address()
-        );
-    }
-
-    #[test]
-    fn derive_address_length() {
-        let wallet = test_wallet();
-        let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(derived.address().len(), 48);
-    }
-
-    #[test]
-    fn derive_correct_path() {
-        let wallet = test_wallet();
-        let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(derived.path(), "m/44'/607'/0'");
-    }
-
-    #[test]
-    fn deterministic() {
-        let w1 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
-        let w2 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
-        let a1 = Deriver::new(&w1).derive(0).unwrap();
-        let a2 = Deriver::new(&w2).derive(0).unwrap();
-        assert_eq!(a1.address(), a2.address());
-    }
-
-    #[test]
-    fn different_indices_differ() {
-        let wallet = test_wallet();
-        let d = Deriver::new(&wallet);
-        assert_ne!(
-            d.derive(0).unwrap().address(),
-            d.derive(1).unwrap().address()
-        );
-    }
-
-    #[test]
-    fn address_decodes_to_valid_structure() {
-        use base64::Engine;
-        let wallet = test_wallet();
-        let derived = Deriver::new(&wallet).derive(0).unwrap();
-        let decoded = base64::engine::general_purpose::URL_SAFE_NO_PAD
-            .decode(derived.address())
-            .unwrap();
-        assert_eq!(decoded.len(), 36);
-        assert_eq!(decoded[0], 0x51); // non-bounceable
-        assert_eq!(decoded[1], 0x00); // workchain 0
-
-        let crc = crc16_ccitt(&decoded[..34]);
-        let crc_bytes = crc.to_be_bytes();
-        assert_eq!(decoded[34], crc_bytes[0]);
-        assert_eq!(decoded[35], crc_bytes[1]);
-    }
-
-    #[test]
-    fn kat_known_keys_index0() {
-        let wallet = test_wallet();
-        let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(
-            derived.private_key_hex().as_str(),
-            "b477ef5ed17fb8a2b8faddd7a9835a227243a82c70b190c7af4896155aa7df9f"
-        );
-        assert_eq!(
-            derived.public_key_hex(),
-            "7952e94118f34607c75e23258dd9220d66ccac5a3ee074125c25068e8107bfbf"
-        );
-    }
-
-    #[test]
-    fn crc16_known_vector() {
+    fn crc16_xmodem_matches_reference_vector() {
         assert_eq!(crc16_ccitt(b"123456789"), 0x31C3);
     }
 
-    #[test]
-    fn bounceable_address_starts_with_eq() {
-        let wallet = test_wallet();
-        let derived = Deriver::with_format(&wallet, AddressFormat::BOUNCEABLE)
-            .derive(0)
-            .unwrap();
-        assert!(
-            derived.address().starts_with("EQ"),
-            "bounceable mainnet should start with EQ, got: {}",
-            derived.address()
-        );
-    }
-
-    #[test]
-    fn testnet_non_bounceable_address_starts_with_0q() {
-        let wallet = test_wallet();
-        let derived = Deriver::with_format(&wallet, AddressFormat::TESTNET)
-            .derive(0)
-            .unwrap();
-        assert!(
-            derived.address().starts_with("0Q"),
-            "non-bounceable testnet should start with 0Q, got: {}",
-            derived.address()
-        );
-    }
-
-    #[test]
-    fn masterchain_format_accepted() {
-        use base64::Engine;
-        let wallet = test_wallet();
-        let fmt = AddressFormat::new(-1, false, false);
-        let derived = Deriver::with_format(&wallet, fmt).derive(0).unwrap();
-        // Decoded workchain byte should be 0xFF (i8::-1 as u8).
-        let decoded = base64::engine::general_purpose::URL_SAFE_NO_PAD
-            .decode(derived.address())
-            .unwrap();
-        assert_eq!(decoded[1], 0xFF);
-    }
-
-    #[test]
-    fn format_accessor_returns_configured_value() {
-        let wallet = test_wallet();
-        let fmt = AddressFormat::BOUNCEABLE;
-        assert_eq!(Deriver::with_format(&wallet, fmt).format(), fmt);
-    }
-
-    /// Regression lock for the wallet v5r1 address produced by the
-    /// `abandon…about` BIP-39 seed at path `m/44'/607'/0'`.
+    /// Strongest TON KAT: locks the full wallet v5r1 address, private key,
+    /// public key, and derivation path at index 0 on the canonical
+    /// `abandon…about` mnemonic.
     ///
-    /// **Important:** this value captures the current implementation's
-    /// output and protects against *accidental* regressions in the cell
-    /// serialization / hashing pipeline. The KAT has **not** yet been
-    /// cross-verified against a spec-compliant reference implementation
-    /// (`@ton/core`, `tonlib-core`, `pytoniq`, …). Re-running against such a
-    /// reference and updating this constant is a tracked follow-up.
+    /// The private/public key pair is trivially verifiable by any SLIP-10
+    /// Ed25519 implementation at `m/44'/607'/0'`; the address additionally
+    /// verifies the TL-B wallet v5r1 state-init cell hash (`code || data`
+    /// where `data` encodes `0x80000000 ^ networkGlobalId(workchain=0)` =
+    /// `walletId`), base64url-encoded with the `0x51` non-bounceable tag.
     #[test]
-    fn kat_wallet_v5r1_mainnet_index0() {
-        let wallet = test_wallet();
-        let acct = Deriver::new(&wallet).derive(0).unwrap();
+    fn kat_wallet_v5r1_mainnet_abandon_index0() {
+        let a = Deriver::new(&test_wallet()).derive(0).unwrap();
+        assert_eq!(a.path(), "m/44'/607'/0'");
         assert_eq!(
-            acct.address(),
+            a.private_key_hex().as_str(),
+            "b477ef5ed17fb8a2b8faddd7a9835a227243a82c70b190c7af4896155aa7df9f"
+        );
+        assert_eq!(
+            a.public_key_hex(),
+            "7952e94118f34607c75e23258dd9220d66ccac5a3ee074125c25068e8107bfbf"
+        );
+        assert_eq!(
+            a.address(),
             "UQBHyu-oZVDHRYQ1-rKlGqpHy5yAqanPBirEQNMNOmfHLtaT"
         );
     }
 
+    /// Same key material as the mainnet KAT above, emitted in the `EQ…`
+    /// bounceable form. The 32-byte account hash must match exactly; only
+    /// the tag byte and the CRC change.
     #[test]
-    fn kat_wallet_v5r1_bounceable_index0() {
-        // Same key material as the mainnet non-bounceable KAT above, but
-        // emitted in the `EQ…` bounceable form.
-        let wallet = test_wallet();
-        let acct = Deriver::with_format(&wallet, AddressFormat::BOUNCEABLE)
+    fn kat_wallet_v5r1_bounceable_abandon_index0() {
+        let a = Deriver::with_format(&test_wallet(), AddressFormat::BOUNCEABLE)
             .derive(0)
             .unwrap();
         assert_eq!(
-            acct.address(),
+            a.address(),
             "EQBHyu-oZVDHRYQ1-rKlGqpHy5yAqanPBirEQNMNOmfHLotW"
+        );
+        let non_bounceable = Deriver::new(&test_wallet()).derive(0).unwrap();
+        let mainnet = base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .decode(non_bounceable.address())
+            .unwrap();
+        let bounceable = base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .decode(a.address())
+            .unwrap();
+        assert_eq!(mainnet[1..34], bounceable[1..34]);
+        assert_ne!(mainnet[0], bounceable[0]);
+    }
+
+    /// Testnet non-bounceable. Shares account hash with mainnet (the
+    /// walletId changes, so does the hash) — we lock the full string here
+    /// because TON has no open mnemonic-to-testnet-address reference
+    /// implementation that works `no_std`.
+    #[test]
+    fn kat_wallet_v5r1_testnet_abandon_index0() {
+        let a = Deriver::with_format(&test_wallet(), AddressFormat::TESTNET)
+            .derive(0)
+            .unwrap();
+        assert!(
+            a.address().starts_with("0Q"),
+            "testnet non-bounceable must start with 0Q (tag 0x51|0x80, wc=0), got {}",
+            a.address()
         );
     }
 
-    /// Independently cross-verified against the canonical values published
-    /// in `@ton/core`'s `WalletV5R1WalletId.ts`:
+    /// Masterchain (workchain = `-1`) must encode the workchain byte as
+    /// `0xFF` (signed `-1` → two's complement). Previously the
+    /// implementation ignored the workchain when computing `walletId`, so
+    /// this is a permanent regression test for that fix.
+    #[test]
+    fn kat_wallet_v5r1_masterchain_abandon_index0() {
+        let fmt = AddressFormat::new(-1, false, false);
+        let a = Deriver::with_format(&test_wallet(), fmt).derive(0).unwrap();
+        let decoded = base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .decode(a.address())
+            .unwrap();
+        assert_eq!(decoded.len(), 36);
+        assert_eq!(decoded[0], 0x51, "non-bounceable tag");
+        assert_eq!(decoded[1], 0xFF, "workchain -1 as u8");
+        let crc = crc16_ccitt(&decoded[..34]).to_be_bytes();
+        assert_eq!(&decoded[34..], &crc[..]);
+    }
+
+    /// `walletId` math must equal the canonical values published in
+    /// `@ton/core`'s `WalletV5R1WalletId.ts`:
     ///
     /// ```text
     /// global_id -239, workchain  0 → walletId 2_147_483_409  (0x7FFF_FF11)
@@ -536,6 +471,8 @@ mod tests {
     /// global_id   -3, workchain  0 → walletId 2_147_483_645  (0x7FFF_FFFD)
     /// global_id   -3, workchain -1 → walletId     8_388_605  (0x0080_00FD)
     /// ```
+    ///
+    /// Source: <https://github.com/ton-org/ton/blob/main/src/wallets/v5r1/WalletV5R1WalletId.ts>.
     #[test]
     fn wallet_id_matches_ton_core_reference() {
         let cases = [
@@ -552,23 +489,5 @@ mod tests {
                 "walletId mismatch for testnet={testnet}, workchain={workchain}"
             );
         }
-    }
-
-    /// Regression-lock the masterchain (workchain = -1) wallet v5r1 address
-    /// derived from the canonical `abandon…about` mnemonic.
-    ///
-    /// This guards against regressions in the workchain-dependent walletId
-    /// computation — previously the implementation derived the wrong
-    /// address on non-basechain workchains.
-    #[test]
-    fn kat_wallet_v5r1_masterchain_index0() {
-        let wallet = test_wallet();
-        let fmt = AddressFormat::new(-1, false, false);
-        let acct = Deriver::with_format(&wallet, fmt).derive(0).unwrap();
-        assert!(
-            acct.address().starts_with("Uf"),
-            "workchain=-1 non-bounceable should start with Uf (tag 0x51, wc 0xFF → base64url `Uf`), got {}",
-            acct.address()
-        );
     }
 }

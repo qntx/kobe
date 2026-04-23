@@ -20,8 +20,5 @@ bs58.workspace = true
 thiserror.workspace = true
 zeroize.workspace = true
 
-[dev-dependencies]
-hex.workspace = true
-
 [lints]
 workspace = true

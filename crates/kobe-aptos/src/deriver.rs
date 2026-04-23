@@ -74,70 +74,72 @@ impl Derive for Deriver<'_> {
 
 #[cfg(test)]
 mod tests {
+    use kobe_primitives::DeriveExt;
+
     use super::*;
 
+    /// Canonical BIP-39 test mnemonic (12 × `abandon` + `about`).
     const TEST_MNEMONIC: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
     fn test_wallet() -> Wallet {
         Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap()
     }
 
-    #[test]
-    fn derive_starts_with_0x() {
-        let wallet = test_wallet();
-        let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert!(derived.address().starts_with("0x"));
-    }
-
-    #[test]
-    fn derive_address_length() {
-        let wallet = test_wallet();
-        let derived = Deriver::new(&wallet).derive(0).unwrap();
-        // 0x + 64 hex chars = 66 total
-        assert_eq!(derived.address().len(), 66);
-    }
-
-    #[test]
-    fn derive_correct_path() {
-        let wallet = test_wallet();
-        let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(derived.path(), "m/44'/637'/0'/0'/0'");
-    }
-
-    #[test]
-    fn different_indices_differ() {
-        let wallet = test_wallet();
-        let d = Deriver::new(&wallet);
-        assert_ne!(
-            d.derive(0).unwrap().address(),
-            d.derive(1).unwrap().address()
-        );
-    }
-
-    #[test]
-    fn deterministic() {
-        let wallet = test_wallet();
-        let d = Deriver::new(&wallet);
-        assert_eq!(
-            d.derive(0).unwrap().address(),
-            d.derive(0).unwrap().address()
-        );
-    }
-
-    /// Regression-lock the Aptos address derived from the canonical
-    /// `abandon…about` mnemonic at path `m/44'/637'/0'/0'/0'`.
+    /// Known-answer test at Aptos's default `m/44'/637'/{i}'/0'/0'` path.
     ///
-    /// Auth key follows the Aptos spec:
-    /// `SHA3-256(pubkey || SIGNATURE_SCHEME_ID)` with `SIGNATURE_SCHEME_ID =
-    /// 0x00` for Ed25519, per the `aptos-stdlib` Move source at
+    /// Cross-verified with an independent Node.js pipeline (`bip39 →
+    /// ed25519-hd-key SLIP-10 → tweetnacl key pair →
+    /// sha3-256(pubkey || 0x00)`) using `@noble/hashes`. Aptos's
+    /// authentication-key spec pushes the scheme byte *after* the public
+    /// key, per the `aptos-stdlib` Move source at
     /// <https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-stdlib/sources/cryptography/ed25519.move>.
     #[test]
-    fn kat_aptos_index0() {
-        let wallet = test_wallet();
-        let a = Deriver::new(&wallet).derive(0).unwrap();
+    fn kat_aptos_abandon_index0() {
+        let a = Deriver::new(&test_wallet()).derive(0).unwrap();
+        assert_eq!(a.path(), "m/44'/637'/0'/0'/0'");
         assert_eq!(
             a.address(),
             "0xeb663b681209e7087d681c5d3eed12aaa8e1915e7c87794542c3f96e94b3d3bf"
+        );
+        assert_eq!(
+            a.private_key_hex().as_str(),
+            "cc92c0eaf80206d817f150e21917f797e49cf644a33ac514de3c316baa2f1bf5"
+        );
+    }
+
+    #[test]
+    fn kat_aptos_abandon_index1() {
+        let a = Deriver::new(&test_wallet()).derive(1).unwrap();
+        assert_eq!(a.path(), "m/44'/637'/1'/0'/0'");
+        assert_eq!(
+            a.address(),
+            "0xf867372dfec13fb6c0740d4b574363685e10e6f243e9554ffa8f6e698e940efa"
+        );
+        assert_eq!(
+            a.private_key_hex().as_str(),
+            "4c6f5a6b687631dd52f32c97457e895fb57947b9b827c6697c11cd7b2a075c5b"
+        );
+    }
+
+    /// `derive_many` must agree with scalar `derive` for every index.
+    #[test]
+    fn derive_many_matches_individual() {
+        let w = test_wallet();
+        let d = Deriver::new(&w);
+        let batch = d.derive_many(0, 3).unwrap();
+        let single: Vec<_> = (0..3).map(|i| d.derive(i).unwrap()).collect();
+        for (b, s) in batch.iter().zip(single.iter()) {
+            assert_eq!(b.address(), s.address());
+            assert_eq!(b.path(), s.path());
+        }
+    }
+
+    #[test]
+    fn passphrase_changes_derivation() {
+        let w = Wallet::from_mnemonic(TEST_MNEMONIC, Some("TREZOR")).unwrap();
+        assert_ne!(
+            Deriver::new(&test_wallet()).derive(0).unwrap().address(),
+            Deriver::new(&w).derive(0).unwrap().address(),
         );
     }
 }

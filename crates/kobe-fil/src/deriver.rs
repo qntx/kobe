@@ -105,78 +105,83 @@ fn base32_encode(data: &[u8]) -> Result<String, DeriveError> {
 
 #[cfg(test)]
 mod tests {
+    use kobe_primitives::DeriveExt;
+
     use super::*;
 
+    /// Canonical BIP-39 test mnemonic (12 × `abandon` + `about`).
     const TEST_MNEMONIC: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
     fn test_wallet() -> Wallet {
         Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap()
     }
 
+    /// RFC 4648 base32 (lower-case, no padding) test vectors from
+    /// <https://www.rfc-editor.org/rfc/rfc4648#section-10>, lower-cased and
+    /// padding-stripped per the Filecoin address spec.
     #[test]
-    fn derive_starts_with_f1() {
-        let wallet = test_wallet();
-        let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert!(
-            derived.address().starts_with("f1"),
-            "Filecoin address should start with f1, got: {}",
-            derived.address()
-        );
-    }
-
-    #[test]
-    fn derive_correct_path() {
-        let wallet = test_wallet();
-        let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(derived.path(), "m/44'/461'/0'/0/0");
-    }
-
-    #[test]
-    fn deterministic() {
-        let w1 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
-        let w2 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
-        let a1 = Deriver::new(&w1).derive(0).unwrap();
-        let a2 = Deriver::new(&w2).derive(0).unwrap();
-        assert_eq!(a1.address(), a2.address());
-    }
-
-    #[test]
-    fn different_indices_differ() {
-        let wallet = test_wallet();
-        let d = Deriver::new(&wallet);
-        assert_ne!(
-            d.derive(0).unwrap().address(),
-            d.derive(1).unwrap().address()
-        );
-    }
-
-    #[test]
-    fn base32_encode_known_vectors() {
+    fn base32_encode_matches_rfc4648() {
         assert_eq!(base32_encode(b"").unwrap(), "");
         assert_eq!(base32_encode(b"f").unwrap(), "my");
         assert_eq!(base32_encode(b"fo").unwrap(), "mzxq");
         assert_eq!(base32_encode(b"foo").unwrap(), "mzxw6");
+        assert_eq!(base32_encode(b"foob").unwrap(), "mzxw6yq");
+        assert_eq!(base32_encode(b"fooba").unwrap(), "mzxw6ytb");
         assert_eq!(base32_encode(b"foobar").unwrap(), "mzxw6ytboi");
     }
 
+    /// Known-answer test for the canonical BIP-39 `abandon…about` mnemonic.
+    ///
+    /// Both address and private key are cross-verified by an independent
+    /// pipeline (`bip39 → bip32(m/44'/461'/0'/0/{i}) → secp256k1 →
+    /// blake2b-160(uncompressed_pubkey) → checksum = blake2b-32(0x01 ||
+    /// payload) → base32-lower(payload || checksum)`) implemented in
+    /// Node.js with `bip39`, `bip32`, `tiny-secp256k1`, and
+    /// `@noble/hashes` per the Filecoin address spec at
+    /// <https://spec.filecoin.io/appendix/address/>.
     #[test]
-    fn passphrase_changes_address() {
-        let w1 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
-        let w2 = Wallet::from_mnemonic(TEST_MNEMONIC, Some("pass")).unwrap();
-        let a1 = Deriver::new(&w1).derive(0).unwrap();
-        let a2 = Deriver::new(&w2).derive(0).unwrap();
-        assert_ne!(a1.address(), a2.address());
-    }
-
-    #[test]
-    fn kat_filecoin_index0_privkey() {
-        // Cross-verified with Python coincurve at BIP-44 m/44'/461'/0'/0/0
-        let wallet = test_wallet();
-        let a = Deriver::new(&wallet).derive(0).unwrap();
+    fn kat_fil_abandon_index0() {
+        let a = Deriver::new(&test_wallet()).derive(0).unwrap();
+        assert_eq!(a.path(), "m/44'/461'/0'/0/0");
+        assert_eq!(a.address(), "f1qode47ievxlxzk6z2viuovedabmn3tq6t57uqhq");
         assert_eq!(
             a.private_key_hex().as_str(),
             "e1808079c6734eff9a187c917455dc1b2c70385e13f1cd6cecc94978e57f7f76"
         );
-        assert!(a.address().starts_with("f1"));
+    }
+
+    #[test]
+    fn kat_fil_abandon_index1() {
+        let a = Deriver::new(&test_wallet()).derive(1).unwrap();
+        assert_eq!(a.path(), "m/44'/461'/0'/0/1");
+        assert_eq!(a.address(), "f12nzdrhfh6caurft7gwy6d3uazvgy3lhl7rfzvpq");
+        assert_eq!(
+            a.private_key_hex().as_str(),
+            "ff91cfecbd459ca53112e15c6dd9b26cf4422bb5935c5616d5a6cad95ab0253b"
+        );
+    }
+
+    /// `derive_many` must agree with scalar `derive` for every index.
+    #[test]
+    fn derive_many_matches_individual() {
+        let w = test_wallet();
+        let d = Deriver::new(&w);
+        let batch = d.derive_many(0, 3).unwrap();
+        let single: Vec<_> = (0..3).map(|i| d.derive(i).unwrap()).collect();
+        for (b, s) in batch.iter().zip(single.iter()) {
+            assert_eq!(b.address(), s.address());
+            assert_eq!(b.path(), s.path());
+        }
+    }
+
+    /// A non-empty BIP-39 passphrase must produce a different derivation
+    /// tree (guards against the passphrase being silently dropped).
+    #[test]
+    fn passphrase_changes_derivation() {
+        let w = Wallet::from_mnemonic(TEST_MNEMONIC, Some("TREZOR")).unwrap();
+        assert_ne!(
+            Deriver::new(&test_wallet()).derive(0).unwrap().address(),
+            Deriver::new(&w).derive(0).unwrap().address(),
+        );
     }
 }

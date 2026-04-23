@@ -80,53 +80,71 @@ fn blake2b_256(data: &[u8]) -> Result<[u8; 32], DeriveError> {
 
 #[cfg(test)]
 mod tests {
+    use kobe_primitives::DeriveExt;
+
     use super::*;
 
+    /// Canonical BIP-39 test mnemonic (12 × `abandon` + `about`).
     const TEST_MNEMONIC: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
     fn test_wallet() -> Wallet {
         Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap()
     }
 
+    /// Known-answer test at Sui's default `m/44'/784'/{i}'/0'/0'` path.
+    ///
+    /// Cross-verified with an independent Node.js pipeline (`bip39 →
+    /// ed25519-hd-key SLIP-10 → tweetnacl key pair →
+    /// blake2b-256(0x00 || pubkey)`) using `@noble/hashes`, per the Sui
+    /// authentication spec at
+    /// <https://docs.sui.io/guides/developer/transactions/transaction-auth/auth-overview>.
     #[test]
-    fn derive_starts_with_0x() {
-        let wallet = test_wallet();
-        let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert!(derived.address().starts_with("0x"));
-    }
-
-    #[test]
-    fn derive_address_length() {
-        let wallet = test_wallet();
-        let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(derived.address().len(), 66); // 0x + 64 hex chars
-    }
-
-    #[test]
-    fn derive_correct_path() {
-        let wallet = test_wallet();
-        let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(derived.path(), "m/44'/784'/0'/0'/0'");
-    }
-
-    #[test]
-    fn different_indices_differ() {
-        let wallet = test_wallet();
-        let d = Deriver::new(&wallet);
-        assert_ne!(
-            d.derive(0).unwrap().address(),
-            d.derive(1).unwrap().address()
+    fn kat_sui_abandon_index0() {
+        let a = Deriver::new(&test_wallet()).derive(0).unwrap();
+        assert_eq!(a.path(), "m/44'/784'/0'/0'/0'");
+        assert_eq!(
+            a.address(),
+            "0x5e93a736d04fbb25737aa40bee40171ef79f65fae833749e3c089fe7cc2161f1"
+        );
+        assert_eq!(
+            a.private_key_hex().as_str(),
+            "8869cb07178bf67e08d7c4abdf45487dbf379c9a452fcec2836854bf4a3d29b0"
         );
     }
 
     #[test]
-    fn kat_sui_index0() {
-        // Cross-verified with Python SLIP-10 + nacl + BLAKE2b-256(0x00||pubkey)
-        let wallet = test_wallet();
-        let a = Deriver::new(&wallet).derive(0).unwrap();
+    fn kat_sui_abandon_index1() {
+        let a = Deriver::new(&test_wallet()).derive(1).unwrap();
+        assert_eq!(a.path(), "m/44'/784'/1'/0'/0'");
         assert_eq!(
             a.address(),
-            "0x5e93a736d04fbb25737aa40bee40171ef79f65fae833749e3c089fe7cc2161f1"
+            "0x082d099250999ab8450a9ef3a962edf9e2449e1045be32ba5a0f2c6117ff7167"
+        );
+        assert_eq!(
+            a.private_key_hex().as_str(),
+            "72613d6091bf9d0b2a9b28e8a18b1de1d527fa60ab2656c5905e92431c98b918"
+        );
+    }
+
+    /// `derive_many` must agree with scalar `derive` for every index.
+    #[test]
+    fn derive_many_matches_individual() {
+        let w = test_wallet();
+        let d = Deriver::new(&w);
+        let batch = d.derive_many(0, 3).unwrap();
+        let single: Vec<_> = (0..3).map(|i| d.derive(i).unwrap()).collect();
+        for (b, s) in batch.iter().zip(single.iter()) {
+            assert_eq!(b.address(), s.address());
+            assert_eq!(b.path(), s.path());
+        }
+    }
+
+    #[test]
+    fn passphrase_changes_derivation() {
+        let w = Wallet::from_mnemonic(TEST_MNEMONIC, Some("TREZOR")).unwrap();
+        assert_ne!(
+            Deriver::new(&test_wallet()).derive(0).unwrap().address(),
+            Deriver::new(&w).derive(0).unwrap().address(),
         );
     }
 }

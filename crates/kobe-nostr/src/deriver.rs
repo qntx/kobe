@@ -185,7 +185,8 @@ mod tests {
 
     use super::*;
 
-    /// NIP-06 test vector 1.
+    /// NIP-06 test vector 1 from the official
+    /// <https://github.com/nostr-protocol/nips/blob/master/06.md> spec.
     const TV1_MNEMONIC: &str =
         "leader monkey parrot ring guide accident before fence cannon height naive bean";
     const TV1_PRIV_HEX: &str = "7f7ff03d123792d6ac594bfa67bf6d0c0ab55b6b1fdb6249303fe861f1ccba9a";
@@ -193,7 +194,7 @@ mod tests {
     const TV1_PUB_HEX: &str = "17162c921dc4d2518f9a101db33695df1afb56ab82f5ff3e5da6eec3ca5cd917";
     const TV1_NPUB: &str = "npub1zutzeysacnf9rru6zqwmxd54mud0k44tst6l70ja5mhv8jjumytsd2x7nu";
 
-    /// NIP-06 test vector 2.
+    /// NIP-06 test vector 2 (24 words) from the same spec.
     const TV2_MNEMONIC: &str = "what bleak badge arrange retreat wolf trade produce cricket blur garlic valid proud rude strong choose busy staff weather area salt hollow arm fade";
     const TV2_PRIV_HEX: &str = "c15d739894c81a2fcfd3a2df85a0d2c0dbc47a280d092799f144d73d7ae78add";
     const TV2_NSEC: &str = "nsec1c9wh8xy5eqdzln7n5t0ctgxjcrdug73gp5yj0x03gntn67h83twssdfhel";
@@ -204,111 +205,59 @@ mod tests {
         Wallet::from_mnemonic(mnemonic, None).unwrap()
     }
 
-    #[test]
-    fn derive_correct_path() {
-        let w = wallet(TV1_MNEMONIC);
-        let a = Deriver::new(&w).derive(0).unwrap();
-        assert_eq!(a.path(), "m/44'/1237'/0'/0/0");
-    }
-
-    #[test]
-    fn derive_returns_npub_and_nsec_prefix() {
-        let w = wallet(TV1_MNEMONIC);
-        let a = Deriver::new(&w).derive(0).unwrap();
-        assert!(a.npub().starts_with("npub1"));
-        assert!(a.nsec().starts_with("nsec1"));
-    }
-
-    #[test]
-    fn derive_pubkey_is_xonly_32_bytes() {
-        let w = wallet(TV1_MNEMONIC);
-        let a = Deriver::new(&w).derive(0).unwrap();
-        assert_eq!(a.public_key_bytes().len(), 32);
-    }
-
+    /// Official NIP-06 test vector 1 — full 4-way lock
+    /// (path / private key / public key / npub / nsec).
     #[test]
     fn kat_nip06_vector1() {
-        let w = wallet(TV1_MNEMONIC);
-        let a = Deriver::new(&w).derive(0).unwrap();
+        let a = Deriver::new(&wallet(TV1_MNEMONIC)).derive(0).unwrap();
+        assert_eq!(a.path(), "m/44'/1237'/0'/0/0");
+        assert_eq!(a.private_key_hex().as_str(), TV1_PRIV_HEX);
         assert_eq!(a.public_key_hex(), TV1_PUB_HEX);
         assert_eq!(a.npub(), TV1_NPUB);
-        assert_eq!(a.address(), TV1_NPUB);
         assert_eq!(a.nsec().as_str(), TV1_NSEC);
+        // `address()` is the canonical NIP-19 representation of the pubkey.
+        assert_eq!(a.address(), TV1_NPUB);
     }
 
-    #[test]
-    fn kat_nip06_vector1_private_key_hex() {
-        // The raw 32-byte private key matches the published vector.
-        let w = wallet(TV1_MNEMONIC);
-        let a = Deriver::new(&w).derive(0).unwrap();
-        assert_eq!(a.private_key_hex().as_str(), TV1_PRIV_HEX);
-    }
-
+    /// Official NIP-06 test vector 2 (24-word mnemonic) — stresses the
+    /// BIP-39 PBKDF2 + SLIP-10 path on a longer seed entropy.
     #[test]
     fn kat_nip06_vector2() {
-        let w = wallet(TV2_MNEMONIC);
-        let a = Deriver::new(&w).derive(0).unwrap();
+        let a = Deriver::new(&wallet(TV2_MNEMONIC)).derive(0).unwrap();
+        assert_eq!(a.path(), "m/44'/1237'/0'/0/0");
+        assert_eq!(a.private_key_hex().as_str(), TV2_PRIV_HEX);
         assert_eq!(a.public_key_hex(), TV2_PUB_HEX);
-        assert_eq!(a.address(), TV2_NPUB);
+        assert_eq!(a.npub(), TV2_NPUB);
         assert_eq!(a.nsec().as_str(), TV2_NSEC);
     }
 
+    /// `derive_many` (inherent) and the `DeriveExt` blanket impl must
+    /// agree on every index and produce `NostrAccount` / `DerivedAccount`
+    /// views that share the same NIP-19 `npub`.
     #[test]
-    fn kat_nip06_vector2_private_key_hex() {
-        let w = wallet(TV2_MNEMONIC);
-        let a = Deriver::new(&w).derive(0).unwrap();
-        assert_eq!(a.private_key_hex().as_str(), TV2_PRIV_HEX);
-    }
-
-    #[test]
-    fn derive_many_unique_across_accounts() {
+    fn derive_many_matches_individual_and_derive_ext() {
         let w = wallet(TV1_MNEMONIC);
         let d = Deriver::new(&w);
-        let accounts = d.derive_many(0, 3).unwrap();
-        assert_eq!(accounts.len(), 3);
-        assert_eq!(accounts[0].path(), "m/44'/1237'/0'/0/0");
-        assert_eq!(accounts[1].path(), "m/44'/1237'/1'/0/0");
-        assert_eq!(accounts[2].path(), "m/44'/1237'/2'/0/0");
-        assert_ne!(accounts[0].address(), accounts[1].address());
-        assert_ne!(accounts[1].address(), accounts[2].address());
+        let inherent = d.derive_many(0, 3).unwrap();
+        let ext: Vec<DerivedAccount> = DeriveExt::derive_many(&d, 0, 3).unwrap();
+        let single: Vec<_> = (0..3).map(|i| d.derive(i).unwrap()).collect();
+        for i in 0..3 {
+            assert_eq!(inherent[i].address(), single[i].address());
+            assert_eq!(inherent[i].path(), single[i].path());
+            assert_eq!(ext[i].address(), inherent[i].address());
+            assert_eq!(ext[i].path(), format!("m/44'/1237'/{i}'/0/0"));
+        }
     }
 
     #[test]
-    fn derive_many_via_derive_ext_returns_derived_accounts() {
-        let w = wallet(TV1_MNEMONIC);
-        let d = Deriver::new(&w);
-        let accounts: Vec<DerivedAccount> = DeriveExt::derive_many(&d, 0, 2).unwrap();
-        assert_eq!(accounts.len(), 2);
-        assert!(accounts[0].address().starts_with("npub1"));
-    }
-
-    #[test]
-    fn deterministic() {
-        let w1 = wallet(TV1_MNEMONIC);
-        let w2 = wallet(TV1_MNEMONIC);
-        let a1 = Deriver::new(&w1).derive(0).unwrap();
-        let a2 = Deriver::new(&w2).derive(0).unwrap();
-        assert_eq!(a1.address(), a2.address());
-        assert_eq!(a1.private_key_hex().as_str(), a2.private_key_hex().as_str());
-    }
-
-    #[test]
-    fn passphrase_changes_address() {
-        let w1 = Wallet::from_mnemonic(TV1_MNEMONIC, None).unwrap();
-        let w2 = Wallet::from_mnemonic(TV1_MNEMONIC, Some("pass")).unwrap();
+    fn passphrase_changes_derivation() {
+        let w = Wallet::from_mnemonic(TV1_MNEMONIC, Some("TREZOR")).unwrap();
         assert_ne!(
-            Deriver::new(&w1).derive(0).unwrap().address(),
-            Deriver::new(&w2).derive(0).unwrap().address(),
+            Deriver::new(&wallet(TV1_MNEMONIC))
+                .derive(0)
+                .unwrap()
+                .address(),
+            Deriver::new(&w).derive(0).unwrap().address(),
         );
-    }
-
-    #[test]
-    fn derive_path_custom() {
-        let w = wallet(TV1_MNEMONIC);
-        let a = Deriver::new(&w)
-            .derive_at_path("m/44'/1237'/5'/0/0")
-            .unwrap();
-        assert_eq!(a.path(), "m/44'/1237'/5'/0/0");
-        assert!(a.address().starts_with("npub1"));
     }
 }

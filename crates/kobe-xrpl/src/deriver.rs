@@ -112,115 +112,82 @@ fn encode_classic_address(compressed_pubkey: &[u8]) -> String {
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing, reason = "test assertions")]
 mod tests {
     use kobe_primitives::DeriveExt;
 
     use super::*;
 
+    /// Canonical BIP-39 test mnemonic (12 × `abandon` + `about`).
     const MNEMONIC: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
     fn wallet() -> Wallet {
         Wallet::from_mnemonic(MNEMONIC, None).unwrap()
     }
 
+    /// Known-answer test for the canonical BIP-39 `abandon…about` mnemonic.
+    ///
+    /// Address and private key are independently re-computed from
+    /// `bip39 → bip32(m/44'/144'/0'/0/{i}) → secp256k1 → hash160 →
+    /// version 0x00 || payload || double-sha256 checksum → XRPL base58`
+    /// using `bip39`, `bip32`, `tiny-secp256k1`, `@cosmjs/crypto` and a
+    /// hand-rolled XRPL base58 encoder in Node.js. Any regression in the
+    /// derivation or encoding pipeline breaks these fixed strings.
     #[test]
-    fn address_starts_with_r() {
-        let w = wallet();
-        let a = Deriver::new(&w).derive(0).unwrap();
-        assert!(
-            a.address().starts_with('r'),
-            "XRPL address must start with 'r', got: {}",
-            a.address()
+    fn kat_xrpl_abandon_index0() {
+        let a = Deriver::new(&wallet()).derive(0).unwrap();
+        assert_eq!(a.path(), "m/44'/144'/0'/0/0");
+        assert_eq!(a.address(), "rHsMGQEkVNJmpGWs8XUBoTBiAAbwxZN5v3");
+        assert_eq!(
+            a.private_key_hex().as_str(),
+            "90802a50aa84efb6cdb225f17c27616ea94048c179142fecf03f4712a07ea7a4"
         );
     }
 
     #[test]
-    fn address_length_valid() {
-        let w = wallet();
-        let a = Deriver::new(&w).derive(0).unwrap();
-        // XRPL classic addresses are 25-34 characters
-        assert!(
-            (25..=34).contains(&a.address().len()),
-            "XRPL address length must be 25-34, got: {} ({})",
-            a.address().len(),
-            a.address()
+    fn kat_xrpl_abandon_index1() {
+        let a = Deriver::new(&wallet()).derive(1).unwrap();
+        assert_eq!(a.path(), "m/44'/144'/0'/0/1");
+        assert_eq!(a.address(), "r3AgF9mMBFtaLhKcg96weMhbbEFLZ3mx17");
+        assert_eq!(
+            a.private_key_hex().as_str(),
+            "0974b4cfe004a2e6c4364cbf3510a36a352796728d0861f6b555ed7e54a70389"
         );
     }
 
+    /// `derive_many` must return the same accounts as iterating `derive`
+    /// individually. Guards against off-by-one and batch/scalar skew.
     #[test]
-    fn deterministic() {
-        let w = wallet();
-        let a1 = Deriver::new(&w).derive(0).unwrap();
-        let a2 = Deriver::new(&w).derive(0).unwrap();
-        assert_eq!(a1.address(), a2.address());
-        assert_eq!(a1.private_key_bytes(), a2.private_key_bytes());
-    }
-
-    #[test]
-    fn different_indices() {
+    fn derive_many_matches_individual() {
         let w = wallet();
         let d = Deriver::new(&w);
+        let batch = d.derive_many(0, 3).unwrap();
+        let single: Vec<_> = (0..3).map(|i| d.derive(i).unwrap()).collect();
+        for (b, s) in batch.iter().zip(single.iter()) {
+            assert_eq!(b.address(), s.address());
+            assert_eq!(b.path(), s.path());
+        }
+    }
+
+    /// A non-empty BIP-39 passphrase must produce a completely different
+    /// derivation tree.
+    #[test]
+    fn passphrase_changes_derivation() {
+        let w_no_pw = Wallet::from_mnemonic(MNEMONIC, None).unwrap();
+        let w_pw = Wallet::from_mnemonic(MNEMONIC, Some("TREZOR")).unwrap();
         assert_ne!(
-            d.derive(0).unwrap().address(),
-            d.derive(1).unwrap().address()
+            Deriver::new(&w_no_pw).derive(0).unwrap().address(),
+            Deriver::new(&w_pw).derive(0).unwrap().address(),
         );
     }
 
+    /// `derive_path` must honour a fully-qualified path rather than quietly
+    /// falling back to the default index.
     #[test]
-    fn derive_many_works() {
+    fn derive_path_honours_account_segment() {
         let w = wallet();
-        let accounts = Deriver::new(&w).derive_many(0, 3).unwrap();
-        assert_eq!(accounts.len(), 3);
-        assert_ne!(accounts[0].address(), accounts[1].address());
-        assert_ne!(accounts[1].address(), accounts[2].address());
-    }
-
-    #[test]
-    fn derive_path_custom() {
-        let w = wallet();
-        let a = Deriver::new(&w).derive_path("m/44'/144'/0'/0/5").unwrap();
-        assert!(a.address().starts_with('r'));
-    }
-
-    #[test]
-    fn passphrase_changes_address() {
-        let w1 = Wallet::from_mnemonic(MNEMONIC, None).unwrap();
-        let w2 = Wallet::from_mnemonic(MNEMONIC, Some("pass")).unwrap();
-        assert_ne!(
-            Deriver::new(&w1).derive(0).unwrap().address(),
-            Deriver::new(&w2).derive(0).unwrap().address(),
-        );
-    }
-
-    #[test]
-    fn private_key_is_32_bytes() {
-        let w = wallet();
-        let a = Deriver::new(&w).derive(0).unwrap();
-        assert_eq!(a.private_key_bytes().len(), 32);
-        assert_eq!(a.private_key_hex().as_str().len(), 64);
-    }
-
-    #[test]
-    fn public_key_is_compressed_33_bytes() {
-        let w = wallet();
-        let a = Deriver::new(&w).derive(0).unwrap();
-        let pk_bytes = a.public_key_bytes();
-        assert_eq!(pk_bytes.len(), 33);
-        assert!(pk_bytes[0] == 0x02 || pk_bytes[0] == 0x03);
-    }
-
-    #[test]
-    fn address_is_valid_base58_xrpl() {
-        let w = wallet();
-        let a = Deriver::new(&w).derive(0).unwrap();
-        // Decode with XRPL alphabet to verify roundtrip
-        let decoded = bs58::decode(a.address())
-            .with_alphabet(&XRPL_ALPHABET)
-            .into_vec()
-            .unwrap();
-        // 1 (version) + 20 (account_id) + 4 (checksum) = 25 bytes
-        assert_eq!(decoded.len(), 25);
-        assert_eq!(decoded[0], ACCOUNT_VERSION);
+        let default_addr = Deriver::new(&w).derive(0).unwrap().address().to_owned();
+        let alt = Deriver::new(&w).derive_path("m/44'/144'/1'/0/0").unwrap();
+        assert_eq!(alt.path(), "m/44'/144'/1'/0/0");
+        assert_ne!(alt.address(), default_addr);
     }
 }

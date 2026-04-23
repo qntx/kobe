@@ -190,112 +190,21 @@ fn encode_spark_address(
 mod tests {
     use super::*;
 
+    /// Canonical BIP-39 test mnemonic (12 × `abandon` + `about`).
     const TEST_MNEMONIC: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
     fn test_wallet() -> Wallet {
         Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap()
     }
 
+    /// Cross-verified with the independent `ethanmarcuss/spark-address`
+    /// Rust crate using its **published** mainnet test vector. This
+    /// locks the low-level `encode_spark_address` byte pipeline
+    /// (`0x0a || 0x21 || 33-byte pubkey` → Bech32m `spark1…`) against
+    /// an external reference implementation that is not derived from
+    /// kobe code.
     #[test]
-    fn derive_starts_with_spark1() {
-        let wallet = test_wallet();
-        let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert!(
-            derived.address().starts_with("spark1"),
-            "mainnet address should start with spark1, got: {}",
-            derived.address()
-        );
-    }
-
-    #[test]
-    fn derive_correct_path() {
-        let wallet = test_wallet();
-        let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(derived.path(), "m/8797555'/0'/0'");
-    }
-
-    #[test]
-    fn deterministic() {
-        let w1 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
-        let w2 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
-        let a1 = Deriver::new(&w1).derive(0).unwrap();
-        let a2 = Deriver::new(&w2).derive(0).unwrap();
-        assert_eq!(a1.address(), a2.address());
-    }
-
-    #[test]
-    fn different_account_numbers_differ() {
-        let wallet = test_wallet();
-        let d = Deriver::new(&wallet);
-        assert_ne!(
-            d.derive(0).unwrap().address(),
-            d.derive(1).unwrap().address()
-        );
-    }
-
-    #[test]
-    fn testnet_prefix() {
-        let wallet = test_wallet();
-        let a = Deriver::with_network(&wallet, Network::Testnet)
-            .derive(0)
-            .unwrap();
-        assert!(
-            a.address().starts_with("sparkt1"),
-            "testnet address should start with sparkt1, got: {}",
-            a.address()
-        );
-    }
-
-    #[test]
-    fn regtest_prefix() {
-        let wallet = test_wallet();
-        let a = Deriver::with_network(&wallet, Network::Regtest)
-            .derive(0)
-            .unwrap();
-        assert!(a.address().starts_with("sparkrt1"));
-    }
-
-    #[test]
-    fn network_accessor_returns_configured_value() {
-        let wallet = test_wallet();
-        assert_eq!(
-            Deriver::with_network(&wallet, Network::Signet).network(),
-            Network::Signet
-        );
-    }
-
-    #[test]
-    fn mainnet_and_testnet_addresses_differ() {
-        let wallet = test_wallet();
-        let main = Deriver::with_network(&wallet, Network::Mainnet)
-            .derive(0)
-            .unwrap();
-        let test = Deriver::with_network(&wallet, Network::Testnet)
-            .derive(0)
-            .unwrap();
-        assert_ne!(main.address(), test.address());
-        // But the underlying private key is identical — the HRP only changes
-        // the wire format of the address.
-        assert_eq!(main.private_key_bytes(), test.private_key_bytes());
-    }
-
-    #[test]
-    fn public_key_is_33_byte_compressed() {
-        let wallet = test_wallet();
-        let a = Deriver::new(&wallet).derive(0).unwrap();
-        let pk = a.public_key_bytes();
-        assert_eq!(pk.len(), 33);
-        let prefix = pk.first().copied().expect("33-byte pubkey");
-        assert!(
-            prefix == 0x02 || prefix == 0x03,
-            "compressed pubkey prefix must be 0x02 or 0x03"
-        );
-    }
-
-    /// Cross-verified with the independent `spark-address` crate
-    /// (ethanmarcuss/spark-address) using its published mainnet test vector.
-    #[test]
-    fn kat_encode_spark_address_matches_reference_vector() {
+    fn kat_encode_spark_address_matches_ethanmarcuss_reference() {
         let pubkey_hex = "02894808873b896e21d29856a6d7bb346fb13c019739adb9bf0b6a8b7e28da53da";
         let mut pubkey = [0u8; 33];
         hex::decode_to_slice(pubkey_hex, &mut pubkey).unwrap();
@@ -306,21 +215,55 @@ mod tests {
         );
     }
 
-    /// End-to-end derivation + encoding regression lock for the canonical
-    /// BIP-39 "abandon…about" mnemonic at account 0.
-    ///
-    /// Locked against kobe's BIP-32 secp256k1 derivation composed with the
-    /// `encode_spark_address` implementation above (the latter is
-    /// cross-verified against the independent `ethanmarcuss/spark-address`
-    /// reference).
+    /// End-to-end derivation + encoding KAT on the canonical
+    /// `abandon…about` mnemonic at Spark identity key path
+    /// `m/8797555'/{account}'/0'`. This test composes the spec-compliant
+    /// encoder (verified above against ethanmarcuss) with kobe's BIP-32
+    /// derivation, so any regression in the combined pipeline surfaces
+    /// here.
     #[test]
-    fn kat_spark_abandon_mnemonic_index0() {
-        let wallet = test_wallet();
-        let a = Deriver::new(&wallet).derive(0).unwrap();
+    fn kat_spark_mainnet_abandon_index0() {
+        let a = Deriver::new(&test_wallet()).derive(0).unwrap();
         assert_eq!(a.path(), "m/8797555'/0'/0'");
         assert_eq!(
             a.address(),
             "spark1pgssy6vty7krpze82ecm8j39gd35v35aqjjmhftc4culawsavkyh564uc6zmqs"
         );
+    }
+
+    /// Testnet Bech32m HRP `sparkt` must yield a different address on the
+    /// same key material — confirms the HRP is the only difference while
+    /// the underlying 33-byte compressed pubkey is unchanged.
+    #[test]
+    fn testnet_and_mainnet_share_keys_not_address() {
+        let w = test_wallet();
+        let main = Deriver::new(&w).derive(0).unwrap();
+        let test = Deriver::with_network(&w, Network::Testnet)
+            .derive(0)
+            .unwrap();
+        assert!(main.address().starts_with("spark1"));
+        assert!(test.address().starts_with("sparkt1"));
+        assert_eq!(main.private_key_bytes(), test.private_key_bytes());
+        assert_eq!(main.public_key_bytes(), test.public_key_bytes());
+        assert_ne!(main.address(), test.address());
+    }
+
+    /// Every non-mainnet `Network` variant must map to its spec-defined
+    /// HRP, so `network()` matches the round-trip HRP of the emitted
+    /// address. Regression test for the `Network → Hrp` table.
+    #[test]
+    fn every_network_roundtrips_hrp() {
+        let w = test_wallet();
+        for net in [
+            Network::Mainnet,
+            Network::Testnet,
+            Network::Signet,
+            Network::Regtest,
+            Network::Local,
+        ] {
+            let a = Deriver::with_network(&w, net).derive(0).unwrap();
+            let (hrp, _) = bech32::decode(a.address()).unwrap();
+            assert_eq!(hrp.as_str(), net.hrp(), "HRP mismatch for {net:?}");
+        }
     }
 }

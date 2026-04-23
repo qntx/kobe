@@ -204,118 +204,94 @@ fn build_svm_account(derived: &DerivedKey, path: String) -> SvmAccount {
 mod tests {
     use super::*;
 
+    /// Canonical BIP-39 test mnemonic (12 × `abandon` + `about`).
+    const MNEMONIC: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+
     fn test_wallet() -> Wallet {
-        Wallet::from_mnemonic(
-            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
-            None,
-        )
-        .unwrap()
+        Wallet::from_mnemonic(MNEMONIC, None).unwrap()
     }
 
+    /// Known-answer test on the canonical BIP-39 `abandon…about` mnemonic
+    /// at the Phantom / Solflare default path `m/44'/501'/{i}'/0'`.
+    ///
+    /// Cross-verified with an independent Node.js pipeline
+    /// (`bip39 → ed25519-hd-key SLIP-10 → tweetnacl key pair → base58`)
+    /// per the Solana wallet adapter defaults documented at
+    /// <https://docs.phantom.app/>.
     #[test]
-    fn test_derive_address() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet);
-        let acct = deriver.derive(0).unwrap();
-
-        // Solana addresses are 32-44 characters in Base58
-        assert!(acct.address().len() >= 32 && acct.address().len() <= 44);
+    fn kat_solana_phantom_abandon_index0() {
+        let acct = Deriver::new(&test_wallet()).derive(0).unwrap();
         assert_eq!(acct.path(), "m/44'/501'/0'/0'");
-    }
-
-    #[test]
-    fn test_derive_many() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet);
-        let addresses = deriver.derive_many(0, 3).unwrap();
-
-        assert_eq!(addresses.len(), 3);
-        assert_eq!(addresses[0].path(), "m/44'/501'/0'/0'");
-        assert_eq!(addresses[1].path(), "m/44'/501'/1'/0'");
-        assert_eq!(addresses[2].path(), "m/44'/501'/2'/0'");
-
-        // All addresses should be unique
-        assert_ne!(addresses[0].address(), addresses[1].address());
-        assert_ne!(addresses[1].address(), addresses[2].address());
-    }
-
-    #[test]
-    fn test_deterministic_derivation() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet);
-
-        let acct1 = deriver.derive(0).unwrap();
-        let acct2 = deriver.derive(0).unwrap();
-
-        assert_eq!(acct1.address(), acct2.address());
-        assert_eq!(acct1.private_key_bytes(), acct2.private_key_bytes());
-    }
-
-    #[test]
-    fn test_derive_with_trust() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet);
-        let acct = deriver.derive_with(DerivationStyle::Trust, 0).unwrap();
-
-        assert_eq!(acct.path(), "m/44'/501'/0'");
-        assert!(acct.address().len() >= 32 && acct.address().len() <= 44);
-    }
-
-    #[test]
-    fn test_derive_with_ledger_live() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet);
-        let acct = deriver.derive_with(DerivationStyle::LedgerLive, 0).unwrap();
-
-        assert_eq!(acct.path(), "m/44'/501'/0'/0'/0'");
-        assert!(acct.address().len() >= 32 && acct.address().len() <= 44);
-    }
-
-    #[test]
-    fn test_different_styles_produce_different_addresses() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet);
-
-        let standard = deriver.derive_with(DerivationStyle::Standard, 0).unwrap();
-        let trust = deriver.derive_with(DerivationStyle::Trust, 0).unwrap();
-        let ledger_live = deriver.derive_with(DerivationStyle::LedgerLive, 0).unwrap();
-        let legacy = deriver.derive_with(DerivationStyle::Legacy, 0).unwrap();
-
-        // All styles should produce different addresses
-        assert_ne!(standard.address(), trust.address());
-        assert_ne!(standard.address(), ledger_live.address());
-        assert_ne!(standard.address(), legacy.address());
-        assert_ne!(trust.address(), ledger_live.address());
-    }
-
-    #[test]
-    fn kat_solana_standard_index0() {
-        // Cross-verified with Python SLIP-10 + nacl.signing + base58
-        let wallet = test_wallet();
-        let acct = Deriver::new(&wallet).derive(0).unwrap();
         assert_eq!(
             acct.address(),
             "HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk"
         );
+        assert_eq!(
+            acct.private_key_hex().as_str(),
+            "37df573b3ac4ad5b522e064e25b63ea16bcbe79d449e81a0268d1047948bb445"
+        );
     }
 
     #[test]
-    fn keypair_base58_is_populated() {
-        let wallet = test_wallet();
-        let acct = Deriver::new(&wallet).derive(0).unwrap();
-        assert!(!acct.keypair_base58().is_empty());
+    fn kat_solana_phantom_abandon_index1() {
+        let acct = Deriver::new(&test_wallet()).derive(1).unwrap();
+        assert_eq!(acct.path(), "m/44'/501'/1'/0'");
+        assert_eq!(
+            acct.address(),
+            "Hh8QwFUA6MtVu1qAoq12ucvFHNwCcVTV7hpWjeY1Hztb"
+        );
+        assert_eq!(
+            acct.private_key_hex().as_str(),
+            "ba5e7b6e3680b4eb81db8e54c8e466b2e9a899355888403355d858ab985d2fc4"
+        );
     }
 
+    /// Each derivation style must produce a distinct path AND a distinct
+    /// address — guards against silent path collisions.
     #[test]
-    fn bytes_accessors_roundtrip() {
-        let wallet = test_wallet();
-        let acct = Deriver::new(&wallet).derive(0).unwrap();
+    fn derivation_styles_produce_distinct_addresses() {
+        let w = test_wallet();
+        let d = Deriver::new(&w);
+        let standard = d.derive_with(DerivationStyle::Standard, 0).unwrap();
+        let trust = d.derive_with(DerivationStyle::Trust, 0).unwrap();
+        let ledger = d.derive_with(DerivationStyle::LedgerLive, 0).unwrap();
+        let legacy = d.derive_with(DerivationStyle::Legacy, 0).unwrap();
+        assert_eq!(standard.path(), "m/44'/501'/0'/0'");
+        assert_eq!(trust.path(), "m/44'/501'/0'");
+        assert_eq!(ledger.path(), "m/44'/501'/0'/0'/0'");
+        assert_eq!(legacy.path(), "m/501'/0'/0'/0'");
+        assert_ne!(standard.address(), trust.address());
+        assert_ne!(standard.address(), ledger.address());
+        assert_ne!(standard.address(), legacy.address());
+        assert_ne!(trust.address(), ledger.address());
+    }
 
-        let sk = acct.private_key_bytes();
-        assert_eq!(sk.len(), 32);
+    /// `derive_many` must agree with scalar `derive` for every index.
+    #[test]
+    fn derive_many_matches_individual() {
+        let w = test_wallet();
+        let d = Deriver::new(&w);
+        let batch = d.derive_many(0, 3).unwrap();
+        let single: Vec<_> = (0..3).map(|i| d.derive(i).unwrap()).collect();
+        for (b, s) in batch.iter().zip(single.iter()) {
+            assert_eq!(b.address(), s.address());
+            assert_eq!(b.path(), s.path());
+            assert_eq!(b.keypair_base58(), s.keypair_base58());
+        }
+    }
 
-        let pk = acct.public_key_bytes();
-        assert_eq!(pk.len(), 32);
-        assert_eq!(hex::encode(pk), acct.public_key_hex());
+    /// `keypair_base58` must be the solana-CLI-compatible 64-byte
+    /// (private || public) base58 encoding; decoding it back must yield
+    /// the same 32+32 layout.
+    #[test]
+    fn keypair_base58_matches_64_byte_layout() {
+        let w = test_wallet();
+        let acct = Deriver::new(&w).derive(0).unwrap();
+        let decoded = bs58::decode(acct.keypair_base58().as_str())
+            .into_vec()
+            .unwrap();
+        assert_eq!(decoded.len(), 64);
+        assert_eq!(&decoded[..32], acct.private_key_bytes().as_slice());
+        assert_eq!(&decoded[32..], acct.public_key_bytes());
     }
 }

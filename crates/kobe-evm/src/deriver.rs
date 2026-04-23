@@ -146,71 +146,102 @@ mod tests {
 
     use super::*;
 
-    const MNEMONIC: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+    /// Canonical BIP-39 test mnemonic (12 × `abandon` + `about`).
+    const MNEMONIC_ABANDON: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+
+    /// Hardhat / Foundry default test mnemonic. The resulting accounts are
+    /// the most widely-known Ethereum test vectors; any library in the
+    /// ecosystem that derives `m/44'/60'/0'/0/0` from this phrase yields
+    /// `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` with private key
+    /// `0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80`.
+    /// See <https://hardhat.org/hardhat-network/docs/reference>.
+    const MNEMONIC_HARDHAT: &str = "test test test test test test test test test test test junk";
 
     fn wallet() -> Wallet {
-        Wallet::from_mnemonic(MNEMONIC, None).unwrap()
+        Wallet::from_mnemonic(MNEMONIC_ABANDON, None).unwrap()
     }
 
+    /// Strongest possible EVM KAT: Hardhat / Foundry / Anvil / ethers.js
+    /// all agree on these values. A mismatch here means the BIP-32 /
+    /// secp256k1 / keccak256 / EIP-55 pipeline is broken in a way that
+    /// affects every Ethereum user of the library.
     #[test]
-    fn derive_standard_address() {
-        let w = wallet();
-        let d = Deriver::new(&w);
-        let a = d.derive(0).unwrap();
-        assert!(a.address().starts_with("0x"));
-        assert_eq!(a.address().len(), 42);
-        assert_eq!(a.path(), "m/44'/60'/0'/0/0");
-    }
-
-    #[test]
-    fn deterministic() {
-        let w = wallet();
+    fn kat_evm_hardhat_default_index0() {
+        let w = Wallet::from_mnemonic(MNEMONIC_HARDHAT, None).unwrap();
         let a = Deriver::new(&w).derive(0).unwrap();
-        let b = Deriver::new(&w).derive(0).unwrap();
-        assert_eq!(a.address(), b.address());
-    }
-
-    #[test]
-    fn different_indices() {
-        let w = wallet();
-        let d = Deriver::new(&w);
-        assert_ne!(
-            d.derive(0).unwrap().address(),
-            d.derive(1).unwrap().address()
+        assert_eq!(a.path(), "m/44'/60'/0'/0/0");
+        assert_eq!(a.address(), "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266");
+        assert_eq!(
+            a.private_key_hex().as_str(),
+            "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
         );
     }
 
     #[test]
-    fn passphrase_changes_address() {
-        let w1 = Wallet::from_mnemonic(MNEMONIC, None).unwrap();
-        let w2 = Wallet::from_mnemonic(MNEMONIC, Some("pass")).unwrap();
-        assert_ne!(
-            Deriver::new(&w1).derive(0).unwrap().address(),
-            Deriver::new(&w2).derive(0).unwrap().address(),
+    fn kat_evm_hardhat_default_index1() {
+        let w = Wallet::from_mnemonic(MNEMONIC_HARDHAT, None).unwrap();
+        let a = Deriver::new(&w).derive(1).unwrap();
+        assert_eq!(a.path(), "m/44'/60'/0'/0/1");
+        assert_eq!(a.address(), "0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
+        assert_eq!(
+            a.private_key_hex().as_str(),
+            "59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+        );
+    }
+
+    /// Second KAT on the canonical BIP-39 `abandon…about` mnemonic so we
+    /// also stress the BIP-39 PBKDF2 path that Hardhat skips (since Hardhat
+    /// uses a different 12-word phrase).
+    #[test]
+    fn kat_evm_abandon_index0() {
+        let a = Deriver::new(&wallet()).derive(0).unwrap();
+        assert_eq!(a.path(), "m/44'/60'/0'/0/0");
+        assert_eq!(a.address(), "0x9858EfFD232B4033E47d90003D41EC34EcaEda94");
+        assert_eq!(
+            a.private_key_hex().as_str(),
+            "1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727"
         );
     }
 
     #[test]
-    fn derivation_styles_produce_different_addresses() {
+    fn kat_evm_abandon_index1() {
+        let a = Deriver::new(&wallet()).derive(1).unwrap();
+        assert_eq!(a.path(), "m/44'/60'/0'/0/1");
+        assert_eq!(a.address(), "0x6Fac4D18c912343BF86fa7049364Dd4E424Ab9C0");
+        assert_eq!(
+            a.private_key_hex().as_str(),
+            "9a983cb3d832fbde5ab49d692b7a8bf5b5d232479c99333d0fc8e1d21f1b55b6"
+        );
+    }
+
+    /// Each derivation style must produce a distinct address at index 1 —
+    /// guards against two styles collapsing onto the same path.
+    #[test]
+    fn derivation_styles_produce_distinct_addresses() {
         let w = wallet();
         let d = Deriver::new(&w);
         let standard = d.derive_with(DerivationStyle::Standard, 1).unwrap();
         let live = d.derive_with(DerivationStyle::LedgerLive, 1).unwrap();
         let legacy = d.derive_with(DerivationStyle::LedgerLegacy, 1).unwrap();
+        assert_eq!(standard.path(), "m/44'/60'/0'/0/1");
+        assert_eq!(live.path(), "m/44'/60'/1'/0/0");
+        assert_eq!(legacy.path(), "m/44'/60'/0'/1");
         assert_ne!(standard.address(), live.address());
         assert_ne!(standard.address(), legacy.address());
         assert_ne!(live.address(), legacy.address());
     }
 
+    /// `DerivationStyle::path` must mint the canonical path strings.
     #[test]
-    fn style_paths() {
+    fn derivation_style_path_shapes() {
         assert_eq!(DerivationStyle::Standard.path(0), "m/44'/60'/0'/0/0");
         assert_eq!(DerivationStyle::LedgerLive.path(1), "m/44'/60'/1'/0/0");
         assert_eq!(DerivationStyle::LedgerLegacy.path(2), "m/44'/60'/0'/2");
     }
 
+    /// `DerivationStyle::FromStr` must map aliases and reject unknowns.
     #[test]
-    fn style_from_str() {
+    fn derivation_style_from_str_accepts_aliases() {
         assert_eq!(
             "standard".parse::<DerivationStyle>().unwrap(),
             DerivationStyle::Standard
@@ -227,56 +258,28 @@ mod tests {
             "legacy".parse::<DerivationStyle>().unwrap(),
             DerivationStyle::LedgerLegacy
         );
-        assert!("bad".parse::<DerivationStyle>().is_err());
+        assert!("definitely-not-a-style".parse::<DerivationStyle>().is_err());
     }
 
+    /// `derive_many` must agree with scalar `derive` for every index.
     #[test]
-    fn derive_many_returns_correct_count() {
+    fn derive_many_matches_individual() {
         let w = wallet();
         let d = Deriver::new(&w);
-        let accounts = d.derive_many(0, 5).unwrap();
-        assert_eq!(accounts.len(), 5);
-        for (i, a) in accounts.iter().enumerate() {
-            assert_eq!(a.path(), format!("m/44'/60'/0'/0/{i}"));
+        let batch = d.derive_many(0, 5).unwrap();
+        let single: Vec<_> = (0..5).map(|i| d.derive(i).unwrap()).collect();
+        for (b, s) in batch.iter().zip(single.iter()) {
+            assert_eq!(b.address(), s.address());
+            assert_eq!(b.path(), s.path());
         }
     }
 
     #[test]
-    fn derive_path_custom() {
-        let w = wallet();
-        let d = Deriver::new(&w);
-        let a = d.derive_path("m/44'/60'/0'/0/42").unwrap();
-        assert_eq!(a.path(), "m/44'/60'/0'/0/42");
-        assert!(a.address().starts_with("0x"));
-    }
-
-    #[test]
-    fn eip55_checksum_via_alloy() {
-        let addr: Address = "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
-            .parse()
-            .unwrap();
-        assert_eq!(
-            addr.to_checksum(None),
-            "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
+    fn passphrase_changes_derivation() {
+        let w = Wallet::from_mnemonic(MNEMONIC_ABANDON, Some("TREZOR")).unwrap();
+        assert_ne!(
+            Deriver::new(&wallet()).derive(0).unwrap().address(),
+            Deriver::new(&w).derive(0).unwrap().address(),
         );
-    }
-
-    #[test]
-    fn kat_evm_standard_index0() {
-        // Cross-verified with Python coincurve + keccak256 + EIP-55
-        let w = wallet();
-        let a = Deriver::new(&w).derive(0).unwrap();
-        assert_eq!(a.address(), "0x9858EfFD232B4033E47d90003D41EC34EcaEda94");
-        assert_eq!(
-            a.private_key_hex().as_str(),
-            "1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727"
-        );
-    }
-
-    #[test]
-    fn kat_evm_standard_index1() {
-        let w = wallet();
-        let a = Deriver::new(&w).derive(1).unwrap();
-        assert_eq!(a.address(), "0x6Fac4D18c912343BF86fa7049364Dd4E424Ab9C0");
     }
 }

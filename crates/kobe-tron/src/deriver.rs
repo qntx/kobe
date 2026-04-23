@@ -59,85 +59,69 @@ impl Derive for Deriver<'_> {
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing, reason = "test assertions")]
 mod tests {
+    use kobe_primitives::DeriveExt;
+
     use super::*;
 
+    /// Canonical BIP-39 test mnemonic (12 × `abandon` + `about`).
     const TEST_MNEMONIC: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
     fn test_wallet() -> Wallet {
         Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap()
     }
 
+    /// Known-answer test at BIP-44 path `m/44'/195'/0'/0/{i}`.
+    ///
+    /// Cross-verified against an independent Node.js pipeline (`bip39 →
+    /// bip32 → secp256k1 → uncompressed_pubkey[1..] → keccak256[12..32]
+    /// → prefix 0x41 → base58check`) using `bip39`, `bip32`,
+    /// `tiny-secp256k1`, `@cosmjs/crypto` and `bs58check`, per the Tron
+    /// address spec at
+    /// <https://developers.tron.network/docs/account#account-address>.
     #[test]
-    fn derive_starts_with_t() {
-        let wallet = test_wallet();
-        let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert!(
-            derived.address().starts_with('T'),
-            "Tron address should start with T, got: {}",
-            derived.address()
+    fn kat_tron_abandon_index0() {
+        let a = Deriver::new(&test_wallet()).derive(0).unwrap();
+        assert_eq!(a.path(), "m/44'/195'/0'/0/0");
+        assert_eq!(a.address(), "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH");
+        assert_eq!(
+            a.private_key_hex().as_str(),
+            "b5a4cea271ff424d7c31dc12a3e43e401df7a40d7412a15750f3f0b6b5449a28"
         );
     }
 
     #[test]
-    fn derive_address_length() {
-        let wallet = test_wallet();
-        let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(derived.address().len(), 34);
+    fn kat_tron_abandon_index1() {
+        let a = Deriver::new(&test_wallet()).derive(1).unwrap();
+        assert_eq!(a.path(), "m/44'/195'/0'/0/1");
+        assert_eq!(a.address(), "TSeJkUh4Qv67VNFwY8LaAxERygNdy6NQZK");
+        assert_eq!(
+            a.private_key_hex().as_str(),
+            "edb728e259afca2ddcc428459e7681b8414668649aedbc8d25c0872da219b2e6"
+        );
     }
 
+    /// `derive_many` must agree with scalar `derive` for every index.
     #[test]
-    fn derive_correct_path() {
-        let wallet = test_wallet();
-        let derived = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(derived.path(), "m/44'/195'/0'/0/0");
+    fn derive_many_matches_individual() {
+        let w = test_wallet();
+        let d = Deriver::new(&w);
+        let batch = d.derive_many(0, 3).unwrap();
+        let single: Vec<_> = (0..3).map(|i| d.derive(i).unwrap()).collect();
+        for (b, s) in batch.iter().zip(single.iter()) {
+            assert_eq!(b.address(), s.address());
+            assert_eq!(b.path(), s.path());
+        }
     }
 
+    /// A non-empty BIP-39 passphrase must produce a completely different
+    /// derivation tree.
     #[test]
-    fn deterministic() {
-        let w1 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
-        let w2 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
-        let a1 = Deriver::new(&w1).derive(0).unwrap();
-        let a2 = Deriver::new(&w2).derive(0).unwrap();
-        assert_eq!(a1.address(), a2.address());
-    }
-
-    #[test]
-    fn different_indices_differ() {
-        let wallet = test_wallet();
-        let d = Deriver::new(&wallet);
-        let a0 = d.derive(0).unwrap();
-        let a1 = d.derive(1).unwrap();
-        assert_ne!(a0.address(), a1.address());
-    }
-
-    #[test]
-    fn base58check_roundtrip() {
-        let wallet = test_wallet();
-        let derived = Deriver::new(&wallet).derive(0).unwrap();
-        let decoded = bs58::decode(derived.address())
-            .with_check(None)
-            .into_vec()
-            .unwrap();
-        assert_eq!(decoded[0], 0x41);
-        assert_eq!(decoded.len(), 21);
-    }
-
-    #[test]
-    fn passphrase_changes_address() {
-        let w1 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
-        let w2 = Wallet::from_mnemonic(TEST_MNEMONIC, Some("pass")).unwrap();
-        let a1 = Deriver::new(&w1).derive(0).unwrap();
-        let a2 = Deriver::new(&w2).derive(0).unwrap();
-        assert_ne!(a1.address(), a2.address());
-    }
-
-    #[test]
-    fn kat_tron_index0() {
-        // Cross-verified with Python coincurve + keccak256 + base58check(0x41 prefix)
-        let wallet = test_wallet();
-        let a = Deriver::new(&wallet).derive(0).unwrap();
-        assert_eq!(a.address(), "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH");
+    fn passphrase_changes_derivation() {
+        let w = Wallet::from_mnemonic(TEST_MNEMONIC, Some("TREZOR")).unwrap();
+        assert_ne!(
+            Deriver::new(&test_wallet()).derive(0).unwrap().address(),
+            Deriver::new(&w).derive(0).unwrap().address(),
+        );
     }
 }

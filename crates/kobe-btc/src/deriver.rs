@@ -249,113 +249,150 @@ impl Derive for Deriver<'_> {
 
 #[cfg(test)]
 mod tests {
+    use bitcoin::PrivateKey;
+
     use super::*;
 
+    /// Canonical BIP-39 test mnemonic (12 × `abandon` + `about`).
+    ///
+    /// Mnemonic and derived addresses appear on iancoleman.io/bip39, every
+    /// hardware wallet vendor test, and the official BIP-84 / BIP-86 test
+    /// vectors, so any regression will be immediately obvious to users.
     const TEST_MNEMONIC: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
     fn test_wallet() -> Wallet {
         Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap()
     }
 
-    #[test]
-    fn kat_p2wpkh() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-        let acct = deriver.derive_with(AddressType::P2wpkh, 0).unwrap();
-        assert_eq!(acct.address(), "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu");
-        assert_eq!(acct.path(), "m/84'/0'/0'/0/0");
-        assert_eq!(acct.address_type(), AddressType::P2wpkh);
+    fn deriver(wallet: &Wallet, network: Network) -> Deriver<'_> {
+        Deriver::new(wallet, network).unwrap()
     }
 
+    /// BIP-84 (`m/84'/0'/0'/0/{i}`) → native-`SegWit` `bc1q…` addresses.
+    /// Cross-verified against `bitcoinjs-lib@p2wpkh` in an independent
+    /// Node.js pipeline, matching the BIP-84 test vectors listed at
+    /// <https://github.com/bitcoin/bips/blob/master/bip-0084.mediawiki>.
     #[test]
-    fn kat_p2pkh() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-        let acct = deriver.derive_with(AddressType::P2pkh, 0).unwrap();
-        assert_eq!(acct.address(), "1LqBGSKuX5yYUonjxT5qGfpUsXKYYWeabA");
-        assert_eq!(acct.path(), "m/44'/0'/0'/0/0");
-    }
-
-    #[test]
-    fn kat_p2sh_p2wpkh() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-        let acct = deriver.derive_with(AddressType::P2shP2wpkh, 0).unwrap();
-        assert_eq!(acct.address(), "37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf");
-        assert_eq!(acct.path(), "m/49'/0'/0'/0/0");
-    }
-
-    #[test]
-    fn p2tr_prefix() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-        let acct = deriver.derive_with(AddressType::P2tr, 0).unwrap();
-        assert!(acct.address().starts_with("bc1p"));
-        assert_eq!(acct.path(), "m/86'/0'/0'/0/0");
-    }
-
-    #[test]
-    fn derive_default_is_p2wpkh() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-        let def = deriver.derive(0).unwrap();
-        let explicit = deriver.derive_with(AddressType::P2wpkh, 0).unwrap();
-        assert_eq!(def.address(), explicit.address());
-    }
-
-    #[test]
-    fn testnet_prefix() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet, Network::Testnet).unwrap();
-        let acct = deriver.derive(0).unwrap();
-        assert!(acct.address().starts_with("tb1q"));
-        assert_eq!(acct.path(), "m/84'/1'/0'/0/0");
-    }
-
-    #[test]
-    fn derive_many_unique() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-        let addrs = deriver.derive_many(0, 5).unwrap();
-        assert_eq!(addrs.len(), 5);
-        let mut unique: Vec<&str> = addrs.iter().map(|a| a.address()).collect();
-        unique.sort_unstable();
-        unique.dedup();
-        assert_eq!(unique.len(), 5);
-    }
-
-    #[test]
-    fn passphrase_changes_addresses() {
-        let wallet1 = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
-        let wallet2 = Wallet::from_mnemonic(TEST_MNEMONIC, Some("password")).unwrap();
-        let d1 = Deriver::new(&wallet1, Network::Mainnet).unwrap();
-        let d2 = Deriver::new(&wallet2, Network::Mainnet).unwrap();
-        assert_ne!(
-            d1.derive(0).unwrap().address(),
-            d2.derive(0).unwrap().address()
+    fn kat_bip84_p2wpkh_abandon_index0() {
+        let w = test_wallet();
+        let a = deriver(&w, Network::Mainnet)
+            .derive_with(AddressType::P2wpkh, 0)
+            .unwrap();
+        assert_eq!(a.path(), "m/84'/0'/0'/0/0");
+        assert_eq!(a.address(), "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu");
+        assert_eq!(a.address_type(), AddressType::P2wpkh);
+        assert_eq!(
+            a.private_key_hex().as_str(),
+            "4604b4b710fe91f584fff084e1a9159fe4f8408fff380596a604948474ce4fa3"
         );
     }
 
     #[test]
-    fn wif_is_populated() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-        let acct = deriver.derive(0).unwrap();
-        assert!(!acct.private_key_wif().is_empty());
-        assert_eq!(acct.private_key_bytes().len(), 32);
+    fn kat_bip84_p2wpkh_abandon_index1() {
+        let w = test_wallet();
+        let a = deriver(&w, Network::Mainnet)
+            .derive_with(AddressType::P2wpkh, 1)
+            .unwrap();
+        assert_eq!(a.path(), "m/84'/0'/0'/0/1");
+        assert_eq!(a.address(), "bc1qnjg0jd8228aq7egyzacy8cys3knf9xvrerkf9g");
+    }
+
+    /// BIP-44 (`m/44'/0'/0'/0/{i}`) → legacy P2PKH `1…` addresses.
+    #[test]
+    fn kat_bip44_p2pkh_abandon_index0() {
+        let w = test_wallet();
+        let a = deriver(&w, Network::Mainnet)
+            .derive_with(AddressType::P2pkh, 0)
+            .unwrap();
+        assert_eq!(a.path(), "m/44'/0'/0'/0/0");
+        assert_eq!(a.address(), "1LqBGSKuX5yYUonjxT5qGfpUsXKYYWeabA");
+    }
+
+    /// BIP-49 (`m/49'/0'/0'/0/{i}`) → P2SH-wrapped `SegWit` `3…` addresses.
+    #[test]
+    fn kat_bip49_p2sh_p2wpkh_abandon_index0() {
+        let w = test_wallet();
+        let a = deriver(&w, Network::Mainnet)
+            .derive_with(AddressType::P2shP2wpkh, 0)
+            .unwrap();
+        assert_eq!(a.path(), "m/49'/0'/0'/0/0");
+        assert_eq!(a.address(), "37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf");
+    }
+
+    /// BIP-86 (`m/86'/0'/0'/0/{i}`) → single-key Taproot `bc1p…`
+    /// addresses. Cross-verified against `bitcoinjs-lib@p2tr`.
+    #[test]
+    fn kat_bip86_p2tr_abandon_index0() {
+        let w = test_wallet();
+        let a = deriver(&w, Network::Mainnet)
+            .derive_with(AddressType::P2tr, 0)
+            .unwrap();
+        assert_eq!(a.path(), "m/86'/0'/0'/0/0");
+        assert_eq!(
+            a.address(),
+            "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr"
+        );
+    }
+
+    /// Testnet SLIP-44 coin type `1` + BIP-84 bech32 HRP `tb`.
+    /// Cross-verified against `bitcoinjs-lib` on `bitcoin.networks.testnet`.
+    #[test]
+    fn kat_testnet_p2wpkh_abandon_index0() {
+        let w = test_wallet();
+        let a = deriver(&w, Network::Testnet)
+            .derive_with(AddressType::P2wpkh, 0)
+            .unwrap();
+        assert_eq!(a.path(), "m/84'/1'/0'/0/0");
+        assert_eq!(a.address(), "tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl");
+    }
+
+    /// `Derive::derive` (the trait) and `Deriver::derive` (inherent) must
+    /// both route to P2WPKH with BIP-84 paths.
+    #[test]
+    fn default_derive_uses_bip84_p2wpkh() {
+        let w = test_wallet();
+        let d = deriver(&w, Network::Mainnet);
+        let def = d.derive(0).unwrap();
+        let explicit = d.derive_with(AddressType::P2wpkh, 0).unwrap();
+        assert_eq!(def.address(), explicit.address());
+        assert_eq!(def.path(), explicit.path());
+    }
+
+    /// `derive_many` must agree with scalar `derive_with` for every index.
+    #[test]
+    fn derive_many_matches_individual() {
+        let w = test_wallet();
+        let d = deriver(&w, Network::Mainnet);
+        let batch = d.derive_many(0, 5).unwrap();
+        let single: Vec<_> = (0..5)
+            .map(|i| d.derive_with(AddressType::P2wpkh, i).unwrap())
+            .collect();
+        for (b, s) in batch.iter().zip(single.iter()) {
+            assert_eq!(b.address(), s.address());
+            assert_eq!(b.path(), s.path());
+        }
+    }
+
+    /// WIF must round-trip back to the same 32-byte private key — guards
+    /// against checksum or version-byte errors in the WIF encoder.
+    #[test]
+    fn wif_roundtrips_to_private_key_bytes() {
+        let w = test_wallet();
+        let a = deriver(&w, Network::Mainnet).derive(0).unwrap();
+        let pk = PrivateKey::from_wif(a.private_key_wif().as_str()).unwrap();
+        assert_eq!(&pk.to_bytes(), a.private_key_bytes().as_slice());
+        assert_eq!(pk.network, bitcoin::NetworkKind::Main);
     }
 
     #[test]
-    fn bytes_accessors_roundtrip() {
-        let wallet = test_wallet();
-        let deriver = Deriver::new(&wallet, Network::Mainnet).unwrap();
-        let acct = deriver.derive_with(AddressType::P2wpkh, 0).unwrap();
-
-        let sk = acct.private_key_bytes();
-        assert_eq!(sk.len(), 32);
-
-        let pk = acct.public_key_bytes();
-        assert_eq!(pk.len(), 33);
-        assert_eq!(hex::encode(pk), acct.public_key_hex());
+    fn passphrase_changes_derivation() {
+        let w = Wallet::from_mnemonic(TEST_MNEMONIC, Some("TREZOR")).unwrap();
+        assert_ne!(
+            deriver(&test_wallet(), Network::Mainnet)
+                .derive(0)
+                .unwrap()
+                .address(),
+            deriver(&w, Network::Mainnet).derive(0).unwrap().address(),
+        );
     }
 }
