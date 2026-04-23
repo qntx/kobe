@@ -62,25 +62,122 @@ const WALLET_V5R1_CODE_DEPTH: u16 = 6;
 
 /// Default walletId for mainnet workchain 0.
 /// Computed as: `networkGlobalId(-239) XOR context(0x80000000)`
-const DEFAULT_WALLET_ID: i32 = 0x7FFF_FF11;
+const DEFAULT_WALLET_ID_MAINNET: i32 = 0x7FFF_FF11;
+
+/// Default walletId for testnet workchain 0.
+/// Computed as: `networkGlobalId(-3) XOR context(0x80000000)`
+const DEFAULT_WALLET_ID_TESTNET: i32 = 0x7FFF_FFFD_u32 as i32;
+
+/// User-friendly TON address format configuration.
+///
+/// Controls the workchain, bounceability, and network (mainnet/testnet) of
+/// the generated address without affecting the underlying key derivation.
+///
+/// # Defaults
+///
+/// - Workchain `0` (basechain)
+/// - Non-bounceable (`UQ…` on mainnet)
+/// - Mainnet
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub struct AddressFormat {
+    /// Workchain ID; `0` = basechain, `-1` = masterchain.
+    pub workchain: i8,
+    /// Whether to emit a *bounceable* (`EQ…` / `kQ…`) address.
+    ///
+    /// Tonkeeper and most modern wallets prefer **non-bounceable** (`UQ…` /
+    /// `0Q…`) for plain wallets. Smart-contract destinations typically use
+    /// bounceable.
+    pub bounceable: bool,
+    /// Testnet flag; toggles the `0x80` bit in the address tag and selects
+    /// the testnet walletId variant for v5r1.
+    pub testnet: bool,
+}
+
+impl AddressFormat {
+    /// Default mainnet, workchain 0, non-bounceable format (`UQ…`).
+    pub const DEFAULT: Self = Self {
+        workchain: 0,
+        bounceable: false,
+        testnet: false,
+    };
+
+    /// Mainnet, workchain 0, bounceable (`EQ…`).
+    pub const BOUNCEABLE: Self = Self {
+        workchain: 0,
+        bounceable: true,
+        testnet: false,
+    };
+
+    /// Testnet, workchain 0, non-bounceable (`0Q…`).
+    pub const TESTNET: Self = Self {
+        workchain: 0,
+        bounceable: false,
+        testnet: true,
+    };
+
+    /// Construct a custom format.
+    #[must_use]
+    pub const fn new(workchain: i8, bounceable: bool, testnet: bool) -> Self {
+        Self {
+            workchain,
+            bounceable,
+            testnet,
+        }
+    }
+
+    /// Return the walletId v5r1 uses for this format's network.
+    const fn wallet_id(self) -> i32 {
+        if self.testnet {
+            DEFAULT_WALLET_ID_TESTNET
+        } else {
+            DEFAULT_WALLET_ID_MAINNET
+        }
+    }
+}
+
+impl Default for AddressFormat {
+    #[inline]
+    fn default() -> Self {
+        Self::DEFAULT
+    }
+}
 
 /// TON address deriver from a unified wallet seed.
 ///
-/// Derives TON wallet v5r1 addresses using SLIP-10 Ed25519 at path `m/44'/607'/{index}'`.
+/// Derives TON wallet v5r1 addresses using SLIP-10 Ed25519 at path
+/// `m/44'/607'/{index}'`. The surface form of the address (workchain,
+/// bounceability, network) is controlled by [`AddressFormat`].
 #[derive(Debug)]
 pub struct Deriver<'a> {
     /// Reference to the wallet for seed access.
     wallet: &'a Wallet,
+    /// Address format applied to every derivation.
+    format: AddressFormat,
 }
 
 impl<'a> Deriver<'a> {
-    /// Create a new TON deriver from a wallet.
+    /// Create a new TON deriver with the default address format
+    /// (mainnet, workchain 0, non-bounceable).
     #[must_use]
     pub const fn new(wallet: &'a Wallet) -> Self {
-        Self { wallet }
+        Self::with_format(wallet, AddressFormat::DEFAULT)
     }
 
-    /// Derive with a specific [`DerivationStyle`].
+    /// Create a new TON deriver with a custom [`AddressFormat`].
+    #[must_use]
+    pub const fn with_format(wallet: &'a Wallet, format: AddressFormat) -> Self {
+        Self { wallet, format }
+    }
+
+    /// Return the active [`AddressFormat`].
+    #[inline]
+    #[must_use]
+    pub const fn format(&self) -> AddressFormat {
+        self.format
+    }
+
+    /// Derive with a specific [`DerivationStyle`] at the given account index.
     ///
     /// # Errors
     ///
@@ -100,10 +197,15 @@ impl<'a> Deriver<'a> {
         let verifying_key = signing_key.verifying_key();
         let pubkey_bytes: &[u8; 32] = verifying_key.as_bytes();
 
-        let data_hash = data_cell_hash(pubkey_bytes);
+        let data_hash = data_cell_hash(pubkey_bytes, self.format.wallet_id());
         let state_hash =
             state_init_hash(&WALLET_V5R1_CODE_HASH, WALLET_V5R1_CODE_DEPTH, &data_hash);
-        let address = encode_address(0, &state_hash, false);
+        let address = encode_address(
+            self.format.workchain,
+            &state_hash,
+            self.format.bounceable,
+            self.format.testnet,
+        );
 
         let mut sk_bytes = Zeroizing::new([0u8; 32]);
         sk_bytes.copy_from_slice(&signing_key.to_bytes());
@@ -131,11 +233,11 @@ impl Derive for Deriver<'_> {
 
 /// Compute the data cell hash for wallet v5r1 initial state.
 /// Data layout: `is_sig_allowed(1b) + seqno(32b) + walletId(32b) + pubkey(256b) + extensions(1b)` = 322 bits.
-fn data_cell_hash(public_key: &[u8; 32]) -> [u8; 32] {
+fn data_cell_hash(public_key: &[u8; 32], wallet_id: i32) -> [u8; 32] {
     let d1: u8 = 0; // 0 refs
     let d2: u8 = 81; // ceil(322/8) + floor(322/8) = 41 + 40
 
-    let wallet_id_bytes = DEFAULT_WALLET_ID.to_be_bytes();
+    let wallet_id_bytes = wallet_id.to_be_bytes();
 
     // Pack 322 bits: [1-bit flag][32-bit seqno][32-bit walletId][256-bit key][1-bit ext]
     let mut bits = Vec::with_capacity(328);
@@ -201,10 +303,11 @@ fn state_init_hash(code_hash: &[u8; 32], code_depth: u16, data_hash: &[u8; 32]) 
 }
 
 /// Encode a TON user-friendly address (base64url with CRC16).
-fn encode_address(workchain: i8, hash: &[u8; 32], bounceable: bool) -> String {
+fn encode_address(workchain: i8, hash: &[u8; 32], bounceable: bool, testnet: bool) -> String {
     use base64::Engine;
 
-    let tag: u8 = if bounceable { 0x11 } else { 0x51 };
+    let base: u8 = if bounceable { 0x11 } else { 0x51 };
+    let tag: u8 = if testnet { base | 0x80 } else { base };
     let mut addr = Vec::with_capacity(36);
     addr.push(tag);
     addr.push(workchain.to_ne_bytes()[0]);
@@ -324,5 +427,63 @@ mod tests {
     #[test]
     fn crc16_known_vector() {
         assert_eq!(crc16_ccitt(b"123456789"), 0x31C3);
+    }
+
+    #[test]
+    fn bounceable_address_starts_with_eq() {
+        let wallet = test_wallet();
+        let derived = Deriver::with_format(&wallet, AddressFormat::BOUNCEABLE)
+            .derive(0)
+            .unwrap();
+        assert!(
+            derived.address().starts_with("EQ"),
+            "bounceable mainnet should start with EQ, got: {}",
+            derived.address()
+        );
+    }
+
+    #[test]
+    fn testnet_non_bounceable_address_starts_with_0q() {
+        let wallet = test_wallet();
+        let derived = Deriver::with_format(&wallet, AddressFormat::TESTNET)
+            .derive(0)
+            .unwrap();
+        assert!(
+            derived.address().starts_with("0Q"),
+            "non-bounceable testnet should start with 0Q, got: {}",
+            derived.address()
+        );
+    }
+
+    #[test]
+    fn masterchain_format_accepted() {
+        let wallet = test_wallet();
+        let fmt = AddressFormat::new(-1, false, false);
+        let derived = Deriver::with_format(&wallet, fmt).derive(0).unwrap();
+        // Decoded workchain byte should be 0xFF (i8::-1 as u8).
+        use base64::Engine;
+        let decoded = base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .decode(derived.address())
+            .unwrap();
+        assert_eq!(decoded[1], 0xFF);
+    }
+
+    #[test]
+    fn format_accessor_returns_configured_value() {
+        let wallet = test_wallet();
+        let fmt = AddressFormat::BOUNCEABLE;
+        assert_eq!(Deriver::with_format(&wallet, fmt).format(), fmt);
+    }
+
+    #[test]
+    fn kat_wallet_v5r1_mainnet_index0() {
+        // Cross-verified against @ton/core `WalletContractV5R1` construction
+        // using the "abandon...about" BIP-39 seed at path m/44'/607'/0'.
+        let wallet = test_wallet();
+        let acct = Deriver::new(&wallet).derive(0).unwrap();
+        assert_eq!(
+            acct.address(),
+            "UQAHoh67BbXM3ebH3lWOK1KQk3vphgxCRyQaG9uQLsgJiXVM"
+        );
     }
 }
