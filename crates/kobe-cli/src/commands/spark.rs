@@ -1,6 +1,7 @@
 //! Spark wallet CLI commands.
 
 use clap::Args;
+use kobe::DeriveExt;
 use kobe::spark::Deriver;
 
 use crate::commands::SimpleSubcommand;

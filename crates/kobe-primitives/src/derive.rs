@@ -96,6 +96,40 @@ impl DerivedAccount {
     }
 }
 
+/// Derive a range of accounts by repeatedly invoking a derivation closure.
+///
+/// Generic building block for every chain's batch-derivation entry point:
+/// validates `start + count` against `u32` overflow and collects the
+/// results into a `Vec<T>`.
+///
+/// # Errors
+///
+/// Returns [`DeriveError::Input`] (wrapped via `E: From<DeriveError>`) if
+/// `start + count` overflows `u32`, or propagates any error produced by
+/// `f`.
+///
+/// # Example
+///
+/// ```no_run
+/// use kobe_primitives::{DerivedAccount, DeriveError, derive_range};
+///
+/// fn batch(count: u32) -> Result<Vec<DerivedAccount>, DeriveError> {
+///     derive_range(0, count, |_i| todo!("derive one"))
+/// }
+/// ```
+pub fn derive_range<T, E, F>(start: u32, count: u32, f: F) -> Result<Vec<T>, E>
+where
+    F: FnMut(u32) -> Result<T, E>,
+    E: From<DeriveError>,
+{
+    let end = start.checked_add(count).ok_or_else(|| {
+        E::from(DeriveError::Input(String::from(
+            "derive_many: start + count overflows u32",
+        )))
+    })?;
+    (start..end).map(f).collect()
+}
+
 /// Unified derivation trait implemented by all chain derivers.
 ///
 /// Provides a consistent API for deriving accounts regardless of the
@@ -135,17 +169,29 @@ pub trait Derive {
 /// Extension trait providing batch derivation for all [`Derive`] implementors.
 ///
 /// This trait is automatically implemented for any type implementing `Derive`.
+/// Import it to call `derive_many` on any deriver:
+///
+/// ```no_run
+/// use kobe_primitives::{Derive, DeriveExt};
+/// # struct D;
+/// # impl Derive for D {
+/// #     type Error = kobe_primitives::DeriveError;
+/// #     fn derive(&self, _: u32) -> Result<kobe_primitives::DerivedAccount, Self::Error> { unimplemented!() }
+/// #     fn derive_path(&self, _: &str) -> Result<kobe_primitives::DerivedAccount, Self::Error> { unimplemented!() }
+/// # }
+/// # let d = D;
+/// let accounts = d.derive_many(0, 5).unwrap();
+/// ```
 pub trait DeriveExt: Derive {
     /// Derive `count` accounts starting at index `start`.
     ///
     /// # Errors
     ///
-    /// Returns [`DeriveError::Input`] if `start + count` overflows `u32`.
+    /// Returns [`DeriveError::Input`] if `start + count` overflows `u32`,
+    /// or propagates any derivation error.
+    #[inline]
     fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAccount>, Self::Error> {
-        let end = start.checked_add(count).ok_or_else(|| {
-            DeriveError::Input(String::from("derive_many: start + count overflows u32"))
-        })?;
-        (start..end).map(|i| self.derive(i)).collect()
+        derive_range(start, count, |i| self.derive(i))
     }
 }
 

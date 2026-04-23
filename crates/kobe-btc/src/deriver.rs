@@ -12,7 +12,7 @@ use bitcoin::PrivateKey;
 use bitcoin::bip32::Xpriv;
 use bitcoin::key::CompressedPublicKey;
 use bitcoin::secp256k1::Secp256k1;
-use kobe_primitives::{Derive, DerivedAccount, Wallet};
+use kobe_primitives::{Derive, DerivedAccount, Wallet, derive_range};
 use zeroize::Zeroizing;
 
 use crate::address::create_address;
@@ -180,14 +180,7 @@ impl<'a> Deriver<'a> {
         start: u32,
         count: u32,
     ) -> Result<Vec<BtcAccount>, DeriveError> {
-        let end = start.checked_add(count).ok_or_else(|| {
-            DeriveError::InvalidDerivationPath(
-                "index overflow: start + count exceeds u32::MAX".into(),
-            )
-        })?;
-        (start..end)
-            .map(|index| self.derive_with(address_type, index))
-            .collect()
+        derive_range(start, count, |i| self.derive_with(address_type, i))
     }
 
     /// Derive a [`BtcAccount`] at a structured [`DerivationPath`] with the

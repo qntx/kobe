@@ -1,6 +1,7 @@
 //! Sui wallet CLI commands.
 
 use clap::Args;
+use kobe::DeriveExt;
 use kobe::sui::Deriver;
 
 use crate::commands::SimpleSubcommand;

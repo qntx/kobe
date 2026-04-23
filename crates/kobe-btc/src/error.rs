@@ -1,24 +1,20 @@
 //! Error types for Bitcoin wallet operations.
 
-#[cfg(feature = "alloc")]
-use alloc::string::String;
-
 /// Errors from Bitcoin HD derivation.
+///
+/// Path-parsing failures are surfaced through
+/// [`kobe_primitives::DeriveError::Path`] (accessible via the [`Core`](Self::Core)
+/// variant) to keep the error taxonomy consistent across chains.
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum DeriveError {
-    /// Core kobe error (index overflow, etc.).
+    /// Core kobe error (index overflow, path parsing, etc.).
     #[error(transparent)]
     Core(#[from] kobe_primitives::DeriveError),
 
     /// BIP-32 derivation error.
     #[error("bip32: {0}")]
     Bip32(#[cfg_attr(feature = "std", from)] bitcoin::bip32::Error),
-
-    /// Invalid derivation path.
-    #[cfg(feature = "alloc")]
-    #[error("{0}")]
-    InvalidDerivationPath(String),
 
     /// Invalid private key.
     #[error("invalid private key")]

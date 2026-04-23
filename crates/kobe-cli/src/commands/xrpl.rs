@@ -1,6 +1,7 @@
 //! XRPL wallet CLI commands.
 
 use clap::Args;
+use kobe::DeriveExt;
 use kobe::xrpl::Deriver;
 
 use crate::commands::SimpleSubcommand;

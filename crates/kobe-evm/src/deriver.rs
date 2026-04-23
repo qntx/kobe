@@ -8,7 +8,7 @@ use core::str::FromStr;
 
 use alloy_primitives::{Address, keccak256};
 pub use kobe_primitives::DerivedAccount;
-use kobe_primitives::{Derive, Wallet};
+use kobe_primitives::{Derive, Wallet, derive_range};
 
 use crate::DeriveError;
 
@@ -107,12 +107,7 @@ impl<'a> Deriver<'a> {
         start: u32,
         count: u32,
     ) -> Result<Vec<DerivedAccount>, DeriveError> {
-        let end = start.checked_add(count).ok_or_else(|| {
-            kobe_primitives::DeriveError::Input(String::from(
-                "derive_many: start + count overflows u32",
-            ))
-        })?;
-        (start..end).map(|i| self.derive_with(style, i)).collect()
+        derive_range(start, count, |i| self.derive_with(style, i))
     }
 
     /// Internal: derive at an arbitrary path.

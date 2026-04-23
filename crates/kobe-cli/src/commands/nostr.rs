@@ -2,7 +2,7 @@
 
 use clap::{Args, Subcommand};
 use kobe::nostr::{Deriver, account_nsec};
-use kobe::{DerivedAccount, Wallet};
+use kobe::{DeriveExt, DerivedAccount, Wallet};
 
 use crate::commands::simple::SimpleArgs;
 use crate::output::{self, HdWalletOutput};

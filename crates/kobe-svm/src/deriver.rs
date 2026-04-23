@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 use core::ops::Deref;
 
 use kobe_primitives::slip10::DerivedKey;
-use kobe_primitives::{Derive, DerivedAccount, Wallet};
+use kobe_primitives::{Derive, DerivedAccount, Wallet, derive_range};
 use zeroize::Zeroizing;
 
 use crate::DeriveError;
@@ -140,14 +140,7 @@ impl<'a> Deriver<'a> {
         start: u32,
         count: u32,
     ) -> Result<Vec<SvmAccount>, DeriveError> {
-        let end = start.checked_add(count).ok_or_else(|| {
-            kobe_primitives::DeriveError::Input(String::from(
-                "derive_many: start + count overflows u32",
-            ))
-        })?;
-        (start..end)
-            .map(|index| self.derive_with(style, index))
-            .collect()
+        derive_range(start, count, |i| self.derive_with(style, i))
     }
 
     /// Derive an account at a custom SLIP-0010 path.

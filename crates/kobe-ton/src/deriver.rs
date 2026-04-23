@@ -6,7 +6,7 @@ use core::fmt;
 
 pub use kobe_primitives::DerivedAccount;
 use kobe_primitives::slip10::DerivedKey;
-use kobe_primitives::{Derive, DeriveExt, Wallet};
+use kobe_primitives::{Derive, Wallet};
 use sha2::{Digest, Sha256};
 use zeroize::Zeroizing;
 
@@ -92,17 +92,6 @@ impl<'a> Deriver<'a> {
         index: u32,
     ) -> Result<DerivedAccount, DeriveError> {
         self.derive_at_path(&style.path(index))
-    }
-
-    /// Derive `count` accounts starting at `start` using the default Standard style.
-    ///
-    /// Equivalent to [`DeriveExt::derive_many`] but available as an inherent method.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if any derivation fails or `start + count` overflows.
-    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAccount>, DeriveError> {
-        <Self as DeriveExt>::derive_many(self, start, count)
     }
 
     /// Internal: derive at an arbitrary SLIP-10 path.

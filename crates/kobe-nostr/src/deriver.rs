@@ -5,12 +5,12 @@
 //! bech32 entities (`nsec` for the private key, `npub` for the x-only public key).
 
 #[cfg(feature = "alloc")]
-use alloc::{format, string::String, vec::Vec};
+use alloc::{format, string::String};
 
 use bech32::{Bech32, Hrp};
 pub use kobe_primitives::DerivedAccount;
 use kobe_primitives::bip32::DerivedSecp256k1Key;
-use kobe_primitives::{Derive, DeriveExt, Wallet};
+use kobe_primitives::{Derive, Wallet};
 use zeroize::Zeroizing;
 
 use crate::DeriveError;
@@ -52,17 +52,6 @@ impl<'a> Deriver<'a> {
     #[must_use]
     pub const fn new(wallet: &'a Wallet) -> Self {
         Self { wallet }
-    }
-
-    /// Derive `count` accounts starting at `start` using the default NIP-06 layout.
-    ///
-    /// Equivalent to [`DeriveExt::derive_many`] but available as an inherent method.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if any derivation fails or `start + count` overflows.
-    pub fn derive_many(&self, start: u32, count: u32) -> Result<Vec<DerivedAccount>, DeriveError> {
-        <Self as DeriveExt>::derive_many(self, start, count)
     }
 
     /// Internal: derive at an arbitrary BIP-32 path.
@@ -113,6 +102,8 @@ impl Derive for Deriver<'_> {
 #[cfg(test)]
 #[allow(clippy::indexing_slicing, reason = "test assertions")]
 mod tests {
+    use kobe_primitives::DeriveExt;
+
     use super::*;
 
     /// NIP-06 test vector 1.

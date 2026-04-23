@@ -1,6 +1,7 @@
 //! Aptos wallet CLI commands.
 
 use clap::Args;
+use kobe::DeriveExt;
 use kobe::aptos::Deriver;
 
 use crate::commands::SimpleSubcommand;

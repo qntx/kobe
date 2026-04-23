@@ -117,7 +117,7 @@ impl DerivationPath {
         let path_str = format!("m/{purpose}'/{coin_type}'/{account}'/{change_val}/{address_index}");
 
         let inner = bitcoin::bip32::DerivationPath::from_str(&path_str)
-            .map_err(|e| DeriveError::InvalidDerivationPath(e.to_string()))?;
+            .map_err(|e| DeriveError::Core(kobe_primitives::DeriveError::Path(e.to_string())))?;
         Ok(Self { inner })
     }
 
@@ -128,7 +128,7 @@ impl DerivationPath {
     /// Returns an error if the path string is invalid.
     pub fn from_path_str(path: &str) -> Result<Self, DeriveError> {
         let inner = bitcoin::bip32::DerivationPath::from_str(path)
-            .map_err(|e| DeriveError::InvalidDerivationPath(e.to_string()))?;
+            .map_err(|e| DeriveError::Core(kobe_primitives::DeriveError::Path(e.to_string())))?;
         Ok(Self { inner })
     }
 

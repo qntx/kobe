@@ -1,6 +1,7 @@
 //! Tron wallet CLI commands.
 
 use clap::Args;
+use kobe::DeriveExt;
 use kobe::tron::Deriver;
 
 use crate::commands::SimpleSubcommand;
