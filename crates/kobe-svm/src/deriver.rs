@@ -4,7 +4,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::ops::Deref;
 
-use kobe_primitives::slip10::DerivedKey;
+use kobe_primitives::slip10::DerivedEd25519Key;
 use kobe_primitives::{
     Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet, derive_range,
 };
@@ -168,20 +168,16 @@ impl AsRef<DerivedAccount> for SvmAccount {
     }
 }
 
-/// Build an [`SvmAccount`] from a raw [`DerivedKey`] and path string.
-fn build_svm_account(derived: &DerivedKey, path: String) -> SvmAccount {
-    let signing_key = derived.to_signing_key();
-    let verifying_key = signing_key.verifying_key();
-    let public_key_bytes: [u8; 32] = *verifying_key.as_bytes();
+/// Build an [`SvmAccount`] from a derived SLIP-10 key and path string.
+fn build_svm_account(derived: &DerivedEd25519Key, path: String) -> SvmAccount {
+    let public_key_bytes = derived.public_key_bytes();
+    let sk_bytes = derived.private_key_bytes();
 
     let mut keypair_bytes = Zeroizing::new([0u8; 64]);
     let (left, right) = keypair_bytes.split_at_mut(32);
-    left.copy_from_slice(derived.private_key.as_slice());
+    left.copy_from_slice(sk_bytes.as_slice());
     right.copy_from_slice(&public_key_bytes);
     let keypair_b58 = bs58::encode(&*keypair_bytes).into_string();
-
-    let mut sk_bytes = Zeroizing::new([0u8; 32]);
-    sk_bytes.copy_from_slice(derived.private_key.as_slice());
 
     let inner = DerivedAccount::new(
         path,

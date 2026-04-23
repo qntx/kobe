@@ -4,7 +4,7 @@
 use alloc::{format, string::String, vec::Vec};
 use core::fmt;
 
-use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
+use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet, derive_range};
 use sha2::{Digest, Sha256};
 use zeroize::Zeroizing;
 
@@ -204,6 +204,20 @@ impl<'a> Deriver<'a> {
         index: u32,
     ) -> Result<DerivedAccount, DeriveError> {
         self.derive_at(&style.path(index))
+    }
+
+    /// Derive `count` accounts starting at `start` with a specific style.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if any individual derivation fails or `start + count` overflows.
+    pub fn derive_many_with(
+        &self,
+        style: DerivationStyle,
+        start: u32,
+        count: u32,
+    ) -> Result<Vec<DerivedAccount>, DeriveError> {
+        derive_range(start, count, |i| self.derive_with(style, i))
     }
 
     /// Derive at an arbitrary SLIP-10 path using the deriver's address format.
@@ -462,6 +476,23 @@ mod tests {
         assert_eq!(decoded[1], 0xFF, "workchain -1 as u8");
         let crc = crc16_ccitt(&decoded[..34]).to_be_bytes();
         assert_eq!(&decoded[34..], &crc[..]);
+    }
+
+    /// `derive_many_with` must agree with scalar `derive_with` on every index
+    /// for both `Standard` and `LedgerLive` styles. Regression test against
+    /// divergence between the batch helper and the single-shot path.
+    #[test]
+    fn derive_many_with_matches_scalar() {
+        let w = test_wallet();
+        let d = Deriver::new(&w);
+        for style in [DerivationStyle::Standard, DerivationStyle::LedgerLive] {
+            let batch = d.derive_many_with(style, 0, 3).unwrap();
+            let single: Vec<_> = (0..3).map(|i| d.derive_with(style, i).unwrap()).collect();
+            for (b, s) in batch.iter().zip(single.iter()) {
+                assert_eq!(b.path(), s.path(), "path mismatch for {style:?}");
+                assert_eq!(b.address(), s.address(), "address mismatch for {style:?}");
+            }
+        }
     }
 
     /// `walletId` math must equal the canonical values published in

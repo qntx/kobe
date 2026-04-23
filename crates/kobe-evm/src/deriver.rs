@@ -55,17 +55,32 @@ impl fmt::Display for DerivationStyle {
     }
 }
 
+/// Error returned when parsing an invalid EVM derivation style string.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParseDerivationStyleError(pub(crate) String);
+
+impl fmt::Display for ParseDerivationStyleError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "invalid EVM derivation style '{}', expected one of: standard, ledger-live, ledger-legacy",
+            self.0
+        )
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for ParseDerivationStyleError {}
+
 impl FromStr for DerivationStyle {
-    type Err = DeriveError;
+    type Err = ParseDerivationStyleError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "standard" | "metamask" | "trezor" | "bip44" => Ok(Self::Standard),
             "ledger-live" | "ledgerlive" | "live" => Ok(Self::LedgerLive),
             "ledger-legacy" | "ledgerlegacy" | "legacy" | "mew" => Ok(Self::LedgerLegacy),
-            _ => Err(DeriveError::Input(format!(
-                "unknown EVM derivation style: {s}"
-            ))),
+            _ => Err(ParseDerivationStyleError(s.into())),
         }
     }
 }

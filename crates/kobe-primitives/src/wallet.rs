@@ -266,8 +266,11 @@ impl Wallet {
     /// Returns an error if the path is malformed or derivation fails.
     #[cfg(feature = "slip10")]
     #[inline]
-    pub fn derive_ed25519(&self, path: &str) -> Result<crate::slip10::DerivedKey, DeriveError> {
-        crate::slip10::DerivedKey::derive_path(self.seed().as_slice(), path)
+    pub fn derive_ed25519(
+        &self,
+        path: &str,
+    ) -> Result<crate::slip10::DerivedEd25519Key, DeriveError> {
+        crate::slip10::DerivedEd25519Key::derive_path(self.seed().as_slice(), path)
     }
 
     /// Check if a passphrase was supplied at construction time.
