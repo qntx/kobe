@@ -1,5 +1,3 @@
-<!-- markdownlint-disable MD033 MD041 MD036 -->
-
 # Kobe
 
 [![Crates.io][crates-badge]][crates-url]
