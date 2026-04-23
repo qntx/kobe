@@ -5,11 +5,11 @@
 //!
 //! ```toml
 //! [dependencies]
-//! kobe = { version = "1.0", features = ["evm", "btc", "svm"] }
+//! kobe = { version = "2.0", features = ["evm", "btc", "svm"] }
 //! ```
 //!
 //! ```no_run
-//! use kobe::{Wallet, Derive, DeriveExt};
+//! use kobe::prelude::*;
 //! use kobe::evm::Deriver;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -47,3 +47,16 @@ pub use kobe_ton as ton;
 pub use kobe_tron as tron;
 #[cfg(feature = "xrpl")]
 pub use kobe_xrpl as xrpl;
+
+/// Common imports for downstream users.
+///
+/// Bring the core wallet traits and types into scope with a single
+/// `use kobe::prelude::*;`. Chain-specific derivers (`kobe::evm::Deriver`,
+/// `kobe::btc::Deriver`, …) remain explicit to avoid naming conflicts when
+/// multiple chains are enabled simultaneously.
+#[cfg(feature = "alloc")]
+pub mod prelude {
+    pub use kobe_primitives::{
+        Derive, DeriveError, DeriveExt, DerivedAccount, DerivedPublicKey, PublicKeyKind, Wallet,
+    };
+}
