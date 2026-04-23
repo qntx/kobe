@@ -15,7 +15,7 @@
 //!
 //! ```no_run
 //! use kobe_nostr::Deriver;
-//! use kobe_primitives::{Derive, Wallet};
+//! use kobe_primitives::Wallet;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let wallet = Wallet::from_mnemonic(
@@ -23,7 +23,8 @@
 //!     None,
 //! )?;
 //! let account = Deriver::new(&wallet).derive(0)?;
-//! assert!(account.address().starts_with("npub1"));
+//! assert!(account.npub().starts_with("npub1"));
+//! assert!(account.nsec().starts_with("nsec1"));
 //! # Ok(())
 //! # }
 //! ```
@@ -38,7 +39,7 @@ mod deriver;
 mod error;
 
 #[cfg(feature = "alloc")]
-pub use deriver::{DerivedAccount, Deriver, NPUB_HRP, NSEC_HRP, account_nsec};
+pub use deriver::{DerivedAccount, Deriver, NPUB_HRP, NSEC_HRP, NostrAccount};
 pub use error::DeriveError;
 
 /// A convenient Result type alias for kobe-nostr operations.
