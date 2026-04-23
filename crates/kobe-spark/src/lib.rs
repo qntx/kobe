@@ -38,6 +38,3 @@ mod deriver;
 #[cfg(feature = "alloc")]
 pub use deriver::{Deriver, Network, SPARK_PURPOSE};
 pub use kobe_primitives::{DeriveError, DerivedAccount, DerivedPublicKey};
-
-/// A convenient Result type alias for kobe-spark operations.
-pub type Result<T> = core::result::Result<T, DeriveError>;

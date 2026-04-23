@@ -40,6 +40,3 @@ mod deriver;
 #[cfg(feature = "alloc")]
 pub use deriver::{Deriver, NPUB_HRP, NSEC_HRP, NostrAccount};
 pub use kobe_primitives::{DeriveError, DerivedAccount, DerivedPublicKey};
-
-/// A convenient Result type alias for kobe-nostr operations.
-pub type Result<T> = core::result::Result<T, DeriveError>;

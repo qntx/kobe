@@ -167,7 +167,7 @@ impl Derive for Deriver<'_> {
 ///
 /// # Errors
 ///
-/// Returns [`DeriveError::Bech32`] if HRP parsing or encoding fails
+/// Returns [`DeriveError::AddressEncoding`] if HRP parsing or encoding fails
 /// (practically never, as the HRPs are compile-time constants).
 fn encode_spark_address(
     compressed_pubkey: &[u8; 33],

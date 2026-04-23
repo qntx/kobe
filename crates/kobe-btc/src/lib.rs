@@ -23,6 +23,3 @@ pub use network::{Network, ParseNetworkError};
 #[cfg(feature = "alloc")]
 pub use types::DerivationPath;
 pub use types::{AddressType, ParseAddressTypeError};
-
-/// Convenient Result alias.
-pub type Result<T> = core::result::Result<T, DeriveError>;
