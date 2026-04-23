@@ -115,7 +115,7 @@ impl<'a> Deriver<'a> {
         index: u32,
     ) -> Result<SvmAccount, DeriveError> {
         let path = style.path(index);
-        let derived = DerivedKey::derive_path(self.wallet.seed(), &path)?;
+        let derived = self.wallet.derive_ed25519(&path)?;
         Ok(build_svm_account(&derived, path))
     }
 
@@ -152,7 +152,7 @@ impl<'a> Deriver<'a> {
     ///
     /// Returns an error if derivation fails.
     pub fn derive_at_path(&self, path: &str) -> Result<SvmAccount, DeriveError> {
-        let derived = DerivedKey::derive_path(self.wallet.seed(), path)?;
+        let derived = self.wallet.derive_ed25519(path)?;
         Ok(build_svm_account(&derived, String::from(path)))
     }
 }

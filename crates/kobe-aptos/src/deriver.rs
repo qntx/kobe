@@ -4,7 +4,6 @@
 use alloc::{format, string::String};
 
 pub use kobe_primitives::DerivedAccount;
-use kobe_primitives::slip10::DerivedKey;
 use kobe_primitives::{Derive, Wallet};
 use sha3::{Digest, Sha3_256};
 use zeroize::Zeroizing;
@@ -36,7 +35,7 @@ impl<'a> Deriver<'a> {
 
     /// Internal: derive at an arbitrary SLIP-10 path.
     fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
-        let derived_key = DerivedKey::derive_path(self.wallet.seed(), path)?;
+        let derived_key = self.wallet.derive_ed25519(path)?;
         let signing_key = derived_key.to_signing_key();
         let verifying_key = signing_key.verifying_key();
         let pubkey_bytes: &[u8; 32] = verifying_key.as_bytes();

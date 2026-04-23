@@ -116,7 +116,7 @@ impl<'a> Deriver<'a> {
     /// Returns an error if the master key derivation fails.
     #[inline]
     pub fn new(wallet: &'a Wallet, network: Network) -> Result<Self, DeriveError> {
-        let master_key = Xpriv::new_master(network.to_bitcoin_network(), wallet.seed())?;
+        let master_key = Xpriv::new_master(network.to_bitcoin_network(), wallet.seed().as_slice())?;
 
         Ok(Self {
             master_key,

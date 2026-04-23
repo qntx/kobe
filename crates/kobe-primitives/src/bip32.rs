@@ -111,7 +111,7 @@ mod tests {
             None,
         ).unwrap();
         let mut out = [0u8; 64];
-        out.copy_from_slice(wallet.seed());
+        out.copy_from_slice(wallet.seed().as_slice());
         out
     }
 

@@ -9,7 +9,6 @@ use alloc::{format, string::String};
 
 use bech32::{Bech32, Hrp};
 pub use kobe_primitives::DerivedAccount;
-use kobe_primitives::bip32::DerivedSecp256k1Key;
 use kobe_primitives::{Derive, Wallet};
 use zeroize::Zeroizing;
 
@@ -56,7 +55,7 @@ impl<'a> Deriver<'a> {
 
     /// Internal: derive at an arbitrary BIP-32 path.
     fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
-        let key = DerivedSecp256k1Key::derive(self.wallet.seed(), path)?;
+        let key = self.wallet.derive_secp256k1(path)?;
 
         // NIP-19 / BIP-340: the x-only public key is the last 32 bytes of the
         // 33-byte compressed secp256k1 pubkey (the leading 0x02/0x03 parity byte

@@ -28,7 +28,7 @@ impl<'a> Deriver<'a> {
 
     /// Internal derivation at arbitrary path.
     fn derive_at_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
-        let key = kobe_primitives::bip32::DerivedSecp256k1Key::derive(self.wallet.seed(), path)?;
+        let key = self.wallet.derive_secp256k1(path)?;
         let uncompressed = key.uncompressed_pubkey();
 
         let hash = Keccak256::digest(&uncompressed[1..]);

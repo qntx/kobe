@@ -220,14 +220,54 @@ impl Wallet {
         &self.mnemonic
     }
 
-    /// Get the seed bytes for key derivation.
+    /// Get the 64-byte seed for key derivation, still wrapped in [`Zeroizing`].
     ///
-    /// This seed can be used by chain-specific derivers (Bitcoin, Ethereum, etc.)
-    /// to generate addresses following their respective standards.
+    /// The returned reference makes the wallet's sensitivity explicit at the
+    /// type level: callers must keep the result borrowed or copy it into
+    /// another [`Zeroizing`] container to avoid leaking unsealed seed bytes
+    /// on the stack.
+    ///
+    /// Most chain derivers should prefer the feature-gated
+    /// [`derive_secp256k1`](Self::derive_secp256k1) and
+    /// [`derive_ed25519`](Self::derive_ed25519) shortcuts over reaching for
+    /// the raw seed.
     #[inline]
     #[must_use]
-    pub fn seed(&self) -> &[u8; 64] {
+    pub const fn seed(&self) -> &Zeroizing<[u8; 64]> {
         &self.seed
+    }
+
+    /// Derive a secp256k1 key pair at the given BIP-32 path.
+    ///
+    /// Preferred entry point for chains that derive secp256k1 keys (EVM,
+    /// BTC fallback, Cosmos, Tron, Spark, Filecoin, XRP Ledger, Nostr).
+    /// Keeps the underlying seed encapsulated within [`Wallet`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the path is malformed or derivation fails.
+    #[cfg(feature = "bip32")]
+    #[inline]
+    pub fn derive_secp256k1(
+        &self,
+        path: &str,
+    ) -> Result<crate::bip32::DerivedSecp256k1Key, DeriveError> {
+        crate::bip32::DerivedSecp256k1Key::derive(self.seed(), path)
+    }
+
+    /// Derive an Ed25519 key pair at the given SLIP-10 path.
+    ///
+    /// Preferred entry point for chains that derive Ed25519 keys (Solana,
+    /// Sui, Aptos, TON). Keeps the underlying seed encapsulated within
+    /// [`Wallet`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the path is malformed or derivation fails.
+    #[cfg(feature = "slip10")]
+    #[inline]
+    pub fn derive_ed25519(&self, path: &str) -> Result<crate::slip10::DerivedKey, DeriveError> {
+        crate::slip10::DerivedKey::derive_path(self.seed().as_slice(), path)
     }
 
     /// Check if a passphrase was supplied at construction time.
