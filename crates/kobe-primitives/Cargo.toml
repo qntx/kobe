@@ -12,7 +12,7 @@ categories = ["cryptography", "no-std"]
 [features]
 default = ["std"]
 std = ["alloc", "bip39/std", "zeroize/std"]
-alloc = ["bip39/alloc", "zeroize/alloc", "dep:hex"]
+alloc = ["bip39/alloc", "dep:hex", "dep:zeroize", "zeroize/alloc"]
 rand = ["bip39/rand"]
 rand_core = ["bip39/rand_core"]
 camouflage = ["dep:hmac", "dep:sha2", "alloc"]
@@ -28,7 +28,7 @@ bip32-crate = { package = "bip32", version = "0.5.3", default-features = false, 
 k256 = { workspace = true, optional = true }
 hex = { version = "0.4.3", default-features = false, features = ["alloc"], optional = true }
 thiserror.workspace = true
-zeroize.workspace = true
+zeroize = { workspace = true, optional = true }
 
 [lints]
 workspace = true

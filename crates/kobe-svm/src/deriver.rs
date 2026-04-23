@@ -141,7 +141,7 @@ impl<'a> Deriver<'a> {
         count: u32,
     ) -> Result<Vec<SvmAccount>, DeriveError> {
         let end = start.checked_add(count).ok_or_else(|| {
-            kobe_primitives::DeriveError::Input(alloc::string::String::from(
+            kobe_primitives::DeriveError::Input(String::from(
                 "derive_many: start + count overflows u32",
             ))
         })?;
