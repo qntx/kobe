@@ -735,6 +735,7 @@ dependencies = [
  "hex",
  "kobe-primitives",
  "sha3 0.11.0",
+ "thiserror",
  "zeroize",
 ]
 
@@ -820,6 +821,7 @@ name = "kobe-spark"
 version = "1.1.0"
 dependencies = [
  "kobe-primitives",
+ "thiserror",
 ]
 
 [[package]]
@@ -851,6 +853,7 @@ dependencies = [
  "base64",
  "kobe-primitives",
  "sha2 0.11.0",
+ "thiserror",
  "zeroize",
 ]
 
@@ -861,6 +864,7 @@ dependencies = [
  "bs58",
  "kobe-primitives",
  "sha3 0.11.0",
+ "thiserror",
 ]
 
 [[package]]
