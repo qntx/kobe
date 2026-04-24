@@ -36,7 +36,7 @@ use core::str::FromStr;
 
 /// Trait implemented by every chain's `DerivationStyle` enum.
 ///
-/// See the [module documentation](self) for the full contract.
+/// See the [module documentation](crate::style) for the full contract.
 pub trait DerivationStyle:
     Copy
     + Eq

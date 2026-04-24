@@ -4,7 +4,7 @@ All notable changes to this workspace are documented in this file. The format is
 
 ## [2.0.0]
 
-Major API redesign for long-term maintainability. Every chain crate is touched; the changes are sweeping but bring the workspace to a single consistent shape: one error type, one public-key enum, one derivation trait with associated types, and minimal default features.
+Major API redesign for long-term maintainability. Every chain crate is touched; the changes are sweeping but bring the workspace to a single consistent shape: one error type, one public-key enum, one derivation trait with associated types, one shared `DerivationStyle` contract, and minimal default features.
 
 ### Breaking: unified public-key type
 
@@ -38,11 +38,33 @@ Affects every chain with a custom-path entry point (EVM, Cosmos, Tron, Filecoin,
 - `all-chains` preset unchanged.
 - Binary size and compile time drop by ~50% for users that only need a subset of chains. Users on the old defaults should add `features = ["mainstream"]`.
 
+### Breaking: shared `DerivationStyle` trait
+
+The three per-chain `DerivationStyle` enums (`kobe-evm`, `kobe-svm`, `kobe-ton`) all shared the same shape — `path(u32) -> String`, `name() -> &'static str`, `Display`, `FromStr` — with three independent `ParseDerivationStyleError` types. Collapsed into a single contract in [`kobe-primitives::style`](crates/kobe-primitives/src/style.rs):
+
+- New `kobe_primitives::DerivationStyle` trait with methods `path`, `name`, `all`.
+- New `kobe_primitives::ParseDerivationStyleError` — chain + rejected input + full accepted-token list; `Display` output is a single actionable message with every alias listed.
+- Chain `DerivationStyle` enums continue to exist as inherent types but now `impl kobe_primitives::DerivationStyle`. The inherent `path` / `name` methods on each enum are gone; bring the trait into scope (`use kobe::DerivationStyle as _;` or `use kobe::prelude::*;`) before calling them.
+- `kobe-ton::DerivationStyle` gained `FromStr` (previously missing, for parity with EVM/SVM).
+- `kobe-svm::DerivationStyle::id` is kept as an inherent `const fn` — it is Solana-specific and has no equivalent on other chains, so it does not belong on the trait.
+
+### Breaking: `kobe-btc` entry points renamed for cross-chain consistency
+
+`kobe-btc::Deriver` now exposes the same `derive_at` / `derive_at_with` pair as every other chain:
+
+- `derive_bip32_path(&DerivationPath, AddressType)` → renamed to `derive_structured(&DerivationPath, AddressType)`.
+- New `derive_at(&str)` — infers `AddressType` from the BIP-44 purpose segment (`44'` → P2PKH, `49'` → P2SH-P2WPKH, `84'` → P2WPKH, `86'` → P2TR). Mirrors every other chain's `derive_at`.
+- New `derive_at_with(&str, AddressType)` — explicit-type escape hatch for non-standard paths (custom purposes, non-hardened first segments).
+
+`Derive::derive_path` (trait method) now forwards to `derive_at`. Error messages that previously pointed users at `Deriver::derive_bip32_path` now point at `Deriver::derive_at_with`.
+
 ### Added
 
 - `DerivedPublicKey`, `PublicKeyKind` re-exported from `kobe_primitives` and every chain crate.
 - `camouflage::Version` enum and `encrypt_with`/`decrypt_with` entry points. The salt and iteration count are now attached to a versioned tag so future KDF changes can coexist with old ciphertexts. `Version::V1` is the default and matches 1.x behaviour bit-for-bit.
 - `kobe::mainstream` feature (BTC + EVM + SVM) as a drop-in replacement for the 1.x default.
+- `kobe::prelude` re-exports `DerivationStyle as _`, `ParseDerivationStyleError`, and every other common trait/type so `use kobe::prelude::*;` covers the full cross-chain surface in one import.
+- New CLI flags on `kobe ton` (`--testnet`, `--bounceable`, `--workchain`, `--style`) and `kobe spark` (`--network`) so previously-library-only address configuration is reachable from the command line.
 
 ### Migration
 
@@ -122,6 +144,32 @@ let a = deriver.derive_at_path("m/44'/60'/0'/0/0")?;
 
 // 2.0 — renamed for consistency
 let a = deriver.derive_at("m/44'/60'/0'/0/0")?;
+```
+
+```rust
+// 1.x — per-chain ParseDerivationStyleError + inherent `path` / `name`
+use kobe_evm::{DerivationStyle, ParseDerivationStyleError};
+let s = "ledger-live".parse::<DerivationStyle>()?;
+let path = s.path(0);
+
+// 2.0 — shared trait + shared error type
+use kobe::prelude::*;                  // brings DerivationStyle trait into scope
+use kobe::evm::DerivationStyle;
+use kobe::ParseDerivationStyleError;   // re-exported by every chain crate
+let s: DerivationStyle = "ledger-live".parse()?;
+let path = s.path(0);                  // trait method
+```
+
+```rust
+// 1.x — BTC's structural entry was named after BIP-32
+let acct = deriver.derive_bip32_path(&parsed, AddressType::P2tr)?;
+
+// 2.0 — structured entry (renamed; semantics unchanged)
+let acct = deriver.derive_structured(&parsed, AddressType::P2tr)?;
+
+// 2.0 — BTC now has the same string entry as every other chain
+let acct = deriver.derive_at("m/86'/0'/0'/0/0")?;                       // infer type
+let acct = deriver.derive_at_with("m/7'/0'/0'/0/0", AddressType::P2tr)?; // explicit
 ```
 
 ## [1.1.0]

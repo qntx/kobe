@@ -19,7 +19,7 @@
 //! the only variant today and is the default everywhere. Future algorithm
 //! changes (e.g. Argon2id) will land as new enum variants, never by silently
 //! mutating the constants — this lets downstream users continue to decrypt
-//! older ciphertexts with [`decrypt_with`](decrypt_with).
+//! older ciphertexts with [`decrypt_with`].
 //!
 //! # Security
 //!
@@ -30,7 +30,7 @@
 //!
 //! # Operational safety
 //!
-//! The [`DeriveError::Input`](crate::DeriveError::Input) returned on invalid
+//! The [`DeriveError::Input`] returned on invalid
 //! phrases may repeat user-supplied tokens verbatim (for diagnostic
 //! purposes). **Never log the raw `Display` / `Debug` output of camouflage
 //! errors in production** — hash or drop them first. Use the typed variant

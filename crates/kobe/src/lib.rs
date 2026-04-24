@@ -55,9 +55,9 @@ pub use kobe_xrpl as xrpl;
 /// `kobe::btc::Deriver`, …) remain explicit to avoid naming conflicts when
 /// multiple chains are enabled simultaneously.
 ///
-/// The [`DerivationStyle`](kobe_primitives::DerivationStyle) trait is
-/// re-exported anonymously so calling `style.path(i)` / `style.name()` on
-/// any chain's style enum works without manually `use`-ing the trait.
+/// The [`kobe_primitives::DerivationStyle`] trait is re-exported
+/// anonymously so calling `style.path(i)` / `style.name()` on any
+/// chain's style enum works without manually `use`-ing the trait.
 #[cfg(feature = "alloc")]
 pub mod prelude {
     pub use kobe_primitives::{

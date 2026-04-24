@@ -70,8 +70,8 @@ impl BtcAccount {
 
     /// Structured BIP-32 derivation path.
     ///
-    /// Access the string form via [`DerivedAccount::path`](Self::path)
-    /// (inherited through `Deref`).
+    /// Access the string form via [`DerivedAccount::path`] (inherited
+    /// through [`Deref<Target = DerivedAccount>`][Self::deref]).
     #[inline]
     #[must_use]
     pub const fn bip32_path(&self) -> &DerivationPath {

@@ -51,30 +51,30 @@ cargo install kobe-cli
 
 ```bash
 # Generate new wallets (default: 12-word English mnemonic, 1 account)
-kobe btc new                              # P2WPKH (Native SegWit), mainnet
-kobe btc new -a taproot -w 24 -c 5        # 5 Taproot addresses, 24-word mnemonic
-kobe evm new                              # Ethereum (MetaMask-compatible)
-kobe evm new --style ledger-live -c 3     # Ledger Live layout, 3 accounts
-kobe svm new                              # Solana (Phantom / Backpack / Solflare)
-kobe cosmos new                           # Cosmos Hub (`cosmos1…`)
-kobe aptos new                            # Aptos
-kobe sui new                              # Sui
-kobe ton new                              # TON wallet v5r1 (UQ… non-bounceable)
-kobe ton new --bounceable                 # TON bounceable (EQ…), smart-contract style
-kobe ton new --testnet --workchain -1     # TON testnet masterchain
-kobe ton new --style ledger-live          # TON Ledger Live path
-kobe tron new                             # Tron (base58check `T…`)
-kobe fil new                              # Filecoin (`f1…` secp256k1)
-kobe spark new                            # Spark (Bitcoin L2), bech32m `spark1…`
-kobe spark new --network testnet          # Spark testnet (`sparkt1…`)
-kobe xrpl new                             # XRP Ledger classic `r…`
-kobe nostr new                            # Nostr NIP-06 (`nsec` / `npub`, NIP-19)
+kobe btc    new                              # P2WPKH (Native SegWit), mainnet
+kobe btc    new -a taproot -w 24 -c 5        # 5 Taproot addresses, 24-word mnemonic
+kobe evm    new                              # Ethereum (MetaMask-compatible)
+kobe evm    new --style ledger-live -c 3     # Ledger Live layout, 3 accounts
+kobe svm    new                              # Solana (Phantom / Backpack / Solflare)
+kobe cosmos new                              # Cosmos Hub (`cosmos1…`)
+kobe aptos  new                              # Aptos
+kobe sui    new                              # Sui
+kobe ton    new                              # TON wallet v5r1 (UQ… non-bounceable)
+kobe ton    new --bounceable                 # TON bounceable (EQ…), smart-contract style
+kobe ton    new --testnet --workchain -1     # TON testnet masterchain
+kobe ton    new --style ledger-live          # TON Ledger Live path
+kobe tron   new                              # Tron (base58check `T…`)
+kobe fil    new                              # Filecoin (`f1…` secp256k1)
+kobe spark  new                              # Spark (Bitcoin L2), bech32m `spark1…`
+kobe spark  new --network testnet            # Spark testnet (`sparkt1…`)
+kobe xrpl   new                              # XRP Ledger classic `r…`
+kobe nostr  new                              # Nostr NIP-06 (`nsec` / `npub`, NIP-19)
 
 # Import from an existing mnemonic
-kobe evm import -m "abandon abandon ... about"
+kobe evm    import -m "abandon abandon ... about"
 
 # JSON output — stable, script- and agent-friendly
-kobe evm new --json
+kobe evm    new --json
 ```
 
 Every chain subcommand accepts the shared flags `-w/--words`, `-c/--count`, `-p/--passphrase`, and `--qr` through a flattened `SimpleArgs` group, so ergonomics stay consistent across the 12 networks.
@@ -82,8 +82,8 @@ Every chain subcommand accepts the shared flags `-w/--words`, `-c/--count`, `-p/
 ### Library Usage
 
 ```rust
-use kobe::{Wallet, Derive};
-use kobe::evm::Deriver;  // or kobe::btc, kobe::svm, kobe::cosmos, ...
+use kobe::prelude::*;     // Wallet, Derive, DeriveExt, DerivationStyle trait, ...
+use kobe::evm::Deriver;   // or kobe::btc, kobe::svm, kobe::cosmos, ...
 
 // Import from mnemonic
 let wallet = Wallet::from_mnemonic(
@@ -106,6 +106,33 @@ println!("SOL: {}", sol.address());  // HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3D
 println!("BTC WIF: {}", btc.private_key_wif().as_str());
 ```
 
+String-path entry points are uniform across every chain. Bitcoin additionally
+exposes an explicit-type escape hatch for non-standard paths:
+
+```rust
+use kobe::btc::{AddressType, Deriver, Network};
+
+let deriver = Deriver::new(&wallet, Network::Mainnet)?;
+let p2wpkh = deriver.derive_at("m/84'/0'/0'/0/0")?;                    // infer type from purpose
+let taproot = deriver.derive_at("m/86'/0'/0'/0/0")?;                   // infer type from purpose
+let custom  = deriver.derive_at_with("m/7'/0'/0'/0/0", AddressType::P2tr)?; // non-standard purpose
+```
+
+`DerivationStyle` is a shared trait implemented by every chain's style enum.
+`kobe::prelude::*` brings it into scope so `style.path(i)` / `style.name()`
+work directly:
+
+```rust
+use kobe::prelude::*;
+use kobe::evm::DerivationStyle;
+
+let style: DerivationStyle = "ledger-live".parse()?;           // FromStr
+assert_eq!(style.path(0), "m/44'/60'/0'/0/0");                 // trait method
+for variant in <DerivationStyle as kobe::DerivationStyle>::all() {
+    println!("{variant}: {}", variant.path(0));
+}
+```
+
 ```rust
 // Generate new wallet
 let wallet = Wallet::generate(12, None)?;  // 12-word mnemonic
@@ -116,11 +143,13 @@ println!("Mnemonic: {}", wallet.mnemonic());
 
 - **12 chains** — Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger, Nostr — one BIP-39 seed
 - **HD standards** — BIP-32, BIP-39, BIP-44/49/84/86, SLIP-10, NIP-06, NIP-19
-- **Derivation styles** — Standard, Ledger Live, Ledger Legacy, Trust, Phantom, Backpack
+- **Unified derivation contract** — shared `Derive` trait with an associated `Account` type + `DerivationStyle` trait; every chain has typed public keys via `DerivedPublicKey`, one shared `DeriveError`, and one shared `ParseDerivationStyleError`
+- **Consistent entry points** — `derive` / `derive_with` / `derive_at` / `derive_at_with` across every chain (Bitcoin's structured path also available as `derive_structured`)
+- **Derivation styles** — Standard, Ledger Live, Ledger Legacy, Trust, Phantom, Backpack, Tonkeeper — with `FromStr` aliases and an accepted-token diagnostic on `ParseDerivationStyleError`
 - **`no_std` + `alloc`** — All library crates compile without `std`; embedded / WASM ready
-- **Zeroizing** — Private keys, seeds, and intermediate material wrapped in `Zeroizing<T>`
+- **Zeroizing** — Mnemonics, seeds, private keys, WIFs, `nsec`s, and Solana keypairs wrapped in `Zeroizing<T>`
 - **Shared infrastructure** — SLIP-10 Ed25519 and BIP-32 secp256k1 derivation in `kobe-primitives`
-- **KAT-verified** — Every chain has Known Answer Tests cross-verified with Python
+- **KAT-verified** — Every chain has Known Answer Tests cross-verified with independent reference implementations (bitcoinjs-lib, @ton/core, @noble/hashes, NIP-06 official vectors, ethanmarcuss/spark-address, …)
 - **Strict linting** — Clippy `pedantic` + `nursery` + `correctness` (deny), zero warnings
 
 ## Crates
