@@ -59,10 +59,14 @@ kobe svm new                              # Solana (Phantom / Backpack / Solflar
 kobe cosmos new                           # Cosmos Hub (`cosmos1…`)
 kobe aptos new                            # Aptos
 kobe sui new                              # Sui
-kobe ton new                              # TON wallet v5r1
+kobe ton new                              # TON wallet v5r1 (UQ… non-bounceable)
+kobe ton new --bounceable                 # TON bounceable (EQ…), smart-contract style
+kobe ton new --testnet --workchain -1     # TON testnet masterchain
+kobe ton new --style ledger-live          # TON Ledger Live path
 kobe tron new                             # Tron (base58check `T…`)
 kobe fil new                              # Filecoin (`f1…` secp256k1)
 kobe spark new                            # Spark (Bitcoin L2), bech32m `spark1…`
+kobe spark new --network testnet          # Spark testnet (`sparkt1…`)
 kobe xrpl new                             # XRP Ledger classic `r…`
 kobe nostr new                            # Nostr NIP-06 (`nsec` / `npub`, NIP-19)
 
@@ -122,56 +126,6 @@ println!("Mnemonic: {}", wallet.mnemonic());
 ## Crates
 
 See **[`crates/README.md`](crates/README.md)** for the full crate table, dependency graph, and feature flag reference.
-
-## Mnemonic Camouflage
-
-The `camouflage` feature provides entropy-layer XOR encryption that transforms a real BIP-39 mnemonic into a **different but fully valid** BIP-39 mnemonic. The camouflaged mnemonic is indistinguishable from any ordinary mnemonic — it even generates a real (empty) wallet.
-
-**How it works:**
-
-```text
-Real Mnemonic → Entropy (128–256 bit) → XOR(PBKDF2(password)) → New Entropy → Decoy Mnemonic
-```
-
-1. The real mnemonic is decoded into its raw entropy (128, 160, 192, 224, or 256 bits).
-2. A key of matching length is derived from the password via **PBKDF2-HMAC-SHA256** (600,000 iterations).
-3. The entropy is **XORed** with the derived key to produce new entropy.
-4. The new entropy is re-encoded as a valid BIP-39 mnemonic with a correct checksum.
-
-Decryption is the same operation — XOR is its own inverse.
-
-**Supported word counts:** 12, 15, 18, 21, and 24 words.
-
-**Security properties:**
-
-| Property | Detail |
-| --- | --- |
-| **Valid output** | Decoy mnemonic passes all BIP-39 validation and generates a real wallet |
-| **Stateless** | No files, databases, or extra data — just the password |
-| **Deterministic** | Same input + password always produces the same output |
-| **Password-bound** | Security strength equals the password entropy |
-| **Brute-force resistant** | PBKDF2 with 600K iterations (OWASP 2023 recommendation) |
-
-> **Note:** This is _not_ the BIP-39 passphrase (25th word). BIP-39 passphrases alter seed derivation; camouflage alters the mnemonic entropy itself.
-
-### Camouflage Library API
-
-```rust
-use kobe::camouflage;
-
-// Encrypt (camouflage)
-let decoy = camouflage::encrypt("real mnemonic ...", "password")?;
-
-// Decrypt (recover)
-let original = camouflage::decrypt(&decoy, "password")?;
-```
-
-### Camouflage CLI
-
-```bash
-kobe mnemonic encrypt -m "abandon abandon ... art" -p "strong-password"
-kobe mnemonic decrypt -c "decoy abandon ... xyz"   -p "strong-password"
-```
 
 ## Security
 

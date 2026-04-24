@@ -100,3 +100,19 @@ pub(crate) enum Commands {
     #[command(name = "mnemonic", alias = "mn")]
     Mnemonic(MnemonicCommand),
 }
+
+#[cfg(test)]
+mod tests {
+    use clap::CommandFactory;
+
+    use super::Cli;
+
+    /// `clap`'s built-in self-consistency check. Catches conflicting short
+    /// flags, duplicate subcommand names, malformed `value_enum` derives,
+    /// and other structural mistakes at `cargo test` time instead of at
+    /// first CLI invocation. Recommended for every production `clap` app.
+    #[test]
+    fn cli_structure_is_consistent() {
+        Cli::command().debug_assert();
+    }
+}

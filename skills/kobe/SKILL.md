@@ -118,6 +118,24 @@ Aliases: `phantom`/`backpack` → `standard`, `ledger`/`keystone` → `trust`, `
 | `--hrp`       |       | Bech32 human-readable prefix                   | `cosmos` |
 | `--coin-type` |       | BIP-44 coin type (118=Cosmos, 330=Terra, etc.) | `118`    |
 
+### TON-specific flags
+
+All four axes are independent. Key material is unaffected by `--testnet`,
+`--bounceable`, and `--workchain`; only the human-readable address changes.
+
+| Flag            | Short | Values                                                         | Default    |
+| --------------- | ----- | -------------------------------------------------------------- | ---------- |
+| `--testnet`     | `-t`  | (flag) flips the address tag bit and walletId                  | mainnet    |
+| `--bounceable`  | `-b`  | (flag) emit `EQ…`/`kQ…` instead of `UQ…`/`0Q…`                 | off        |
+| `--workchain`   |       | Signed 8-bit workchain id (`0` basechain, `-1` masterchain)    | `0`        |
+| `--style`       | `-s`  | `standard` (alias `tonkeeper`), `ledger-live` (alias `live`)   | `standard` |
+
+### Spark-specific flags
+
+| Flag        | Short | Values                                             | Default   |
+| ----------- | ----- | -------------------------------------------------- | --------- |
+| `--network` | `-n`  | `mainnet`, `testnet`, `signet`, `regtest`, `local` | `mainnet` |
+
 ## Usage Examples
 
 ### Bitcoin
@@ -200,8 +218,20 @@ kobe sui import -m "abandon abandon ..."
 ### TON
 
 ```bash
-# Generate a TON wallet
+# Generate a TON wallet (mainnet, non-bounceable, basechain, Tonkeeper path)
 kobe ton new
+
+# Mainnet bounceable (EQ...) for smart-contract destinations
+kobe ton new --bounceable
+
+# Testnet non-bounceable (0Q...)
+kobe ton new --testnet
+
+# Masterchain (workchain -1) testnet bounceable (kQ...)
+kobe ton new --testnet --bounceable --workchain -1
+
+# Ledger Live derivation path
+kobe ton new --style ledger-live
 
 # Import from mnemonic
 kobe ton import -m "abandon abandon ..."
@@ -226,8 +256,14 @@ kobe tron new
 # Filecoin
 kobe fil new
 
-# Spark (Bitcoin L2)
+# Spark (Bitcoin L2) — mainnet by default (spark1...)
 kobe spark new
+
+# Spark on a specific network
+kobe spark new --network testnet   # sparkt1...
+kobe spark new --network signet    # sparks1...
+kobe spark new --network regtest   # sparkrt1...
+kobe spark new --network local     # sparkl1...
 
 # XRP Ledger
 kobe xrpl new
@@ -381,9 +417,13 @@ All errors in JSON mode return exit code 1 with:
 
 ### TON (SLIP-10 Ed25519)
 
-| Path Pattern      | Notes                |
-| ----------------- | -------------------- |
-| `m/44'/607'/{i}'` | Tonkeeper-compatible |
+| Style         | Path Pattern              | Compatible wallets                    |
+| ------------- | ------------------------- | ------------------------------------- |
+| `standard`    | `m/44'/607'/{i}'`         | Tonkeeper, `MyTonWallet`, Trust Wallet |
+| `ledger-live` | `m/44'/607'/{i}'/0'/0'`   | Ledger Live                           |
+
+Wallet contract: v5r1. Address format is controlled by `--testnet`,
+`--bounceable`, and `--workchain` flags (independent of key derivation).
 
 ### Tron (BIP-44)
 
@@ -397,11 +437,15 @@ All errors in JSON mode return exit code 1 with:
 | --------------------- | -------------- |
 | `m/44'/461'/0'/0/{i}` | `f1...`        |
 
-### Spark (BIP-84)
+### Spark (BIP-32 secp256k1, Spark-specific purpose)
 
-| Path Pattern        | Notes                         |
-| ------------------- | ----------------------------- |
-| `m/84'/0'/0'/0/{i}` | Same as Bitcoin Native SegWit |
+| Path Pattern            | Notes                                                        |
+| ----------------------- | ------------------------------------------------------------ |
+| `m/8797555'/{i}'/0'`    | Purpose `8797555` = `SHA-256("spark")` truncated (per spec). |
+
+Address: Bech32m-encoded compressed identity public key wrapped in a
+2-byte pseudo-protobuf header. HRP depends on `--network`: `spark` (mainnet),
+`sparkt` (testnet), `sparks` (signet), `sparkrt` (regtest), `sparkl` (local).
 
 ### XRP Ledger (BIP-44)
 
