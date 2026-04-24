@@ -17,9 +17,11 @@
 [rust-badge]: https://img.shields.io/badge/rust-edition%202024-orange.svg
 [rust-url]: https://doc.rust-lang.org/edition-guide/
 
-**`no_std`-compatible Rust toolkit for multi-chain HD wallet derivation — one BIP-39 seed, twelve networks, zero hand-written cryptography.**
+**`no_std`-compatible Rust toolkit for multi-chain HD wallet derivation — one BIP-39 seed, twelve networks, zero hand-written cryptography, cross-implementation KATs.**
 
-Kobe derives standards-compliant accounts and addresses for Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger, and Nostr (NIP-06 / NIP-19) from a single BIP-39 mnemonic. Every library crate builds under `no_std + alloc`; mnemonics, seeds, and private keys are wrapped in `Zeroizing<T>` and wiped on drop.
+Kobe derives standards-compliant accounts and addresses for Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger, and Nostr (NIP-06 / NIP-19) from a single BIP-39 mnemonic. It layers thin wrappers around [`bip39`](https://docs.rs/bip39), [`bip32`](https://docs.rs/bip32), [`bitcoin`](https://docs.rs/bitcoin), [`k256`](https://docs.rs/k256), and [`ed25519-dalek`](https://docs.rs/ed25519-dalek) on top of a unified `Wallet` + `Derive` trait surface; every library crate builds under `no_std + alloc`, mnemonics and private keys wrap in `Zeroizing<T>` and wipe on drop, and every chain's pipeline is pinned against independent reference implementations (bitcoinjs-lib, @ton/core, @noble/hashes, NIP-06 official vectors, ethanmarcuss/spark-address, …).
+
+> **See also** [`signer`](https://github.com/qntx/signer) — the companion transaction-signing toolkit that consumes kobe's derived accounts via `Signer::from_derived`.
 
 <p align="center">
   <img src="demo.gif" alt="Kobe CLI Demo"/>
@@ -139,18 +141,39 @@ let wallet = Wallet::generate(12, None)?;  // 12-word mnemonic
 println!("Mnemonic: {}", wallet.mnemonic());
 ```
 
+## Supported Chains
+
+| Chain      | Crate          | Curve                 | BIP-44 coin | Default path                | Address format                           |
+| ---------- | -------------- | --------------------- | ----------- | --------------------------- | ---------------------------------------- |
+| Bitcoin    | `kobe-btc`     | secp256k1 (BIP-32)    | 0           | `m/84'/0'/0'/0/{i}`         | P2PKH / P2SH-P2WPKH / P2WPKH / P2TR      |
+| Ethereum   | `kobe-evm`     | secp256k1 (BIP-32)    | 60          | `m/44'/60'/0'/0/{i}`        | EIP-55 `0x…`                             |
+| Cosmos     | `kobe-cosmos`  | secp256k1 (BIP-32)    | 118 *       | `m/44'/118'/0'/0/{i}`       | Bech32 `cosmos1…` (HRP configurable)     |
+| Tron       | `kobe-tron`    | secp256k1 (BIP-32)    | 195         | `m/44'/195'/0'/0/{i}`       | Base58Check `T…`                         |
+| Filecoin   | `kobe-fil`     | secp256k1 (BIP-32)    | 461         | `m/44'/461'/0'/0/{i}`       | Base32 `f1…`                             |
+| Spark      | `kobe-spark`   | secp256k1 (BIP-32)    | 8797555 †   | `m/8797555'/{i}'/0'`        | Bech32m `spark1…` / `sparkt1…` / …       |
+| XRP Ledger | `kobe-xrpl`    | secp256k1 (BIP-32)    | 144         | `m/44'/144'/0'/0/{i}`       | Base58Check (XRPL alphabet) `r…`         |
+| Nostr      | `kobe-nostr`   | secp256k1 (BIP-340)   | 1237        | `m/44'/1237'/{i}'/0/0`      | NIP-19 `npub1…` / `nsec1…`               |
+| Solana     | `kobe-svm`     | Ed25519 (SLIP-10)     | 501         | `m/44'/501'/{i}'/0'`        | Base58 + optional 64-byte keypair        |
+| Sui        | `kobe-sui`     | Ed25519 (SLIP-10)     | 784         | `m/44'/784'/{i}'/0'/0'`     | `0x` + hex(`BLAKE2b-256(0x00 ‖ pubkey)`) |
+| TON        | `kobe-ton`     | Ed25519 (SLIP-10)     | 607         | `m/44'/607'/{i}'`           | wallet v5r1 (`UQ…` / `EQ…` / `0Q…` / …)  |
+| Aptos      | `kobe-aptos`   | Ed25519 (SLIP-10)     | 637         | `m/44'/637'/{i}'/0'/0'`     | `0x` + hex(`SHA3-256(pubkey ‖ 0x00)`)    |
+
+\* Cosmos coin type defaults to `118`; Terra (`330`), Secret (`529`), Kava (`459`), and custom chains are selectable via `ChainConfig`.
+† Spark purpose `8797555` is Spark-specific (`SHA-256("spark")` truncated), not a BIP-44 assignment.
+
 ## Design
 
 - **12 chains** — Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger, Nostr — one BIP-39 seed
-- **HD standards** — BIP-32, BIP-39, BIP-44/49/84/86, SLIP-10, NIP-06, NIP-19
-- **Unified derivation contract** — shared `Derive` trait with an associated `Account` type + `DerivationStyle` trait; every chain has typed public keys via `DerivedPublicKey`, one shared `DeriveError`, and one shared `ParseDerivationStyleError`
+- **Zero hand-written cryptography** — `bip39` for mnemonic ↔ entropy, `bip32` / `bitcoin` for BIP-32 secp256k1, `k256` for secp256k1 encodings, `ed25519-dalek` for SLIP-10 Ed25519; hashing via `sha2` / `sha3` / `blake2` / `ripemd`; encoding via `bech32` / `bs58`
+- **Unified derivation contract** — shared `Derive` trait with an associated `Account` type + shared `DerivationStyle` trait; every chain has typed public keys via `DerivedPublicKey`, one shared `DeriveError`, and one shared `ParseDerivationStyleError`
 - **Consistent entry points** — `derive` / `derive_with` / `derive_at` / `derive_at_with` across every chain (Bitcoin's structured path also available as `derive_structured`)
+- **HD standards** — BIP-32, BIP-39, BIP-44 / 49 / 84 / 86, SLIP-10, NIP-06, NIP-19
 - **Derivation styles** — Standard, Ledger Live, Ledger Legacy, Trust, Phantom, Backpack, Tonkeeper — with `FromStr` aliases and an accepted-token diagnostic on `ParseDerivationStyleError`
-- **`no_std` + `alloc`** — All library crates compile without `std`; embedded / WASM ready
-- **Zeroizing** — Mnemonics, seeds, private keys, WIFs, `nsec`s, and Solana keypairs wrapped in `Zeroizing<T>`
-- **Shared infrastructure** — SLIP-10 Ed25519 and BIP-32 secp256k1 derivation in `kobe-primitives`
-- **KAT-verified** — Every chain has Known Answer Tests cross-verified with independent reference implementations (bitcoinjs-lib, @ton/core, @noble/hashes, NIP-06 official vectors, ethanmarcuss/spark-address, …)
-- **Strict linting** — Clippy `pedantic` + `nursery` + `correctness` (deny), zero warnings
+- **Cross-implementation KATs** — every chain is pinned against independent references (bitcoinjs-lib, @ton/core, @noble/hashes, NIP-06 official vectors, ethanmarcuss/spark-address, BIP-84 / BIP-86 / EIP-55 / SLIP-10 test vectors) — no self-confirming dumps
+- **`no_std` + `alloc`** — every library crate compiles on `thumbv7m-none-eabi` under CI; embedded / WASM ready
+- **Security hardened** — mnemonics, seeds, private keys, WIFs, `nsec`s, and Solana keypairs wrapped in `Zeroizing<T>`; no key material is logged or persisted
+- **Signer integration** — [`signer`](https://github.com/qntx/signer) consumes every `DerivedAccount` / `BtcAccount` / `SvmAccount` / `NostrAccount` via `Signer::from_derived` behind its `kobe` feature flag
+- **Strict linting** — Clippy `pedantic` + `nursery` + `correctness` (deny), `rust_2018_idioms` deny, zero warnings on nightly
 
 ## Crates
 
@@ -160,11 +183,12 @@ See **[`crates/README.md`](crates/README.md)** for the full crate table, depende
 
 This library has **not** been independently audited. Use at your own risk.
 
-- Private keys and seeds use [`zeroize`](https://docs.rs/zeroize) for secure memory cleanup
-- No key material is logged or persisted
-- Random generation uses OS-provided CSPRNG via [`getrandom`](https://docs.rs/getrandom)
-- Secp256k1 contexts are cached to avoid repeated allocations
-- Environment variable manipulation is disallowed at the lint level
+- Mnemonics, seeds, and derived private keys wrapped in [`zeroize`](https://docs.rs/zeroize) — wiped from memory on drop
+- Chain-specific secret encodings (BTC WIF, Nostr `nsec`, Solana 64-byte keypair) are wrapped in `Zeroizing<String>` / `Zeroizing<[u8; N]>`
+- Random generation uses the OS-provided CSPRNG via [`getrandom`](https://docs.rs/getrandom); `Wallet::generate_in_with` accepts a caller-supplied `CryptoRng` on embedded / WASM targets where OS entropy is unavailable
+- `secp256k1` contexts are cached on `Deriver` to avoid the ~768 KB per-call setup cost
+- Environment-variable mutation and `std::mem::{transmute, forget}` are denied at the lint level
+- No key material is logged or persisted by the workspace
 
 ## License
 
