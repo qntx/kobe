@@ -60,9 +60,8 @@ pub use kobe_xrpl as xrpl;
 /// any chain's style enum works without manually `use`-ing the trait.
 #[cfg(feature = "alloc")]
 pub mod prelude {
-    pub use kobe_primitives::DerivationStyle as _;
     pub use kobe_primitives::{
-        Derive, DeriveError, DeriveExt, DerivedAccount, DerivedPublicKey,
+        DerivationStyle as _, Derive, DeriveError, DeriveExt, DerivedAccount, DerivedPublicKey,
         ParseDerivationStyleError, PublicKeyKind, Wallet,
     };
 }

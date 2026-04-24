@@ -159,7 +159,7 @@ impl<'a> Deriver<'a> {
         index: u32,
     ) -> Result<BtcAccount, DeriveError> {
         let path = DerivationPath::bip_standard(address_type, self.network, 0, false, index)?;
-        self.derive_bip32_path(&path, address_type)
+        self.derive_structured(&path, address_type)
     }
 
     /// Derive multiple accounts with a specific [`AddressType`].
@@ -176,16 +176,65 @@ impl<'a> Deriver<'a> {
         derive_range(start, count, |i| self.derive_with(address_type, i))
     }
 
-    /// Derive a [`BtcAccount`] at a structured [`DerivationPath`] with the
-    /// requested [`AddressType`].
+    /// Derive a [`BtcAccount`] at a string BIP-32 path, inferring the
+    /// [`AddressType`] from the path's BIP-44 purpose segment.
     ///
-    /// Lowest-level derivation method; all higher-level entry points funnel
-    /// through this.
+    /// Aligned with every other chain's `derive_at(&str)` entry point.
+    /// The purpose → type mapping follows [`AddressType::from_purpose`]:
+    /// `44' → P2PKH`, `49' → P2SH-P2WPKH`, `84' → P2WPKH`, `86' → P2TR`.
+    /// For any other purpose (or a non-hardened first segment) use
+    /// [`derive_at_with`](Self::derive_at_with) with an explicit type.
     ///
     /// # Errors
     ///
-    /// Returns an error if derivation fails.
-    pub fn derive_bip32_path(
+    /// Returns [`DeriveError::Path`] if the path is malformed or its
+    /// purpose does not map to a standard BIP, or [`DeriveError::Crypto`]
+    /// if BIP-32 derivation fails.
+    pub fn derive_at(&self, path: &str) -> Result<BtcAccount, DeriveError> {
+        let parsed = DerivationPath::from_path_str(path)?;
+        let address_type = infer_address_type(&parsed).ok_or_else(|| {
+            DeriveError::Path(alloc::format!(
+                "bitcoin: cannot infer address type from path '{path}'; \
+                 purpose must be 44'/49'/84'/86'. \
+                 Use Deriver::derive_at_with(path, address_type) for custom paths."
+            ))
+        })?;
+        self.derive_structured(&parsed, address_type)
+    }
+
+    /// Derive a [`BtcAccount`] at a string BIP-32 path with an explicit
+    /// [`AddressType`].
+    ///
+    /// Escape hatch for non-standard paths (custom purpose, non-hardened
+    /// first segment) that [`derive_at`](Self::derive_at) cannot classify
+    /// on its own.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DeriveError::Path`] if the path is malformed, or
+    /// [`DeriveError::Crypto`] if BIP-32 derivation fails.
+    pub fn derive_at_with(
+        &self,
+        path: &str,
+        address_type: AddressType,
+    ) -> Result<BtcAccount, DeriveError> {
+        let parsed = DerivationPath::from_path_str(path)?;
+        self.derive_structured(&parsed, address_type)
+    }
+
+    /// Derive a [`BtcAccount`] at a pre-parsed [`DerivationPath`] with the
+    /// requested [`AddressType`].
+    ///
+    /// Advanced entry point for callers that already hold a structured
+    /// path (for instance after validating it once and reusing it across
+    /// many derivations); every other `derive_*` method funnels through
+    /// here. Most callers want [`derive_at`](Self::derive_at) or
+    /// [`derive_at_with`](Self::derive_at_with) instead.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DeriveError::Crypto`] if BIP-32 derivation fails.
+    pub fn derive_structured(
         &self,
         path: &DerivationPath,
         address_type: AddressType,
@@ -234,26 +283,13 @@ impl Derive for Deriver<'_> {
         self.derive_with(AddressType::P2wpkh, index)
     }
 
-    /// Derive a [`BtcAccount`] at an arbitrary BIP-32 path, inferring the
-    /// [`AddressType`] from the path's BIP-44 *purpose* segment.
+    /// Forwards to [`Deriver::derive_at`].
     ///
-    /// The first hardened index is interpreted as the BIP purpose and mapped
-    /// to an [`AddressType`] via [`AddressType::from_purpose`]:
-    /// `44' → P2PKH`, `49' → P2SH-P2WPKH`, `84' → P2WPKH`, `86' → P2TR`.
-    ///
-    /// For non-standard paths (custom purpose, unhardened first segment),
-    /// callers must use [`Deriver::derive_bip32_path`] to specify the address
-    /// type explicitly; this method returns [`DeriveError::Path`] in that case.
+    /// See that method for the purpose → [`AddressType`] mapping and the
+    /// non-standard-path escape hatch
+    /// ([`derive_at_with`](Deriver::derive_at_with)).
     fn derive_path(&self, path: &str) -> Result<BtcAccount, DeriveError> {
-        let parsed = DerivationPath::from_path_str(path)?;
-        let address_type = infer_address_type(&parsed).ok_or_else(|| {
-            DeriveError::Path(alloc::format!(
-                "bitcoin: cannot infer address type from path '{path}'; \
-                 purpose must be 44'/49'/84'/86'. \
-                 Use Deriver::derive_bip32_path(path, address_type) for custom paths."
-            ))
-        })?;
-        self.derive_bip32_path(&parsed, address_type)
+        self.derive_at(path)
     }
 }
 
@@ -454,8 +490,8 @@ mod tests {
     }
 
     /// Non-standard paths (unknown purpose or non-hardened first segment)
-    /// must surface a [`DeriveError::Path`] pointing callers at
-    /// [`Deriver::derive_bip32_path`], rather than silently defaulting to
+    /// must surface a [`DeriveError::Path`] that points callers at
+    /// [`Deriver::derive_at_with`], rather than silently defaulting to
     /// P2WPKH.
     #[test]
     fn derive_path_rejects_non_standard_purpose() {
@@ -470,6 +506,10 @@ mod tests {
             msg.contains("cannot infer address type"),
             "unexpected error message: {msg}"
         );
+        assert!(
+            msg.contains("derive_at_with"),
+            "error must point users at Deriver::derive_at_with: {msg}"
+        );
 
         let non_hardened_err = d.derive_path("m/44/0'/0'/0/0").unwrap_err();
         let DeriveError::Path(_) = &non_hardened_err else {
@@ -477,5 +517,71 @@ mod tests {
                 "non-hardened purpose must fail with Path error, got {non_hardened_err:?}"
             );
         };
+    }
+
+    /// `derive_at` mirrors `Derive::derive_path` — sanity-check they agree
+    /// byte-for-byte on every BIP purpose, so downstream code can pick
+    /// either entry point without behavioural drift.
+    #[test]
+    fn derive_at_matches_trait_derive_path() {
+        let w = test_wallet();
+        let d = deriver(&w, Network::Mainnet);
+        for path in [
+            "m/44'/0'/0'/0/0",
+            "m/49'/0'/0'/0/0",
+            "m/84'/0'/0'/0/0",
+            "m/86'/0'/0'/0/0",
+        ] {
+            let trait_acct = d.derive_path(path).unwrap();
+            let inherent_acct = d.derive_at(path).unwrap();
+            assert_eq!(trait_acct.address(), inherent_acct.address(), "path={path}");
+            assert_eq!(
+                trait_acct.address_type(),
+                inherent_acct.address_type(),
+                "path={path}",
+            );
+        }
+    }
+
+    /// `derive_at_with` is the escape hatch for non-standard paths and
+    /// must succeed where `derive_at` would reject the purpose. We also
+    /// check that the requested `AddressType` overrides any inference —
+    /// here we ask for P2TR at a BIP-84 path on purpose.
+    #[test]
+    fn derive_at_with_accepts_non_standard_purpose() {
+        let w = test_wallet();
+        let d = deriver(&w, Network::Mainnet);
+
+        // Non-standard purpose 7' — `derive_at` can't classify it, but
+        // `derive_at_with` must work with an explicit AddressType.
+        let acct = d
+            .derive_at_with("m/7'/0'/0'/0/0", AddressType::P2wpkh)
+            .unwrap();
+        assert_eq!(acct.path(), "m/7'/0'/0'/0/0");
+        assert_eq!(acct.address_type(), AddressType::P2wpkh);
+        assert!(acct.address().starts_with("bc1q"));
+
+        // Explicit AddressType must override the purpose hint on a
+        // standard path too (BIP-84 path → P2TR if the caller insists).
+        let override_acct = d
+            .derive_at_with("m/84'/0'/0'/0/0", AddressType::P2tr)
+            .unwrap();
+        assert_eq!(override_acct.address_type(), AddressType::P2tr);
+        assert!(override_acct.address().starts_with("bc1p"));
+    }
+
+    /// `derive_structured` is the low-level entry point; when fed a
+    /// pre-parsed path it must produce the same account as
+    /// `derive_at_with` given the same string.
+    #[test]
+    fn derive_structured_matches_derive_at_with() {
+        let w = test_wallet();
+        let d = deriver(&w, Network::Mainnet);
+        let path_str = "m/84'/0'/0'/0/0";
+        let parsed = DerivationPath::from_path_str(path_str).unwrap();
+        let structured = d.derive_structured(&parsed, AddressType::P2wpkh).unwrap();
+        let at_with = d.derive_at_with(path_str, AddressType::P2wpkh).unwrap();
+        assert_eq!(structured.address(), at_with.address());
+        assert_eq!(structured.path(), at_with.path());
     }
 }

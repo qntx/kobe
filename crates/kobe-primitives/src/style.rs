@@ -7,11 +7,12 @@
 //!
 //! Without a shared contract each chain grew its own `DerivationStyle`
 //! enum with slightly different method names, its own
-//! `ParseDerivationStyleError`, and its own `FromStr` error message. This
-//! module collapses all three concerns into one [`DerivationStyle`] trait
-//! + one shared [`ParseDerivationStyleError`] so downstream callers and
-//! generic helpers (CLI rendering, property tests, agent tooling) can
-//! speak to any chain uniformly.
+//! `ParseDerivationStyleError`, and its own `FromStr` error message.
+//! This module collapses all three concerns into one
+//! [`DerivationStyle`] trait + one shared
+//! [`ParseDerivationStyleError`] so downstream callers and generic
+//! helpers (CLI rendering, property tests, agent tooling) can speak to
+//! any chain uniformly.
 //!
 //! # Contract
 //!
