@@ -1,7 +1,7 @@
 //! Cosmos address derivation from a unified wallet.
 
 #[cfg(feature = "alloc")]
-use alloc::{borrow::Cow, format, string::String, vec::Vec};
+use alloc::{borrow::Cow, format, string::String};
 
 use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
 use ripemd::Ripemd160;
@@ -155,9 +155,10 @@ impl Derive for Deriver<'_> {
     }
 }
 
-/// Hash160: SHA-256 then RIPEMD-160.
-fn hash160(data: &[u8]) -> Vec<u8> {
-    Ripemd160::digest(Sha256::digest(data)).to_vec()
+/// Hash160: `RIPEMD-160(SHA-256(x))`, returning the fixed 20-byte digest
+/// used by every Cosmos SDK address.
+fn hash160(data: &[u8]) -> [u8; 20] {
+    Ripemd160::digest(Sha256::digest(data)).into()
 }
 
 /// Encode a compressed public key as a bech32 Cosmos address.

@@ -65,18 +65,11 @@ struct EthereumArgs {
 
 impl EthereumCommand {
     pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
-        let (wallet, args) = match self.command {
-            EthereumSubcommand::New { args } => {
-                let wallet =
-                    Wallet::generate(args.common.words, args.common.passphrase.as_deref())?;
-                (wallet, args)
-            }
-            EthereumSubcommand::Import { mnemonic, args } => {
-                let expanded = kobe::mnemonic::expand(&mnemonic)?;
-                let wallet = Wallet::from_mnemonic(&expanded, args.common.passphrase.as_deref())?;
-                (wallet, args)
-            }
+        let (mnemonic, args) = match self.command {
+            EthereumSubcommand::New { args } => (None, args),
+            EthereumSubcommand::Import { mnemonic, args } => (Some(mnemonic), args),
         };
+        let wallet = args.common.build_wallet(mnemonic.as_deref())?;
 
         let ds = DerivationStyle::from(args.style);
         let deriver = Deriver::new(&wallet);

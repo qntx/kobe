@@ -1,8 +1,8 @@
 //! Cosmos wallet CLI commands.
 
 use clap::{Args, Subcommand};
+use kobe::DeriveExt;
 use kobe::cosmos::{ChainConfig, Deriver};
-use kobe::{DeriveExt, Wallet};
 
 use crate::commands::simple::SimpleArgs;
 use crate::output::{self, HdWalletOutput};
@@ -49,18 +49,11 @@ struct CosmosArgs {
 
 impl CosmosCommand {
     pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
-        let (wallet, args) = match self.command {
-            CosmosSubcommand::New { args } => {
-                let wallet =
-                    Wallet::generate(args.common.words, args.common.passphrase.as_deref())?;
-                (wallet, args)
-            }
-            CosmosSubcommand::Import { mnemonic, args } => {
-                let expanded = kobe::mnemonic::expand(&mnemonic)?;
-                let wallet = Wallet::from_mnemonic(&expanded, args.common.passphrase.as_deref())?;
-                (wallet, args)
-            }
+        let (mnemonic, args) = match self.command {
+            CosmosSubcommand::New { args } => (None, args),
+            CosmosSubcommand::Import { mnemonic, args } => (Some(mnemonic), args),
         };
+        let wallet = args.common.build_wallet(mnemonic.as_deref())?;
 
         let deriver = Deriver::with_config(&wallet, ChainConfig::new(args.hrp, args.coin_type));
         let accounts = deriver.derive_many(0, args.common.count)?;

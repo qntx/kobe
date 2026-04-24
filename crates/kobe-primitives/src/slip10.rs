@@ -99,12 +99,15 @@ impl DerivedEd25519Key {
 
     /// Derive a key at an arbitrary SLIP-0010 path.
     ///
-    /// Path format: `m/44'/501'/0'/0'` — all components are treated as
-    /// hardened (Ed25519 requirement). Trailing `'` or `h` markers are optional.
+    /// Path format: `m/44'/501'/0'/0'` — **every component must be marked
+    /// hardened** with a trailing `'` or `h`. SLIP-0010 only defines
+    /// hardened derivation for Ed25519, so unhardened components (e.g.
+    /// `"m/44/0"`) are rejected up-front rather than silently promoted.
     ///
     /// # Errors
     ///
-    /// Returns an error if the path is malformed or derivation fails.
+    /// Returns [`DeriveError::Path`] if the path is malformed, contains an
+    /// unhardened segment, or derivation fails.
     pub fn derive_path(seed: &[u8], path: &str) -> Result<Self, DeriveError> {
         let trimmed = path.trim();
         let remainder = if trimmed == "m" {
@@ -119,7 +122,7 @@ impl DerivedEd25519Key {
 
         let mut current = Self::from_seed(seed)?;
         for component in remainder.split('/').filter(|s| !s.is_empty()) {
-            let index = parse_path_component(component)?;
+            let index = parse_hardened_component(component)?;
             current = current.derive_hardened(index)?;
         }
         Ok(current)
@@ -166,12 +169,38 @@ impl DerivedEd25519Key {
     }
 }
 
-/// Parse a single path component like `"44'"` or `"501h"` into a u32 index.
-fn parse_path_component(component: &str) -> Result<u32, DeriveError> {
-    let stripped = component.trim_end_matches('\'').trim_end_matches('h');
-    stripped
-        .parse::<u32>()
-        .map_err(|_| DeriveError::Path(format!("slip10: invalid path component: {component}")))
+/// Parse a SLIP-0010 hardened path component like `"44'"` or `"501h"`.
+///
+/// Rejects unhardened components (no trailing `'` or `h`), because
+/// SLIP-0010 Ed25519 does not define unhardened derivation.
+fn parse_hardened_component(component: &str) -> Result<u32, DeriveError> {
+    let digits = component
+        .strip_suffix('\'')
+        .or_else(|| component.strip_suffix('h'))
+        .ok_or_else(|| {
+            DeriveError::Path(format!(
+                "slip10: path component '{component}' must be hardened (append ' or h); \
+                 Ed25519 does not support unhardened derivation"
+            ))
+        })?;
+
+    if digits.is_empty() {
+        return Err(DeriveError::Path(format!(
+            "slip10: empty index in path component '{component}'"
+        )));
+    }
+
+    let index: u32 = digits
+        .parse()
+        .map_err(|_| DeriveError::Path(format!("slip10: invalid path component: {component}")))?;
+
+    if index & 0x8000_0000 != 0 {
+        return Err(DeriveError::Path(format!(
+            "slip10: path component '{component}' exceeds maximum index 2^31 - 1"
+        )));
+    }
+
+    Ok(index)
 }
 
 #[cfg(test)]
@@ -327,6 +356,52 @@ mod tests {
         let seed = hex::decode(TV1_SEED).unwrap();
         assert!(DerivedEd25519Key::derive_path(&seed, "bad/path").is_err());
         assert!(DerivedEd25519Key::derive_path(&seed, "m/abc").is_err());
+    }
+
+    /// SLIP-0010 only defines hardened derivation for Ed25519. Paths with
+    /// an unhardened component (no trailing `'` or `h`) must be rejected
+    /// rather than silently promoted to hardened — otherwise the same path
+    /// string would derive different keys on SLIP-10 vs a BIP-32 secp256k1
+    /// implementation, confusing downstream users.
+    #[test]
+    fn unhardened_component_rejected() {
+        let seed = hex::decode(TV1_SEED).unwrap();
+        let err = DerivedEd25519Key::derive_path(&seed, "m/44/0").unwrap_err();
+        let DeriveError::Path(msg) = &err else {
+            unreachable!("expected DeriveError::Path, got {err:?}");
+        };
+        assert!(
+            msg.contains("must be hardened"),
+            "unexpected message: {msg}"
+        );
+    }
+
+    /// Mixed paths where *only one* segment is hardened must also be rejected.
+    #[test]
+    fn mixed_hardened_unhardened_rejected() {
+        let seed = hex::decode(TV1_SEED).unwrap();
+        assert!(DerivedEd25519Key::derive_path(&seed, "m/44'/0").is_err());
+        assert!(DerivedEd25519Key::derive_path(&seed, "m/44/0'").is_err());
+    }
+
+    /// Indices greater than `2^31 - 1` cannot fit in the hardened half of
+    /// the 32-bit child index space and must produce a descriptive error.
+    #[test]
+    fn index_overflow_rejected() {
+        let seed = hex::decode(TV1_SEED).unwrap();
+        let err = DerivedEd25519Key::derive_path(&seed, "m/2147483648'").unwrap_err();
+        let DeriveError::Path(msg) = &err else {
+            unreachable!("expected DeriveError::Path, got {err:?}");
+        };
+        assert!(msg.contains("exceeds maximum"), "unexpected message: {msg}");
+    }
+
+    /// A lone apostrophe with no digits is not a valid index.
+    #[test]
+    fn empty_index_rejected() {
+        let seed = hex::decode(TV1_SEED).unwrap();
+        assert!(DerivedEd25519Key::derive_path(&seed, "m/'").is_err());
+        assert!(DerivedEd25519Key::derive_path(&seed, "m/h").is_err());
     }
 
     #[test]

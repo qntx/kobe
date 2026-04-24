@@ -83,18 +83,11 @@ const fn network(testnet: bool) -> Network {
 
 impl BitcoinCommand {
     pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
-        let (wallet, args) = match self.command {
-            BitcoinSubcommand::New { args } => {
-                let wallet =
-                    Wallet::generate(args.common.words, args.common.passphrase.as_deref())?;
-                (wallet, args)
-            }
-            BitcoinSubcommand::Import { mnemonic, args } => {
-                let expanded = kobe::mnemonic::expand(&mnemonic)?;
-                let wallet = Wallet::from_mnemonic(&expanded, args.common.passphrase.as_deref())?;
-                (wallet, args)
-            }
+        let (mnemonic, args) = match self.command {
+            BitcoinSubcommand::New { args } => (None, args),
+            BitcoinSubcommand::Import { mnemonic, args } => (Some(mnemonic), args),
         };
+        let wallet = args.common.build_wallet(mnemonic.as_deref())?;
 
         let net = network(args.testnet);
         let addr_type = AddressType::from(args.address_type);

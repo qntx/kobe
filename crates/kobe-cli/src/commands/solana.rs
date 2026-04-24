@@ -68,18 +68,11 @@ struct SolanaArgs {
 
 impl SolanaCommand {
     pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
-        let (wallet, args) = match self.command {
-            SolanaSubcommand::New { args } => {
-                let wallet =
-                    Wallet::generate(args.common.words, args.common.passphrase.as_deref())?;
-                (wallet, args)
-            }
-            SolanaSubcommand::Import { mnemonic, args } => {
-                let expanded = kobe::mnemonic::expand(&mnemonic)?;
-                let wallet = Wallet::from_mnemonic(&expanded, args.common.passphrase.as_deref())?;
-                (wallet, args)
-            }
+        let (mnemonic, args) = match self.command {
+            SolanaSubcommand::New { args } => (None, args),
+            SolanaSubcommand::Import { mnemonic, args } => (Some(mnemonic), args),
         };
+        let wallet = args.common.build_wallet(mnemonic.as_deref())?;
 
         let ds = DerivationStyle::from(args.style);
         let deriver = Deriver::new(&wallet);

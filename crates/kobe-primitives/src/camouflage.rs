@@ -27,6 +27,14 @@
 //! - Without the password, it is computationally infeasible to recover the original.
 //! - Security strength is bounded by the password entropy.
 //! - PBKDF2 with 600,000 iterations provides strong resistance to brute-force attacks.
+//!
+//! # Operational safety
+//!
+//! The [`DeriveError::Input`](crate::DeriveError::Input) returned on invalid
+//! phrases may repeat user-supplied tokens verbatim (for diagnostic
+//! purposes). **Never log the raw `Display` / `Debug` output of camouflage
+//! errors in production** — hash or drop them first. Use the typed variant
+//! for programmatic handling instead of scraping the human-readable message.
 
 use alloc::string::{String, ToString};
 
@@ -214,6 +222,11 @@ fn xor_buf(dest: &mut [u8], src: &[u8]) {
 /// The `pbkdf2` crate is not used because its stable release (0.12) depends on
 /// `digest 0.10`, which is incompatible with `hmac 0.13` / `sha2 0.11`
 /// (`digest 0.11`). The `0.13` release is still in RC.
+//
+// TODO(security): once `pbkdf2 0.13` reaches a stable release, replace this
+// hand-rolled loop with `pbkdf2::pbkdf2_hmac::<Sha256>` and drop the RFC 7914
+// test vectors embedded in `#[cfg(test)]` below. Hand-rolled PBKDF2 is
+// audit-sensitive; the wrapper crate is the long-term home.
 fn pbkdf2_hmac_sha256(
     password: &[u8],
     salt: &[u8],

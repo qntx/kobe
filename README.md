@@ -17,9 +17,9 @@
 [rust-badge]: https://img.shields.io/badge/rust-edition%202024-orange.svg
 [rust-url]: https://doc.rust-lang.org/edition-guide/
 
-**Modular, `no_std`-compatible Rust toolkit for multi-chain HD wallet derivation — 12 chains, one seed, zero hand-written cryptography.**
+**`no_std`-compatible Rust toolkit for multi-chain HD wallet derivation — one BIP-39 seed, twelve networks, zero hand-written cryptography.**
 
-Kobe derives standards-compliant addresses for Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger, and Nostr (NIP-06/NIP-19) from a single BIP-39 mnemonic. All library crates compile under `no_std + alloc` and zeroize sensitive material on drop.
+Kobe derives standards-compliant accounts and addresses for Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger, and Nostr (NIP-06 / NIP-19) from a single BIP-39 mnemonic. Every library crate builds under `no_std + alloc`; mnemonics, seeds, and private keys are wrapped in `Zeroizing<T>` and wiped on drop.
 
 <p align="center">
   <img src="demo.gif" alt="Kobe CLI Demo"/>
@@ -50,24 +50,30 @@ cargo install kobe-cli
 ### CLI Usage
 
 ```bash
-# Generate wallets
-kobe btc new                              # Bitcoin (Native SegWit)
-kobe btc new -a taproot -w 24 -c 5        # 5 Taproot addresses, 24 words
+# Generate new wallets (default: 12-word English mnemonic, 1 account)
+kobe btc new                              # P2WPKH (Native SegWit), mainnet
+kobe btc new -a taproot -w 24 -c 5        # 5 Taproot addresses, 24-word mnemonic
 kobe evm new                              # Ethereum (MetaMask-compatible)
-kobe evm new --style ledger-live -c 3     # Ledger Live style, 3 accounts
-kobe svm new                              # Solana (Phantom-compatible)
-kobe cosmos new                           # Cosmos Hub
+kobe evm new --style ledger-live -c 3     # Ledger Live layout, 3 accounts
+kobe svm new                              # Solana (Phantom / Backpack / Solflare)
+kobe cosmos new                           # Cosmos Hub (`cosmos1…`)
 kobe aptos new                            # Aptos
 kobe sui new                              # Sui
-kobe ton new                              # TON
-kobe nostr new                            # Nostr (NIP-06, nsec/npub)
+kobe ton new                              # TON wallet v5r1
+kobe tron new                             # Tron (base58check `T…`)
+kobe fil new                              # Filecoin (`f1…` secp256k1)
+kobe spark new                            # Spark (Bitcoin L2), bech32m `spark1…`
+kobe xrpl new                             # XRP Ledger classic `r…`
+kobe nostr new                            # Nostr NIP-06 (`nsec` / `npub`, NIP-19)
 
-# Import from mnemonic
+# Import from an existing mnemonic
 kobe evm import -m "abandon abandon ... about"
 
-# JSON output (for scripts / agents)
+# JSON output — stable, script- and agent-friendly
 kobe evm new --json
 ```
+
+Every chain subcommand accepts the shared flags `-w/--words`, `-c/--count`, `-p/--passphrase`, and `--qr` through a flattened `SimpleArgs` group, so ergonomics stay consistent across the 12 networks.
 
 ### Library Usage
 

@@ -269,51 +269,144 @@ impl Derive for Deriver<'_> {
 }
 
 /// Compute the data cell hash for wallet v5r1 initial state.
-/// Data layout: `is_sig_allowed(1b) + seqno(32b) + walletId(32b) + pubkey(256b) + extensions(1b)` = 322 bits.
+///
+/// Data layout (322 bits, MSB-first):
+/// `is_sig_allowed(1) || seqno(32) || walletId(32) || pubkey(256) || extensions(1)`.
+///
+/// Serializes through [`BitWriter`] so the non-byte-aligned completion tag
+/// is handled declaratively instead of via hand-rolled bit arrays.
 fn data_cell_hash(public_key: &[u8; 32], wallet_id: i32) -> [u8; 32] {
-    let d1: u8 = 0; // 0 refs
-    let d2: u8 = 81; // ceil(322/8) + floor(322/8) = 41 + 40
+    /// Total payload bit length for the wallet v5r1 data cell.
+    const DATA_BITS: usize = 322;
+    /// TL-B cell descriptor `d1`: `refs << 1` (0 refs for this leaf cell).
+    const D1: u8 = 0;
+    /// TL-B cell descriptor `d2`: `ceil(bits/8) + floor(bits/8)` = 41 + 40.
+    const D2: u8 = 81;
 
-    let wallet_id_bytes = wallet_id.to_be_bytes();
+    // Compile-time lock: keep `D2` honest against `DATA_BITS`.
+    const _: () = assert!(
+        DATA_BITS.div_ceil(8) + DATA_BITS / 8 == D2 as usize,
+        "TL-B d2 descriptor must equal ceil(bits/8) + floor(bits/8)"
+    );
 
-    // Pack 322 bits: [1-bit flag][32-bit seqno][32-bit walletId][256-bit key][1-bit ext]
-    let mut bits = Vec::with_capacity(328);
-    bits.push(1u8); // is_signature_allowed = 1
-    bits.extend(core::iter::repeat_n(0u8, 32)); // seqno = 0
-    for &b in &wallet_id_bytes {
-        for shift in (0..8).rev() {
-            bits.push((b >> shift) & 1);
-        }
-    }
-    for &b in public_key {
-        for shift in (0..8).rev() {
-            bits.push((b >> shift) & 1);
-        }
-    }
-    bits.push(0); // extensions = 0
+    let mut writer = BitWriter::with_bit_capacity(DATA_BITS);
+    writer.push_bit(true); // is_signature_allowed = 1
+    writer.push_u32_be(0); // seqno = 0
+    writer.push_i32_be(wallet_id); // walletId (big-endian, two's complement)
+    writer.push_bytes(public_key); // 256-bit Ed25519 public key
+    writer.push_bit(false); // extensions = 0 (empty dict)
 
-    // Completion tag: 1 followed by zeros to fill the byte
-    bits.push(1);
-    while bits.len() % 8 != 0 {
-        bits.push(0);
-    }
-
-    // Convert bit array to bytes
-    let mut data_bytes = Vec::with_capacity(bits.len() / 8);
-    for chunk in bits.chunks(8) {
-        let mut byte = 0u8;
-        for (i, &bit) in chunk.iter().enumerate() {
-            byte |= bit << (7 - i);
-        }
-        data_bytes.push(byte);
-    }
+    let (data_bytes, bit_len) = writer.finalize_with_completion_tag();
+    debug_assert_eq!(
+        bit_len, DATA_BITS,
+        "wallet v5r1 data cell must serialize to exactly {DATA_BITS} bits"
+    );
 
     let mut repr = Vec::with_capacity(2 + data_bytes.len());
-    repr.push(d1);
-    repr.push(d2);
+    repr.push(D1);
+    repr.push(D2);
     repr.extend_from_slice(&data_bytes);
 
     Sha256::digest(&repr).into()
+}
+
+/// Streaming MSB-first bit writer for TL-B cell serialization.
+///
+/// Tracks the write cursor in units of bits; `finalize_with_completion_tag`
+/// appends the `1`-then-zero-padding tag required by TL-B whenever the
+/// final bit count is not byte-aligned.
+struct BitWriter {
+    bytes: Vec<u8>,
+    /// Number of bits already written into the tail byte (`bytes.last()`);
+    /// always `0..8`. Zero means the next write starts a fresh byte.
+    tail_bits: u8,
+}
+
+impl BitWriter {
+    /// Create a writer with capacity for at least `bits` bits of output.
+    fn with_bit_capacity(bits: usize) -> Self {
+        Self {
+            // Reserve one extra byte for the completion tag worst case.
+            bytes: Vec::with_capacity(bits.div_ceil(8) + 1),
+            tail_bits: 0,
+        }
+    }
+
+    /// Append a single bit.
+    fn push_bit(&mut self, bit: bool) {
+        if self.tail_bits == 0 {
+            self.bytes.push(if bit { 0x80 } else { 0 });
+        } else if bit {
+            debug_assert!(
+                !self.bytes.is_empty(),
+                "BitWriter invariant: tail_bits > 0 implies at least one byte exists"
+            );
+            if let Some(last) = self.bytes.last_mut() {
+                *last |= 1u8 << (7 - self.tail_bits);
+            }
+        }
+        self.tail_bits = (self.tail_bits + 1) & 0x07;
+    }
+
+    /// Append a whole byte (8 MSB-first bits). Preserves `tail_bits`.
+    fn push_byte(&mut self, b: u8) {
+        if self.tail_bits == 0 {
+            self.bytes.push(b);
+            return;
+        }
+        let shift = self.tail_bits;
+        debug_assert!(
+            !self.bytes.is_empty(),
+            "BitWriter invariant: tail_bits > 0 implies at least one byte exists"
+        );
+        if let Some(last) = self.bytes.last_mut() {
+            *last |= b >> shift;
+        }
+        self.bytes.push(b << (8 - shift));
+    }
+
+    /// Append the big-endian encoding of a `u32`.
+    fn push_u32_be(&mut self, v: u32) {
+        for &b in &v.to_be_bytes() {
+            self.push_byte(b);
+        }
+    }
+
+    /// Append the big-endian encoding of an `i32` (two's complement).
+    fn push_i32_be(&mut self, v: i32) {
+        for &b in &v.to_be_bytes() {
+            self.push_byte(b);
+        }
+    }
+
+    /// Append each byte of `data` in order.
+    fn push_bytes(&mut self, data: &[u8]) {
+        for &b in data {
+            self.push_byte(b);
+        }
+    }
+
+    /// Bit-level length of the payload *before* the completion tag.
+    fn bit_len(&self) -> usize {
+        if self.tail_bits == 0 {
+            self.bytes.len() * 8
+        } else {
+            (self.bytes.len() - 1) * 8 + usize::from(self.tail_bits)
+        }
+    }
+
+    /// Return `(bytes, payload_bit_len)` with the TL-B completion tag
+    /// appended iff the payload is not already byte-aligned.
+    fn finalize_with_completion_tag(mut self) -> (Vec<u8>, usize) {
+        let bit_len = self.bit_len();
+        if self.tail_bits != 0 {
+            self.push_bit(true);
+            while self.tail_bits != 0 {
+                self.push_bit(false);
+            }
+        }
+        (self.bytes, bit_len)
+    }
 }
 
 /// Compute the `StateInit` cell hash.
@@ -386,6 +479,56 @@ mod tests {
 
     fn test_wallet() -> Wallet {
         Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap()
+    }
+
+    /// Byte-aligned writes must produce the input byte stream verbatim and
+    /// never append a completion tag (TL-B only pads non-aligned cells).
+    #[test]
+    fn bit_writer_aligned_bytes_no_completion_tag() {
+        let mut w = BitWriter::with_bit_capacity(24);
+        w.push_bytes(&[0xAB, 0xCD, 0xEF]);
+        assert_eq!(w.bit_len(), 24);
+        let (out, len) = w.finalize_with_completion_tag();
+        assert_eq!(len, 24);
+        assert_eq!(out, vec![0xAB, 0xCD, 0xEF]);
+    }
+
+    /// A `1`-bit followed by a byte must end up at bit positions 0 and 1..9,
+    /// so the two emitted bytes are `1<<7 | 0xAB>>1 = 0xD5` and
+    /// `0xAB << 7 | completion 1-bit = 0x80 | 0x40 = 0xC0` (completion tag).
+    #[test]
+    fn bit_writer_unaligned_byte_split() {
+        let mut w = BitWriter::with_bit_capacity(9);
+        w.push_bit(true);
+        w.push_byte(0xAB);
+        assert_eq!(w.bit_len(), 9);
+        let (out, len) = w.finalize_with_completion_tag();
+        assert_eq!(len, 9);
+        // Expected layout (MSB-first):
+        //   bit 0:    1                    → byte 0 MSB
+        //   bits 1-8: 10101011 (0xAB)      → byte 0 bits 1-7 + byte 1 bit 0
+        //   bit 9:    1 (completion tag)   → byte 1 bit 1
+        //   bits 10-15: 000000 (pad)       → byte 1 bits 2-7
+        // byte 0 = 1_1010101 = 0xD5
+        // byte 1 = 1_1_000000 = 0xC0
+        assert_eq!(out, vec![0xD5, 0xC0]);
+    }
+
+    /// 322-bit payload (wallet v5r1) must produce exactly 41 bytes of
+    /// bit-packed data + 1 tag byte = 41 bytes total (completion tag fits
+    /// in the last partial byte). Regression test for the byte count.
+    #[test]
+    fn bit_writer_wallet_v5r1_length() {
+        let mut w = BitWriter::with_bit_capacity(322);
+        w.push_bit(true);
+        w.push_u32_be(0);
+        w.push_i32_be(-239);
+        w.push_bytes(&[0u8; 32]);
+        w.push_bit(false);
+        let (out, len) = w.finalize_with_completion_tag();
+        assert_eq!(len, 322);
+        // ceil(322/8) = 41 (the completion tag fits within the final byte)
+        assert_eq!(out.len(), 41);
     }
 
     /// CRC-16/XMODEM ("0x31C3" for "123456789") is the canonical test

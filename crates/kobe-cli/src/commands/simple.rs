@@ -33,6 +33,33 @@ pub(crate) struct SimpleArgs {
     pub qr: bool,
 }
 
+impl SimpleArgs {
+    /// Resolve a [`Wallet`] from these args and an optional mnemonic phrase.
+    ///
+    /// - `mnemonic = None` → generate a fresh wallet with [`words`](Self::words) words.
+    /// - `mnemonic = Some(phrase)` → expand 4-letter prefixes and import the phrase.
+    ///
+    /// The BIP-39 [`passphrase`](Self::passphrase) is applied to both paths.
+    /// Used by every chain command that offers the `new` / `import` pair.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if mnemonic generation, prefix expansion, or
+    /// `Wallet::from_mnemonic` fails.
+    pub(crate) fn build_wallet(&self, mnemonic: Option<&str>) -> CliResult<Wallet> {
+        match mnemonic {
+            None => Ok(Wallet::generate(self.words, self.passphrase.as_deref())?),
+            Some(phrase) => {
+                let expanded = kobe::mnemonic::expand(phrase)?;
+                Ok(Wallet::from_mnemonic(
+                    &expanded,
+                    self.passphrase.as_deref(),
+                )?)
+            }
+        }
+    }
+}
+
 /// Subcommand template reused across all simple chain commands.
 #[derive(Subcommand, Debug)]
 pub(crate) enum SimpleSubcommand {
@@ -93,17 +120,11 @@ impl SimpleSubcommand {
         F: FnOnce(&Wallet, u32) -> CliResult<Vec<A>>,
         G: Fn(&A) -> String,
     {
-        let (wallet, args) = match self {
-            Self::New { args } => {
-                let wallet = Wallet::generate(args.words, args.passphrase.as_deref())?;
-                (wallet, args)
-            }
-            Self::Import { mnemonic, args } => {
-                let expanded = kobe::mnemonic::expand(&mnemonic)?;
-                let wallet = Wallet::from_mnemonic(&expanded, args.passphrase.as_deref())?;
-                (wallet, args)
-            }
+        let (mnemonic, args) = match self {
+            Self::New { args } => (None, args),
+            Self::Import { mnemonic, args } => (Some(mnemonic), args),
         };
+        let wallet = args.build_wallet(mnemonic.as_deref())?;
 
         let accounts = derive_fn(&wallet, args.count)?;
         let out = HdWalletOutput {

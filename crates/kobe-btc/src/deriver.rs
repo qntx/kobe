@@ -473,7 +473,9 @@ mod tests {
 
         let non_hardened_err = d.derive_path("m/44/0'/0'/0/0").unwrap_err();
         let DeriveError::Path(_) = &non_hardened_err else {
-            unreachable!("non-hardened purpose must fail with Path error, got {non_hardened_err:?}");
+            unreachable!(
+                "non-hardened purpose must fail with Path error, got {non_hardened_err:?}"
+            );
         };
     }
 }
