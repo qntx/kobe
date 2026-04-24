@@ -6,7 +6,15 @@ use core::ops::Deref;
 
 use kobe_primitives::slip10::DerivedEd25519Key;
 use kobe_primitives::{
-    Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet, derive_range,
+    // Anonymous trait import so `style.path(i)` resolves through the shared
+    // trait; the local `DerivationStyle` enum keeps the bare name.
+    DerivationStyle as _,
+    Derive,
+    DeriveError,
+    DerivedAccount,
+    DerivedPublicKey,
+    Wallet,
+    derive_range,
 };
 use zeroize::Zeroizing;
 

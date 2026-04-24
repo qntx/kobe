@@ -2,7 +2,7 @@
 
 use clap::{Args, Subcommand, ValueEnum};
 use kobe::evm::{DerivationStyle, Deriver};
-use kobe::{DerivedAccount, Wallet};
+use kobe::{DerivationStyle as _, DerivedAccount, Wallet};
 
 use crate::commands::simple::SimpleArgs;
 use crate::output::{self, AccountOutput, HdWalletOutput};

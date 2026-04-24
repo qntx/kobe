@@ -14,7 +14,9 @@ mod derivation_style;
 mod deriver;
 
 #[cfg(feature = "alloc")]
-pub use derivation_style::{DerivationStyle, ParseDerivationStyleError};
+pub use derivation_style::DerivationStyle;
 #[cfg(feature = "alloc")]
 pub use deriver::{Deriver, SvmAccount};
+#[cfg(feature = "alloc")]
+pub use kobe_primitives::ParseDerivationStyleError;
 pub use kobe_primitives::{DeriveError, DerivedAccount, DerivedPublicKey};

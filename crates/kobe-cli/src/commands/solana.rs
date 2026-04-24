@@ -1,8 +1,8 @@
 //! Solana wallet CLI commands.
 
 use clap::{Args, Subcommand, ValueEnum};
-use kobe::Wallet;
 use kobe::svm::{DerivationStyle, Deriver, SvmAccount};
+use kobe::{DerivationStyle as _, Wallet};
 
 use crate::commands::simple::SimpleArgs;
 use crate::output::{self, AccountOutput, HdWalletOutput};

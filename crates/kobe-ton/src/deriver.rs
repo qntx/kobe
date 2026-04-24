@@ -3,17 +3,30 @@
 #[cfg(feature = "alloc")]
 use alloc::{format, string::String, vec::Vec};
 use core::fmt;
+use core::str::FromStr;
 
 use kobe_primitives::{
-    Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet, derive_range,
+    // Anonymous trait import so `style.path(i)` resolves through the
+    // shared trait without shadowing the local `DerivationStyle` enum.
+    DerivationStyle as _,
+    Derive,
+    DeriveError,
+    DerivedAccount,
+    DerivedPublicKey,
+    ParseDerivationStyleError,
+    Wallet,
+    derive_range,
 };
 use sha2::{Digest, Sha256};
 use zeroize::Zeroizing;
 
 /// TON derivation path styles.
 ///
-/// Tonkeeper and most wallets use `m/44'/607'/{index}'`.
+/// Tonkeeper and most software wallets use `m/44'/607'/{index}'`.
 /// Ledger Live uses `m/44'/607'/{index}'/0'/0'`.
+///
+/// The chain-agnostic contract (path / name / all / `FromStr`) is defined
+/// by the [`kobe_primitives::DerivationStyle`] trait.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum DerivationStyle {
@@ -24,29 +37,56 @@ pub enum DerivationStyle {
     LedgerLive,
 }
 
-impl DerivationStyle {
-    /// Build the derivation path string for a given index.
-    #[must_use]
-    pub fn path(self, index: u32) -> String {
+/// Every variant of [`DerivationStyle`], returned by
+/// [`kobe_primitives::DerivationStyle::all`].
+const ALL_STYLES: &[DerivationStyle] = &[DerivationStyle::Standard, DerivationStyle::LedgerLive];
+
+/// Tokens accepted by [`DerivationStyle::from_str`].
+const ACCEPTED_TOKENS: &[&str] = &[
+    "standard",
+    "tonkeeper",
+    "mytonwallet",
+    "trust",
+    "ledger-live",
+    "ledgerlive",
+    "live",
+];
+
+impl kobe_primitives::DerivationStyle for DerivationStyle {
+    fn path(self, index: u32) -> String {
         match self {
             Self::Standard => format!("m/44'/607'/{index}'"),
             Self::LedgerLive => format!("m/44'/607'/{index}'/0'/0'"),
         }
     }
 
-    /// Human-readable name.
-    #[must_use]
-    pub const fn name(self) -> &'static str {
+    fn name(self) -> &'static str {
         match self {
             Self::Standard => "Standard (Tonkeeper)",
             Self::LedgerLive => "Ledger Live",
         }
     }
+
+    fn all() -> &'static [Self] {
+        ALL_STYLES
+    }
 }
 
 impl fmt::Display for DerivationStyle {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.name())
+        f.write_str(<Self as kobe_primitives::DerivationStyle>::name(*self))
+    }
+}
+
+impl FromStr for DerivationStyle {
+    type Err = ParseDerivationStyleError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "standard" | "tonkeeper" | "mytonwallet" | "trust" => Ok(Self::Standard),
+            "ledger-live" | "ledgerlive" | "live" => Ok(Self::LedgerLive),
+            _ => Err(ParseDerivationStyleError::new("ton", s, ACCEPTED_TOKENS)),
+        }
     }
 }
 

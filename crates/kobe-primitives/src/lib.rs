@@ -103,6 +103,8 @@ extern crate alloc;
 mod derive;
 mod error;
 #[cfg(feature = "alloc")]
+mod style;
+#[cfg(feature = "alloc")]
 mod wallet;
 
 #[cfg(feature = "bip32")]
@@ -122,6 +124,8 @@ pub use derive::{
     Derive, DeriveExt, DerivedAccount, DerivedPublicKey, PublicKeyKind, derive_range,
 };
 pub use error::DeriveError;
+#[cfg(feature = "alloc")]
+pub use style::{DerivationStyle, ParseDerivationStyleError};
 #[cfg(feature = "alloc")]
 pub use wallet::Wallet;
 

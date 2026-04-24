@@ -8,13 +8,29 @@ use core::str::FromStr;
 
 use alloy_primitives::{Address, keccak256};
 use kobe_primitives::{
-    Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet, derive_range,
+    // Anonymous trait import so method-call syntax (`style.path(i)`,
+    // `style.name()`, `DerivationStyle::all()`) resolves without shadowing
+    // the local `DerivationStyle` enum.
+    DerivationStyle as _,
+    Derive,
+    DeriveError,
+    DerivedAccount,
+    DerivedPublicKey,
+    ParseDerivationStyleError,
+    Wallet,
+    derive_range,
 };
 
-/// Derivation path styles for different wallet software.
+/// Derivation path styles for different Ethereum wallet software.
 ///
 /// MetaMask/Trezor, Ledger Live, and Ledger Legacy each use a different
 /// BIP-44 path layout. See individual variant docs for details.
+///
+/// The chain-agnostic contract (path / name / all / `FromStr`) is defined
+/// by the [`kobe_primitives::DerivationStyle`] trait; import it to call
+/// [`path`](kobe_primitives::DerivationStyle::path),
+/// [`name`](kobe_primitives::DerivationStyle::name), or
+/// [`all`](kobe_primitives::DerivationStyle::all) through the trait.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum DerivationStyle {
@@ -27,10 +43,32 @@ pub enum DerivationStyle {
     LedgerLegacy,
 }
 
-impl DerivationStyle {
-    /// Build the derivation path string for a given account index.
-    #[must_use]
-    pub fn path(self, index: u32) -> String {
+/// Every variant of [`DerivationStyle`] — returned by
+/// [`kobe_primitives::DerivationStyle::all`].
+const ALL_STYLES: &[DerivationStyle] = &[
+    DerivationStyle::Standard,
+    DerivationStyle::LedgerLive,
+    DerivationStyle::LedgerLegacy,
+];
+
+/// Tokens accepted by [`DerivationStyle::from_str`] — surfaced in
+/// [`ParseDerivationStyleError`] so CLI error messages are actionable.
+const ACCEPTED_TOKENS: &[&str] = &[
+    "standard",
+    "metamask",
+    "trezor",
+    "bip44",
+    "ledger-live",
+    "ledgerlive",
+    "live",
+    "ledger-legacy",
+    "ledgerlegacy",
+    "legacy",
+    "mew",
+];
+
+impl kobe_primitives::DerivationStyle for DerivationStyle {
+    fn path(self, index: u32) -> String {
         match self {
             Self::Standard => format!("m/44'/60'/0'/0/{index}"),
             Self::LedgerLive => format!("m/44'/60'/{index}'/0/0"),
@@ -38,39 +76,24 @@ impl DerivationStyle {
         }
     }
 
-    /// Human-readable name.
-    #[must_use]
-    pub const fn name(self) -> &'static str {
+    fn name(self) -> &'static str {
         match self {
             Self::Standard => "Standard (MetaMask/Trezor)",
             Self::LedgerLive => "Ledger Live",
             Self::LedgerLegacy => "Ledger Legacy",
         }
     }
+
+    fn all() -> &'static [Self] {
+        ALL_STYLES
+    }
 }
 
 impl fmt::Display for DerivationStyle {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.name())
+        f.write_str(<Self as kobe_primitives::DerivationStyle>::name(*self))
     }
 }
-
-/// Error returned when parsing an invalid EVM derivation style string.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ParseDerivationStyleError(pub(crate) String);
-
-impl fmt::Display for ParseDerivationStyleError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "invalid EVM derivation style '{}', expected one of: standard, ledger-live, ledger-legacy",
-            self.0
-        )
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for ParseDerivationStyleError {}
 
 impl FromStr for DerivationStyle {
     type Err = ParseDerivationStyleError;
@@ -80,7 +103,11 @@ impl FromStr for DerivationStyle {
             "standard" | "metamask" | "trezor" | "bip44" => Ok(Self::Standard),
             "ledger-live" | "ledgerlive" | "live" => Ok(Self::LedgerLive),
             "ledger-legacy" | "ledgerlegacy" | "legacy" | "mew" => Ok(Self::LedgerLegacy),
-            _ => Err(ParseDerivationStyleError(s.into())),
+            _ => Err(ParseDerivationStyleError::new(
+                "ethereum",
+                s,
+                ACCEPTED_TOKENS,
+            )),
         }
     }
 }

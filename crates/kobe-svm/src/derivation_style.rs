@@ -1,107 +1,80 @@
-//! Derivation path styles for different Solana wallet software.
+//! Solana derivation path styles.
 //!
-//! Different wallet software (Phantom, Ledger, Trust Wallet) use different
-//! BIP-44 derivation paths. This module provides predefined styles for compatibility.
+//! Different Solana wallets use slightly different BIP-44 path layouts
+//! even though they all share SLIP-0010 Ed25519 as the underlying key
+//! scheme. This module captures the four widely-supported layouts and
+//! implements the chain-agnostic
+//! [`kobe_primitives::DerivationStyle`] trait so generic tooling (CLI
+//! rendering, property tests, agent helpers) can treat Solana the same
+//! way it treats EVM or TON.
 
 use alloc::format;
 use alloc::string::String;
 use core::fmt;
 use core::str::FromStr;
 
-/// Solana derivation path styles for different wallet software.
+use kobe_primitives::ParseDerivationStyleError;
+
+/// Solana derivation-path layouts, indexed by the account index.
 ///
-/// Different hardware and software wallets use different derivation paths
-/// even though they all follow BIP-44 principles. This enum provides
-/// the most common styles for maximum compatibility.
+/// # Path specifications
 ///
-/// # Path Specifications (as of 2026)
-///
-/// - **Standard (Phantom/Backpack)**: `m/44'/501'/{index}'/0'`
-/// - **Trust**: `m/44'/501'/{index}'`
-/// - **Ledger Live**: `m/44'/501'/{index}'/0'/0'`
-/// - **Legacy**: `m/501'/{index}'/0'/0'` (deprecated)
+/// | Variant        | Path layout                     | Compatible wallets                        |
+/// | -------------- | ------------------------------- | ----------------------------------------- |
+/// | `Standard`     | `m/44'/501'/{index}'/0'`        | Phantom, Backpack, Solflare, Magic Eden   |
+/// | `Trust`        | `m/44'/501'/{index}'`           | Trust Wallet, Ledger (native), Keystone   |
+/// | `LedgerLive`   | `m/44'/501'/{index}'/0'/0'`     | Ledger Live                               |
+/// | `Legacy`       | `m/501'/{index}'/0'/0'`         | Older Phantom, Sollet (**deprecated**)    |
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum DerivationStyle {
-    /// Standard BIP44-Change path used by Phantom and Backpack.
-    ///
-    /// Path format: `m/44'/501'/{index}'/0'`
-    ///
-    /// This is the most widely adopted standard where:
-    /// - Purpose: 44' (BIP-44)
-    /// - Coin type: 501' (Solana)
-    /// - Account: variable (hardened)
-    /// - Change: 0' (hardened, fixed)
-    ///
-    /// Used by: Phantom, Backpack, Solflare, Trezor, Exodus, Magic Eden
+    /// `m/44'/501'/{index}'/0'` — Phantom, Backpack, Solflare, …
     #[default]
     Standard,
-
-    /// Trust Wallet / Ledger native derivation path.
-    ///
-    /// Path format: `m/44'/501'/{index}'`
-    ///
-    /// BIP-44 path without change component:
-    /// - Purpose: 44' (BIP-44)
-    /// - Coin type: 501' (Solana)
-    /// - Account: variable (hardened)
-    ///
-    /// Used by: Trust Wallet, Ledger (native), Keystone
+    /// `m/44'/501'/{index}'` — Trust Wallet, Ledger (native), Keystone.
     Trust,
-
-    /// Ledger Live derivation path (account-based).
-    ///
-    /// Path format: `m/44'/501'/{index}'/0'/0'`
-    ///
-    /// Used by Ledger Live application:
-    /// - Purpose: 44' (BIP-44)
-    /// - Coin type: 501' (Solana)
-    /// - Account: variable (hardened)
-    /// - Change: 0' (hardened, fixed)
-    /// - Address index: 0' (hardened, fixed)
+    /// `m/44'/501'/{index}'/0'/0'` — Ledger Live.
     LedgerLive,
-
-    /// Legacy derivation path (**not recommended for new wallets**).
-    ///
-    /// Path format: `m/501'/{index}'/0'/0'`
-    ///
-    /// Used by older versions of Phantom and Sollet.
-    /// Only use for recovering old wallets; prefer [`Standard`](Self::Standard) for new ones.
+    /// `m/501'/{index}'/0'/0'` — legacy Phantom / Sollet (deprecated).
     Legacy,
 }
 
+/// Every variant of [`DerivationStyle`], returned by
+/// [`kobe_primitives::DerivationStyle::all`].
+const ALL_STYLES: &[DerivationStyle] = &[
+    DerivationStyle::Standard,
+    DerivationStyle::Trust,
+    DerivationStyle::LedgerLive,
+    DerivationStyle::Legacy,
+];
+
+/// Tokens accepted by [`DerivationStyle::from_str`] (canonical + wallet aliases).
+const ACCEPTED_TOKENS: &[&str] = &[
+    "standard",
+    "phantom",
+    "backpack",
+    "solflare",
+    "trezor",
+    "trust",
+    "trustwallet",
+    "ledger",
+    "ledger-native",
+    "ledgernative",
+    "keystone",
+    "ledger-live",
+    "ledgerlive",
+    "live",
+    "legacy",
+    "old",
+    "sollet",
+];
+
 impl DerivationStyle {
-    /// Generate the derivation path string for a given index.
+    /// Short machine-readable identifier (e.g. `"standard"`, `"ledger-live"`).
     ///
-    /// # Arguments
-    ///
-    /// * `index` - The account index to derive
-    ///
-    /// # Returns
-    ///
-    /// A BIP-32 derivation path string.
-    #[must_use]
-    pub fn path(self, index: u32) -> String {
-        match self {
-            Self::Standard => format!("m/44'/501'/{index}'/0'"),
-            Self::Trust => format!("m/44'/501'/{index}'"),
-            Self::LedgerLive => format!("m/44'/501'/{index}'/0'/0'"),
-            Self::Legacy => format!("m/501'/{index}'/0'/0'"),
-        }
-    }
-
-    /// Get the human-readable name of this derivation style.
-    #[must_use]
-    pub const fn name(self) -> &'static str {
-        match self {
-            Self::Standard => "Standard (Phantom/Backpack)",
-            Self::Trust => "Trust (Ledger/Keystone)",
-            Self::LedgerLive => "Ledger Live",
-            Self::Legacy => "Legacy (deprecated)",
-        }
-    }
-
-    /// Get a short identifier for CLI usage.
+    /// Kept as an inherent `const fn` rather than a trait method because
+    /// it is Solana-specific API used by the CLI for backwards compatibility;
+    /// other chains do not all expose a short id.
     #[must_use]
     pub const fn id(self) -> &'static str {
         match self {
@@ -111,59 +84,58 @@ impl DerivationStyle {
             Self::Legacy => "legacy",
         }
     }
+}
 
-    /// Get all available derivation styles.
-    #[must_use]
-    pub const fn all() -> &'static [Self] {
-        &[Self::Standard, Self::Trust, Self::LedgerLive, Self::Legacy]
+impl kobe_primitives::DerivationStyle for DerivationStyle {
+    fn path(self, index: u32) -> String {
+        match self {
+            Self::Standard => format!("m/44'/501'/{index}'/0'"),
+            Self::Trust => format!("m/44'/501'/{index}'"),
+            Self::LedgerLive => format!("m/44'/501'/{index}'/0'/0'"),
+            Self::Legacy => format!("m/501'/{index}'/0'/0'"),
+        }
+    }
+
+    fn name(self) -> &'static str {
+        match self {
+            Self::Standard => "Standard (Phantom/Backpack)",
+            Self::Trust => "Trust (Ledger/Keystone)",
+            Self::LedgerLive => "Ledger Live",
+            Self::Legacy => "Legacy (deprecated)",
+        }
+    }
+
+    fn all() -> &'static [Self] {
+        ALL_STYLES
     }
 }
 
 impl fmt::Display for DerivationStyle {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name())
+        f.write_str(<Self as kobe_primitives::DerivationStyle>::name(*self))
     }
 }
-
-/// Error returned when parsing an invalid derivation style string.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ParseDerivationStyleError(pub(crate) String);
-
-impl fmt::Display for ParseDerivationStyleError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "invalid derivation style '{}', expected one of: standard, trust, ledger-live, legacy",
-            self.0
-        )
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for ParseDerivationStyleError {}
 
 impl FromStr for DerivationStyle {
     type Err = ParseDerivationStyleError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            // Standard (Phantom, Backpack, etc.)
             "standard" | "phantom" | "backpack" | "solflare" | "trezor" => Ok(Self::Standard),
-            // Trust (Ledger native, Keystone)
             "trust" | "trustwallet" | "ledger" | "ledger-native" | "ledgernative" | "keystone" => {
                 Ok(Self::Trust)
             }
-            // Ledger Live
             "ledger-live" | "ledgerlive" | "live" => Ok(Self::LedgerLive),
-            // Legacy (deprecated)
             "legacy" | "old" | "sollet" => Ok(Self::Legacy),
-            _ => Err(ParseDerivationStyleError(s.into())),
+            _ => Err(ParseDerivationStyleError::new("solana", s, ACCEPTED_TOKENS)),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use kobe_primitives::DerivationStyle as _;
+
     use super::*;
 
     #[test]
