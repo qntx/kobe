@@ -34,7 +34,7 @@ kobe-aptos = { version = "2.0", path = "crates/kobe-aptos", default-features = f
 kobe-nostr = { version = "2.0", path = "crates/kobe-nostr", default-features = false }
 kobe-xrpl = { version = "2.0", path = "crates/kobe-xrpl", default-features = false }
 
-alloy-primitives = { version = "1.5.7", default-features = false, features = ["k256"] }
+alloy-primitives = { version = "1.6.0", default-features = false, features = ["k256"] }
 base64 = { version = "0.22.1", default-features = false, features = ["alloc"] }
 bech32 = { version = "0.11.1", default-features = false, features = ["alloc"] }
 bip32 = { version = "0.5.3", default-features = false, features = ["secp256k1", "alloc"] }
