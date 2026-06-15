@@ -698,7 +698,7 @@ dependencies = [
 
 [[package]]
 name = "kobe"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "kobe-aptos",
  "kobe-btc",
@@ -717,7 +717,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-aptos"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "hex",
  "kobe-primitives",
@@ -727,7 +727,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-btc"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "bitcoin",
  "hex",
@@ -737,7 +737,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-cli"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "clap",
  "colored",
@@ -749,7 +749,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-cosmos"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "bech32",
  "kobe-primitives",
@@ -759,7 +759,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-evm"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "alloy-primitives",
  "kobe-primitives",
@@ -767,7 +767,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-fil"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "blake2",
  "kobe-primitives",
@@ -775,7 +775,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-nostr"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "bech32",
  "kobe-primitives",
@@ -784,7 +784,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-primitives"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "bip32",
  "bip39",
@@ -799,7 +799,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-spark"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "bech32",
  "hex",
@@ -808,7 +808,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-sui"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "blake2",
  "hex",
@@ -818,7 +818,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-svm"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "bs58",
  "kobe-primitives",
@@ -827,7 +827,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-ton"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "base64",
  "kobe-primitives",
@@ -837,7 +837,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-tron"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "bs58",
  "kobe-primitives",
@@ -846,7 +846,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-xrpl"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "bs58",
  "kobe-primitives",
