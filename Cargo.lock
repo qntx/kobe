@@ -111,6 +111,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32637268377fc7b10a8c6d51de3e7fba1ce5dd371a96e342b34e6078db558e7f"
 
 [[package]]
+name = "bech32"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "efbd3e1070bbdf4cd88a75264e18e8a26f7cb5c6949eadf0ceb85fb159cf08f8"
+
+[[package]]
 name = "bip32"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -147,7 +153,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39581299241111285f3268ba75ddf372746fd041620918b145c1af9d75e91b6c"
 dependencies = [
  "base58ck",
- "bech32",
+ "bech32 0.11.1",
  "bitcoin-io",
  "bitcoin-units",
  "bitcoin_hashes",
@@ -751,7 +757,7 @@ dependencies = [
 name = "kobe-cosmos"
 version = "2.0.1"
 dependencies = [
- "bech32",
+ "bech32 0.12.0",
  "kobe-primitives",
  "ripemd 0.2.0",
  "sha2 0.11.0",
@@ -777,7 +783,7 @@ dependencies = [
 name = "kobe-nostr"
 version = "2.0.1"
 dependencies = [
- "bech32",
+ "bech32 0.12.0",
  "kobe-primitives",
  "zeroize",
 ]
@@ -801,7 +807,7 @@ dependencies = [
 name = "kobe-spark"
 version = "2.0.1"
 dependencies = [
- "bech32",
+ "bech32 0.12.0",
  "hex",
  "kobe-primitives",
 ]
