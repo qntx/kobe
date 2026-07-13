@@ -42,7 +42,7 @@ bip39 = { version = "2.2.2", default-features = false }
 bitcoin = { version = "0.32.100", default-features = false }
 blake2 = { version = "0.10.6", default-features = false }
 bs58 = { version = "0.5.1", default-features = false, features = ["alloc"] }
-ed25519-dalek = { version = "2.2.0", default-features = false }
+ed25519-dalek = { version = "3.0.0", default-features = false }
 hex = { version = "0.4.3", default-features = false }
 hmac = { version = "0.13.0", default-features = false }
 k256 = { version = "0.13.4", default-features = false, features = ["ecdsa"] }
