@@ -3,8 +3,6 @@
 use core::fmt;
 use core::str::FromStr;
 
-use bitcoin::Network as BtcNetwork;
-
 /// Supported Bitcoin networks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 #[non_exhaustive]
@@ -17,17 +15,7 @@ pub enum Network {
 }
 
 impl Network {
-    /// Convert to bitcoin crate's Network type.
-    #[inline]
-    #[must_use]
-    pub const fn to_bitcoin_network(self) -> BtcNetwork {
-        match self {
-            Self::Mainnet => BtcNetwork::Bitcoin,
-            Self::Testnet => BtcNetwork::Testnet,
-        }
-    }
-
-    /// Get the BIP44 coin type for this network.
+    /// BIP-44 coin type for this network.
     #[inline]
     #[must_use]
     pub const fn coin_type(self) -> u32 {
@@ -37,7 +25,7 @@ impl Network {
         }
     }
 
-    /// Get network name as string.
+    /// Stable name for display / config.
     #[inline]
     #[must_use]
     pub const fn name(self) -> &'static str {
@@ -50,7 +38,7 @@ impl Network {
 
 impl fmt::Display for Network {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name())
+        f.write_str(self.name())
     }
 }
 
@@ -61,7 +49,7 @@ pub struct ParseNetworkError;
 
 impl fmt::Display for ParseNetworkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "invalid network, expected: mainnet or testnet")
+        f.write_str("invalid network, expected: mainnet or testnet")
     }
 }
 
@@ -73,7 +61,7 @@ impl FromStr for Network {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "mainnet" | "main" | "bitcoin" => Ok(Self::Mainnet),
+            "mainnet" | "main" => Ok(Self::Mainnet),
             "testnet" | "test" | "testnet3" | "testnet4" => Ok(Self::Testnet),
             _ => Err(ParseNetworkError),
         }
@@ -85,39 +73,38 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_network_from_str() {
+    fn network_from_str() {
         assert_eq!("mainnet".parse::<Network>().unwrap(), Network::Mainnet);
         assert_eq!("main".parse::<Network>().unwrap(), Network::Mainnet);
-        assert_eq!("bitcoin".parse::<Network>().unwrap(), Network::Mainnet);
         assert_eq!("testnet".parse::<Network>().unwrap(), Network::Testnet);
         assert_eq!("test".parse::<Network>().unwrap(), Network::Testnet);
     }
 
     #[test]
-    fn test_network_from_str_case_insensitive() {
+    fn network_from_str_case_insensitive() {
         assert_eq!("MAINNET".parse::<Network>().unwrap(), Network::Mainnet);
         assert_eq!("TESTNET".parse::<Network>().unwrap(), Network::Testnet);
     }
 
     #[test]
-    fn test_network_from_str_invalid() {
+    fn network_from_str_invalid() {
         assert!("invalid".parse::<Network>().is_err());
         assert!("".parse::<Network>().is_err());
     }
 
     #[test]
-    fn test_network_coin_type() {
+    fn network_coin_type() {
         assert_eq!(Network::Mainnet.coin_type(), 0);
         assert_eq!(Network::Testnet.coin_type(), 1);
     }
 
     #[test]
-    fn test_network_default() {
+    fn network_default() {
         assert_eq!(Network::default(), Network::Mainnet);
     }
 
     #[test]
-    fn test_network_display() {
+    fn network_display() {
         assert_eq!(Network::Mainnet.to_string(), "mainnet");
         assert_eq!(Network::Testnet.to_string(), "testnet");
     }

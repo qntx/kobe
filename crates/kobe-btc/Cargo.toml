@@ -12,12 +12,17 @@ categories = ["cryptography", "no-std"]
 
 [features]
 default = ["std"]
-std = ["alloc", "kobe-primitives/std", "bitcoin/std", "zeroize/std"]
+std = ["alloc", "kobe-primitives/std", "zeroize/std"]
 alloc = ["kobe-primitives/alloc", "zeroize/alloc"]
 
 [dependencies]
-kobe-primitives.workspace = true
-bitcoin.workspace = true
+bech32.workspace = true
+bip32.workspace = true
+bs58.workspace = true
+kobe-primitives = { workspace = true, features = ["bip32"] }
+k256.workspace = true
+ripemd.workspace = true
+sha2.workspace = true
 zeroize.workspace = true
 
 [dev-dependencies]

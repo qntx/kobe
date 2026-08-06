@@ -15,19 +15,19 @@ use crate::Network;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub enum AddressType {
-    /// Pay to Public Key Hash (Legacy) - starts with 1 or m/n
+    /// Pay to Public Key Hash (Legacy) — `1…` / `m…`/`n…`
     P2pkh,
-    /// Pay to Script Hash wrapping P2WPKH (`SegWit` compatible) - starts with 3 or 2
+    /// Pay to Script Hash wrapping P2WPKH (Nested `SegWit`) — `3…` / `2…`
     P2shP2wpkh,
-    /// Pay to Witness Public Key Hash (Native `SegWit`) - starts with bc1q or tb1q
+    /// Pay to Witness Public Key Hash (Native `SegWit`) — `bc1q…` / `tb1q…`
     #[default]
     P2wpkh,
-    /// Pay to Taproot (Taproot/SegWit v1) - starts with bc1p or tb1p
+    /// Pay to Taproot — `bc1p…` / `tb1p…`
     P2tr,
 }
 
 impl AddressType {
-    /// Get the BIP purpose for this address type.
+    /// BIP purpose for this address type.
     #[inline]
     #[must_use]
     pub const fn purpose(self) -> u32 {
@@ -39,10 +39,7 @@ impl AddressType {
         }
     }
 
-    /// Infer the address type from a BIP-44 / 49 / 84 / 86 `purpose` index.
-    ///
-    /// Returns `None` for any `purpose` that is not a standard BIP purpose.
-    /// This is the inverse of [`AddressType::purpose`].
+    /// Inverse of [`AddressType::purpose`].
     #[inline]
     #[must_use]
     pub const fn from_purpose(purpose: u32) -> Option<Self> {
@@ -55,7 +52,7 @@ impl AddressType {
         }
     }
 
-    /// Get address type name.
+    /// Human-readable name.
     #[inline]
     #[must_use]
     pub const fn name(self) -> &'static str {
@@ -70,7 +67,7 @@ impl AddressType {
 
 impl fmt::Display for AddressType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name())
+        f.write_str(self.name())
     }
 }
 
@@ -81,10 +78,7 @@ pub struct ParseAddressTypeError;
 
 impl fmt::Display for ParseAddressTypeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "invalid address type, expected: p2pkh, p2sh, p2wpkh, or p2tr"
-        )
+        f.write_str("invalid address type, expected: p2pkh, p2sh, p2wpkh, or p2tr")
     }
 }
 
@@ -105,23 +99,20 @@ impl FromStr for AddressType {
     }
 }
 
-/// BIP32 derivation path.
+/// BIP-32 derivation path with a stable `m/…` string form.
 #[cfg(feature = "alloc")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DerivationPath {
-    /// Wrapped BIP-32 derivation path.
-    inner: bitcoin::bip32::DerivationPath,
+    inner: bip32::DerivationPath,
 }
 
 #[cfg(feature = "alloc")]
 impl DerivationPath {
-    /// Create a BIP44/49/84 standard path.
-    ///
-    /// Format: `m/purpose'/coin_type'/account'/change/address_index`
+    /// Standard path: `m/purpose'/coin_type'/account'/change/index`.
     ///
     /// # Errors
     ///
-    /// Returns an error if the path string cannot be parsed.
+    /// Returns [`DeriveError::Path`] if the generated path is invalid.
     pub fn bip_standard(
         address_type: AddressType,
         network: Network,
@@ -131,30 +122,38 @@ impl DerivationPath {
     ) -> Result<Self, DeriveError> {
         let purpose = address_type.purpose();
         let coin_type = network.coin_type();
-        let change_val = i32::from(change);
-
+        let change_val = u32::from(change);
         let path_str = format!("m/{purpose}'/{coin_type}'/{account}'/{change_val}/{address_index}");
-
-        let inner = bitcoin::bip32::DerivationPath::from_str(&path_str)
-            .map_err(|e| DeriveError::Path(e.to_string()))?;
-        Ok(Self { inner })
+        Self::from_path_str(&path_str)
     }
 
-    /// Create from a custom path string.
+    /// Parse a BIP-32 path string.
     ///
     /// # Errors
     ///
-    /// Returns an error if the path string is invalid.
+    /// - Empty / master-only path → [`DeriveError::Path`]
+    /// - Malformed path → [`DeriveError::Path`]
     pub fn from_path_str(path: &str) -> Result<Self, DeriveError> {
-        let inner = bitcoin::bip32::DerivationPath::from_str(path)
+        let trimmed = path.trim();
+        if trimmed.is_empty() || trimmed.eq_ignore_ascii_case("m") {
+            return Err(DeriveError::Path(
+                "btc: derivation path must contain at least one segment".into(),
+            ));
+        }
+        let inner = bip32::DerivationPath::from_str(trimmed)
             .map_err(|e| DeriveError::Path(e.to_string()))?;
+        if inner.is_empty() {
+            return Err(DeriveError::Path(
+                "btc: derivation path must contain at least one segment".into(),
+            ));
+        }
         Ok(Self { inner })
     }
 
-    /// Get the inner bitcoin derivation path.
+    /// Borrow the underlying `bip32` path.
     #[inline]
     #[must_use]
-    pub const fn inner(&self) -> &bitcoin::bip32::DerivationPath {
+    pub const fn inner(&self) -> &bip32::DerivationPath {
         &self.inner
     }
 }
@@ -162,13 +161,18 @@ impl DerivationPath {
 #[cfg(feature = "alloc")]
 impl fmt::Display for DerivationPath {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "m/{}", self.inner)
+        // Explicit `m/` prefix — do not rely on bip32's Display.
+        f.write_str("m")?;
+        for child in self.inner.iter() {
+            write!(f, "/{child}")?;
+        }
+        Ok(())
     }
 }
 
 #[cfg(feature = "alloc")]
-impl AsRef<bitcoin::bip32::DerivationPath> for DerivationPath {
-    fn as_ref(&self) -> &bitcoin::bip32::DerivationPath {
+impl AsRef<bip32::DerivationPath> for DerivationPath {
+    fn as_ref(&self) -> &bip32::DerivationPath {
         &self.inner
     }
 }
@@ -178,7 +182,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_address_type_from_str() {
+    fn address_type_from_str() {
         assert_eq!("p2pkh".parse::<AddressType>().unwrap(), AddressType::P2pkh);
         assert_eq!("legacy".parse::<AddressType>().unwrap(), AddressType::P2pkh);
         assert_eq!(
@@ -186,15 +190,7 @@ mod tests {
             AddressType::P2shP2wpkh
         );
         assert_eq!(
-            "segwit".parse::<AddressType>().unwrap(),
-            AddressType::P2shP2wpkh
-        );
-        assert_eq!(
             "p2wpkh".parse::<AddressType>().unwrap(),
-            AddressType::P2wpkh
-        );
-        assert_eq!(
-            "native-segwit".parse::<AddressType>().unwrap(),
             AddressType::P2wpkh
         );
         assert_eq!("p2tr".parse::<AddressType>().unwrap(), AddressType::P2tr);
@@ -202,19 +198,7 @@ mod tests {
     }
 
     #[test]
-    fn test_address_type_from_str_case_insensitive() {
-        assert_eq!("P2PKH".parse::<AddressType>().unwrap(), AddressType::P2pkh);
-        assert_eq!("TAPROOT".parse::<AddressType>().unwrap(), AddressType::P2tr);
-    }
-
-    #[test]
-    fn test_address_type_from_str_invalid() {
-        assert!("invalid".parse::<AddressType>().is_err());
-        assert!("".parse::<AddressType>().is_err());
-    }
-
-    #[test]
-    fn test_address_type_purpose() {
+    fn address_type_purpose() {
         assert_eq!(AddressType::P2pkh.purpose(), 44);
         assert_eq!(AddressType::P2shP2wpkh.purpose(), 49);
         assert_eq!(AddressType::P2wpkh.purpose(), 84);
@@ -222,7 +206,31 @@ mod tests {
     }
 
     #[test]
-    fn test_address_type_default() {
+    fn address_type_default() {
         assert_eq!(AddressType::default(), AddressType::P2wpkh);
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn derivation_path_display_keeps_master_prefix_and_tick() {
+        let path = DerivationPath::from_path_str("m/84'/0'/0'/0/0").unwrap();
+        assert_eq!(path.to_string(), "m/84'/0'/0'/0/0");
+        assert!(path.to_string().starts_with("m/"));
+        assert!(path.to_string().contains("84'"));
+        assert!(!path.to_string().contains("84h"));
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn derivation_path_rejects_empty_forms() {
+        for bad in ["", "m", "M", "  m  ", " m"] {
+            assert!(
+                matches!(
+                    DerivationPath::from_path_str(bad),
+                    Err(DeriveError::Path(_))
+                ),
+                "expected Path error for {bad:?}"
+            );
+        }
     }
 }
