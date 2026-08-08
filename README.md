@@ -81,6 +81,11 @@ kobe evm    new --json
 # Secrets (mnemonic / private keys) are hidden by default
 kobe -r evm new                          # show mnemonic + private keys
 kobe --json -r evm new                   # include them in JSON as well
+
+# Self-upgrade (sh.qntx.fun install path; same as re-running the install script)
+kobe upgrade                             # install latest if newer (`update` is an alias)
+kobe upgrade --check                     # report only
+kobe upgrade --force                     # reinstall even when up to date
 ```
 
 Every chain subcommand accepts the shared flags `-w/--words`, `-c/--count`, `-p/--passphrase`, and `--qr` through a flattened `SimpleArgs` group, so ergonomics stay consistent across the 12 networks. Global `-r` / `--reveal` opts into printing mnemonics and private keys (default: hidden).

@@ -16,7 +16,7 @@
 | **[`kobe-spark`](kobe-spark/)** | [![crates.io][kobe-spark-crate]][kobe-spark-crate-url] [![docs.rs][kobe-spark-doc]][kobe-spark-doc-url] | Spark (Bitcoin L2) — identity keys + Bech32m `spark1…` addresses |
 | **[`kobe-xrpl`](kobe-xrpl/)** | [![crates.io][kobe-xrpl-crate]][kobe-xrpl-crate-url] [![docs.rs][kobe-xrpl-doc]][kobe-xrpl-doc-url] | XRP Ledger — classic `r`-addresses, secp256k1 |
 | **[`kobe-nostr`](kobe-nostr/)** | [![crates.io][kobe-nostr-crate]][kobe-nostr-crate-url] [![docs.rs][kobe-nostr-doc]][kobe-nostr-doc-url] | Nostr — NIP-06 key derivation, NIP-19 bech32 `nsec`/`npub` |
-| **[`kobe-cli`](kobe-cli/)** | [![crates.io][kobe-cli-crate]][kobe-cli-crate-url] | CLI — generate, import, derive across all chains |
+| **[`kobe-cli`](kobe-cli/)** | [![crates.io][kobe-cli-crate]][kobe-cli-crate-url] | CLI — generate, import, derive; `upgrade` via sh.qntx.fun |
 
 ## Dependency Graph
 

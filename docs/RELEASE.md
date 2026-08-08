@@ -7,3 +7,15 @@
 5. Tag and push: `git tag v3.0.0 && git push origin v3.0.0` (or push with `--tags`).
 6. Confirm GitHub Actions `release.yml` and `publish.yml` succeed.
 7. crates.io publish order is handled by the workflow: primitives → chain crates → `kobe` → `kobe-cli`.
+
+## Post-install self-upgrade
+
+Users who installed via `https://sh.qntx.fun/kobe` can run:
+
+```bash
+kobe upgrade          # or: kobe update
+kobe upgrade --check
+```
+
+That re-invokes the same installer endpoint. Cargo installs should use
+`cargo install kobe-cli --force` instead (the command detects `.cargo/bin`).
