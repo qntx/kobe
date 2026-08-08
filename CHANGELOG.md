@@ -10,6 +10,12 @@ All notable changes to this workspace are documented in this file. The format is
   `sh.qntx.fun` installer. Supports `--check`, `--force`, and `--json`.
   Cargo-installed binaries are not overwritten (prints `cargo install` hint).
 
+### Changed
+
+- Replaced the `docs/` directory with a root [`CONTRIBUTING.md`](CONTRIBUTING.md)
+  (API contract, development workflow, release process). Matches common Rust
+  community layout.
+
 ## [3.0.0] - 2026-08-08
 
 ### Security
@@ -44,7 +50,7 @@ All notable changes to this workspace are documented in this file. The format is
 - CLI HD output builders unified (`HdWalletOutput::new` / `AccountOutput::from_parts`).
 - `kobe-ton` split into `style` / `address` / `deriver` modules (no behavior change).
 - Cross-chain smoke tests: `cargo test -p kobe --all-features --test cross_chain_smoke`.
-- Documented chain API contract in `docs/API_CONTRACT.md`.
+- Documented chain API contract (now maintained in `CONTRIBUTING.md`).
 
 ## [2.0.0]
 
