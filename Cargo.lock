@@ -646,7 +646,7 @@ dependencies = [
 
 [[package]]
 name = "kobe"
-version = "2.0.1"
+version = "2.1.0"
 dependencies = [
  "kobe-aptos",
  "kobe-btc",
@@ -665,7 +665,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-aptos"
-version = "2.0.1"
+version = "2.1.0"
 dependencies = [
  "hex",
  "kobe-primitives",
@@ -675,22 +675,20 @@ dependencies = [
 
 [[package]]
 name = "kobe-btc"
-version = "2.0.1"
+version = "2.1.0"
 dependencies = [
  "bech32",
- "bip32",
  "bs58",
  "hex",
  "k256",
  "kobe-primitives",
- "ripemd 0.2.0",
  "sha2 0.11.0",
  "zeroize",
 ]
 
 [[package]]
 name = "kobe-cli"
-version = "2.0.1"
+version = "2.1.0"
 dependencies = [
  "clap",
  "colored",
@@ -702,17 +700,15 @@ dependencies = [
 
 [[package]]
 name = "kobe-cosmos"
-version = "2.0.1"
+version = "2.1.0"
 dependencies = [
  "bech32",
  "kobe-primitives",
- "ripemd 0.2.0",
- "sha2 0.11.0",
 ]
 
 [[package]]
 name = "kobe-evm"
-version = "2.0.1"
+version = "2.1.0"
 dependencies = [
  "alloy-primitives",
  "kobe-primitives",
@@ -720,7 +716,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-fil"
-version = "2.0.1"
+version = "2.1.0"
 dependencies = [
  "blake2",
  "kobe-primitives",
@@ -728,7 +724,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-nostr"
-version = "2.0.1"
+version = "2.1.0"
 dependencies = [
  "bech32",
  "kobe-primitives",
@@ -737,14 +733,16 @@ dependencies = [
 
 [[package]]
 name = "kobe-primitives"
-version = "2.0.1"
+version = "2.1.0"
 dependencies = [
  "bip32",
  "bip39",
+ "bs58",
  "ed25519-dalek",
  "hex",
  "hmac 0.13.0",
  "k256",
+ "ripemd 0.2.0",
  "sha2 0.11.0",
  "thiserror",
  "zeroize",
@@ -752,7 +750,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-spark"
-version = "2.0.1"
+version = "2.1.0"
 dependencies = [
  "bech32",
  "hex",
@@ -761,7 +759,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-sui"
-version = "2.0.1"
+version = "2.1.0"
 dependencies = [
  "blake2",
  "hex",
@@ -771,7 +769,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-svm"
-version = "2.0.1"
+version = "2.1.0"
 dependencies = [
  "bs58",
  "kobe-primitives",
@@ -780,7 +778,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-ton"
-version = "2.0.1"
+version = "2.1.0"
 dependencies = [
  "base64",
  "kobe-primitives",
@@ -790,7 +788,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-tron"
-version = "2.0.1"
+version = "2.1.0"
 dependencies = [
  "bs58",
  "kobe-primitives",
@@ -799,12 +797,10 @@ dependencies = [
 
 [[package]]
 name = "kobe-xrpl"
-version = "2.0.1"
+version = "2.1.0"
 dependencies = [
  "bs58",
  "kobe-primitives",
- "ripemd 0.2.0",
- "sha2 0.11.0",
 ]
 
 [[package]]

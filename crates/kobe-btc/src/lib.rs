@@ -17,7 +17,8 @@
 //!
 //! Supported: single-key, key-path-only P2TR (BIP-86 style).
 //! Not supported: script trees, merkle roots, `MuSig`, signing, or spending.
-//! Output keys are even-y normalized; addresses match BIP-86 mainnet KATs.
+//! Internal keys use BIP-340 `lift_x` (even-y). The witness program is the
+//! x-coordinate of the tweaked output key `Q`; addresses match BIP-86 KATs.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -37,6 +38,6 @@ mod wif;
 pub use deriver::{BtcAccount, Deriver};
 pub use kobe_primitives::{DeriveError, DerivedAccount, DerivedPublicKey};
 pub use network::{Network, ParseNetworkError};
-#[cfg(feature = "alloc")]
-pub use types::DerivationPath;
 pub use types::{AddressType, ParseAddressTypeError};
+#[cfg(feature = "alloc")]
+pub use types::{DerivationPath, PathSegment};

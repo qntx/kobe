@@ -25,7 +25,7 @@ kobe-cli
   └── kobe (umbrella)
         ├── kobe-primitives (Wallet, Derive, DeriveExt, bip32, slip10, camouflage)
         ├── kobe-aptos  ── kobe-primitives/slip10
-        ├── kobe-btc    ── kobe-primitives (bitcoin Xpriv)
+        ├── kobe-btc    ── kobe-primitives/bip32 + local address/WIF
         ├── kobe-cosmos ── kobe-primitives/bip32
         ├── kobe-evm    ── kobe-primitives/bip32
         ├── kobe-fil    ── kobe-primitives/bip32
@@ -52,8 +52,9 @@ The umbrella `kobe` crate provides fine-grained feature control:
 | `alloc` | ✅ | Enable `alloc` (implied by `std`) |
 | `rand` | | Enable random mnemonic generation |
 | `camouflage` | | Enable mnemonic camouflage encryption |
-| `btc` | ✅ | Bitcoin chain support |
-| `evm` | ✅ | Ethereum chain support (enables `bip32`) |
+| `raw-seed` | | Expose `Wallet::seed` (escape hatch; prefer derivers) |
+| `btc` | | Bitcoin chain support (enables `bip32`) |
+| `evm` | | Ethereum chain support (enables `bip32`) |
 | `svm` | ✅ | Solana chain support (enables `slip10`) |
 | `cosmos` | | Cosmos chain support (enables `bip32`) |
 | `tron` | | Tron chain support (enables `bip32`) |

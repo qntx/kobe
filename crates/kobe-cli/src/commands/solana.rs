@@ -84,22 +84,18 @@ impl SolanaCommand {
 }
 
 fn build_hd(wallet: &Wallet, style: DerivationStyle, addresses: &[SvmAccount]) -> HdWalletOutput {
-    HdWalletOutput {
-        chain: "solana",
-        network: None,
-        address_type: None,
-        mnemonic: wallet.mnemonic().to_owned(),
-        passphrase_protected: wallet.has_passphrase(),
-        derivation_style: Some(style.name()),
-        accounts: addresses
+    HdWalletOutput::new(
+        "solana",
+        wallet,
+        None,
+        None,
+        Some(style.name()),
+        addresses
             .iter()
             .enumerate()
-            .map(|(i, a)| AccountOutput {
-                index: u32::try_from(i).unwrap_or(u32::MAX),
-                derivation_path: a.path().to_owned(),
-                address: a.address().to_owned(),
-                private_key: a.keypair_base58().as_str().to_owned(),
+            .map(|(i, a)| {
+                AccountOutput::from_parts(i, a.path(), a.address(), a.keypair_base58().as_str())
             })
             .collect(),
-    }
+    )
 }

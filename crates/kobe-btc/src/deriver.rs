@@ -96,15 +96,11 @@ impl AsRef<DerivedAccount> for BtcAccount {
 impl<'a> Deriver<'a> {
     /// Create a deriver. Key material is not derived until a `derive_*` call.
     ///
-    /// Currently infallible. `Result` is kept so call sites match other chain
-    /// crates (`Deriver::new(...)?`).
-    ///
-    /// # Errors
-    ///
-    /// Reserved for future fallible initialization; today this always returns `Ok`.
+    /// Infallible, matching other chain crates (`Deriver::new(wallet)`).
     #[inline]
-    pub const fn new(wallet: &'a Wallet, network: Network) -> Result<Self, DeriveError> {
-        Ok(Self { wallet, network })
+    #[must_use]
+    pub const fn new(wallet: &'a Wallet, network: Network) -> Self {
+        Self { wallet, network }
     }
 
     /// Default: P2WPKH at BIP-84.
@@ -233,7 +229,7 @@ impl Derive for Deriver<'_> {
 }
 
 fn infer_address_type(path: &DerivationPath) -> Option<AddressType> {
-    let first = path.inner().iter().next()?;
+    let first = path.first_segment()?;
     if first.is_hardened() {
         AddressType::from_purpose(first.index())
     } else {
@@ -255,7 +251,7 @@ mod tests {
     }
 
     fn deriver(wallet: &Wallet, network: Network) -> Deriver<'_> {
-        Deriver::new(wallet, network).unwrap()
+        Deriver::new(wallet, network)
     }
 
     #[test]
@@ -328,6 +324,21 @@ mod tests {
         assert_eq!(
             a.address(),
             "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr"
+        );
+    }
+
+    /// BIP-86 mainnet vector index 1:
+    /// <https://github.com/bitcoin/bips/blob/master/bip-0086.mediawiki>
+    #[test]
+    fn kat_bip86_p2tr_abandon_index1() {
+        let wallet = test_wallet();
+        let a = deriver(&wallet, Network::Mainnet)
+            .derive_with(AddressType::P2tr, 1)
+            .unwrap();
+        assert_eq!(a.path(), "m/86'/0'/0'/0/1");
+        assert_eq!(
+            a.address(),
+            "bc1p4qhjn9zdvkux4e44uhx8tc55attvtyu358kutcqkudyccelu0was9fqzwh"
         );
     }
 

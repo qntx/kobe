@@ -85,21 +85,23 @@ fn build_hd(
     style: DerivationStyle,
     accounts: &[DerivedAccount],
 ) -> HdWalletOutput {
-    HdWalletOutput {
-        chain: "ethereum",
-        network: None,
-        address_type: None,
-        mnemonic: wallet.mnemonic().to_owned(),
-        passphrase_protected: wallet.has_passphrase(),
-        derivation_style: Some(style.name()),
-        accounts: accounts
+    HdWalletOutput::new(
+        "ethereum",
+        wallet,
+        None,
+        None,
+        Some(style.name()),
+        accounts
             .iter()
             .enumerate()
             .map(|(i, a)| {
-                let mut out = AccountOutput::from_derived(i, a);
-                out.private_key = format!("0x{}", a.private_key_hex().as_str());
-                out
+                AccountOutput::from_parts(
+                    i,
+                    a.path(),
+                    a.address(),
+                    &format!("0x{}", a.private_key_hex().as_str()),
+                )
             })
             .collect(),
-    }
+    )
 }

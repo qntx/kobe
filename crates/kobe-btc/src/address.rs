@@ -3,11 +3,11 @@
 use alloc::format;
 use alloc::string::String;
 
-use k256::elliptic_curve::PrimeField;
+use k256::elliptic_curve::ops::Reduce;
 use k256::elliptic_curve::sec1::ToEncodedPoint;
-use k256::{ProjectivePoint, PublicKey, Scalar};
+use k256::{ProjectivePoint, PublicKey, Scalar, U256};
 use kobe_primitives::DeriveError;
-use ripemd::Ripemd160;
+use kobe_primitives::encoding::{base58check_versioned, hash160};
 use sha2::{Digest, Sha256};
 
 use crate::{AddressType, Network};
@@ -35,34 +35,12 @@ pub(crate) fn create_address(
     }
 }
 
-fn hash160(data: &[u8]) -> [u8; 20] {
-    let sha = Sha256::digest(data);
-    let ripe = Ripemd160::digest(sha);
-    let mut out = [0u8; 20];
-    out.copy_from_slice(&ripe);
-    out
-}
-
-#[allow(
-    clippy::indexing_slicing,
-    reason = "fixed-size Base58Check fields are checked by construction"
-)]
-fn base58check(version: u8, payload_20: &[u8; 20]) -> String {
-    let mut buf = [0u8; 25];
-    buf[0] = version;
-    buf[1..21].copy_from_slice(payload_20);
-    let first = Sha256::digest(&buf[..21]);
-    let checksum = Sha256::digest(first);
-    buf[21..].copy_from_slice(&checksum[..4]);
-    bs58::encode(buf).into_string()
-}
-
 fn p2pkh(public_key: &[u8; 33], network: Network) -> String {
     let version = match network {
         Network::Mainnet => 0x00,
         Network::Testnet => 0x6f,
     };
-    base58check(version, &hash160(public_key))
+    base58check_versioned(version, &hash160(public_key))
 }
 
 fn p2sh_p2wpkh(public_key: &[u8; 33], network: Network) -> String {
@@ -77,7 +55,7 @@ fn p2sh_p2wpkh(public_key: &[u8; 33], network: Network) -> String {
         Network::Mainnet => 0x05,
         Network::Testnet => 0xc4,
     };
-    base58check(version, &hash160(&redeem))
+    base58check_versioned(version, &hash160(&redeem))
 }
 
 fn p2wpkh(public_key: &[u8; 33], network: Network) -> Result<String, DeriveError> {
@@ -92,9 +70,10 @@ fn p2wpkh(public_key: &[u8; 33], network: Network) -> Result<String, DeriveError
 
 /// Key-path-only P2TR (BIP-341).
 ///
-/// Internal key: BIP-340 x-only (even-y lift).
-/// Output key: `Q = P + t·G`, then even-y normalized (`Q = -Q` if odd).
-/// This crate only encodes addresses; it does not sign or spend.
+/// Internal key: BIP-340 x-only (`lift_x`, even-y).
+/// Output key: `Q = P + t·G` with `t = int(hashTapTweak(x)) mod n`.
+/// The address program is the x-coordinate of `Q` (parity is irrelevant for
+/// encoding). This crate does not sign or spend.
 fn p2tr(public_key: &[u8; 33], network: Network) -> Result<String, DeriveError> {
     let mut even_key = *public_key;
     even_key[0] = 0x02;
@@ -108,18 +87,13 @@ fn p2tr(public_key: &[u8; 33], network: Network) -> Result<String, DeriveError> 
     hasher.update(tag);
     hasher.update(internal_x);
     let tweak_bytes: [u8; 32] = hasher.finalize().into();
-    let tweak = Option::<Scalar>::from(Scalar::from_repr(tweak_bytes.into())).ok_or_else(|| {
-        DeriveError::Crypto("btc p2tr: TapTweak not in secp256k1 scalar field".into())
-    })?;
+    // BIP-341: t = int(hashTapTweak(...)) mod n (not reject-if-out-of-range).
+    let tweak = <Scalar as Reduce<U256>>::reduce_bytes(&tweak_bytes.into());
 
     let q_proj = ProjectivePoint::from(*internal.as_affine()) + ProjectivePoint::GENERATOR * tweak;
-    let mut affine = q_proj.to_affine();
-    let mut encoded = affine.to_encoded_point(true);
-    // x-only output key must be the even-y representative.
-    if encoded.as_bytes().first().copied() == Some(0x03) {
-        affine = (-ProjectivePoint::from(affine)).to_affine();
-        encoded = affine.to_encoded_point(true);
-    }
+    // Address program is the x-coordinate of Q. Negating Q preserves x, so
+    // even-y normalization is not required for encoding (only for signing).
+    let encoded = q_proj.to_affine().to_encoded_point(true);
     let output_x = encoded
         .x()
         .ok_or_else(|| DeriveError::Crypto("btc p2tr: output key at infinity".into()))?;

@@ -5,7 +5,9 @@
 use alloc::string::String;
 
 use kobe_primitives::DeriveError;
-use sha2::{Digest, Sha256};
+use kobe_primitives::encoding::base58check_encode;
+#[cfg(test)]
+use kobe_primitives::encoding::double_sha256;
 #[cfg(test)]
 use zeroize::Zeroize;
 use zeroize::Zeroizing;
@@ -29,21 +31,15 @@ pub(crate) fn encode_wif(
     private_key: &Zeroizing<[u8; 32]>,
     network: Network,
 ) -> Result<Zeroizing<String>, DeriveError> {
-    let mut payload = Zeroizing::new([0u8; 38]);
-    payload[0] = match network {
+    let mut body = Zeroizing::new([0u8; 34]);
+    body[0] = match network {
         Network::Mainnet => 0x80,
         Network::Testnet => 0xef,
     };
-    payload[1..33].copy_from_slice(private_key.as_ref());
-    payload[33] = 0x01;
+    body[1..33].copy_from_slice(private_key.as_ref());
+    body[33] = 0x01;
 
-    let first = Sha256::digest(&payload[..34]);
-    let checksum = Sha256::digest(first);
-    payload[34..].copy_from_slice(&checksum[..4]);
-
-    Ok(Zeroizing::new(
-        bs58::encode(payload.as_slice()).into_string(),
-    ))
+    Ok(Zeroizing::new(base58check_encode(body.as_slice())))
 }
 
 /// Decode compressed WIF (tests / round-trip only).
@@ -68,8 +64,7 @@ pub(crate) fn decode_wif(wif: &str) -> Result<(Zeroizing<[u8; 32]>, Network), De
                 "btc: WIF missing compressed flag".into(),
             ));
         }
-        let first = Sha256::digest(&decoded[..34]);
-        let checksum = Sha256::digest(first);
+        let checksum = double_sha256(&decoded[..34]);
         if decoded[34..] != checksum[..4] {
             return Err(DeriveError::Input("btc: invalid WIF checksum".into()));
         }

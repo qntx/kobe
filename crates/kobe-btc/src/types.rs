@@ -1,7 +1,11 @@
 //! Common types for Bitcoin wallet operations.
 
 #[cfg(feature = "alloc")]
-use alloc::{format, string::ToString};
+use alloc::{
+    format,
+    string::{String, ToString},
+    vec::Vec,
+};
 use core::fmt;
 use core::str::FromStr;
 
@@ -99,11 +103,54 @@ impl FromStr for AddressType {
     }
 }
 
+/// One BIP-32 child index (hardened or normal).
+///
+/// Encapsulated so callers never depend on a third-party path type.
+#[cfg(feature = "alloc")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PathSegment {
+    index: u32,
+    hardened: bool,
+}
+
+#[cfg(feature = "alloc")]
+impl PathSegment {
+    /// Child index without the hardened high bit (always `< 2^31`).
+    #[inline]
+    #[must_use]
+    pub const fn index(self) -> u32 {
+        self.index
+    }
+
+    /// Whether this segment is hardened (`'` / `h`).
+    #[inline]
+    #[must_use]
+    pub const fn is_hardened(self) -> bool {
+        self.hardened
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl fmt::Display for PathSegment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.index)?;
+        if self.hardened {
+            f.write_str("'")?;
+        }
+        Ok(())
+    }
+}
+
 /// BIP-32 derivation path with a stable `m/…` string form.
+///
+/// Validated and stored independently of any third-party BIP-32 crate so the
+/// public API does not leak `bip32::DerivationPath`.
 #[cfg(feature = "alloc")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DerivationPath {
-    inner: bip32::DerivationPath,
+    /// Canonical `m/…` form using `'` for hardened segments.
+    path: String,
+    segments: Vec<PathSegment>,
 }
 
 #[cfg(feature = "alloc")]
@@ -129,6 +176,9 @@ impl DerivationPath {
 
     /// Parse a BIP-32 path string.
     ///
+    /// Accepts hardened markers `'` or `h` / `H`. The display form always uses
+    /// `'`.
+    ///
     /// # Errors
     ///
     /// - Empty / master-only path → [`DeriveError::Path`]
@@ -140,40 +190,103 @@ impl DerivationPath {
                 "btc: derivation path must contain at least one segment".into(),
             ));
         }
-        let inner = bip32::DerivationPath::from_str(trimmed)
-            .map_err(|e| DeriveError::Path(e.to_string()))?;
-        if inner.is_empty() {
+
+        let rest = trimmed
+            .strip_prefix('m')
+            .or_else(|| trimmed.strip_prefix('M'))
+            .ok_or_else(|| DeriveError::Path("btc: derivation path must start with 'm'".into()))?;
+
+        if rest.is_empty() {
             return Err(DeriveError::Path(
                 "btc: derivation path must contain at least one segment".into(),
             ));
         }
-        Ok(Self { inner })
+        if !rest.starts_with('/') {
+            return Err(DeriveError::Path(
+                "btc: derivation path segments must be separated by '/'".into(),
+            ));
+        }
+
+        let mut segments = Vec::new();
+        for raw in rest[1..].split('/') {
+            if raw.is_empty() {
+                return Err(DeriveError::Path(
+                    "btc: empty derivation path segment".into(),
+                ));
+            }
+            let (num_part, hardened) = raw
+                .strip_suffix('\'')
+                .map(|n| (n, true))
+                .or_else(|| raw.strip_suffix(['h', 'H']).map(|n| (n, true)))
+                .unwrap_or((raw, false));
+            if num_part.is_empty() || !num_part.bytes().all(|b| b.is_ascii_digit()) {
+                return Err(DeriveError::Path(format!(
+                    "btc: invalid derivation path segment '{raw}'"
+                )));
+            }
+            let index: u32 = num_part.parse().map_err(|_| {
+                DeriveError::Path(format!("btc: invalid derivation path index '{num_part}'"))
+            })?;
+            // BIP-32 child index occupies 31 bits; the high bit is the hardened flag.
+            if index >= (1u32 << 31) {
+                return Err(DeriveError::Path(format!(
+                    "btc: derivation path index out of range: {index}"
+                )));
+            }
+            segments.push(PathSegment { index, hardened });
+        }
+
+        if segments.is_empty() {
+            return Err(DeriveError::Path(
+                "btc: derivation path must contain at least one segment".into(),
+            ));
+        }
+
+        let mut canonical = String::from("m");
+        for seg in &segments {
+            canonical.push('/');
+            canonical.push_str(&seg.to_string());
+        }
+
+        Ok(Self {
+            path: canonical,
+            segments,
+        })
     }
 
-    /// Borrow the underlying `bip32` path.
+    /// Canonical `m/…` string (hardened as `'`).
     #[inline]
     #[must_use]
-    pub const fn inner(&self) -> &bip32::DerivationPath {
-        &self.inner
+    pub fn as_str(&self) -> &str {
+        &self.path
+    }
+
+    /// Borrow the path segments.
+    #[inline]
+    #[must_use]
+    pub fn segments(&self) -> &[PathSegment] {
+        &self.segments
+    }
+
+    /// First segment, if any (used to infer BIP purpose).
+    #[inline]
+    #[must_use]
+    pub fn first_segment(&self) -> Option<PathSegment> {
+        self.segments.first().copied()
     }
 }
 
 #[cfg(feature = "alloc")]
 impl fmt::Display for DerivationPath {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // Explicit `m/` prefix — do not rely on bip32's Display.
-        f.write_str("m")?;
-        for child in self.inner.iter() {
-            write!(f, "/{child}")?;
-        }
-        Ok(())
+        f.write_str(&self.path)
     }
 }
 
 #[cfg(feature = "alloc")]
-impl AsRef<bip32::DerivationPath> for DerivationPath {
-    fn as_ref(&self) -> &bip32::DerivationPath {
-        &self.inner
+impl AsRef<str> for DerivationPath {
+    fn as_ref(&self) -> &str {
+        &self.path
     }
 }
 
@@ -222,8 +335,16 @@ mod tests {
 
     #[cfg(feature = "alloc")]
     #[test]
+    fn derivation_path_normalizes_h_suffix() {
+        let path = DerivationPath::from_path_str("m/84h/0h/0h/0/0").unwrap();
+        assert_eq!(path.to_string(), "m/84'/0'/0'/0/0");
+        assert_eq!(path.as_str(), "m/84'/0'/0'/0/0");
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
     fn derivation_path_rejects_empty_forms() {
-        for bad in ["", "m", "M", "  m  ", " m"] {
+        for bad in ["", "m", "M", "  m  ", " m", "x/0", "m//0", "m/foo"] {
             assert!(
                 matches!(
                     DerivationPath::from_path_str(bad),
@@ -232,5 +353,14 @@ mod tests {
                 "expected Path error for {bad:?}"
             );
         }
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn first_segment_reports_hardened_purpose() {
+        let path = DerivationPath::from_path_str("m/84'/0'/0'/0/0").unwrap();
+        let first = path.first_segment().unwrap();
+        assert!(first.is_hardened());
+        assert_eq!(first.index(), 84);
     }
 }

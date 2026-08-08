@@ -91,7 +91,7 @@ impl BitcoinCommand {
 
         let net = network(args.testnet);
         let addr_type = AddressType::from(args.address_type);
-        let deriver = Deriver::new(&wallet, net)?;
+        let deriver = Deriver::new(&wallet, net);
         let addresses = deriver.derive_many_with(addr_type, 0, args.common.count)?;
         let out = build_hd(&wallet, net, addr_type, &addresses);
         output::render_hd_wallet(&out, json, args.common.qr)?;
@@ -105,22 +105,18 @@ fn build_hd(
     addr_type: AddressType,
     addresses: &[kobe::btc::BtcAccount],
 ) -> HdWalletOutput {
-    HdWalletOutput {
-        chain: "bitcoin",
-        network: Some(net.name()),
-        address_type: Some(addr_type.name()),
-        mnemonic: wallet.mnemonic().to_owned(),
-        passphrase_protected: wallet.has_passphrase(),
-        derivation_style: None,
-        accounts: addresses
+    HdWalletOutput::new(
+        "bitcoin",
+        wallet,
+        Some(net.name()),
+        Some(addr_type.name()),
+        None,
+        addresses
             .iter()
             .enumerate()
-            .map(|(i, a)| AccountOutput {
-                index: u32::try_from(i).unwrap_or(u32::MAX),
-                derivation_path: a.path().to_owned(),
-                address: a.address().to_owned(),
-                private_key: a.private_key_wif().as_str().to_owned(),
+            .map(|(i, a)| {
+                AccountOutput::from_parts(i, a.path(), a.address(), a.private_key_wif().as_str())
             })
             .collect(),
-    }
+    )
 }

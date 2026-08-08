@@ -61,7 +61,7 @@ impl FromStr for Network {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "mainnet" | "main" => Ok(Self::Mainnet),
+            "mainnet" | "main" | "bitcoin" => Ok(Self::Mainnet),
             "testnet" | "test" | "testnet3" | "testnet4" => Ok(Self::Testnet),
             _ => Err(ParseNetworkError),
         }
@@ -76,6 +76,7 @@ mod tests {
     fn network_from_str() {
         assert_eq!("mainnet".parse::<Network>().unwrap(), Network::Mainnet);
         assert_eq!("main".parse::<Network>().unwrap(), Network::Mainnet);
+        assert_eq!("bitcoin".parse::<Network>().unwrap(), Network::Mainnet);
         assert_eq!("testnet".parse::<Network>().unwrap(), Network::Testnet);
         assert_eq!("test".parse::<Network>().unwrap(), Network::Testnet);
     }

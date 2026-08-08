@@ -14,9 +14,9 @@
 //!                    ▼           ▼
 //!    bip32::DerivedSecp256k1Key     slip10::DerivedEd25519Key
 //!                    │           │
-//!    used by EVM / Cosmos /     │  used by Solana / Sui /
-//!     Tron / Spark / Fil /       │  Aptos / TON
-//!     XRPL / Nostr               │
+//!    used by BTC / EVM /         │  used by Solana / Sui /
+//!     Cosmos / Tron / Spark /    │  Aptos / TON
+//!     Fil / XRPL / Nostr         │
 //!                    └─────┬─────┘
 //!                          ▼
 //!                   DerivedAccount  ─◄── every chain wraps this
@@ -48,9 +48,13 @@
 //! | `alloc`           |       ✔       | [`Wallet`], [`DerivedAccount`], [`mnemonic`] |
 //! | `bip32`           |       ✔       | [`bip32::DerivedSecp256k1Key`]         |
 //! | `slip10`          |       ✔       | [`slip10::DerivedEd25519Key`]          |
+//! | `encoding`        |       ✔       | [`encoding`] (`hash160` / `Base58Check`) |
 //! | `camouflage`      |       ✔       | [`camouflage`] (PBKDF2 XOR helpers)    |
+//! | `raw-seed`        |       ✔\*     | [`Wallet::seed`] escape hatch (off by default) |
 //! | `rand` / `rand_core` |     ✔       | [`Wallet::generate`]                   |
 //! | `test-vectors`    |       ✗       | Re-export of canonical BIP-39 fixtures |
+//!
+//! \*`raw-seed` needs `alloc` (via the `Wallet` type) but adds no extra crates.
 //!
 //! Only [`DeriveError`] and [`test_vectors`] compile in pure `no_std`
 //! without `alloc`. Everything else requires at least `alloc`.
@@ -111,6 +115,8 @@ mod wallet;
 pub mod bip32;
 #[cfg(feature = "camouflage")]
 pub mod camouflage;
+#[cfg(feature = "encoding")]
+pub mod encoding;
 #[cfg(feature = "alloc")]
 pub mod mnemonic;
 #[cfg(feature = "slip10")]

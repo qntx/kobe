@@ -3,9 +3,8 @@
 #[cfg(feature = "alloc")]
 use alloc::{borrow::Cow, format, string::String};
 
+use kobe_primitives::encoding::hash160;
 use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
-use ripemd::Ripemd160;
-use sha2::{Digest, Sha256};
 
 /// Configuration for a Cosmos SDK chain.
 ///
@@ -153,12 +152,6 @@ impl Derive for Deriver<'_> {
     fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         self.derive_at(path)
     }
-}
-
-/// Hash160: `RIPEMD-160(SHA-256(x))`, returning the fixed 20-byte digest
-/// used by every Cosmos SDK address.
-fn hash160(data: &[u8]) -> [u8; 20] {
-    Ripemd160::digest(Sha256::digest(data)).into()
 }
 
 /// Encode a compressed public key as a bech32 Cosmos address.

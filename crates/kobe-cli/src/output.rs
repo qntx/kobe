@@ -60,22 +60,42 @@ pub struct CamouflageOutput {
 }
 
 impl HdWalletOutput {
+    /// Build HD output with optional network / address-type / style metadata.
+    #[must_use]
+    pub fn new(
+        chain: &'static str,
+        wallet: &Wallet,
+        network: Option<&'static str>,
+        address_type: Option<&'static str>,
+        derivation_style: Option<&'static str>,
+        accounts: Vec<AccountOutput>,
+    ) -> Self {
+        Self {
+            chain,
+            network,
+            address_type,
+            mnemonic: wallet.mnemonic().to_owned(),
+            passphrase_protected: wallet.has_passphrase(),
+            derivation_style,
+            accounts,
+        }
+    }
+
     /// Build output for a simple chain (no network, no address type, no derivation style).
     #[must_use]
     pub fn simple(chain: &'static str, wallet: &Wallet, accounts: &[DerivedAccount]) -> Self {
-        Self {
+        Self::new(
             chain,
-            network: None,
-            address_type: None,
-            mnemonic: wallet.mnemonic().to_owned(),
-            passphrase_protected: wallet.has_passphrase(),
-            derivation_style: None,
-            accounts: accounts
+            wallet,
+            None,
+            None,
+            None,
+            accounts
                 .iter()
                 .enumerate()
                 .map(|(i, a)| AccountOutput::from_derived(i, a))
                 .collect(),
-        }
+        )
     }
 }
 
@@ -83,11 +103,27 @@ impl AccountOutput {
     /// Build from a [`DerivedAccount`] with a sequential index.
     #[must_use]
     pub fn from_derived(index: usize, account: &DerivedAccount) -> Self {
+        Self::from_parts(
+            index,
+            account.path(),
+            account.address(),
+            account.private_key_hex().as_str(),
+        )
+    }
+
+    /// Build with an explicit private-key string (WIF, base58 keypair, `0x…` hex, …).
+    #[must_use]
+    pub fn from_parts(
+        index: usize,
+        derivation_path: &str,
+        address: &str,
+        private_key: &str,
+    ) -> Self {
         Self {
             index: u32::try_from(index).unwrap_or(u32::MAX),
-            derivation_path: account.path().to_owned(),
-            address: account.address().to_owned(),
-            private_key: account.private_key_hex().to_string(),
+            derivation_path: derivation_path.to_owned(),
+            address: address.to_owned(),
+            private_key: private_key.to_owned(),
         }
     }
 }

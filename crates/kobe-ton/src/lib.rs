@@ -9,10 +9,18 @@
 extern crate alloc;
 
 #[cfg(feature = "alloc")]
+mod address;
+#[cfg(feature = "alloc")]
 mod deriver;
+#[cfg(feature = "alloc")]
+mod style;
 
 #[cfg(feature = "alloc")]
-pub use deriver::{AddressFormat, DerivationStyle, Deriver};
+pub use address::AddressFormat;
+#[cfg(feature = "alloc")]
+pub use deriver::Deriver;
 #[cfg(feature = "alloc")]
 pub use kobe_primitives::ParseDerivationStyleError;
 pub use kobe_primitives::{DeriveError, DerivedAccount, DerivedPublicKey};
+#[cfg(feature = "alloc")]
+pub use style::DerivationStyle;

@@ -36,6 +36,16 @@ jobs:
       - name: Test
         run: cargo test --workspace --all-features --verbose
 
+  deny:
+    name: cargo-deny
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check
+          arguments: --all-features
+
   no-std:
     name: no_std
     runs-on: ubuntu-latest
@@ -52,7 +62,7 @@ jobs:
       - name: kobe-primitives (alloc)
         run: cargo check -p kobe-primitives --target thumbv7m-none-eabi --no-default-features --features alloc
       - name: kobe-primitives (alloc + all optional)
-        run: cargo check -p kobe-primitives --target thumbv7m-none-eabi --no-default-features --features "alloc,bip32,slip10,camouflage"
+        run: cargo check -p kobe-primitives --target thumbv7m-none-eabi --no-default-features --features "alloc,bip32,slip10,camouflage,encoding"
       - name: kobe-aptos (no_std)
         run: cargo check -p kobe-aptos --target thumbv7m-none-eabi --no-default-features --features alloc
       - name: kobe-btc (no_std)

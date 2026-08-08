@@ -14,9 +14,8 @@
 #[cfg(feature = "alloc")]
 use alloc::{format, string::String, vec::Vec};
 
+use kobe_primitives::encoding::{double_sha256, hash160};
 use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
-use ripemd::Ripemd160;
-use sha2::{Digest, Sha256};
 
 /// XRPL base58 alphabet (differs from Bitcoin's).
 ///
@@ -73,24 +72,6 @@ impl Derive for Deriver<'_> {
     fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
         self.derive_at(path)
     }
-}
-
-/// Hash160: SHA-256 then RIPEMD-160.
-fn hash160(data: &[u8]) -> [u8; 20] {
-    let sha = Sha256::digest(data);
-    let ripe = Ripemd160::digest(sha);
-    let mut out = [0u8; 20];
-    out.copy_from_slice(&ripe);
-    out
-}
-
-/// Double SHA-256 (used for checksum).
-fn double_sha256(data: &[u8]) -> [u8; 32] {
-    let first = Sha256::digest(data);
-    let second = Sha256::digest(first);
-    let mut out = [0u8; 32];
-    out.copy_from_slice(&second);
-    out
 }
 
 /// Encode a compressed public key as an XRPL classic `r`-address.

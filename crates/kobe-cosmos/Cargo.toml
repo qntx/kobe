@@ -16,9 +16,7 @@ std = ["alloc", "kobe-primitives/std"]
 alloc = ["kobe-primitives/alloc"]
 
 [dependencies]
-kobe-primitives = { workspace = true, features = ["bip32"] }
-ripemd.workspace = true
-sha2.workspace = true
+kobe-primitives = { workspace = true, features = ["bip32", "encoding"] }
 bech32.workspace = true
 
 [lints]

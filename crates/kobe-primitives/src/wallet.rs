@@ -9,9 +9,11 @@ use crate::DeriveError;
 
 /// A unified HD wallet that can derive keys for multiple cryptocurrencies.
 ///
-/// This wallet holds a BIP39 mnemonic and derives a seed that can be used
-/// to generate addresses for Bitcoin, Ethereum, and other coins following
-/// BIP32/44/49/84 standards.
+/// This wallet holds a BIP-39 mnemonic and a derived 64-byte seed used by
+/// [`Self::derive_secp256k1`] / [`Self::derive_ed25519`] (and the chain
+/// derivers built on them). The raw seed is **not** part of the default
+/// public API; enable the `raw-seed` feature only if an advanced caller
+/// truly needs [`Self::seed`].
 ///
 /// # Passphrase Support
 ///
@@ -23,6 +25,15 @@ pub struct Wallet {
     /// BIP39 mnemonic phrase.
     mnemonic: Zeroizing<String>,
     /// Seed derived from mnemonic + passphrase.
+    ///
+    /// Read via [`Self::derive_secp256k1`] / [`Self::derive_ed25519`] or the
+    /// feature-gated [`Self::seed`]. Marked `allow(dead_code)` so a minimal
+    /// `alloc`-only build (no bip32/slip10/raw-seed) still retains the seed
+    /// for future derive calls without a false-positive lint.
+    #[allow(
+        dead_code,
+        reason = "read by derive_* / raw-seed; retained when those features are off"
+    )]
     seed: Zeroizing<[u8; 64]>,
     /// Whether a passphrase was used.
     has_passphrase: bool,
@@ -220,17 +231,18 @@ impl Wallet {
         &self.mnemonic
     }
 
-    /// Get the 64-byte seed for key derivation, still wrapped in [`Zeroizing`].
+    /// Get the 64-byte BIP-39 seed, still wrapped in [`Zeroizing`].
     ///
-    /// The returned reference makes the wallet's sensitivity explicit at the
-    /// type level: callers must keep the result borrowed or copy it into
-    /// another [`Zeroizing`] container to avoid leaking unsealed seed bytes
-    /// on the stack.
-    ///
-    /// Most chain derivers should prefer the feature-gated
+    /// **Gated on the `raw-seed` feature** (off by default). Preferred
+    /// entry points for key material are
     /// [`derive_secp256k1`](Self::derive_secp256k1) and
-    /// [`derive_ed25519`](Self::derive_ed25519) shortcuts over reaching for
-    /// the raw seed.
+    /// [`derive_ed25519`](Self::derive_ed25519), which keep the seed inside
+    /// [`Wallet`].
+    ///
+    /// Callers that enable `raw-seed` must treat the returned reference as
+    /// highly sensitive: keep it borrowed or copy into another
+    /// [`Zeroizing`] container.
+    #[cfg(any(feature = "raw-seed", test))]
     #[inline]
     #[must_use]
     pub const fn seed(&self) -> &Zeroizing<[u8; 64]> {
@@ -240,7 +252,7 @@ impl Wallet {
     /// Derive a secp256k1 key pair at the given BIP-32 path.
     ///
     /// Preferred entry point for chains that derive secp256k1 keys (EVM,
-    /// BTC fallback, Cosmos, Tron, Spark, Filecoin, XRP Ledger, Nostr).
+    /// BTC, Cosmos, Tron, Spark, Filecoin, XRP Ledger, Nostr).
     /// Keeps the underlying seed encapsulated within [`Wallet`].
     ///
     /// # Errors
@@ -252,7 +264,7 @@ impl Wallet {
         &self,
         path: &str,
     ) -> Result<crate::bip32::DerivedSecp256k1Key, DeriveError> {
-        crate::bip32::DerivedSecp256k1Key::derive(self.seed(), path)
+        crate::bip32::DerivedSecp256k1Key::derive(&self.seed, path)
     }
 
     /// Derive an Ed25519 key pair at the given SLIP-10 path.
@@ -270,7 +282,7 @@ impl Wallet {
         &self,
         path: &str,
     ) -> Result<crate::slip10::DerivedEd25519Key, DeriveError> {
-        crate::slip10::DerivedEd25519Key::derive_path(self.seed().as_slice(), path)
+        crate::slip10::DerivedEd25519Key::derive_path(self.seed.as_slice(), path)
     }
 
     /// Check if a passphrase was supplied at construction time.

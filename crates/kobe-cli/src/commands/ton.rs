@@ -115,21 +115,20 @@ fn build_hd(
     style: DerivationStyle,
     accounts: &[DerivedAccount],
 ) -> HdWalletOutput {
-    HdWalletOutput {
-        chain: "ton",
-        network: Some(if format.testnet { "testnet" } else { "mainnet" }),
-        address_type: Some(if format.bounceable {
+    HdWalletOutput::new(
+        "ton",
+        wallet,
+        Some(if format.testnet { "testnet" } else { "mainnet" }),
+        Some(if format.bounceable {
             "bounceable"
         } else {
             "non-bounceable"
         }),
-        mnemonic: wallet.mnemonic().to_owned(),
-        passphrase_protected: wallet.has_passphrase(),
-        derivation_style: Some(style.name()),
-        accounts: accounts
+        Some(style.name()),
+        accounts
             .iter()
             .enumerate()
             .map(|(i, a)| AccountOutput::from_derived(i, a))
             .collect(),
-    }
+    )
 }

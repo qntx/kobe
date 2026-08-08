@@ -17,15 +17,13 @@ alloc = ["kobe-primitives/alloc", "zeroize/alloc"]
 
 [dependencies]
 bech32.workspace = true
-bip32.workspace = true
-bs58.workspace = true
-kobe-primitives = { workspace = true, features = ["bip32"] }
+kobe-primitives = { workspace = true, features = ["bip32", "encoding"] }
 k256.workspace = true
-ripemd.workspace = true
 sha2.workspace = true
 zeroize.workspace = true
 
 [dev-dependencies]
+bs58.workspace = true
 hex.workspace = true
 
 [lints]

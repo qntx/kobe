@@ -22,8 +22,10 @@ rand_core = ["kobe-primitives/rand_core"]
 camouflage = ["kobe-primitives/camouflage"]
 slip10 = ["kobe-primitives/slip10"]
 bip32 = ["kobe-primitives/bip32"]
+# Escape hatch: expose `Wallet::seed`. Prefer chain derivers / derive_*.
+raw-seed = ["kobe-primitives/raw-seed"]
 
-btc = ["dep:kobe-btc"]
+btc = ["dep:kobe-btc", "bip32"]
 evm = ["dep:kobe-evm", "bip32"]
 svm = ["dep:kobe-svm", "slip10"]
 cosmos = ["dep:kobe-cosmos", "bip32"]

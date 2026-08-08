@@ -19,7 +19,7 @@
 
 **`no_std`-compatible Rust toolkit for multi-chain HD wallet derivation — one BIP-39 seed, twelve networks, zero hand-written cryptography, cross-implementation KATs.**
 
-Kobe derives standards-compliant accounts and addresses for Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger, and Nostr (NIP-06 / NIP-19) from a single BIP-39 mnemonic. It layers thin wrappers around [`bip39`](https://docs.rs/bip39), [`bip32`](https://docs.rs/bip32), [`bitcoin`](https://docs.rs/bitcoin), [`k256`](https://docs.rs/k256), and [`ed25519-dalek`](https://docs.rs/ed25519-dalek) on top of a unified `Wallet` + `Derive` trait surface; every library crate builds under `no_std + alloc`, mnemonics and private keys wrap in `Zeroizing<T>` and wipe on drop, and every chain's pipeline is pinned against independent reference implementations (bitcoinjs-lib, @ton/core, @noble/hashes, NIP-06 official vectors, ethanmarcuss/spark-address, …).
+Kobe derives standards-compliant accounts and addresses for Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger, and Nostr (NIP-06 / NIP-19) from a single BIP-39 mnemonic. It layers thin wrappers around [`bip39`](https://docs.rs/bip39), [`bip32`](https://docs.rs/bip32), [`k256`](https://docs.rs/k256), and [`ed25519-dalek`](https://docs.rs/ed25519-dalek) on top of a unified `Wallet` + `Derive` trait surface (Bitcoin address/WIF encoding is local in `kobe-btc`, not the full `bitcoin` crate); every library crate builds under `no_std + alloc`, mnemonics and private keys wrap in `Zeroizing<T>` and wipe on drop, and every chain's pipeline is pinned against independent reference implementations (bitcoinjs-lib, @ton/core, @noble/hashes, NIP-06 official vectors, ethanmarcuss/spark-address, …).
 
 > **See also** [`signer`](https://github.com/qntx/signer) — the companion transaction-signing toolkit that consumes kobe's derived accounts via `Signer::from_derived`.
 
@@ -95,7 +95,7 @@ let wallet = Wallet::from_mnemonic(
 
 // Derive addresses (accessor methods — fields are private for zeroization safety)
 let eth = kobe::evm::Deriver::new(&wallet).derive(0)?;
-let btc = kobe::btc::Deriver::new(&wallet, kobe::btc::Network::Mainnet)?.derive(0)?;
+let btc = kobe::btc::Deriver::new(&wallet, kobe::btc::Network::Mainnet).derive(0)?;
 let sol = kobe::svm::Deriver::new(&wallet).derive(0)?;
 
 println!("ETH: {}", eth.address());  // 0x9858EfFD232B4033E47d90003D41EC34EcaEda94
@@ -114,7 +114,7 @@ exposes an explicit-type escape hatch for non-standard paths:
 ```rust
 use kobe::btc::{AddressType, Deriver, Network};
 
-let deriver = Deriver::new(&wallet, Network::Mainnet)?;
+let deriver = Deriver::new(&wallet, Network::Mainnet);
 let p2wpkh = deriver.derive_at("m/84'/0'/0'/0/0")?;                    // infer type from purpose
 let taproot = deriver.derive_at("m/86'/0'/0'/0/0")?;                   // infer type from purpose
 let custom  = deriver.derive_at_with("m/7'/0'/0'/0/0", AddressType::P2tr)?; // non-standard purpose
@@ -164,7 +164,7 @@ println!("Mnemonic: {}", wallet.mnemonic());
 ## Design
 
 - **12 chains** — Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger, Nostr — one BIP-39 seed
-- **Zero hand-written cryptography** — `bip39` for mnemonic ↔ entropy, `bip32` / `bitcoin` for BIP-32 secp256k1, `k256` for secp256k1 encodings, `ed25519-dalek` for SLIP-10 Ed25519; hashing via `sha2` / `sha3` / `blake2` / `ripemd`; encoding via `bech32` / `bs58`
+- **Mature crypto dependencies** — `bip39` for mnemonic ↔ entropy, `bip32` + `k256` for BIP-32 secp256k1 (via `kobe-primitives`), `ed25519-dalek` for SLIP-10 Ed25519; hashing via `sha2` / `sha3` / `blake2` / `ripemd`; encoding via `bech32` / `bs58` (Bitcoin addresses/WIF implemented in-tree and KAT-pinned)
 - **Unified derivation contract** — shared `Derive` trait with an associated `Account` type + shared `DerivationStyle` trait; every chain has typed public keys via `DerivedPublicKey`, one shared `DeriveError`, and one shared `ParseDerivationStyleError`
 - **Consistent entry points** — `derive` / `derive_with` / `derive_at` / `derive_at_with` across every chain (Bitcoin's structured path also available as `derive_structured`)
 - **HD standards** — BIP-32, BIP-39, BIP-44 / 49 / 84 / 86, SLIP-10, NIP-06, NIP-19

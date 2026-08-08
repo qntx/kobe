@@ -2,6 +2,33 @@
 
 All notable changes to this workspace are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Breaking (`kobe-btc`)
+
+- `Deriver::new(wallet, network)` is now infallible and returns `Self` (no longer `Result`). Call sites that used `?` should drop it.
+- `DerivationPath::inner()` and `AsRef<bip32::DerivationPath>` removed. Paths are fully owned by `kobe-btc` (`as_str()`, `segments()`, `PathSegment`). No third-party path type is public.
+- `kobe-btc` no longer depends on the `bip32` crate directly (derivation still uses `Wallet::derive_secp256k1` from primitives).
+
+### Breaking (`kobe-primitives` / `kobe`)
+
+- `Wallet::seed()` is **gated on feature `raw-seed`** (off by default). Prefer
+  `derive_secp256k1` / `derive_ed25519` or chain `Deriver`s. Enable
+  `features = ["raw-seed"]` on `kobe` or `kobe-primitives` only when an
+  advanced integration truly needs the raw 64-byte BIP-39 seed.
+
+### Changed
+
+- Umbrella feature `btc` enables `bip32` like other secp256k1 chains.
+- `cargo-deny` configured and wired into CI / Justfile; the full `bitcoin` crate is banned.
+- P2TR docs match implementation (x-coordinate of tweaked `Q`; BIP-341 tweak `mod n`).
+- New `kobe-primitives` feature `encoding`: shared `hash160`, `double_sha256`, `base58check_*`.
+  Used by `kobe-btc`, `kobe-cosmos`, and `kobe-xrpl` (Tron keeps `bs58` check — different API surface).
+- CLI HD output builders unified (`HdWalletOutput::new` / `AccountOutput::from_parts`).
+- `kobe-ton` split into `style` / `address` / `deriver` modules (no behavior change).
+- Cross-chain smoke tests: `cargo test -p kobe --all-features --test cross_chain_smoke`.
+- Documented chain API contract in `docs/API_CONTRACT.md`.
+
 ## [2.0.0]
 
 Major API redesign for long-term maintainability. Every chain crate is touched; the changes are sweeping but bring the workspace to a single consistent shape: one error type, one public-key enum, one derivation trait with associated types, one shared `DerivationStyle` contract, and minimal default features.
@@ -184,7 +211,7 @@ Breaking across every crate. The most impactful changes are **address correctnes
 
 ### Added
 
-- `kobe-primitives::Wallet::derive_secp256k1` and `derive_ed25519` as the preferred entry points for chain derivers. Raw seed bytes no longer leak out of the `Wallet` type for any chain other than Bitcoin (which still needs the raw seed for `bitcoin::bip32::Xpriv::new_master`).
+- `kobe-primitives::Wallet::derive_secp256k1` and `derive_ed25519` as the preferred entry points for chain derivers. All chain crates (including `kobe-btc`) derive through these shortcuts; raw seed access is no longer required for BIP-32/SLIP-10 pipelines.
 - `kobe-primitives::DeriveExt::derive_range` — iterator-shaped batch derivation. Removes duplication of per-chain `derive_many` wrappers.
 - `kobe-primitives::test_vectors` module (feature `test-vectors`) exposing `MNEMONIC_ABANDON` and `SEED_HEX_ABANDON` as `&'static str` constants (no `alloc` required).
 - `kobe-nostr::NostrAccount` newtype with `nsec()` / `npub()` accessors and `Deref<Target = DerivedAccount>` for generic code.
