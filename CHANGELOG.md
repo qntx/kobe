@@ -4,6 +4,8 @@ All notable changes to this workspace are documented in this file. The format is
 
 ## [Unreleased]
 
+## [3.1.1] - 2026-08-08
+
 ### Security
 
 - CLI `kobe mnemonic encrypt/decrypt` respects global `-r` / `--reveal` (phrases
