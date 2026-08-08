@@ -2,6 +2,7 @@
 
 mod aptos;
 mod bitcoin;
+mod casper;
 mod cosmos;
 mod ethereum;
 mod filecoin;
@@ -18,6 +19,7 @@ mod xrpl;
 
 pub(crate) use aptos::AptosCommand;
 pub(crate) use bitcoin::BitcoinCommand;
+pub(crate) use casper::CasperCommand;
 use clap::{Parser, Subcommand};
 pub(crate) use cosmos::CosmosCommand;
 pub(crate) use ethereum::EthereumCommand;
@@ -101,6 +103,10 @@ pub(crate) enum Commands {
     /// Nostr wallet operations (NIP-06 / NIP-19).
     #[command(name = "nostr")]
     Nostr(NostrCommand),
+
+    /// Casper Network wallet operations.
+    #[command(name = "casper", alias = "cspr")]
+    Casper(CasperCommand),
 
     /// Mnemonic utilities (camouflage encrypt/decrypt).
     #[command(name = "mnemonic", alias = "mn")]

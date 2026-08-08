@@ -133,6 +133,18 @@ mod smoke {
     }
 
     #[test]
+    fn casper_default_secp() {
+        let w = wallet();
+        let a = kobe::casper::Deriver::new(&w).derive(0).unwrap();
+        // Default KeyAlgo::Secp256k1 — KAT in kobe-casper.
+        assert_eq!(
+            a.address(),
+            "account-hash-e699fcd4904aa6617b2930c6d8995a6f301708b6a64621820a5896d92e2457b3"
+        );
+        assert_eq!(a.algo(), kobe::casper::KeyAlgo::Secp256k1);
+    }
+
+    #[test]
     fn derive_many_agrees() {
         let w = wallet();
         let d = kobe::evm::Deriver::new(&w);

@@ -2,16 +2,16 @@
 name: kobe
 description: >-
   Multi-chain cryptocurrency wallet CLI tool for generating, importing, and
-  managing HD wallets across 12 chains: Aptos, Bitcoin, Ethereum, Solana, Cosmos,
-  Tron, Sui, TON, Filecoin, Spark, XRP Ledger, and Nostr. Use when the user
+  managing HD wallets across 13 chains: Aptos, Bitcoin, Ethereum, Solana, Cosmos,
+  Tron, Sui, TON, Filecoin, Spark, XRP Ledger, Nostr, and Casper. Use when the user
   asks to create wallets, generate addresses, derive keys, import mnemonics,
-  produce NIP-19 `npub` / `nsec` identities, or perform any cryptocurrency
-  wallet operation. Supports JSON output via --json flag.
+  produce NIP-19 `npub` / `nsec` identities, Casper account-hash addresses, or
+  perform any cryptocurrency wallet operation. Supports JSON output via --json flag.
 ---
 
 # Kobe CLI — Multi-Chain HD Wallet Tool
 
-`kobe` is a single binary CLI for generating and managing cryptocurrency wallets across **12 chains**: Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger, and Nostr. It supports BIP-39 mnemonic generation, HD key derivation (BIP-32/44/49/84/86, SLIP-10, NIP-06), multiple derivation styles for hardware wallet compatibility, NIP-19 bech32 output for Nostr, and mnemonic camouflage encryption.
+`kobe` is a single binary CLI for generating and managing cryptocurrency wallets across **13 chains**: Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger, Nostr, and Casper. It supports BIP-39 mnemonic generation, HD key derivation (BIP-32/44/49/84/86, SLIP-10, NIP-06), multiple derivation styles for hardware wallet compatibility, NIP-19 bech32 output for Nostr, Casper AccountHash addresses, and mnemonic camouflage encryption.
 
 ## Installation
 
@@ -74,6 +74,7 @@ The `--json` and `-r` / `--reveal` flags are **global**. When `--json` is set, a
 | Spark      | `spark`    | —                 |
 | XRP Ledger | `xrpl`     | `xrp`, `ripple`   |
 | Nostr      | `nostr`    | —                 |
+| Casper     | `casper`   | `cspr`            |
 | Mnemonic   | `mnemonic` | `mn`              |
 | Upgrade    | `upgrade`  | `update`          |
 
@@ -152,6 +153,15 @@ All four axes are independent. Key material is unaffected by `--testnet`,
 | Flag        | Short | Values                                             | Default   |
 | ----------- | ----- | -------------------------------------------------- | --------- |
 | `--network` | `-n`  | `mainnet`, `testnet`, `signet`, `regtest`, `local` | `mainnet` |
+
+### Casper-specific flags
+
+| Flag     | Short | Values                                        | Default     |
+| -------- | ----- | --------------------------------------------- | ----------- |
+| `--algo` |       | `secp256k1` (aliases `secp`, `ecdsa`), `ed25519` (aliases `ed`, `eddsa`) | `secp256k1` |
+
+Default path is Ledger secp256k1 `m/44'/506'/0'/0/{i}`. Ed25519 uses
+`m/44'/506'/0'/0'/{i}'`. Address is `account-hash-` + 64 hex.
 
 ## Usage Examples
 
@@ -284,6 +294,10 @@ kobe spark new --network local     # sparkl1...
 
 # XRP Ledger
 kobe xrpl new
+
+# Casper (default secp256k1 Ledger path → account-hash-…)
+kobe casper new
+kobe casper new --algo ed25519 -c 3
 ```
 
 ### Nostr
@@ -404,6 +418,7 @@ All errors in JSON mode return exit code 1 with:
 | Spark      | 64-char hex string (compressed pubkey also provided)                     |
 | XRP Ledger | 64-char hex string                                                       |
 | Nostr      | NIP-19 bech32 `nsec1…` (64-char hex also available; address is `npub1…`) |
+| Casper     | 64-char hex string (secp256k1 or Ed25519 secret; address is `account-hash-…`) |
 
 ## Derivation Path Reference
 
@@ -496,6 +511,16 @@ Address: Bech32m-encoded compressed identity public key wrapped in a
 | Path Pattern                 | Notes                                                              |
 | ---------------------------- | ------------------------------------------------------------------ |
 | `m/44'/1237'/{account}'/0/0` | NIP-06: `{account}` is the `-c` index; pubkey is x-only / `npub1…` |
+
+### Casper (SLIP-44 coin type 506)
+
+| Algorithm   | Path Pattern              | Notes |
+| ----------- | ------------------------- | ----- |
+| `secp256k1` | `m/44'/506'/0'/0/{i}`     | Default (Ledger / casper-cli secp) |
+| `ed25519`   | `m/44'/506'/0'/0'/{i}'`   | SLIP-10 full-hardened |
+
+Address: BLAKE2b-256 of `algorithm_name || 0x00 || raw_pubkey` formatted as
+`account-hash-` + 64 lowercase hex (per `casper-types`).
 
 ## Agent Best Practices
 

@@ -4,6 +4,18 @@ All notable changes to this workspace are documented in this file. The format is
 
 ## [Unreleased]
 
+### Added
+
+- **Casper Network (`kobe-casper`)** — offline HD derivation for CSPR
+  (SLIP-44 coin type `506`):
+  - Default algorithm **secp256k1** at Ledger path `m/44'/506'/0'/0/{i}`
+  - Alternate **Ed25519** (SLIP-10) at `m/44'/506'/0'/0'/{i}'` via `--algo ed25519`
+  - Primary address: Casper **AccountHash** (`account-hash-` + 64 hex);
+    preimage matches `casper-types` (`algorithm_name || 0x00 || raw_pubkey`)
+  - Library `CasperAccount` also exposes tagged public-key hex (`01…` / `02…`)
+  - CLI: `kobe casper` / `kobe cspr` (`new` / `import`)
+  - Umbrella feature: `casper` (included in `all-chains`)
+
 ## [3.1.1] - 2026-08-08
 
 ### Security

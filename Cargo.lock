@@ -650,6 +650,7 @@ version = "3.1.1"
 dependencies = [
  "kobe-aptos",
  "kobe-btc",
+ "kobe-casper",
  "kobe-cosmos",
  "kobe-evm",
  "kobe-fil",
@@ -684,6 +685,15 @@ dependencies = [
  "kobe-primitives",
  "sha2 0.11.0",
  "zeroize",
+]
+
+[[package]]
+name = "kobe-casper"
+version = "3.1.1"
+dependencies = [
+ "blake2",
+ "hex",
+ "kobe-primitives",
 ]
 
 [[package]]

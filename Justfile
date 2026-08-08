@@ -38,6 +38,7 @@ check-no-std:
     cargo check -p kobe-sui --no-default-features --features alloc
     cargo check -p kobe-nostr --no-default-features --features alloc
     cargo check -p kobe-xrpl --no-default-features --features alloc
+    cargo check -p kobe-casper --no-default-features --features alloc
     cargo check -p kobe --no-default-features --features alloc
     cargo check -p kobe --no-default-features --features "alloc,all-chains"
 

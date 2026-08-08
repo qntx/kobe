@@ -15,8 +15,9 @@
 //!    bip32::DerivedSecp256k1Key     slip10::DerivedEd25519Key
 //!                    │           │
 //!    used by BTC / EVM /         │  used by Solana / Sui /
-//!     Cosmos / Tron / Spark /    │  Aptos / TON
-//!     Fil / XRPL / Nostr         │
+//!    Cosmos / Tron / Spark /     │  Aptos / TON /
+//!    Fil / XRPL / Nostr /        │  Casper (ed25519)
+//!    Casper (secp)               │
 //!                    └─────┬─────┘
 //!                          ▼
 //!                   DerivedAccount  ─◄── every chain wraps this

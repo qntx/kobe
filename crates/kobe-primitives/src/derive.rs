@@ -32,9 +32,9 @@ use crate::DeriveError;
 ///
 /// | Chain(s) | Variant | Length |
 /// | --- | --- | --- |
-/// | `kobe-btc`, `kobe-cosmos`, `kobe-spark`, `kobe-xrpl` | [`Secp256k1Compressed`](Self::Secp256k1Compressed) | 33 B |
+/// | `kobe-btc`, `kobe-cosmos`, `kobe-spark`, `kobe-xrpl`, `kobe-casper` (secp) | [`Secp256k1Compressed`](Self::Secp256k1Compressed) | 33 B |
 /// | `kobe-evm`, `kobe-fil`, `kobe-tron` | [`Secp256k1Uncompressed`](Self::Secp256k1Uncompressed) | 65 B |
-/// | `kobe-svm`, `kobe-sui`, `kobe-aptos`, `kobe-ton` | [`Ed25519`](Self::Ed25519) | 32 B |
+/// | `kobe-svm`, `kobe-sui`, `kobe-aptos`, `kobe-ton`, `kobe-casper` (ed25519) | [`Ed25519`](Self::Ed25519) | 32 B |
 /// | `kobe-nostr` | [`Secp256k1XOnly`](Self::Secp256k1XOnly) | 32 B |
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]
