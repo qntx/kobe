@@ -4,6 +4,12 @@ All notable changes to this workspace are documented in this file. The format is
 
 ## [Unreleased]
 
+### Added
+
+- CLI `kobe upgrade` (`update` alias): self-upgrade via the official
+  `sh.qntx.fun` installer. Supports `--check`, `--force`, and `--json`.
+  Cargo-installed binaries are not overwritten (prints `cargo install` hint).
+
 ## [3.0.0] - 2026-08-08
 
 ### Security

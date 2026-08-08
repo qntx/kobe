@@ -37,13 +37,26 @@ These scripts download the latest pre-built binary from GitHub Releases and add 
 kobe --version
 ```
 
+### Self-upgrade (sh.qntx.fun installs)
+
+```sh
+kobe upgrade              # install latest if newer (`update` is an alias)
+kobe upgrade --check      # report only
+kobe upgrade --force      # reinstall even when up to date
+```
+
+Re-runs the same installer as above. Cargo-installed binaries are **not**
+overwritten; the command prints a `cargo install kobe-cli --force` hint instead.
+
 ## CLI Structure
 
 ```text
-kobe [--json] <chain> <subcommand> [options]
+kobe [--json] [-r|--reveal] <command> [options]
 ```
 
-The `--json` flag is **global** and must appear **before** the chain subcommand. When set, all output (including errors) is a single JSON object on stdout with no ANSI colors.
+The `--json` and `-r` / `--reveal` flags are **global**. When `--json` is set, all output (including errors) is a single JSON object on stdout with no ANSI colors.
+
+**Secrets default to hidden:** mnemonic and private keys are omitted unless `-r` / `--reveal` is passed.
 
 ### Chain subcommands and aliases
 
@@ -62,6 +75,7 @@ The `--json` flag is **global** and must appear **before** the chain subcommand.
 | XRP Ledger | `xrpl`     | `xrp`, `ripple`   |
 | Nostr      | `nostr`    | —                 |
 | Mnemonic   | `mnemonic` | `mn`              |
+| Upgrade    | `upgrade`  | `update`          |
 
 ### Subcommands per chain
 
@@ -83,12 +97,15 @@ The `mnemonic` command supports:
 
 | Flag           | Short | Scope           | Description                                              |
 | -------------- | ----- | --------------- | -------------------------------------------------------- |
-| `--json`       |       | Global          | JSON output mode (must come before chain subcommand)     |
+| `--json`       |       | Global          | JSON output mode                                         |
+| `--reveal`     | `-r`  | Global          | Include mnemonic and private keys (default: hidden)      |
 | `--words`      | `-w`  | `new`           | Mnemonic word count: 12, 15, 18, 21, or 24 (default: 12) |
 | `--passphrase` | `-p`  | `new`, `import` | Optional BIP-39 passphrase for seed derivation           |
 | `--count`      | `-c`  | `new`, `import` | Number of addresses to derive (default: 1)               |
 | `--qr`         |       | All             | Display QR code in terminal for each address             |
 | `--mnemonic`   | `-m`  | `import`        | BIP-39 mnemonic phrase (supports prefix abbreviation)    |
+| `--check`      |       | `upgrade`       | Only report whether a newer release exists               |
+| `--force`      |       | `upgrade`       | Re-run installer even when already latest                |
 
 ### Bitcoin-specific flags
 
@@ -309,6 +326,8 @@ Always use `--json` for programmatic consumption. It disables ANSI colors and ou
 
 ### HD Wallet (`new` / `import`)
 
+With `-r` / `--reveal` (secrets included):
+
 ```json
 {
   "chain": "bitcoin",
@@ -327,7 +346,20 @@ Always use `--json` for programmatic consumption. It disables ANSI colors and ou
 }
 ```
 
+Without `--reveal`, `mnemonic` and each account's `private_key` are omitted.
 For EVM/SVM: `network` and `address_type` are omitted; `derivation_style` is included instead.
+
+### Upgrade (`upgrade` / `update`)
+
+```json
+{
+  "current": "3.0.0",
+  "latest": "3.0.0",
+  "update_available": false,
+  "action": "up_to_date",
+  "message": "kobe 3.0.0 is up to date"
+}
+```
 
 ### Camouflage (`encrypt` / `decrypt`)
 
@@ -462,9 +494,10 @@ Address: Bech32m-encoded compressed identity public key wrapped in a
 ## Agent Best Practices
 
 1. **Always use `--json`** for programmatic consumption to avoid ANSI escape codes.
-2. **Parse `private_key` by chain**: WIF for BTC, base58 keypair for SVM, hex for all others.
-3. **Use `--count`** to batch-derive multiple addresses in one call.
-4. **Mnemonic abbreviations** are auto-expanded: each BIP-39 word is uniquely identifiable by its first 4 characters (e.g., `aban` → `abandon`, `abou` → `about`).
-5. **Errors** in JSON mode return `{"error": "..."}` with exit code 1.
-6. **`--json` placement**: The flag must appear before the chain subcommand: `kobe --json btc new`, not `kobe btc --json new`.
+2. **Pass `-r` / `--reveal` when secrets are required**; default output omits mnemonic and private keys.
+3. **Parse `private_key` by chain**: WIF for BTC, base58 keypair for SVM, hex for all others.
+4. **Use `--count`** to batch-derive multiple addresses in one call.
+5. **Mnemonic abbreviations** are auto-expanded: each BIP-39 word is uniquely identifiable by its first 4 characters (e.g., `aban` → `abandon`, `abou` → `about`).
+6. **Errors** in JSON mode return `{"error": "..."}` with exit code 1.
 7. **Camouflage** is not the BIP-39 passphrase (25th word). It XOR-encrypts the mnemonic entropy itself using PBKDF2, producing a different but valid mnemonic.
+8. **Self-upgrade** for script installs: `kobe upgrade` (alias `update`); cargo installs need `cargo install kobe-cli --force`.

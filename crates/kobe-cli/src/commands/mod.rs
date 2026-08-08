@@ -13,6 +13,7 @@ mod spark;
 mod sui;
 mod ton;
 mod tron;
+mod update;
 mod xrpl;
 
 pub(crate) use aptos::AptosCommand;
@@ -29,6 +30,7 @@ pub(crate) use spark::SparkCommand;
 pub(crate) use sui::SuiCommand;
 pub(crate) use ton::TonCommand;
 pub(crate) use tron::TronCommand;
+pub(crate) use update::UpdateCommand;
 pub(crate) use xrpl::XrplCommand;
 
 /// Kobe - A multi-chain cryptocurrency wallet CLI tool.
@@ -103,6 +105,13 @@ pub(crate) enum Commands {
     /// Mnemonic utilities (camouflage encrypt/decrypt).
     #[command(name = "mnemonic", alias = "mn")]
     Mnemonic(MnemonicCommand),
+
+    /// Upgrade this CLI via the official sh.qntx.fun installer.
+    ///
+    /// Primary name is `upgrade` (install a newer release of the binary).
+    /// `update` is kept as an alias for familiarity.
+    #[command(name = "upgrade", alias = "update")]
+    Upgrade(UpdateCommand),
 }
 
 #[cfg(test)]
