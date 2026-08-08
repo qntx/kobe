@@ -181,7 +181,7 @@ Maintainers only.
 3. Move `[Unreleased]` notes in `CHANGELOG.md` into a dated version section;
    no leftover **Breaking** bullets that belong in the release.
 4. Bump workspace `version` and path dependency major/minor strings in root
-   `Cargo.toml` (e.g. `3.0.0` → path `"3.0"`).
+   `Cargo.toml` (e.g. `3.1.0` → path `"3.1"`).
 5. Tag and push: `git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`.
 6. Confirm GitHub Actions `release.yml` (binaries) and `publish.yml`
    (crates.io) succeed.

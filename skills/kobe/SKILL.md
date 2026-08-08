@@ -353,8 +353,8 @@ For EVM/SVM: `network` and `address_type` are omitted; `derivation_style` is inc
 
 ```json
 {
-  "current": "3.0.0",
-  "latest": "3.0.0",
+  "current": "3.1.0",
+  "latest": "3.1.0",
   "update_available": false,
   "action": "up_to_date",
   "message": "kobe 3.0.0 is up to date"
