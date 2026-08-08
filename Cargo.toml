@@ -34,8 +34,8 @@ kobe-aptos = { version = "2.0", path = "crates/kobe-aptos", default-features = f
 kobe-nostr = { version = "2.0", path = "crates/kobe-nostr", default-features = false }
 kobe-xrpl = { version = "2.0", path = "crates/kobe-xrpl", default-features = false }
 
-alloy-primitives = { version = "1.6.0", default-features = false, features = ["k256"] }
-base64 = { version = "0.23.0", default-features = false, features = ["alloc"] }
+alloy-primitives = { version = "1.6.1", default-features = false, features = ["k256"] }
+base64 = { version = "0.23.1", default-features = false, features = ["alloc"] }
 bech32 = { version = "0.12.0", default-features = false, features = ["alloc"] }
 bip32 = { version = "0.5.3", default-features = false, features = ["secp256k1", "alloc"] }
 bip39 = { version = "2.2.2", default-features = false }
@@ -44,18 +44,20 @@ bs58 = { version = "0.5.1", default-features = false, features = ["alloc"] }
 ed25519-dalek = { version = "3.0.0", default-features = false }
 hex = { version = "0.4.3", default-features = false }
 hmac = { version = "0.13.0", default-features = false }
+# Pinned to 0.13.x: bip32 0.5 and alloy-primitives still depend on k256 0.13.
+# Bump when those crates publish k256 0.14 support (bip32 0.6 is still pre-release).
 k256 = { version = "0.13.4", default-features = false, features = ["ecdsa"] }
 ripemd = { version = "0.2.0", default-features = false }
 sha2 = { version = "0.11.0", default-features = false }
 sha3 = { version = "0.12.0", default-features = false }
-thiserror = { version = "2.0.18", default-features = false }
-zeroize = { version = "1.8.2", default-features = false, features = ["derive"] }
+thiserror = { version = "2.0.19", default-features = false }
+zeroize = { version = "1.9.0", default-features = false, features = ["derive"] }
 
-clap = { version = "4.6.1", features = ["derive"] }
+clap = { version = "4.6.6", features = ["derive"] }
 colored = "3.1.1"
 qrcode = "0.14.1"
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.150"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
 
 [profile.release]
 codegen-units = 1
