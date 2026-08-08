@@ -20,13 +20,14 @@ use crate::key_algo::KeyAlgo;
 /// (`01…` / `02…`) used in serialization contexts.
 ///
 /// Implements `Deref<Target = DerivedAccount>` so shared accessors
-/// (`address()`, `public_key_bytes()`, `private_key_hex()`, …) work directly.
+/// (`address()`, `public_key_bytes()`, `private_key_hex()`, untagged
+/// [`DerivedAccount::public_key_hex`], …) work without name shadowing.
 #[derive(Clone)]
 pub struct CasperAccount {
     inner: DerivedAccount,
     algo: KeyAlgo,
     /// Lowercase hex of tag ‖ raw public key (no `0x` prefix).
-    public_key_hex: String,
+    tagged_public_key_hex: String,
 }
 
 impl core::fmt::Debug for CasperAccount {
@@ -34,7 +35,7 @@ impl core::fmt::Debug for CasperAccount {
         f.debug_struct("CasperAccount")
             .field("inner", &self.inner)
             .field("algo", &self.algo)
-            .field("public_key_hex", &self.public_key_hex)
+            .field("tagged_public_key_hex", &self.tagged_public_key_hex)
             .finish()
     }
 }
@@ -49,24 +50,12 @@ impl CasperAccount {
 
     /// Casper tagged public-key hex (`01 ‖ ed25519` or `02 ‖ secp compressed`).
     ///
-    /// No `0x` prefix; lowercase.
-    ///
-    /// **Name collision note:** this inherent method shadows
-    /// [`DerivedAccount::public_key_hex`] via `Deref`. Callers that need the
-    /// untagged raw curve key must use
-    /// `as_derived_account().public_key_hex()` or `public_key().to_hex()`.
-    #[inline]
-    #[must_use]
-    pub fn public_key_hex(&self) -> &str {
-        &self.public_key_hex
-    }
-
-    /// Alias for [`Self::public_key_hex`] — preferred when reading code next
-    /// to untagged [`DerivedAccount::public_key_hex`].
+    /// No `0x` prefix; lowercase. Distinct from untagged
+    /// [`DerivedAccount::public_key_hex`] (available via `Deref`).
     #[inline]
     #[must_use]
     pub fn tagged_public_key_hex(&self) -> &str {
-        &self.public_key_hex
+        &self.tagged_public_key_hex
     }
 
     /// Formatted `AccountHash` (`account-hash-` + 64 hex). Alias for
@@ -204,7 +193,7 @@ impl<'a> Deriver<'a> {
         let compressed = key.compressed_pubkey();
         let digest = account_hash_secp256k1(&compressed)?;
         let address = format_account_hash(&digest);
-        let public_key_hex = tagged_public_key_hex(SECP256K1_TAG, &compressed);
+        let tagged = tagged_public_key_hex(SECP256K1_TAG, &compressed);
         let sk = key.private_key_bytes();
 
         let inner = DerivedAccount::new(
@@ -217,7 +206,7 @@ impl<'a> Deriver<'a> {
         Ok(CasperAccount {
             inner,
             algo: KeyAlgo::Secp256k1,
-            public_key_hex,
+            tagged_public_key_hex: tagged,
         })
     }
 
@@ -226,7 +215,7 @@ impl<'a> Deriver<'a> {
         let pubkey_bytes = derived.public_key_bytes();
         let digest = account_hash_ed25519(&pubkey_bytes)?;
         let address = format_account_hash(&digest);
-        let public_key_hex = tagged_public_key_hex(ED25519_TAG, &pubkey_bytes);
+        let tagged = tagged_public_key_hex(ED25519_TAG, &pubkey_bytes);
         let sk_bytes = derived.private_key_bytes();
 
         let inner = DerivedAccount::new(
@@ -239,7 +228,7 @@ impl<'a> Deriver<'a> {
         Ok(CasperAccount {
             inner,
             algo: KeyAlgo::Ed25519,
-            public_key_hex,
+            tagged_public_key_hex: tagged,
         })
     }
 }
@@ -311,8 +300,11 @@ mod tests {
         assert_eq!(a.path(), "m/44'/506'/0'/0/0");
         assert!(a.address().starts_with("account-hash-"));
         assert_eq!(a.address().len(), "account-hash-".len() + 64);
-        assert!(a.public_key_hex().starts_with("02"));
-        assert_eq!(a.public_key_hex().len(), 2 + 66); // tag + 33-byte key hex
+        assert!(a.tagged_public_key_hex().starts_with("02"));
+        assert_eq!(a.tagged_public_key_hex().len(), 2 + 66); // tag + 33-byte key hex
+        // Untagged raw key via Deref must not equal tagged form.
+        assert_ne!(a.public_key_hex(), a.tagged_public_key_hex());
+        assert_eq!(a.public_key_hex().len(), 66);
     }
 
     /// `AccountHash` recomputed from public key bytes must match `address()`.
@@ -325,7 +317,7 @@ mod tests {
         };
         let digest = account_hash_secp256k1(pk).unwrap();
         assert_eq!(a.address(), format_account_hash(&digest));
-        assert_eq!(a.public_key_hex(), format!("02{}", hex::encode(pk)));
+        assert_eq!(a.tagged_public_key_hex(), format!("02{}", hex::encode(pk)));
     }
 
     #[test]
@@ -340,8 +332,8 @@ mod tests {
         };
         let digest = account_hash_ed25519(pk).unwrap();
         assert_eq!(a.address(), format_account_hash(&digest));
-        assert!(a.public_key_hex().starts_with("01"));
-        assert_eq!(a.public_key_hex().len(), 2 + 64);
+        assert!(a.tagged_public_key_hex().starts_with("01"));
+        assert_eq!(a.tagged_public_key_hex().len(), 2 + 64);
     }
 
     #[test]
@@ -351,7 +343,7 @@ mod tests {
         let sk = a.private_key_hex();
         assert_eq!(sk.as_str(), SECP0_PRIV);
         assert_eq!(a.address(), SECP0_ADDR);
-        assert_eq!(a.public_key_hex(), SECP0_TAGGED);
+        assert_eq!(a.tagged_public_key_hex(), SECP0_TAGGED);
     }
 
     #[test]
@@ -363,7 +355,22 @@ mod tests {
         let sk = a.private_key_hex();
         assert_eq!(sk.as_str(), ED0_PRIV);
         assert_eq!(a.address(), ED0_ADDR);
-        assert_eq!(a.public_key_hex(), ED0_TAGGED);
+        assert_eq!(a.tagged_public_key_hex(), ED0_TAGGED);
+    }
+
+    #[test]
+    fn debug_redacts_private_key() {
+        let a = Deriver::new(&test_wallet()).derive(0).unwrap();
+        let dbg = format!("{a:?}");
+        assert!(
+            dbg.contains("[REDACTED]"),
+            "Debug must redact private key: {dbg}"
+        );
+        assert!(
+            !dbg.contains(SECP0_PRIV),
+            "Debug must not leak private key hex: {dbg}"
+        );
+        assert!(dbg.contains("tagged_public_key_hex"));
     }
 
     #[test]
@@ -385,7 +392,7 @@ mod tests {
         for (b, s) in batch.iter().zip(single.iter()) {
             assert_eq!(b.address(), s.address());
             assert_eq!(b.path(), s.path());
-            assert_eq!(b.public_key_hex(), s.public_key_hex());
+            assert_eq!(b.tagged_public_key_hex(), s.tagged_public_key_hex());
         }
     }
 

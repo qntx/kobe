@@ -5,7 +5,6 @@
 //! - **Tagged public key** (serialization / display hex): tag byte + raw key.
 //! - **`AccountHash`** preimage: `algorithm_name || 0x00 || raw_key` (no tag).
 
-#[cfg(feature = "alloc")]
 use alloc::{format, string::String, vec::Vec};
 
 use blake2::Blake2bVar;

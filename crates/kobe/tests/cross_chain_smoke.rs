@@ -145,6 +145,20 @@ mod smoke {
     }
 
     #[test]
+    fn casper_ed25519() {
+        let w = wallet();
+        let a = kobe::casper::Deriver::with_algo(&w, kobe::casper::KeyAlgo::Ed25519)
+            .derive(0)
+            .unwrap();
+        assert_eq!(
+            a.address(),
+            "account-hash-356106f683840956a5bff75d011b236068ceccdf09d5c1a6a748c9355b635e08"
+        );
+        assert_eq!(a.algo(), kobe::casper::KeyAlgo::Ed25519);
+        assert!(a.tagged_public_key_hex().starts_with("01"));
+    }
+
+    #[test]
     fn derive_many_agrees() {
         let w = wallet();
         let d = kobe::evm::Deriver::new(&w);

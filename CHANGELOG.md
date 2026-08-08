@@ -4,6 +4,8 @@ All notable changes to this workspace are documented in this file. The format is
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-08-08
+
 ### Added
 
 - **Casper Network (`kobe-casper`)** — offline HD derivation for CSPR
@@ -12,9 +14,11 @@ All notable changes to this workspace are documented in this file. The format is
   - Alternate **Ed25519** (SLIP-10) at `m/44'/506'/0'/0'/{i}'` via `--algo ed25519`
   - Primary address: Casper **AccountHash** (`account-hash-` + 64 hex);
     preimage matches `casper-types` (`algorithm_name || 0x00 || raw_pubkey`)
-  - Library `CasperAccount` also exposes tagged public-key hex (`01…` / `02…`)
+  - Library `CasperAccount::tagged_public_key_hex` for `01…` / `02…` serialization form
+    (untagged raw key remains on `DerivedAccount::public_key_hex` via `Deref`)
   - CLI: `kobe casper` / `kobe cspr` (`new` / `import`)
   - Umbrella feature: `casper` (included in `all-chains`)
+  - Cross-chain smoke KATs for default secp and ed25519 abandon@0
 
 ## [3.1.1] - 2026-08-08
 

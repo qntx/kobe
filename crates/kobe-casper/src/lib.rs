@@ -27,7 +27,7 @@
 //!
 //! The algorithm-tagged public-key hex used in Casper serialization /
 //! CEP-57 contexts (`0x01 ‖ ed25519` or `0x02 ‖ secp compressed`) is
-//! exposed separately on [`CasperAccount::public_key_hex`].
+//! exposed separately on [`CasperAccount::tagged_public_key_hex`].
 //!
 //! # Example
 //!
