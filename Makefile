@@ -1,8 +1,14 @@
 # Makefile for Rust project using Cargo
+# Kept in sync with Justfile (same targets / same check suite).
 
-.PHONY: all build check check-no-std run test bench clippy clippy-fix fmt doc update
+.PHONY: all build check check-no-std run test bench clippy clippy-fix fmt doc update deny list
 
-all: fmt clippy-fix check-no-std
+# Default: run the standard local check suite.
+all: fmt clippy-fix check-no-std deny
+
+# List targets (parity with `just list`)
+list:
+	@echo "Available targets: all build check check-no-std run test bench clippy clippy-fix fmt doc update deny list"
 
 # Build the project with all features enabled in release mode
 build:
@@ -17,7 +23,7 @@ check:
 check-no-std:
 	cargo check -p kobe-primitives --no-default-features
 	cargo check -p kobe-primitives --no-default-features --features alloc
-	cargo check -p kobe-primitives --no-default-features --features "alloc,bip32,slip10,camouflage"
+	cargo check -p kobe-primitives --no-default-features --features "alloc,bip32,slip10,camouflage,encoding"
 	cargo check -p kobe-aptos --no-default-features --features alloc
 	cargo check -p kobe-btc --no-default-features --features alloc
 	cargo check -p kobe-evm --no-default-features --features alloc
@@ -79,3 +85,8 @@ fmt:
 # Prerequisites: `rustup toolchain install nightly`
 doc:
 	cargo +nightly doc --all-features --no-deps --open
+
+# Dependency policy (licenses, bans, advisories, sources).
+# Prerequisites: `cargo install cargo-deny`
+deny:
+	cargo deny check

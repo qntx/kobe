@@ -1,11 +1,16 @@
 # justfile for Rust project using Cargo
+# Kept in sync with Makefile (same targets / same check suite).
 
-# Default recipe: list all available commands
-default:
-    @just --list
+# Default: run the standard local check suite.
+# Use `just list` to print recipes instead of running them.
+default: all
 
 # Run the most common checks
 all: fmt clippy-fix check-no-std deny
+
+# List available recipes
+list:
+    @just --list
 
 # Build the project with all features enabled in release mode
 build:
