@@ -43,6 +43,16 @@ All account types implement `AsRef<DerivedAccount>` (and usually `Deref`).
 | `Wallet::derive_secp256k1` / `derive_ed25519` | Preferred inside chain crates. |
 | `Wallet::seed` | **Feature `raw-seed` only** (off by default). |
 
+## Debug / secrets
+
+| Type | `Debug` contract |
+| --- | --- |
+| `Wallet` | Redacts mnemonic and seed (`[REDACTED]`). |
+| `DerivedAccount` | Redacts private key; path, pubkey, address visible. |
+| `BtcAccount` / `SvmAccount` / `NostrAccount` | Redacts WIF / keypair / `nsec`. |
+
+`Zeroizing<T>` itself does **not** redact; do not `#[derive(Debug)]` on types that hold secrets.
+
 ## Errors
 
 All chains surface `kobe_primitives::DeriveError` only (`Path`, `Crypto`,

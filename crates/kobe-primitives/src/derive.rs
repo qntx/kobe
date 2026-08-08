@@ -194,13 +194,25 @@ impl core::fmt::Display for PublicKeyKind {
 /// implement [`AsRef<DerivedAccount>`] + `Deref<Target = DerivedAccount>`
 /// on it. This guarantees generic code can always obtain the unified view
 /// without erasing chain-specific information.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 #[non_exhaustive]
 pub struct DerivedAccount {
     path: String,
     private_key: Zeroizing<[u8; 32]>,
     public_key: DerivedPublicKey,
     address: String,
+}
+
+impl core::fmt::Debug for DerivedAccount {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        // Never print private key material — Zeroizing's Debug is not redacting.
+        f.debug_struct("DerivedAccount")
+            .field("path", &self.path)
+            .field("private_key", &"[REDACTED]")
+            .field("public_key", &self.public_key)
+            .field("address", &self.address)
+            .finish()
+    }
 }
 
 impl DerivedAccount {
@@ -479,5 +491,21 @@ mod tests {
         let acct = sample_account();
         let borrowed: &DerivedAccount = acct.as_ref();
         assert!(core::ptr::eq(borrowed, &raw const acct));
+    }
+
+    #[test]
+    fn debug_redacts_private_key() {
+        let acct = sample_account();
+        let dbg = alloc::format!("{acct:?}");
+        assert!(
+            dbg.contains("[REDACTED]"),
+            "expected redaction markers: {dbg}"
+        );
+        assert!(
+            !dbg.contains("1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727"),
+            "Debug must not leak private key hex: {dbg}"
+        );
+        // Public material remains visible for diagnostics.
+        assert!(dbg.contains("0x9858EfFD232B4033E47d90003D41EC34EcaEda94"));
     }
 }

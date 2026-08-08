@@ -48,7 +48,11 @@ struct CosmosArgs {
 }
 
 impl CosmosCommand {
-    pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
+    pub(crate) fn execute(
+        self,
+        json: bool,
+        reveal: bool,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let (mnemonic, args) = match self.command {
             CosmosSubcommand::New { args } => (None, args),
             CosmosSubcommand::Import { mnemonic, args } => (Some(mnemonic), args),
@@ -57,7 +61,7 @@ impl CosmosCommand {
 
         let deriver = Deriver::with_config(&wallet, ChainConfig::new(args.hrp, args.coin_type));
         let accounts = deriver.derive_many(0, args.common.count)?;
-        let out = HdWalletOutput::simple("cosmos", &wallet, &accounts);
+        let out = HdWalletOutput::simple("cosmos", &wallet, &accounts, reveal);
         output::render_hd_wallet(&out, json, args.common.qr)?;
         Ok(())
     }

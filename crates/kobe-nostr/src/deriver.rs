@@ -25,10 +25,19 @@ pub const NPUB_HRP: &str = "npub";
 ///
 /// Implements `Deref<Target = DerivedAccount>`, so all shared accessors
 /// (`address()`, `public_key_bytes()`, etc.) are available directly.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct NostrAccount {
     inner: DerivedAccount,
     nsec: Zeroizing<String>,
+}
+
+impl core::fmt::Debug for NostrAccount {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("NostrAccount")
+            .field("inner", &self.inner)
+            .field("nsec", &"[REDACTED]")
+            .finish()
+    }
 }
 
 impl NostrAccount {
@@ -204,6 +213,18 @@ mod tests {
 
     fn wallet(mnemonic: &str) -> Wallet {
         Wallet::from_mnemonic(mnemonic, None).unwrap()
+    }
+
+    #[test]
+    fn debug_redacts_nsec() {
+        let a = Deriver::new(&wallet(TV1_MNEMONIC)).derive(0).unwrap();
+        let dbg = format!("{a:?}");
+        assert!(dbg.contains("[REDACTED]"));
+        assert!(!dbg.contains(TV1_NSEC), "Debug must not leak nsec: {dbg}");
+        assert!(
+            !dbg.contains(TV1_PRIV_HEX),
+            "Debug must not leak private key hex: {dbg}"
+        );
     }
 
     /// Official NIP-06 test vector 1 — full 4-way lock

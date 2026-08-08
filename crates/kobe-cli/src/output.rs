@@ -3,6 +3,9 @@
 //! These types serve as the single source of truth for both JSON and
 //! human-readable output. Chain-specific code builds these structs,
 //! then calls the shared render functions.
+//!
+//! **Security default:** mnemonic and private keys are omitted unless
+//! the global `--reveal` flag was set when building the output.
 
 use colored::Colorize;
 use kobe::{DerivedAccount, Wallet};
@@ -20,8 +23,9 @@ pub struct HdWalletOutput {
     /// Address type description (Bitcoin only).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub address_type: Option<&'static str>,
-    /// BIP-39 mnemonic phrase.
-    pub mnemonic: String,
+    /// BIP-39 mnemonic phrase. Present only when `--reveal` was used.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mnemonic: Option<String>,
     /// Whether a BIP-39 passphrase was used.
     pub passphrase_protected: bool,
     /// Derivation path style name (EVM/SVM only).
@@ -41,8 +45,9 @@ pub struct AccountOutput {
     pub derivation_path: String,
     /// Blockchain address.
     pub address: String,
-    /// Private key (format depends on chain: WIF for BTC, hex for EVM, base58 for SVM).
-    pub private_key: String,
+    /// Private key (format depends on chain). Present only when `--reveal` was used.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub private_key: Option<String>,
 }
 
 /// Output for mnemonic camouflage operations.
@@ -61,6 +66,8 @@ pub struct CamouflageOutput {
 
 impl HdWalletOutput {
     /// Build HD output with optional network / address-type / style metadata.
+    ///
+    /// When `reveal` is false, `mnemonic` is omitted from the struct.
     #[must_use]
     pub fn new(
         chain: &'static str,
@@ -69,12 +76,13 @@ impl HdWalletOutput {
         address_type: Option<&'static str>,
         derivation_style: Option<&'static str>,
         accounts: Vec<AccountOutput>,
+        reveal: bool,
     ) -> Self {
         Self {
             chain,
             network,
             address_type,
-            mnemonic: wallet.mnemonic().to_owned(),
+            mnemonic: reveal.then(|| wallet.mnemonic().to_owned()),
             passphrase_protected: wallet.has_passphrase(),
             derivation_style,
             accounts,
@@ -83,7 +91,12 @@ impl HdWalletOutput {
 
     /// Build output for a simple chain (no network, no address type, no derivation style).
     #[must_use]
-    pub fn simple(chain: &'static str, wallet: &Wallet, accounts: &[DerivedAccount]) -> Self {
+    pub fn simple(
+        chain: &'static str,
+        wallet: &Wallet,
+        accounts: &[DerivedAccount],
+        reveal: bool,
+    ) -> Self {
         Self::new(
             chain,
             wallet,
@@ -93,8 +106,9 @@ impl HdWalletOutput {
             accounts
                 .iter()
                 .enumerate()
-                .map(|(i, a)| AccountOutput::from_derived(i, a))
+                .map(|(i, a)| AccountOutput::from_derived(i, a, reveal))
                 .collect(),
+            reveal,
         )
     }
 }
@@ -102,28 +116,32 @@ impl HdWalletOutput {
 impl AccountOutput {
     /// Build from a [`DerivedAccount`] with a sequential index.
     #[must_use]
-    pub fn from_derived(index: usize, account: &DerivedAccount) -> Self {
+    pub fn from_derived(index: usize, account: &DerivedAccount, reveal: bool) -> Self {
         Self::from_parts(
             index,
             account.path(),
             account.address(),
             account.private_key_hex().as_str(),
+            reveal,
         )
     }
 
     /// Build with an explicit private-key string (WIF, base58 keypair, `0x…` hex, …).
+    ///
+    /// The key is stored only when `reveal` is true.
     #[must_use]
     pub fn from_parts(
         index: usize,
         derivation_path: &str,
         address: &str,
         private_key: &str,
+        reveal: bool,
     ) -> Self {
         Self {
             index: u32::try_from(index).unwrap_or(u32::MAX),
             derivation_path: derivation_path.to_owned(),
             address: address.to_owned(),
-            private_key: private_key.to_owned(),
+            private_key: reveal.then(|| private_key.to_owned()),
         }
     }
 }
@@ -158,7 +176,15 @@ pub fn render_hd_wallet(
     if let Some(addr_type) = out.address_type {
         println!("      {} {}", "Address Type".cyan().bold(), addr_type);
     }
-    println!("      {}     {}", "Mnemonic".cyan().bold(), out.mnemonic);
+    if let Some(ref mnemonic) = out.mnemonic {
+        println!("      {}     {}", "Mnemonic".cyan().bold(), mnemonic);
+    } else {
+        println!(
+            "      {}     {}",
+            "Mnemonic".cyan().bold(),
+            "(hidden; pass -r / --reveal)".dimmed()
+        );
+    }
     if out.passphrase_protected {
         println!("      {}   {}", "Passphrase".cyan().bold(), "(set)".dimmed());
     }
@@ -174,7 +200,15 @@ pub fn render_hd_wallet(
         }
         println!("      {}         {}", "Path".cyan().bold(), acct.derivation_path);
         println!("      {}      {}", "Address".cyan().bold(), acct.address.green());
-        println!("      {}  {}", "Private Key".cyan().bold(), acct.private_key);
+        if let Some(ref pk) = acct.private_key {
+            println!("      {}  {}", "Private Key".cyan().bold(), pk);
+        } else {
+            println!(
+                "      {}  {}",
+                "Private Key".cyan().bold(),
+                "(hidden; pass -r / --reveal)".dimmed()
+            );
+        }
         if show_qr {
             crate::qr::render_to_terminal(&acct.address);
         }

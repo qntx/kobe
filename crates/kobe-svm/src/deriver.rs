@@ -29,10 +29,19 @@ use crate::derivation_style::DerivationStyle;
 ///
 /// Implements `Deref<Target = DerivedAccount>`, so all shared accessors
 /// (`address()`, `public_key_bytes()`, etc.) are available directly.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct SvmAccount {
     inner: DerivedAccount,
     keypair_base58: Zeroizing<String>,
+}
+
+impl core::fmt::Debug for SvmAccount {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("SvmAccount")
+            .field("inner", &self.inner)
+            .field("keypair_base58", &"[REDACTED]")
+            .finish()
+    }
 }
 
 impl SvmAccount {
@@ -221,6 +230,15 @@ mod tests {
     /// (`bip39 → ed25519-hd-key SLIP-10 → tweetnacl key pair → base58`)
     /// per the Solana wallet adapter defaults documented at
     /// <https://docs.phantom.app/>.
+    #[test]
+    fn debug_redacts_keypair_base58() {
+        let acct = Deriver::new(&test_wallet()).derive(0).unwrap();
+        let kp = acct.keypair_base58().as_str().to_owned();
+        let dbg = format!("{acct:?}");
+        assert!(dbg.contains("[REDACTED]"));
+        assert!(!dbg.contains(&kp), "Debug must not leak keypair: {dbg}");
+    }
+
     #[test]
     fn kat_solana_phantom_abandon_index0() {
         let acct = Deriver::new(&test_wallet()).derive(0).unwrap();

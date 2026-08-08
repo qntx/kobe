@@ -14,10 +14,15 @@ pub(crate) struct NostrCommand {
 }
 
 impl NostrCommand {
-    pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
+    pub(crate) fn execute(
+        self,
+        json: bool,
+        reveal: bool,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         self.command.execute_with(
             "nostr",
             json,
+            reveal,
             |w, n| Ok(Deriver::new(w).derive_many(0, n)?),
             |a| a.nsec().as_str().to_owned(),
         )

@@ -14,8 +14,13 @@ pub(crate) struct AptosCommand {
 }
 
 impl AptosCommand {
-    pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
-        self.command
-            .execute("aptos", json, |w, n| Ok(Deriver::new(w).derive_many(0, n)?))
+    pub(crate) fn execute(
+        self,
+        json: bool,
+        reveal: bool,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        self.command.execute("aptos", json, reveal, |w, n| {
+            Ok(Deriver::new(w).derive_many(0, n)?)
+        })
     }
 }

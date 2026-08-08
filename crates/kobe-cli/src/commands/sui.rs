@@ -14,8 +14,13 @@ pub(crate) struct SuiCommand {
 }
 
 impl SuiCommand {
-    pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
-        self.command
-            .execute("sui", json, |w, n| Ok(Deriver::new(w).derive_many(0, n)?))
+    pub(crate) fn execute(
+        self,
+        json: bool,
+        reveal: bool,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        self.command.execute("sui", json, reveal, |w, n| {
+            Ok(Deriver::new(w).derive_many(0, n)?)
+        })
     }
 }

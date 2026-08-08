@@ -82,7 +82,11 @@ const fn network(testnet: bool) -> Network {
 }
 
 impl BitcoinCommand {
-    pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
+    pub(crate) fn execute(
+        self,
+        json: bool,
+        reveal: bool,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let (mnemonic, args) = match self.command {
             BitcoinSubcommand::New { args } => (None, args),
             BitcoinSubcommand::Import { mnemonic, args } => (Some(mnemonic), args),
@@ -93,7 +97,7 @@ impl BitcoinCommand {
         let addr_type = AddressType::from(args.address_type);
         let deriver = Deriver::new(&wallet, net);
         let addresses = deriver.derive_many_with(addr_type, 0, args.common.count)?;
-        let out = build_hd(&wallet, net, addr_type, &addresses);
+        let out = build_hd(&wallet, net, addr_type, &addresses, reveal);
         output::render_hd_wallet(&out, json, args.common.qr)?;
         Ok(())
     }
@@ -104,6 +108,7 @@ fn build_hd(
     net: Network,
     addr_type: AddressType,
     addresses: &[kobe::btc::BtcAccount],
+    reveal: bool,
 ) -> HdWalletOutput {
     HdWalletOutput::new(
         "bitcoin",
@@ -115,8 +120,15 @@ fn build_hd(
             .iter()
             .enumerate()
             .map(|(i, a)| {
-                AccountOutput::from_parts(i, a.path(), a.address(), a.private_key_wif().as_str())
+                AccountOutput::from_parts(
+                    i,
+                    a.path(),
+                    a.address(),
+                    a.private_key_wif().as_str(),
+                    reveal,
+                )
             })
             .collect(),
+        reveal,
     )
 }

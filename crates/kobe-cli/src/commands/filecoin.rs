@@ -14,8 +14,12 @@ pub(crate) struct FilecoinCommand {
 }
 
 impl FilecoinCommand {
-    pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
-        self.command.execute("filecoin", json, |w, n| {
+    pub(crate) fn execute(
+        self,
+        json: bool,
+        reveal: bool,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        self.command.execute("filecoin", json, reveal, |w, n| {
             Ok(Deriver::new(w).derive_many(0, n)?)
         })
     }

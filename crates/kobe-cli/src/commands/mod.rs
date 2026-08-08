@@ -41,6 +41,10 @@ pub(crate) struct Cli {
     #[arg(long, global = true)]
     pub json: bool,
 
+    /// Include mnemonic and private keys in output (default: hidden).
+    #[arg(short = 'r', long, global = true)]
+    pub reveal: bool,
+
     #[command(subcommand)]
     pub command: Commands,
 }

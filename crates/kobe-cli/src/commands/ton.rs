@@ -92,7 +92,11 @@ impl TonArgs {
 }
 
 impl TonCommand {
-    pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
+    pub(crate) fn execute(
+        self,
+        json: bool,
+        reveal: bool,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let (mnemonic, args) = match self.command {
             TonSubcommand::New { args } => (None, args),
             TonSubcommand::Import { mnemonic, args } => (Some(mnemonic), args),
@@ -103,7 +107,7 @@ impl TonCommand {
         let style = DerivationStyle::from(args.style);
         let deriver = Deriver::with_format(&wallet, format);
         let accounts = deriver.derive_many_with(style, 0, args.common.count)?;
-        let out = build_hd(&wallet, format, style, &accounts);
+        let out = build_hd(&wallet, format, style, &accounts, reveal);
         output::render_hd_wallet(&out, json, args.common.qr)?;
         Ok(())
     }
@@ -114,6 +118,7 @@ fn build_hd(
     format: AddressFormat,
     style: DerivationStyle,
     accounts: &[DerivedAccount],
+    reveal: bool,
 ) -> HdWalletOutput {
     HdWalletOutput::new(
         "ton",
@@ -128,7 +133,8 @@ fn build_hd(
         accounts
             .iter()
             .enumerate()
-            .map(|(i, a)| AccountOutput::from_derived(i, a))
+            .map(|(i, a)| AccountOutput::from_derived(i, a, reveal))
             .collect(),
+        reveal,
     )
 }
