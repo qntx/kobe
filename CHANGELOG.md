@@ -4,6 +4,8 @@ All notable changes to this workspace are documented in this file. The format is
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-08-08
+
 ### Added
 
 - CLI `kobe upgrade` (`update` alias): self-upgrade via the official
@@ -15,6 +17,7 @@ All notable changes to this workspace are documented in this file. The format is
 - Replaced the `docs/` directory with a root [`CONTRIBUTING.md`](CONTRIBUTING.md)
   (API contract, development workflow, release process). Matches common Rust
   community layout.
+- Workspace crate versions bumped to **3.1.0**; lockfile refresh (`cc` 1.4.2).
 
 ## [3.0.0] - 2026-08-08
 

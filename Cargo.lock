@@ -201,9 +201,9 @@ checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 
 [[package]]
 name = "cc"
-version = "1.4.1"
+version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9066c49992464636f92905fa096ec58baaa4d57ec19a5c096c68d3e25ef3d136"
+checksum = "5d262e149917187838d5b42777c8253bcb64500067342904e7d429499a6f277e"
 dependencies = [
  "find-msvc-tools",
  "shlex",
@@ -646,7 +646,7 @@ dependencies = [
 
 [[package]]
 name = "kobe"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "kobe-aptos",
  "kobe-btc",
@@ -665,7 +665,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-aptos"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "hex",
  "kobe-primitives",
@@ -675,7 +675,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-btc"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "bech32",
  "bs58",
@@ -688,7 +688,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-cli"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "clap",
  "colored",
@@ -700,7 +700,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-cosmos"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "bech32",
  "kobe-primitives",
@@ -708,7 +708,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-evm"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "alloy-primitives",
  "kobe-primitives",
@@ -716,7 +716,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-fil"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "blake2",
  "kobe-primitives",
@@ -724,7 +724,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-nostr"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "bech32",
  "kobe-primitives",
@@ -733,7 +733,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-primitives"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "bip32",
  "bip39",
@@ -750,7 +750,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-spark"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "bech32",
  "hex",
@@ -759,7 +759,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-sui"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "blake2",
  "hex",
@@ -769,7 +769,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-svm"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "bs58",
  "kobe-primitives",
@@ -778,7 +778,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-ton"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "base64",
  "kobe-primitives",
@@ -788,7 +788,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-tron"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "bs58",
  "kobe-primitives",
@@ -797,7 +797,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-xrpl"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "bs58",
  "kobe-primitives",
