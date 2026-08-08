@@ -309,15 +309,17 @@ kobe --json nostr new
 
 ### Mnemonic Camouflage
 
+Phrases are **hidden unless** `-r` / `--reveal`. Prefer stdin for the phrase:
+
 ```bash
-# Encrypt a real mnemonic into a valid-looking decoy
-kobe mnemonic encrypt -m "real phrase here ..." -p "strong-password"
+# Encrypt (output hidden without -r)
+echo "real phrase here ..." | kobe mnemonic encrypt -m - -p "strong-password" -r
 
-# Recover the original from the decoy
-kobe mnemonic decrypt -c "decoy phrase here ..." -p "strong-password"
+# Recover
+echo "decoy phrase here ..." | kobe mnemonic decrypt -c - -p "strong-password" -r
 
-# JSON output
-kobe --json mnemonic encrypt -m "real phrase ..." -p "secret"
+# JSON with secrets
+echo "real phrase ..." | kobe --json -r mnemonic encrypt -m - -p "secret"
 ```
 
 ## JSON Output Schemas
@@ -363,6 +365,8 @@ For EVM/SVM: `network` and `address_type` are omitted; `derivation_style` is inc
 
 ### Camouflage (`encrypt` / `decrypt`)
 
+With `-r` / `--reveal`:
+
 ```json
 {
   "mode": "encrypt",
@@ -371,6 +375,8 @@ For EVM/SVM: `network` and `address_type` are omitted; `derivation_style` is inc
   "output": "camouflaged phrase ..."
 }
 ```
+
+Without `--reveal`, `input` and `output` are omitted.
 
 ### Error
 

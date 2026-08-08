@@ -5,6 +5,8 @@
 //! surface. This module provides a single generic subcommand reused by each
 //! chain's thin wrapper, eliminating hundreds of lines of boilerplate.
 
+use std::io::{self, BufRead};
+
 use clap::{Args, Subcommand};
 use kobe::{DerivedAccount, Wallet};
 
@@ -50,7 +52,8 @@ impl SimpleArgs {
         match mnemonic {
             None => Ok(Wallet::generate(self.words, self.passphrase.as_deref())?),
             Some(phrase) => {
-                let expanded = kobe::mnemonic::expand(phrase)?;
+                let phrase = resolve_mnemonic_input(phrase)?;
+                let expanded = kobe::mnemonic::expand(&phrase)?;
                 Ok(Wallet::from_mnemonic(
                     &expanded,
                     self.passphrase.as_deref(),
@@ -58,6 +61,26 @@ impl SimpleArgs {
             }
         }
     }
+}
+
+/// Literal mnemonic, or one line from stdin when `value` is `-`.
+///
+/// Prefer `echo '…' | kobe … import -m -` over putting secrets in argv on
+/// shared hosts (shell history / process listings).
+fn resolve_mnemonic_input(value: &str) -> CliResult<String> {
+    if value != "-" {
+        return Ok(value.to_owned());
+    }
+    let mut line = String::new();
+    let n = io::stdin().lock().read_line(&mut line)?;
+    if n == 0 {
+        return Err("expected mnemonic on stdin, got EOF".into());
+    }
+    let trimmed = line.trim();
+    if trimmed.is_empty() {
+        return Err("expected non-empty mnemonic on stdin".into());
+    }
+    Ok(trimmed.to_owned())
 }
 
 /// Subcommand template reused across all simple chain commands.
@@ -70,7 +93,9 @@ pub(crate) enum SimpleSubcommand {
     },
     /// Import wallet from mnemonic phrase.
     Import {
-        /// BIP-39 mnemonic phrase (supports 4-letter prefix expansion).
+        /// BIP-39 mnemonic (`-` = read one line from stdin; avoids shell history).
+        ///
+        /// Supports 4-letter prefix expansion. Prefer stdin on shared hosts.
         #[arg(short, long)]
         mnemonic: String,
 

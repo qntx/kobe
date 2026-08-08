@@ -83,16 +83,18 @@ pub fn expand_in(language: Language, phrase: &str) -> Result<String, DeriveError
 fn resolve_token<'a>(word_list: &'a [&'a str; 2048], token: &str) -> Result<&'a str, DeriveError> {
     // Fast path: exact match via binary search (wordlist is sorted).
     if let Ok(idx) = word_list.binary_search(&token) {
-        return word_list
-            .get(idx)
-            .copied()
-            .ok_or_else(|| DeriveError::Input(alloc::format!("mnemonic: unknown word '{token}'")));
+        return word_list.get(idx).copied().ok_or_else(|| {
+            // Should be unreachable: binary_search Ok implies a valid index.
+            DeriveError::Input(String::from("mnemonic: internal wordlist lookup failed"))
+        });
     }
 
     // Token is not an exact word — treat as prefix.
+    // Error messages deliberately omit the raw token so CLI stderr / JSON
+    // errors do not re-echo partial secret material from failed imports.
     if token.len() < MIN_PREFIX_LEN {
         return Err(DeriveError::Input(alloc::format!(
-            "mnemonic: prefix '{token}' is too short (minimum {MIN_PREFIX_LEN} characters)"
+            "mnemonic: word prefix is too short (minimum {MIN_PREFIX_LEN} characters)"
         )));
     }
 
@@ -107,13 +109,13 @@ fn resolve_token<'a>(word_list: &'a [&'a str; 2048], token: &str) -> Result<&'a 
         .collect();
 
     match matches.as_slice() {
-        [] => Err(DeriveError::Input(alloc::format!(
-            "mnemonic: prefix '{token}' does not match any BIP-39 word"
+        [] => Err(DeriveError::Input(String::from(
+            "mnemonic: word prefix does not match any BIP-39 word",
         ))),
         [only] => Ok(*only),
         many => Err(DeriveError::Input(alloc::format!(
-            "mnemonic: prefix '{token}' is ambiguous, matches: {}",
-            many.join(", ")
+            "mnemonic: word prefix is ambiguous (matches {} BIP-39 words)",
+            many.len()
         ))),
     }
 }
@@ -162,6 +164,10 @@ mod tests {
             unreachable!("expected Input error, got {err:?}");
         };
         assert!(msg.contains("too short"), "unexpected message: {msg}");
+        assert!(
+            !msg.contains("aba"),
+            "error must not echo rejected token: {msg}"
+        );
     }
 
     #[test]
@@ -172,6 +178,10 @@ mod tests {
             unreachable!("expected Input error, got {err:?}");
         };
         assert!(msg.contains("does not match"), "unexpected message: {msg}");
+        assert!(
+            !msg.contains("zzzz"),
+            "error must not echo rejected token: {msg}"
+        );
     }
 
     #[test]

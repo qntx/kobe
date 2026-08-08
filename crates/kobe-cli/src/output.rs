@@ -59,9 +59,26 @@ pub struct CamouflageOutput {
     /// Mnemonic word count.
     pub words: usize,
     /// Input mnemonic (original for encrypt, camouflaged for decrypt).
-    pub input: String,
+    /// Present only when `--reveal` was used.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub input: Option<String>,
     /// Output mnemonic (camouflaged for encrypt, recovered for decrypt).
-    pub output: String,
+    /// Present only when `--reveal` was used.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub output: Option<String>,
+}
+
+impl CamouflageOutput {
+    /// Build camouflage output, redacting phrases unless `reveal` is true.
+    #[must_use]
+    pub fn new(mode: &'static str, words: usize, input: String, output: String, reveal: bool) -> Self {
+        Self {
+            mode,
+            words,
+            input: reveal.then_some(input),
+            output: reveal.then_some(output),
+        }
+    }
 }
 
 impl HdWalletOutput {
@@ -244,12 +261,20 @@ pub fn render_camouflage(
     println!();
     println!("      {}         {}", "Mode".cyan().bold(), mode_label);
     println!("      {}        {} words", "Words".cyan().bold(), out.words);
-    if out.mode == "encrypt" {
-        println!("      {}     {}", in_label.cyan().bold(), out.input);
-        println!("      {}  {}", out_label.cyan().bold(), out.output.green());
-    } else {
-        println!("      {}  {}", in_label.cyan().bold(), out.input);
-        println!("      {}    {}", out_label.cyan().bold(), out.output.green());
+    let hidden = "(hidden; pass -r / --reveal)";
+    match (&out.input, &out.output) {
+        (Some(input), Some(output)) if out.mode == "encrypt" => {
+            println!("      {}     {}", in_label.cyan().bold(), input);
+            println!("      {}  {}", out_label.cyan().bold(), output.green());
+        }
+        (Some(input), Some(output)) => {
+            println!("      {}  {}", in_label.cyan().bold(), input);
+            println!("      {}    {}", out_label.cyan().bold(), output.green());
+        }
+        _ => {
+            println!("      {}     {}", in_label.cyan().bold(), hidden.dimmed());
+            println!("      {}  {}", out_label.cyan().bold(), hidden.dimmed());
+        }
     }
     println!();
     Ok(())

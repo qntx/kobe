@@ -40,7 +40,7 @@ cargo install just cargo-deny
 git clone https://github.com/qntx/kobe.git
 cd kobe
 
-just all    # fmt + clippy-fix + no_std checks + cargo deny
+just all    # fmt + clippy-fix + no_std + cargo deny + tests
 just test   # cargo test --workspace --all-features
 ```
 
@@ -48,7 +48,7 @@ Useful recipes (see `just --list`):
 
 | Recipe | Purpose |
 | --- | --- |
-| `just all` | Default quality gate before a PR |
+| `just all` | Default quality gate before a PR (includes tests) |
 | `just test` | Full workspace tests |
 | `just check-no-std` | Host-side no_std feature matrix (CI also builds `thumbv7m-none-eabi`) |
 | `just deny` | `cargo deny check` |
@@ -160,7 +160,10 @@ All chains surface `kobe_primitives::DeriveError` only (`Path`, `Crypto`,
 
 ## CLI notes
 
-- Global flags: `--json`, `-r` / `--reveal` (secrets hidden by default).
+- Global flags: `--json`, `-r` / `--reveal` (secrets hidden by default for HD
+  and camouflage output).
+- Prefer `-m -` / `-c -` to read mnemonics from stdin rather than argv on shared
+  hosts (shell history / process listings).
 - Self-upgrade for installs from `https://sh.qntx.fun/kobe`:
 
   ```bash
@@ -177,7 +180,7 @@ All chains surface `kobe_primitives::DeriveError` only (`Path`, `Crypto`,
 Maintainers only.
 
 1. CI green on `main` (`lint`, `test`, `deny`, `no_std`).
-2. Local: `just all` and `just test`.
+2. Local: `just all` (includes tests).
 3. Move `[Unreleased]` notes in `CHANGELOG.md` into a dated version section;
    no leftover **Breaking** bullets that belong in the release.
 4. Bump workspace `version` and path dependency major/minor strings in root

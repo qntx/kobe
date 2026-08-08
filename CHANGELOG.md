@@ -4,6 +4,24 @@ All notable changes to this workspace are documented in this file. The format is
 
 ## [Unreleased]
 
+### Security
+
+- CLI `kobe mnemonic encrypt/decrypt` respects global `-r` / `--reveal` (phrases
+  hidden by default, same policy as HD wallet output).
+- Mnemonic prefix-expansion errors no longer echo the rejected token (avoids
+  leaking partial secret material via stderr / JSON errors).
+
+### Added
+
+- Import and camouflage accept `-m -` / `-c -` to read a phrase from stdin
+  (reduces shell-history exposure versus argv secrets).
+
+### Changed
+
+- `just all` / `make all` now run the full workspace test suite.
+- Cross-chain smoke tests assert golden abandon@0 addresses for BTC, EVM, SVM,
+  Cosmos, Tron, Spark, FIL, TON, Sui, Aptos, and XRPL.
+
 ## [3.1.0] - 2026-08-08
 
 ### Added
