@@ -71,7 +71,13 @@ pub struct CamouflageOutput {
 impl CamouflageOutput {
     /// Build camouflage output, redacting phrases unless `reveal` is true.
     #[must_use]
-    pub fn new(mode: &'static str, words: usize, input: String, output: String, reveal: bool) -> Self {
+    pub fn new(
+        mode: &'static str,
+        words: usize,
+        input: String,
+        output: String,
+        reveal: bool,
+    ) -> Self {
         Self {
             mode,
             words,
