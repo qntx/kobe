@@ -25,12 +25,23 @@ pub struct Deriver<'a> {
 
 /// Bitcoin-specific derived account: unified [`DerivedAccount`] plus WIF,
 /// address type, and structured path.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct BtcAccount {
     inner: DerivedAccount,
     private_key_wif: Zeroizing<String>,
     address_type: AddressType,
     bip32_path: DerivationPath,
+}
+
+impl core::fmt::Debug for BtcAccount {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("BtcAccount")
+            .field("inner", &self.inner)
+            .field("private_key_wif", &"[REDACTED]")
+            .field("address_type", &self.address_type)
+            .field("bip32_path", &self.bip32_path)
+            .finish()
+    }
 }
 
 impl BtcAccount {
@@ -252,6 +263,16 @@ mod tests {
 
     fn deriver(wallet: &Wallet, network: Network) -> Deriver<'_> {
         Deriver::new(wallet, network)
+    }
+
+    #[test]
+    fn debug_redacts_wif() {
+        let wallet = test_wallet();
+        let account = deriver(&wallet, Network::Mainnet).derive(0).unwrap();
+        let wif = account.private_key_wif().as_str().to_owned();
+        let dbg = alloc::format!("{account:?}");
+        assert!(dbg.contains("[REDACTED]"));
+        assert!(!dbg.contains(&wif), "Debug must not leak WIF: {dbg}");
     }
 
     #[test]

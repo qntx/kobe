@@ -88,11 +88,17 @@ impl SimpleSubcommand {
     ///
     /// Returns an error if mnemonic expansion, wallet construction, or
     /// derivation fails.
-    pub(crate) fn execute<F>(self, chain: &'static str, json: bool, derive_fn: F) -> CliResult
+    pub(crate) fn execute<F>(
+        self,
+        chain: &'static str,
+        json: bool,
+        reveal: bool,
+        derive_fn: F,
+    ) -> CliResult
     where
         F: FnOnce(&Wallet, u32) -> CliResult<Vec<DerivedAccount>>,
     {
-        self.execute_with(chain, json, derive_fn, |a| {
+        self.execute_with(chain, json, reveal, derive_fn, |a| {
             a.private_key_hex().as_str().to_owned()
         })
     }
@@ -112,6 +118,7 @@ impl SimpleSubcommand {
         self,
         chain: &'static str,
         json: bool,
+        reveal: bool,
         derive_fn: F,
         format_private_key: G,
     ) -> CliResult
@@ -131,7 +138,7 @@ impl SimpleSubcommand {
             chain,
             network: None,
             address_type: None,
-            mnemonic: wallet.mnemonic().to_owned(),
+            mnemonic: reveal.then(|| wallet.mnemonic().to_owned()),
             passphrase_protected: wallet.has_passphrase(),
             derivation_style: None,
             accounts: accounts
@@ -143,7 +150,7 @@ impl SimpleSubcommand {
                         index: u32::try_from(i).unwrap_or(u32::MAX),
                         derivation_path: da.path().to_owned(),
                         address: da.address().to_owned(),
-                        private_key: format_private_key(a),
+                        private_key: reveal.then(|| format_private_key(a)),
                     }
                 })
                 .collect(),

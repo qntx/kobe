@@ -5,7 +5,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! kobe = { version = "2.0", features = ["evm", "btc", "svm"] }
+//! kobe = { version = "3.0", features = ["evm", "btc", "svm"] }
 //! ```
 //!
 //! ```no_run

@@ -14,8 +14,13 @@ pub(crate) struct TronCommand {
 }
 
 impl TronCommand {
-    pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
-        self.command
-            .execute("tron", json, |w, n| Ok(Deriver::new(w).derive_many(0, n)?))
+    pub(crate) fn execute(
+        self,
+        json: bool,
+        reveal: bool,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        self.command.execute("tron", json, reveal, |w, n| {
+            Ok(Deriver::new(w).derive_many(0, n)?)
+        })
     }
 }

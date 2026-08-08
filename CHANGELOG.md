@@ -4,6 +4,17 @@ All notable changes to this workspace are documented in this file. The format is
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-08-08
+
+### Security
+
+- Redacted `Debug` for secret-bearing types (`Wallet`, `DerivedAccount`, `BtcAccount`, `SvmAccount`, `NostrAccount`). `Zeroizing` does not redact; hand-written `Debug` prints `[REDACTED]` for mnemonic, seed, private keys, WIF, keypair, and `nsec`.
+- CLI defaults to hiding mnemonic and private keys. Pass global `-r` / `--reveal` to include them in human and JSON output.
+
+### Breaking (`kobe-cli`)
+
+- HD JSON/human output omits `mnemonic` and `private_key` unless `-r` / `--reveal` is set. Scripts that need secrets must pass the flag.
+
 ### Breaking (`kobe-btc`)
 
 - `Deriver::new(wallet, network)` is now infallible and returns `Self` (no longer `Result`). Call sites that used `?` should drop it.

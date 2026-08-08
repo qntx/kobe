@@ -20,7 +20,6 @@ use crate::DeriveError;
 /// The wallet supports an optional BIP39 passphrase (sometimes called "25th word").
 /// This provides an extra layer of security - the same mnemonic with different
 /// passphrases will produce completely different wallets.
-#[derive(Debug)]
 pub struct Wallet {
     /// BIP39 mnemonic phrase.
     mnemonic: Zeroizing<String>,
@@ -39,6 +38,19 @@ pub struct Wallet {
     has_passphrase: bool,
     /// Language of the mnemonic.
     language: Language,
+}
+
+impl core::fmt::Debug for Wallet {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        // Never print mnemonic or seed — Zeroizing's Debug is not redacting.
+        f.debug_struct("Wallet")
+            .field("mnemonic", &"[REDACTED]")
+            .field("seed", &"[REDACTED]")
+            .field("has_passphrase", &self.has_passphrase)
+            .field("language", &self.language)
+            .field("word_count", &self.word_count())
+            .finish()
+    }
 }
 
 impl Wallet {
@@ -385,6 +397,25 @@ mod tests {
             hex::encode(wallet.seed()),
             "5eb00bbddcf069084889a8ab9155568165f5c453ccb85e70811aaed6f6da5fc1\
              9a5ac40b389cd370d086206dec8aa6c43daea6690f20ad3d8d48b2d2ce9e38e4"
+        );
+    }
+
+    #[test]
+    fn debug_redacts_mnemonic_and_seed() {
+        let wallet = Wallet::from_mnemonic(TEST_MNEMONIC, None).unwrap();
+        let dbg = alloc::format!("{wallet:?}");
+        assert!(
+            dbg.contains("[REDACTED]"),
+            "expected redaction markers: {dbg}"
+        );
+        assert!(
+            !dbg.contains("abandon"),
+            "Debug must not leak mnemonic words: {dbg}"
+        );
+        // BIP-39 seed hex prefix for abandon…about
+        assert!(
+            !dbg.contains("5eb00bbddcf06908"),
+            "Debug must not leak seed bytes: {dbg}"
         );
     }
 

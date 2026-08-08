@@ -76,7 +76,11 @@ struct SparkArgs {
 }
 
 impl SparkCommand {
-    pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
+    pub(crate) fn execute(
+        self,
+        json: bool,
+        reveal: bool,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let (mnemonic, args) = match self.command {
             SparkSubcommand::New { args } => (None, args),
             SparkSubcommand::Import { mnemonic, args } => (Some(mnemonic), args),
@@ -86,24 +90,29 @@ impl SparkCommand {
         let network = Network::from(args.network);
         let deriver = Deriver::with_network(&wallet, network);
         let accounts = deriver.derive_many(0, args.common.count)?;
-        let out = build_hd(&wallet, network, &accounts);
+        let out = build_hd(&wallet, network, &accounts, reveal);
         output::render_hd_wallet(&out, json, args.common.qr)?;
         Ok(())
     }
 }
 
-fn build_hd(wallet: &Wallet, network: Network, accounts: &[DerivedAccount]) -> HdWalletOutput {
+fn build_hd(
+    wallet: &Wallet,
+    network: Network,
+    accounts: &[DerivedAccount],
+    reveal: bool,
+) -> HdWalletOutput {
     HdWalletOutput {
         chain: "spark",
         network: Some(network.name()),
         address_type: None,
-        mnemonic: wallet.mnemonic().to_owned(),
+        mnemonic: reveal.then(|| wallet.mnemonic().to_owned()),
         passphrase_protected: wallet.has_passphrase(),
         derivation_style: None,
         accounts: accounts
             .iter()
             .enumerate()
-            .map(|(i, a)| AccountOutput::from_derived(i, a))
+            .map(|(i, a)| AccountOutput::from_derived(i, a, reveal))
             .collect(),
     }
 }

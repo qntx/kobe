@@ -64,7 +64,11 @@ struct EthereumArgs {
 }
 
 impl EthereumCommand {
-    pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
+    pub(crate) fn execute(
+        self,
+        json: bool,
+        reveal: bool,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let (mnemonic, args) = match self.command {
             EthereumSubcommand::New { args } => (None, args),
             EthereumSubcommand::Import { mnemonic, args } => (Some(mnemonic), args),
@@ -74,7 +78,7 @@ impl EthereumCommand {
         let ds = DerivationStyle::from(args.style);
         let deriver = Deriver::new(&wallet);
         let accounts = deriver.derive_many_with(ds, 0, args.common.count)?;
-        let out = build_hd(&wallet, ds, &accounts);
+        let out = build_hd(&wallet, ds, &accounts, reveal);
         output::render_hd_wallet(&out, json, args.common.qr)?;
         Ok(())
     }
@@ -84,6 +88,7 @@ fn build_hd(
     wallet: &Wallet,
     style: DerivationStyle,
     accounts: &[DerivedAccount],
+    reveal: bool,
 ) -> HdWalletOutput {
     HdWalletOutput::new(
         "ethereum",
@@ -100,8 +105,10 @@ fn build_hd(
                     a.path(),
                     a.address(),
                     &format!("0x{}", a.private_key_hex().as_str()),
+                    reveal,
                 )
             })
             .collect(),
+        reveal,
     )
 }

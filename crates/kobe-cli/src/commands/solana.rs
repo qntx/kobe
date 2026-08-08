@@ -67,7 +67,11 @@ struct SolanaArgs {
 }
 
 impl SolanaCommand {
-    pub(crate) fn execute(self, json: bool) -> Result<(), Box<dyn std::error::Error>> {
+    pub(crate) fn execute(
+        self,
+        json: bool,
+        reveal: bool,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let (mnemonic, args) = match self.command {
             SolanaSubcommand::New { args } => (None, args),
             SolanaSubcommand::Import { mnemonic, args } => (Some(mnemonic), args),
@@ -77,13 +81,18 @@ impl SolanaCommand {
         let ds = DerivationStyle::from(args.style);
         let deriver = Deriver::new(&wallet);
         let addresses = deriver.derive_many_with(ds, 0, args.common.count)?;
-        let out = build_hd(&wallet, ds, &addresses);
+        let out = build_hd(&wallet, ds, &addresses, reveal);
         output::render_hd_wallet(&out, json, args.common.qr)?;
         Ok(())
     }
 }
 
-fn build_hd(wallet: &Wallet, style: DerivationStyle, addresses: &[SvmAccount]) -> HdWalletOutput {
+fn build_hd(
+    wallet: &Wallet,
+    style: DerivationStyle,
+    addresses: &[SvmAccount],
+    reveal: bool,
+) -> HdWalletOutput {
     HdWalletOutput::new(
         "solana",
         wallet,
@@ -94,8 +103,15 @@ fn build_hd(wallet: &Wallet, style: DerivationStyle, addresses: &[SvmAccount]) -
             .iter()
             .enumerate()
             .map(|(i, a)| {
-                AccountOutput::from_parts(i, a.path(), a.address(), a.keypair_base58().as_str())
+                AccountOutput::from_parts(
+                    i,
+                    a.path(),
+                    a.address(),
+                    a.keypair_base58().as_str(),
+                    reveal,
+                )
             })
             .collect(),
+        reveal,
     )
 }

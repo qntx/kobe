@@ -34,19 +34,20 @@ fn main() -> std::process::ExitCode {
 /// Dispatch CLI commands and propagate errors.
 fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     let json = cli.json;
+    let reveal = cli.reveal;
     match cli.command {
-        Commands::Aptos(cmd) => cmd.execute(json)?,
-        Commands::Bitcoin(cmd) => cmd.execute(json)?,
-        Commands::Ethereum(cmd) => cmd.execute(json)?,
-        Commands::Solana(cmd) => cmd.execute(json)?,
-        Commands::Cosmos(cmd) => cmd.execute(json)?,
-        Commands::Tron(cmd) => cmd.execute(json)?,
-        Commands::Spark(cmd) => cmd.execute(json)?,
-        Commands::Filecoin(cmd) => cmd.execute(json)?,
-        Commands::Ton(cmd) => cmd.execute(json)?,
-        Commands::Sui(cmd) => cmd.execute(json)?,
-        Commands::Xrpl(cmd) => cmd.execute(json)?,
-        Commands::Nostr(cmd) => cmd.execute(json)?,
+        Commands::Aptos(cmd) => cmd.execute(json, reveal)?,
+        Commands::Bitcoin(cmd) => cmd.execute(json, reveal)?,
+        Commands::Ethereum(cmd) => cmd.execute(json, reveal)?,
+        Commands::Solana(cmd) => cmd.execute(json, reveal)?,
+        Commands::Cosmos(cmd) => cmd.execute(json, reveal)?,
+        Commands::Tron(cmd) => cmd.execute(json, reveal)?,
+        Commands::Spark(cmd) => cmd.execute(json, reveal)?,
+        Commands::Filecoin(cmd) => cmd.execute(json, reveal)?,
+        Commands::Ton(cmd) => cmd.execute(json, reveal)?,
+        Commands::Sui(cmd) => cmd.execute(json, reveal)?,
+        Commands::Xrpl(cmd) => cmd.execute(json, reveal)?,
+        Commands::Nostr(cmd) => cmd.execute(json, reveal)?,
         Commands::Mnemonic(cmd) => cmd.execute(json)?,
     }
     Ok(())

@@ -77,9 +77,13 @@ kobe evm    import -m "abandon abandon ... about"
 
 # JSON output — stable, script- and agent-friendly
 kobe evm    new --json
+
+# Secrets (mnemonic / private keys) are hidden by default
+kobe -r evm new                          # show mnemonic + private keys
+kobe --json -r evm new                   # include them in JSON as well
 ```
 
-Every chain subcommand accepts the shared flags `-w/--words`, `-c/--count`, `-p/--passphrase`, and `--qr` through a flattened `SimpleArgs` group, so ergonomics stay consistent across the 12 networks.
+Every chain subcommand accepts the shared flags `-w/--words`, `-c/--count`, `-p/--passphrase`, and `--qr` through a flattened `SimpleArgs` group, so ergonomics stay consistent across the 12 networks. Global `-r` / `--reveal` opts into printing mnemonics and private keys (default: hidden).
 
 ### Library Usage
 
@@ -171,7 +175,7 @@ println!("Mnemonic: {}", wallet.mnemonic());
 - **Derivation styles** — Standard, Ledger Live, Ledger Legacy, Trust, Phantom, Backpack, Tonkeeper — with `FromStr` aliases and an accepted-token diagnostic on `ParseDerivationStyleError`
 - **Cross-implementation KATs** — every chain is pinned against independent references (bitcoinjs-lib, @ton/core, @noble/hashes, NIP-06 official vectors, ethanmarcuss/spark-address, BIP-84 / BIP-86 / EIP-55 / SLIP-10 test vectors) — no self-confirming dumps
 - **`no_std` + `alloc`** — every library crate compiles on `thumbv7m-none-eabi` under CI; embedded / WASM ready
-- **Security hardened** — mnemonics, seeds, private keys, WIFs, `nsec`s, and Solana keypairs wrapped in `Zeroizing<T>`; no key material is logged or persisted
+- **Security hardened** — mnemonics, seeds, private keys, WIFs, `nsec`s, and Solana keypairs wrapped in `Zeroizing<T>`; secret-bearing types redact in `Debug`; CLI hides secrets unless `--reveal`
 - **Signer integration** — [`signer`](https://github.com/qntx/signer) consumes every `DerivedAccount` / `BtcAccount` / `SvmAccount` / `NostrAccount` via `Signer::from_derived` behind its `kobe` feature flag
 - **Strict linting** — Clippy `pedantic` + `nursery` + `correctness` (deny), `rust_2018_idioms` deny, zero warnings on nightly
 
@@ -184,7 +188,9 @@ See **[`crates/README.md`](crates/README.md)** for the full crate table, depende
 This library has **not** been independently audited. Use at your own risk.
 
 - Mnemonics, seeds, and derived private keys wrapped in [`zeroize`](https://docs.rs/zeroize) — wiped from memory on drop
+- `Debug` for `Wallet`, `DerivedAccount`, and chain secret newtypes redacts key material (`[REDACTED]`); do not rely on `{:?}` for secrets
 - Chain-specific secret encodings (BTC WIF, Nostr `nsec`, Solana 64-byte keypair) are wrapped in `Zeroizing<String>` / `Zeroizing<[u8; N]>`
+- CLI omits mnemonic and private keys unless `--reveal` is passed
 - Random generation uses the OS-provided CSPRNG via [`getrandom`](https://docs.rs/getrandom); `Wallet::generate_in_with` accepts a caller-supplied `CryptoRng` on embedded / WASM targets where OS entropy is unavailable
 - `secp256k1` contexts are cached on `Deriver` to avoid the ~768 KB per-call setup cost
 - Environment-variable mutation and `std::mem::{transmute, forget}` are denied at the lint level
