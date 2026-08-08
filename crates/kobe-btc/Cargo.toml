@@ -1,30 +1,30 @@
 [package]
-name = "kobe-btc"
-version.workspace = true
-edition.workspace = true
+name                   = "kobe-btc"
+version.workspace      = true
+edition.workspace      = true
 rust-version.workspace = true
-license.workspace = true
-repository.workspace = true
-readme = "../../README.md"
-description = "Bitcoin HD wallet derivation for Kobe"
-keywords = ["bitcoin", "wallet", "crypto", "no_std"]
-categories = ["cryptography", "no-std"]
+license.workspace      = true
+repository.workspace   = true
+readme                 = "../../README.md"
+description            = "Bitcoin HD wallet derivation for Kobe"
+keywords               = ["bitcoin", "wallet", "crypto", "no_std"]
+categories             = ["cryptography", "no-std"]
 
 [features]
 default = ["std"]
-std = ["alloc", "kobe-primitives/std", "zeroize/std"]
-alloc = ["kobe-primitives/alloc", "zeroize/alloc"]
+std     = ["alloc", "kobe-primitives/std", "zeroize/std"]
+alloc   = ["kobe-primitives/alloc", "zeroize/alloc"]
 
 [dependencies]
-bech32.workspace = true
-kobe-primitives = { workspace = true, features = ["bip32", "encoding"] }
-k256.workspace = true
-sha2.workspace = true
+bech32.workspace  = true
+kobe-primitives   = { workspace = true, features = ["bip32", "encoding"] }
+k256.workspace    = true
+sha2.workspace    = true
 zeroize.workspace = true
 
 [dev-dependencies]
 bs58.workspace = true
-hex.workspace = true
+hex.workspace  = true
 
 [lints]
 workspace = true

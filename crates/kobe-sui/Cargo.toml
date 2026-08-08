@@ -1,25 +1,25 @@
 [package]
-name = "kobe-sui"
-version.workspace = true
-edition.workspace = true
+name                   = "kobe-sui"
+version.workspace      = true
+edition.workspace      = true
 rust-version.workspace = true
-license.workspace = true
-repository.workspace = true
-readme = "../../README.md"
-description = "Sui wallet for Kobe"
-keywords = ["sui", "wallet", "crypto", "no_std"]
-categories = ["cryptography", "no-std"]
+license.workspace      = true
+repository.workspace   = true
+readme                 = "../../README.md"
+description            = "Sui wallet for Kobe"
+keywords               = ["sui", "wallet", "crypto", "no_std"]
+categories             = ["cryptography", "no-std"]
 
 [features]
 default = ["std"]
-std = ["alloc", "kobe-primitives/std", "hex/std", "zeroize/std"]
-alloc = ["kobe-primitives/alloc", "hex/alloc", "zeroize/alloc"]
+std     = ["alloc", "kobe-primitives/std", "hex/std", "zeroize/std"]
+alloc   = ["kobe-primitives/alloc", "hex/alloc", "zeroize/alloc"]
 
 [dependencies]
-kobe-primitives = { workspace = true, features = ["slip10"] }
-hex.workspace = true
+kobe-primitives   = { workspace = true, features = ["slip10"] }
+hex.workspace     = true
 zeroize.workspace = true
-blake2.workspace = true
+blake2.workspace  = true
 
 [lints]
 workspace = true
