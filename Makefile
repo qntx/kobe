@@ -3,8 +3,8 @@
 
 .PHONY: all build check check-no-std run test bench clippy clippy-fix fmt doc update deny list
 
-# Default: run the standard local check suite.
-all: fmt clippy-fix check-no-std deny
+# Default: run the standard local check suite (includes tests; mirrors CI).
+all: fmt clippy-fix check-no-std deny test
 
 # List targets (parity with `just list`)
 list:

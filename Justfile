@@ -5,8 +5,8 @@
 # Use `just list` to print recipes instead of running them.
 default: all
 
-# Run the most common checks
-all: fmt clippy-fix check-no-std deny
+# Run the most common checks (includes tests; mirrors CI coverage locally).
+all: fmt clippy-fix check-no-std deny test
 
 # List available recipes
 list:
