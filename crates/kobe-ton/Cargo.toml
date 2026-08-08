@@ -1,25 +1,25 @@
 [package]
-name = "kobe-ton"
-version.workspace = true
-edition.workspace = true
+name                   = "kobe-ton"
+version.workspace      = true
+edition.workspace      = true
 rust-version.workspace = true
-license.workspace = true
-repository.workspace = true
-readme = "../../README.md"
-description = "TON wallet for Kobe"
-keywords = ["ton", "wallet", "crypto", "no_std"]
-categories = ["cryptography", "no-std"]
+license.workspace      = true
+repository.workspace   = true
+readme                 = "../../README.md"
+description            = "TON wallet for Kobe"
+keywords               = ["ton", "wallet", "crypto", "no_std"]
+categories             = ["cryptography", "no-std"]
 
 [features]
 default = ["std"]
-std = ["alloc", "kobe-primitives/std", "zeroize/std"]
-alloc = ["kobe-primitives/alloc", "zeroize/alloc"]
+std     = ["alloc", "kobe-primitives/std", "zeroize/std"]
+alloc   = ["kobe-primitives/alloc", "zeroize/alloc"]
 
 [dependencies]
-kobe-primitives = { workspace = true, features = ["slip10"] }
+kobe-primitives   = { workspace = true, features = ["slip10"] }
 zeroize.workspace = true
-sha2.workspace = true
-base64.workspace = true
+sha2.workspace    = true
+base64.workspace  = true
 
 [lints]
 workspace = true

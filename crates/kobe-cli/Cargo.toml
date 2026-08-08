@@ -1,14 +1,14 @@
 [package]
-name = "kobe-cli"
-version.workspace = true
-edition.workspace = true
+name                   = "kobe-cli"
+version.workspace      = true
+edition.workspace      = true
 rust-version.workspace = true
-license.workspace = true
-repository.workspace = true
-readme = "../../README.md"
-description = "A multi-chain cryptocurrency wallet CLI tool"
-keywords = ["crypto", "wallet", "bitcoin", "ethereum", "cli"]
-categories = ["command-line-utilities", "cryptography"]
+license.workspace      = true
+repository.workspace   = true
+readme                 = "../../README.md"
+description            = "A multi-chain cryptocurrency wallet CLI tool"
+keywords               = ["crypto", "wallet", "bitcoin", "ethereum", "cli"]
+categories             = ["command-line-utilities", "cryptography"]
 
 [[bin]]
 name = "kobe"
@@ -18,11 +18,11 @@ path = "src/main.rs"
 doc = false
 
 [dependencies]
-kobe = { workspace = true, features = ["std", "rand", "camouflage", "all-chains"] }
-clap.workspace = true
-colored.workspace = true
-qrcode.workspace = true
-serde.workspace = true
+kobe                 = { workspace = true, features = ["std", "rand", "camouflage", "all-chains"] }
+clap.workspace       = true
+colored.workspace    = true
+qrcode.workspace     = true
+serde.workspace      = true
 serde_json.workspace = true
 
 [lints]

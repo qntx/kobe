@@ -1,22 +1,22 @@
 [package]
-name = "kobe-evm"
-version.workspace = true
-edition.workspace = true
+name                   = "kobe-evm"
+version.workspace      = true
+edition.workspace      = true
 rust-version.workspace = true
-license.workspace = true
-repository.workspace = true
-readme = "../../README.md"
-description = "Ethereum HD wallet derivation for Kobe"
-keywords = ["ethereum", "wallet", "crypto", "no_std"]
-categories = ["cryptography", "no-std"]
+license.workspace      = true
+repository.workspace   = true
+readme                 = "../../README.md"
+description            = "Ethereum HD wallet derivation for Kobe"
+keywords               = ["ethereum", "wallet", "crypto", "no_std"]
+categories             = ["cryptography", "no-std"]
 
 [features]
 default = ["std"]
-std = ["alloc", "kobe-primitives/std"]
-alloc = ["kobe-primitives/alloc"]
+std     = ["alloc", "kobe-primitives/std"]
+alloc   = ["kobe-primitives/alloc"]
 
 [dependencies]
-kobe-primitives = { workspace = true, features = ["bip32"] }
+kobe-primitives            = { workspace = true, features = ["bip32"] }
 alloy-primitives.workspace = true
 
 [lints]

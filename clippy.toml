@@ -1,14 +1,14 @@
 cognitive-complexity-threshold = 20
-excessive-nesting-threshold = 4
-too-many-lines-threshold = 120
-too-many-arguments-threshold = 7
-type-complexity-threshold = 250
-struct-field-name-threshold = 8
-enum-variant-size-threshold = 200
+excessive-nesting-threshold    = 4
+too-many-lines-threshold       = 120
+too-many-arguments-threshold   = 7
+type-complexity-threshold      = 250
+struct-field-name-threshold    = 8
+enum-variant-size-threshold    = 200
 
 single-char-binding-names-threshold = 4
-min-ident-chars-threshold = 2
-allowed-idents-below-min-chars = [
+min-ident-chars-threshold           = 2
+allowed-idents-below-min-chars      = [
     "i",
     "j",
     "k",
@@ -24,15 +24,15 @@ allowed-idents-below-min-chars = [
 ]
 
 pass-by-value-size-limit = 128
-trivial-copy-size-limit = 8
+trivial-copy-size-limit  = 8
 
 large-error-threshold = 128
 
 avoid-breaking-exported-api = true
-check-private-items = false
+check-private-items         = false
 
-allow-dbg-in-tests = true
-allow-print-in-tests = true
+allow-dbg-in-tests    = true
+allow-print-in-tests  = true
 allow-unwrap-in-tests = true
 allow-expect-in-tests = true
 
