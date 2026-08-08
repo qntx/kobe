@@ -26,6 +26,8 @@
 pub use kobe_aptos as aptos;
 #[cfg(feature = "btc")]
 pub use kobe_btc as btc;
+#[cfg(feature = "casper")]
+pub use kobe_casper as casper;
 #[cfg(feature = "cosmos")]
 pub use kobe_cosmos as cosmos;
 #[cfg(feature = "evm")]

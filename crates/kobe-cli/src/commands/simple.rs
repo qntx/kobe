@@ -1,7 +1,7 @@
 //! Shared command template for simple chains.
 //!
 //! Chains without network/address-type/style parameters (Aptos, Sui, Spark,
-//! Filecoin, Tron, XRPL, TON, Nostr, …) all expose the same `new` / `import`
+//! Filecoin, Tron, XRPL, TON, Nostr, Casper, …) all expose the same `new` / `import`
 //! surface. This module provides a single generic subcommand reused by each
 //! chain's thin wrapper, eliminating hundreds of lines of boilerplate.
 

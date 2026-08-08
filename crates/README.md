@@ -16,6 +16,7 @@
 | **[`kobe-spark`](kobe-spark/)** | [![crates.io][kobe-spark-crate]][kobe-spark-crate-url] [![docs.rs][kobe-spark-doc]][kobe-spark-doc-url] | Spark (Bitcoin L2) — identity keys + Bech32m `spark1…` addresses |
 | **[`kobe-xrpl`](kobe-xrpl/)** | [![crates.io][kobe-xrpl-crate]][kobe-xrpl-crate-url] [![docs.rs][kobe-xrpl-doc]][kobe-xrpl-doc-url] | XRP Ledger — classic `r`-addresses, secp256k1 |
 | **[`kobe-nostr`](kobe-nostr/)** | [![crates.io][kobe-nostr-crate]][kobe-nostr-crate-url] [![docs.rs][kobe-nostr-doc]][kobe-nostr-doc-url] | Nostr — NIP-06 key derivation, NIP-19 bech32 `nsec`/`npub` |
+| **[`kobe-casper`](kobe-casper/)** | [![crates.io][kobe-casper-crate]][kobe-casper-crate-url] [![docs.rs][kobe-casper-doc]][kobe-casper-doc-url] | Casper — secp256k1 / Ed25519 HD + AccountHash |
 | **[`kobe-cli`](kobe-cli/)** | [![crates.io][kobe-cli-crate]][kobe-cli-crate-url] | CLI — generate, import, derive; `upgrade` via sh.qntx.fun |
 
 ## Dependency Graph
@@ -35,7 +36,8 @@ kobe-cli
         ├── kobe-svm    ── kobe-primitives/slip10
         ├── kobe-ton    ── kobe-primitives/slip10
         ├── kobe-tron   ── kobe-primitives/bip32
-        └── kobe-xrpl   ── kobe-primitives/bip32
+        ├── kobe-xrpl   ── kobe-primitives/bip32
+        └── kobe-casper ── kobe-primitives/bip32 + slip10
 ```
 
 All chain crates consume key derivation through the wallet-level shortcuts
@@ -65,6 +67,7 @@ The umbrella `kobe` crate provides fine-grained feature control:
 | `aptos` | | Aptos chain support (enables `slip10`) |
 | `xrpl` | | XRP Ledger chain support (enables `bip32`) |
 | `nostr` | | Nostr chain support (enables `bip32`) |
+| `casper` | | Casper Network support (enables `bip32` + `slip10`) |
 | `all-chains` | | Enable all chain crates |
 
 [kobe-crate]: https://img.shields.io/crates/v/kobe.svg
@@ -125,3 +128,7 @@ The umbrella `kobe` crate provides fine-grained feature control:
 [kobe-nostr-crate-url]: https://crates.io/crates/kobe-nostr
 [kobe-nostr-doc]: https://img.shields.io/docsrs/kobe-nostr.svg
 [kobe-nostr-doc-url]: https://docs.rs/kobe-nostr
+[kobe-casper-crate]: https://img.shields.io/crates/v/kobe-casper.svg
+[kobe-casper-crate-url]: https://crates.io/crates/kobe-casper
+[kobe-casper-doc]: https://img.shields.io/docsrs/kobe-casper.svg
+[kobe-casper-doc-url]: https://docs.rs/kobe-casper
