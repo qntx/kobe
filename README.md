@@ -188,6 +188,11 @@ println!("Mnemonic: {}", wallet.mnemonic());
 
 See **[`crates/README.md`](crates/README.md)** for the full crate table, dependency graph, and feature flag reference.
 
+## Contributing
+
+See **[`CONTRIBUTING.md`](CONTRIBUTING.md)** for development setup, the chain API
+contract, PR expectations, and the release checklist.
+
 ## Security
 
 This library has **not** been independently audited. Use at your own risk.
