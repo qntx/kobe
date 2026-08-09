@@ -97,15 +97,23 @@ Every chain subcommand accepts the shared flags `-w/--words`, `-c/--count`, `-p/
 
 ### Library Usage
 
+```toml
+# Default is `std` only — enable chains (or `mainstream` / `all-chains`) explicitly.
+kobe = { version = "3.2", features = ["std", "mainstream"] }
+# Optional: `rand` for Wallet::generate; chain features: evm, btc, svm, …
+```
+
 ```rust
 use kobe::prelude::*;     // Wallet, Derive, DeriveExt, DerivationStyle trait, ...
-use kobe::evm::Deriver;   // or kobe::btc, kobe::svm, kobe::cosmos, ...
+use kobe::evm::Deriver;   // requires feature "evm" (or "mainstream")
 
-// Import from mnemonic
+// Import from mnemonic (full BIP-39 words)
 let wallet = Wallet::from_mnemonic(
     "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
     None,  // optional passphrase
 )?;
+// Abbreviated 4-letter English prefixes (same as CLI import):
+// let wallet = Wallet::from_mnemonic_expanded("aban aban … abou", None)?;
 
 // Derive addresses (accessor methods — fields are private for zeroization safety)
 let eth = kobe::evm::Deriver::new(&wallet).derive(0)?;

@@ -201,6 +201,21 @@ impl Wallet {
         Ok(Self::from_parts(&mnemonic, language, passphrase))
     }
 
+    /// Expand 4-letter BIP-39 English prefixes then import (same path as CLI `import`).
+    ///
+    /// Full words pass through [`mnemonic::expand`](crate::mnemonic::expand) unchanged.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if expansion or BIP-39 parse fails.
+    pub fn from_mnemonic_expanded(
+        phrase: &str,
+        passphrase: Option<&str>,
+    ) -> Result<Self, DeriveError> {
+        let expanded = crate::mnemonic::expand(phrase)?;
+        Self::from_mnemonic(&expanded, passphrase)
+    }
+
     /// Create a wallet from an existing mnemonic phrase in the specified language.
     ///
     /// # Arguments
