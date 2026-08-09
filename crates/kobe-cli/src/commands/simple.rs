@@ -53,9 +53,8 @@ impl SimpleArgs {
             None => Ok(Wallet::generate(self.words, self.passphrase.as_deref())?),
             Some(phrase) => {
                 let phrase = resolve_mnemonic_input(phrase)?;
-                let expanded = kobe::mnemonic::expand(&phrase)?;
-                Ok(Wallet::from_mnemonic(
-                    &expanded,
+                Ok(Wallet::from_mnemonic_expanded(
+                    &phrase,
                     self.passphrase.as_deref(),
                 )?)
             }

@@ -50,14 +50,15 @@ The umbrella `kobe` crate provides fine-grained feature control:
 
 | Feature | Default | Description |
 | --- | --- | --- |
-| `std` | ✅ | Enable `std` support |
-| `alloc` | ✅ | Enable `alloc` (implied by `std`) |
+| `std` | ✅ | Enable `std` support (default = `["std"]` only) |
+| `alloc` | | Enable `alloc` (implied by `std`) |
 | `rand` | | Enable random mnemonic generation |
 | `camouflage` | | Enable mnemonic camouflage encryption |
 | `raw-seed` | | Expose `Wallet::seed` (escape hatch; prefer derivers) |
+| `mainstream` | | Preset: `btc` + `evm` + `svm` |
 | `btc` | | Bitcoin chain support (enables `bip32`) |
 | `evm` | | Ethereum chain support (enables `bip32`) |
-| `svm` | ✅ | Solana chain support (enables `slip10`) |
+| `svm` | | Solana chain support (enables `slip10`) |
 | `cosmos` | | Cosmos chain support (enables `bip32`) |
 | `tron` | | Tron chain support (enables `bip32`) |
 | `spark` | | Spark chain support (enables `bip32`) |
