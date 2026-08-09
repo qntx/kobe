@@ -4,6 +4,18 @@ All notable changes to this workspace are documented in this file. The format is
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-08-09
+
+### Added
+
+- `Wallet::from_mnemonic_expanded` — 4-letter English BIP-39 prefix expansion
+  (same path as CLI `import`); CLI `build_wallet` uses this single library API.
+
+### Changed
+
+- README library examples require explicit Cargo features (`mainstream` / chains).
+- `crates/README` feature table: default is `std` only (removed incorrect `svm` default mark).
+
 ## [3.2.0] - 2026-08-08
 
 ### Added
