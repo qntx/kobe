@@ -1,6 +1,7 @@
 //! CLI command definitions and handlers.
 
 mod aptos;
+mod arweave;
 mod bitcoin;
 mod casper;
 mod cosmos;
@@ -18,6 +19,7 @@ mod update;
 mod xrpl;
 
 pub(crate) use aptos::AptosCommand;
+pub(crate) use arweave::ArweaveCommand;
 pub(crate) use bitcoin::BitcoinCommand;
 pub(crate) use casper::CasperCommand;
 use clap::{Parser, Subcommand};
@@ -107,6 +109,10 @@ pub(crate) enum Commands {
     /// Casper Network wallet operations.
     #[command(name = "casper", alias = "cspr")]
     Casper(CasperCommand),
+
+    /// Arweave ECDSA wallet operations (SLIP-44 coin type 472).
+    #[command(name = "arweave", alias = "ar")]
+    Arweave(ArweaveCommand),
 
     /// Mnemonic utilities (camouflage encrypt/decrypt).
     #[command(name = "mnemonic", alias = "mn")]

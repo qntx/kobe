@@ -1,91 +1,102 @@
 # Contributing to Kobe
 
-Thank you for improving Kobe. This document is the single source of truth for
-how to develop, extend, and release the workspace. Please read it before
-opening a pull request.
+Normative process for developing, extending, reviewing, and releasing Kobe.
+Prefer this document over tribal knowledge. Incomplete chain wiring has been a
+recurring defect; the [New chain registration matrix](#new-chain-registration-matrix)
+lists every required touchpoint, including CI and crates.io publish order.
 
-## Code of collaboration
+Agents: also read [`AGENTS.md`](AGENTS.md) for architecture rules. Process and
+checklists live **here**.
 
-- Prefer **small, reviewable PRs** with a clear problem statement.
-- Match existing style: workspace Clippy lints (`pedantic` + `nursery`),
-  `rustfmt` with the project config, explicit error handling.
-- Do **not** invent APIs. Follow the [chain API contract](#chain-api-contract).
-- Do **not** reintroduce the full `bitcoin` crate (`deny.toml` bans it).
-- Secrets (mnemonics, private keys, WIF, `nsec`, Solana keypairs) must stay in
-  `Zeroizing` and use **redacted `Debug`**. Never `#[derive(Debug)]` on types
-  that hold secret material (`Zeroizing` itself does not redact).
-- Every chain derivation path must be pinned with **cross-implementation KATs**
-  (not self-confirming dumps).
+---
 
-By contributing, you agree that your contributions are dual-licensed under the
-project’s [MIT](LICENSE-MIT) OR [Apache-2.0](LICENSE-APACHE) terms (see
-`README.md`).
+## Principles
+
+| Rule | Meaning |
+| --- | --- |
+| Small PRs | One problem per PR; reviewable diffs. |
+| No invented APIs | Follow the [chain API contract](#chain-api-contract). |
+| No compatibility debt | Remove obsolete paths; do not add dual APIs or migrations “for now.” |
+| No banned stacks | Full `bitcoin` crate is denied (`deny.toml`). Encode addresses/WIF in-tree. |
+| Secrets hygiene | Mnemonics, seeds, private keys, WIF, `nsec`, Solana keypairs: `Zeroizing` + redacted `Debug`. Never `#[derive(Debug)]` on secret-bearing types. |
+| Independent KATs | Every derivation path is pinned to a third-party or protocol vector — not a dump of our own previous output. |
+
+License: contributions are dual-licensed [MIT](LICENSE-MIT) OR
+[Apache-2.0](LICENSE-APACHE) as stated in `README.md`.
+
+---
 
 ## Prerequisites
 
-| Tool | Notes |
+| Tool | Role |
 | --- | --- |
-| Rust | Stable + nightly (fmt/clippy). MSRV is declared in root `Cargo.toml` (`rust-version`). |
-| [`just`](https://github.com/casey/just) | Preferred task runner (`Justfile`; `Makefile` mirrors the same suite). |
-| [`cargo-deny`](https://github.com/EmbarkStudios/cargo-deny) | License / ban / advisory checks. |
+| Rust stable | Build, test, MSRV (`rust-version` in root `Cargo.toml`). |
+| Rust nightly | `rustfmt` import grouping; Clippy workspace lints. |
+| [`just`](https://github.com/casey/just) | Canonical task runner (`Justfile`). `Makefile` mirrors the same suite. |
+| [`cargo-deny`](https://github.com/EmbarkStudios/cargo-deny) | Licenses, bans, advisories, sources. |
 
 ```bash
 rustup toolchain install stable nightly --component rustfmt,clippy
 cargo install just cargo-deny
 ```
 
-## Local development
+---
+
+## Local quality gate
 
 ```bash
 git clone https://github.com/qntx/kobe.git
 cd kobe
-
-just all    # fmt + clippy-fix + no_std + cargo deny + tests
-just test   # cargo test --workspace --all-features
+just all
 ```
 
-Useful recipes (see `just --list`):
+`just all` runs: **fmt → clippy-fix → check-no-std → deny → test**.
 
 | Recipe | Purpose |
 | --- | --- |
-| `just all` | Default quality gate before a PR (includes tests) |
-| `just test` | Full workspace tests |
-| `just check-no-std` | Host-side no_std feature matrix (CI also builds `thumbv7m-none-eabi`) |
+| `just all` | Default pre-PR gate |
+| `just check-no-std` | Host-side no_std matrix (every library crate + umbrella `all-chains`) |
+| `just test` | `cargo test --workspace --all-features` |
 | `just deny` | `cargo deny check` |
-| `just fmt` / `just clippy` | Format and lint |
+| `just fmt` / `just clippy` | Format / lint |
 
-CI (`.github/workflows/ci.yml`) runs format, Clippy `-D warnings`, tests,
-`cargo-deny`, and no_std targets. A PR should be green there.
+CI (`.github/workflows/ci.yml`) also builds bare-metal `thumbv7m-none-eabi` per
+library crate. Host `check-no-std` is necessary but not always sufficient: a
+crate that pulls `std` accidentally may still pass host checks and fail CI.
 
-### Commit and PR hygiene
+When adding a chain, update **both** the local matrix (`Justfile` / `Makefile`)
+and the CI `no-std` job — see the registration matrix below.
 
-- Use imperative commit subjects (`feat(cli): …`, `fix(btc): …`, `docs: …`).
-- Reference issues when applicable.
-- Update [`CHANGELOG.md`](CHANGELOG.md) under `[Unreleased]` for user-visible
-  changes (Keep a Changelog format).
-- Do not force-push shared branches without coordination.
+---
 
-## Project layout
+## Repository layout
 
 ```text
-Cargo.toml              workspace + shared deps / lints
+Cargo.toml                 workspace package versions, shared deps, lints
+deny.toml                  licenses / bans / advisories / sources
+Justfile / Makefile        local gates (keep in sync with each other)
+.github/workflows/
+  ci.yml                   lint, test, deny, no_std (thumbv7m-none-eabi)
+  publish.yml              crates.io publish order
+  release.yml              CLI binary release
 crates/
-  kobe-primitives/      Wallet, Derive, bip32, slip10, encoding, …
-  kobe-<chain>/         one crate per network
-  kobe/                 umbrella re-exports + features
-  kobe-cli/             `kobe` binary
-crates/README.md        crate table, graph, features
-deny.toml               licenses, bans (no full `bitcoin` crate)
+  kobe-primitives/         Wallet, Derive, bip32, slip10, encoding, …
+  kobe-<chain>/            one publishable crate per network
+  kobe/                    umbrella re-exports + feature flags
+  kobe-cli/                `kobe` binary (builds with all-chains)
+  README.md                crate table, graph, feature table
+skills/kobe/SKILL.md       agent-facing CLI contract
+CONTRIBUTING.md            this file
+CHANGELOG.md               Keep a Changelog
 ```
 
-Library crates target `no_std` + `alloc` where possible. Prefer
-`Wallet::derive_secp256k1` / `derive_ed25519` over exposing the raw seed
-(`raw-seed` feature is an escape hatch only).
+Library crates target `no_std` + `alloc`. Prefer
+`Wallet::derive_secp256k1` / `derive_ed25519`. Feature `raw-seed` is an escape
+hatch only.
+
+---
 
 ## Chain API contract
-
-Every `kobe-<chain>` deriver follows the same surface. Prefer this table when
-adding a chain or reviewing API diffs.
 
 ### Construction
 
@@ -93,20 +104,19 @@ adding a chain or reviewing API diffs.
 | --- | --- |
 | `Deriver::new(wallet) -> Self` | Infallible. Optional network/format via args or `with_*`. |
 | `Deriver::new(wallet, network) -> Self` | BTC: network is a required second argument. |
-| `with_config` / `with_network` / `with_format` | Chain-specific configuration; still infallible. |
+| `with_config` / `with_network` / `with_algo` / … | Chain-specific; still infallible constructors. |
 
-Do **not** return `Result` from `new` unless initialization can fail for a
-real reason.
+Do **not** return `Result` from `new` unless initialization can genuinely fail.
 
 ### Derivation
 
 | Method | Contract |
 | --- | --- |
-| `derive(index)` | Default path / style for the chain. |
+| `derive(index)` | Default path / style. |
 | `derive_at(path: &str)` | Arbitrary BIP-32 / SLIP-10 path (inherent). |
-| `Derive::derive_path` | Trait method; must forward to `derive_at`. |
+| `Derive::derive_path` | Trait method; **must** forward to `derive_at`. |
 | `DeriveExt::derive_many(start, count)` | Batch of `derive(index)`. |
-| `derive_with(style_or_type, index)` | Only when the chain has a style / address-type axis. |
+| `derive_with(style_or_type, index)` | Only when the chain has a style / type axis. |
 | `derive_at_with(path, style_or_type)` | Non-standard path + explicit type (BTC). |
 | `derive_structured` | Pre-parsed path object (BTC). |
 
@@ -115,92 +125,190 @@ real reason.
 | Type | When |
 | --- | --- |
 | `DerivedAccount` | Default for most chains. |
-| `BtcAccount` | Extra WIF + address type + path. |
-| `SvmAccount` | Extra keypair base58. |
-| `NostrAccount` | Extra `nsec`. |
+| `BtcAccount` | WIF + address type + path. |
+| `SvmAccount` | 64-byte keypair base58. |
+| `NostrAccount` | `nsec` / `npub`. |
+| `CasperAccount` | AccountHash + algo + tagged pubkey hex. |
 
-All account types implement `AsRef<DerivedAccount>` (and usually `Deref`).
+Account newtypes implement `AsRef<DerivedAccount>` (and usually `Deref`).
 
 ### Key material
 
-| Path | Use |
+| API | Use |
 | --- | --- |
 | `Wallet::derive_secp256k1` / `derive_ed25519` | Preferred inside chain crates. |
-| `Wallet::seed` | **Feature `raw-seed` only** (off by default). |
+| `Wallet::seed` | Feature `raw-seed` only (off by default). |
 
 ### Debug / secrets
 
-| Type | `Debug` contract |
+| Type | `Debug` |
 | --- | --- |
 | `Wallet` | Redacts mnemonic and seed (`[REDACTED]`). |
 | `DerivedAccount` | Redacts private key; path, pubkey, address visible. |
-| `BtcAccount` / `SvmAccount` / `NostrAccount` | Redacts WIF / keypair / `nsec`. |
+| Chain secret newtypes | Redact WIF / keypair / `nsec` / etc. |
 
 ### Errors
 
-All chains surface `kobe_primitives::DeriveError` only (`Path`, `Crypto`,
-`Input`, `AddressEncoding`, `Mnemonic`).
+Surface `kobe_primitives::DeriveError` only (`Path`, `Crypto`, `Input`,
+`AddressEncoding`, `Mnemonic`).
 
 ### Naming
 
-- Inherent method: `derive_at`
-- Trait method: `derive_path` (forwards to `derive_at`)
-- Do not reintroduce `derive_at_path` / `derive_bip32_path`
+| Correct | Forbidden |
+| --- | --- |
+| Inherent `derive_at` | `derive_at_path`, `derive_bip32_path` |
+| Trait `derive_path` → forwards to `derive_at` | Dual public names for the same operation |
 
-## Adding a chain
+---
 
-1. Scaffold `crates/kobe-<name>/` with `no_std` + `alloc`, workspace lints, and
-   `Derive` / `DeriveExt`.
-2. Wire features on the `kobe` umbrella and `kobe-cli` (subcommand + output).
-3. Add KATs against an independent reference implementation.
-4. Extend `crates/kobe/tests/cross_chain_smoke.rs` when appropriate.
-5. Document the path and address format in `README.md` and update
-   `CHANGELOG.md`.
-6. Keep `cargo deny` clean (no banned crates).
+## New chain registration matrix
+
+**Source of truth for “a chain exists”:** directory `crates/kobe-<name>/` with
+package name `kobe-<name>`.
+
+**Feature name** = package name without the `kobe-` prefix
+(`kobe-arweave` → feature `arweave`, re-export `kobe::arweave`).
+
+Complete **every** row before merge. Omitting CI or publish rows has shipped
+broken releases before.
+
+| # | Touchpoint | Required action |
+| --- | --- | --- |
+| 1 | `crates/kobe-<name>/` | Scaffold: `#![cfg_attr(not(feature = "std"), no_std)]`, features `std`/`alloc`, workspace lints, `Derive` + `derive_at`. |
+| 2 | Root `Cargo.toml` | `[workspace.dependencies] kobe-<name> = { version = "<maj.min>", path = "…", default-features = false }`. Bump workspace `version` when releasing. |
+| 3 | `crates/kobe/Cargo.toml` | Optional dep; feature `"name" = ["dep:kobe-<name>", "bip32" \| "slip10"]`; add to `std` / `alloc` lists (`kobe-<name>?/std`); add `"name"` to `all-chains`. Do **not** add to `mainstream` unless product decision says so. |
+| 4 | `crates/kobe/src/lib.rs` | `#[cfg(feature = "name")] pub use kobe_<name> as name;` |
+| 5 | `Justfile` `check-no-std` | `cargo check -p kobe-<name> --no-default-features --features alloc` |
+| 6 | `Makefile` `check-no-std` | Same command as Justfile (keep mirrors identical). |
+| 7 | `.github/workflows/ci.yml` job `no-std` | `cargo check -p kobe-<name> --target thumbv7m-none-eabi --no-default-features --features alloc` |
+| 8 | `.github/workflows/publish.yml` | Insert `kobe-<name>` in `packages` **before** `kobe` and `kobe-cli` (after `kobe-primitives`). Alphabetical among chains is preferred. **If omitted, tag release will not publish the crate.** |
+| 9 | `crates/kobe-cli` | Command module (`new` / `import` or chain-specific flags); clap primary `name = "<name>"` (aliases optional); `Commands` variant; `main.rs` match arm. Module **filename** may differ from feature name (`btc` → `bitcoin.rs`). Implementation must call `kobe::<name>::…`. |
+| 10 | `crates/kobe/tests/cross_chain_smoke.rs` | abandon@0 (or chain-standard) assertion when `all-chains` is enabled. |
+| 11 | KATs in chain crate | Independent reference vectors; document the source in the test comment. Negative test for the most likely wrong encoding (e.g. uncompressed vs compressed pubkey). |
+| 12 | `README.md` | Supported-chains table row; intro / Design chain **count** and name list; Quick Start example if useful. |
+| 13 | `crates/README.md` | Crate table, dependency graph, feature table, badge link anchors. |
+| 14 | `skills/kobe/SKILL.md` | Chain table, aliases, path reference, private-key format, examples; keep chain count accurate. |
+| 15 | `CHANGELOG.md` | User-visible entry under `[Unreleased]` or the release section. |
+| 16 | Protocol accuracy | Cite protocol docs / reference clients in crate docs or KAT comments. |
+
+### Worked example: Arweave ECDSA (`kobe-arweave`)
+
+| Item | Value |
+| --- | --- |
+| Package / feature | `kobe-arweave` / `arweave` |
+| Path | `m/44'/472'/0'/0/{i}` (SLIP-44 coin 472) |
+| Address | `Base64URL_nopad(SHA-256(compressed 33-byte secp256k1 pubkey))` |
+| References | [ECDSA Keys](https://docs.arweave.org/developers/development/overview/ecdsa-keys); node `ar_wallet.erl` (`ECDSA_PUB_KEY_SIZE = 33`); arweave-js `master-ec` |
+| Out of scope | RSA-PSS wallets; transaction signing (companion signer crate) |
+| CLI | `kobe arweave` / alias `ar` |
+
+---
+
+## Implementation guide for a new chain
+
+1. **Protocol spike** — Address algorithm from primary sources (node code,
+   official docs, reference client). Decide BIP-32 vs SLIP-10, coin type,
+   pubkey encoding, hash, address alphabet. Record non-goals.
+2. **Scaffold** — Copy the closest crate (`kobe-xrpl` for secp BIP-44;
+   `kobe-sui` for SLIP-10 Ed25519).
+3. **KAT first** — Lock gold vectors from an independent tool before API polish.
+4. **Wire the matrix** — Rows 2–10, then 12–15. Manually verify CI and
+   `publish.yml` (rows 7–8); they are the most commonly omitted.
+5. **`just all`** — Fix Clippy, fmt, deny, tests.
+6. **PR** — Title `feat(<name>): …`; body links protocol sources and KAT origin.
+
+---
 
 ## CLI notes
 
-- Global flags: `--json`, `-r` / `--reveal` (secrets hidden by default for HD
-  and camouflage output).
-- Prefer `-m -` / `-c -` to read mnemonics from stdin rather than argv on shared
-  hosts (shell history / process listings).
-- Self-upgrade for installs from `https://sh.qntx.fun/kobe`:
+| Topic | Rule |
+| --- | --- |
+| Global flags | `--json`, `-r` / `--reveal` (secrets hidden by default). |
+| Mnemonics on shared hosts | Prefer `-m -` / stdin over argv. |
+| Simple chains | Reuse `SimpleSubcommand` (`new` / `import`). |
+| Complex chains | Dedicated modules (BTC network/type, EVM style, …). |
+| Self-upgrade | `kobe upgrade` (`update` alias) via `sh.qntx.fun`; does not overwrite Cargo installs. |
+| Agent contract | Keep `skills/kobe/SKILL.md` verbs and flags 1:1 with clap. |
 
-  ```bash
-  kobe upgrade              # alias: kobe update
-  kobe upgrade --check
-  ```
+---
 
-  Re-invokes the official installer. Cargo installs under `.cargo/bin` are
-  **not** overwritten; the command prints a `cargo install kobe-cli --force`
-  hint instead.
+## Commit and PR hygiene
+
+- Imperative subjects: `feat(arweave): …`, `fix(btc): …`, `docs: …`, `ci: …`.
+- Update `CHANGELOG.md` for user-visible behavior.
+- Do not force-push shared branches without coordination.
+- Crypto / new-chain PRs must state **protocol sources** and confirm the
+  registration matrix (especially CI no_std + `publish.yml`).
+
+### Reviewer checklist (crypto / new chain)
+
+- [ ] Address algorithm matches cited protocol (not Ethereum-by-accident).
+- [ ] Compressed vs uncompressed (or other encoding axes) explicit and tested.
+- [ ] KATs cite independent source; negative test for the most likely wrong encoding.
+- [ ] Matrix rows 5–8 complete: Justfile, Makefile, CI no_std, **publish.yml**.
+- [ ] Secrets redacted; no `Debug` derive on secret types.
+- [ ] `deny.toml` still clean (no full `bitcoin` crate).
+- [ ] README / skill chain counts match the real set.
+
+---
+
+## Continuous integration
+
+| Job | Workflow | Purpose |
+| --- | --- | --- |
+| `lint` | `ci.yml` | `cargo fmt --check`, Clippy `-D warnings`, all features. |
+| `test` | `ci.yml` | Build + test workspace `--all-features`. |
+| `deny` | `ci.yml` | `cargo-deny-action` with `--all-features`. |
+| `no_std` | `ci.yml` | Per-crate `thumbv7m-none-eabi` + umbrella `all-chains`. |
+| Publish | `publish.yml` on tag `v*.*.*` | Ordered crates.io publish. |
+| Release | `release.yml` on tag | `kobe-cli` binaries. |
+
+Publish package order in `publish.yml`:
+
+```text
+kobe-primitives → every kobe-<chain> → kobe → kobe-cli
+```
+
+A chain missing from this list will never reach crates.io on tag.
+
+---
 
 ## Release process
 
 Maintainers only.
 
-1. CI green on `main` (`lint`, `test`, `deny`, `no_std`).
-2. Local: `just all` (includes tests).
-3. Move `[Unreleased]` notes in `CHANGELOG.md` into a dated version section;
-   no leftover **Breaking** bullets that belong in the release.
-4. Bump workspace `version` and path dependency major/minor strings in root
-   `Cargo.toml` (e.g. `3.1.0` → path `"3.1"`).
-5. Tag and push: `git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`.
-6. Confirm GitHub Actions `release.yml` (binaries) and `publish.yml`
-   (crates.io) succeed.
-7. Publish order is handled by the workflow: `kobe-primitives` → chain crates →
-   `kobe` → `kobe-cli`.
+1. `main` green on all CI jobs above.
+2. Local: `just all`.
+3. `CHANGELOG.md`: move `[Unreleased]` into a dated `## [X.Y.Z]` section.
+4. Bump workspace `version` and path dependency version prefixes in root
+   `Cargo.toml` (e.g. `3.4.0` with path deps `"3.4"`).
+5. Tag and push:
 
-Semantic Versioning applies. Document breaking API changes under a major bump.
+   ```bash
+   git tag -a vX.Y.Z -m "vX.Y.Z"
+   git push origin vX.Y.Z
+   ```
+
+6. Confirm `release.yml` (binaries) and `publish.yml` (crates.io) succeed.
+
+Semantic Versioning: breaking public API → major; new chain feature → minor;
+fixes → patch. Document breaking changes in the changelog section.
+
+---
 
 ## Security
 
 This project has **not** been independently audited. Report vulnerabilities
-privately to the maintainers when possible; do not open public issues that
-include live seed material or private keys.
+privately to maintainers when possible. Never open public issues that include
+live seed material or private keys.
+
+---
 
 ## Getting help
 
-- Issues and PRs: [github.com/qntx/kobe](https://github.com/qntx/kobe)
-- Crate map: [`crates/README.md`](crates/README.md)
-- User-facing overview: [`README.md`](README.md)
+| Resource | Path |
+| --- | --- |
+| Issues / PRs | [github.com/qntx/kobe](https://github.com/qntx/kobe) |
+| Crate map | [`crates/README.md`](crates/README.md) |
+| User overview | [`README.md`](README.md) |
+| Agent architecture rules | [`AGENTS.md`](AGENTS.md) |

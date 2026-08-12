@@ -1,0 +1,24 @@
+[package]
+name                   = "kobe-arweave"
+version.workspace      = true
+edition.workspace      = true
+rust-version.workspace = true
+license.workspace      = true
+repository.workspace   = true
+readme                 = "../../README.md"
+description            = "Arweave ECDSA (secp256k1) wallet for Kobe"
+keywords               = ["arweave", "wallet", "crypto", "ecdsa", "no_std"]
+categories             = ["cryptography", "no-std"]
+
+[features]
+default = ["std"]
+std     = ["alloc", "kobe-primitives/std"]
+alloc   = ["kobe-primitives/alloc"]
+
+[dependencies]
+base64.workspace  = true
+kobe-primitives   = { workspace = true, features = ["bip32"] }
+sha2.workspace    = true
+
+[lints]
+workspace = true

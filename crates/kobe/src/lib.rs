@@ -24,6 +24,8 @@
 
 #[cfg(feature = "aptos")]
 pub use kobe_aptos as aptos;
+#[cfg(feature = "arweave")]
+pub use kobe_arweave as arweave;
 #[cfg(feature = "btc")]
 pub use kobe_btc as btc;
 #[cfg(feature = "casper")]

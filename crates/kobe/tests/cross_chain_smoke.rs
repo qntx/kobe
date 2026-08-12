@@ -159,6 +159,14 @@ mod smoke {
     }
 
     #[test]
+    fn arweave_ecdsa() {
+        let w = wallet();
+        let a = kobe::arweave::Deriver::new(&w).derive(0).unwrap();
+        assert_eq!(a.address(), "G3y00z9F3EvSzJprpIH6vPqHVZPH0rLqLrg0JOsd88Y");
+        assert_eq!(a.path(), "m/44'/472'/0'/0/0");
+    }
+
+    #[test]
     fn derive_many_agrees() {
         let w = wallet();
         let d = kobe::evm::Deriver::new(&w);

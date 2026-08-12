@@ -15,6 +15,7 @@
 | **[`kobe-fil`](kobe-fil/)** | [![crates.io][kobe-fil-crate]][kobe-fil-crate-url] [![docs.rs][kobe-fil-doc]][kobe-fil-doc-url] | Filecoin — f1 secp256k1 addresses |
 | **[`kobe-spark`](kobe-spark/)** | [![crates.io][kobe-spark-crate]][kobe-spark-crate-url] [![docs.rs][kobe-spark-doc]][kobe-spark-doc-url] | Spark (Bitcoin L2) — identity keys + Bech32m `spark1…` addresses |
 | **[`kobe-xrpl`](kobe-xrpl/)** | [![crates.io][kobe-xrpl-crate]][kobe-xrpl-crate-url] [![docs.rs][kobe-xrpl-doc]][kobe-xrpl-doc-url] | XRP Ledger — classic `r`-addresses, secp256k1 |
+| **[`kobe-arweave`](kobe-arweave/)** | [![crates.io][kobe-arweave-crate]][kobe-arweave-crate-url] [![docs.rs][kobe-arweave-doc]][kobe-arweave-doc-url] | Arweave — ECDSA secp256k1, Base64URL(SHA-256(compressed pk)) |
 | **[`kobe-nostr`](kobe-nostr/)** | [![crates.io][kobe-nostr-crate]][kobe-nostr-crate-url] [![docs.rs][kobe-nostr-doc]][kobe-nostr-doc-url] | Nostr — NIP-06 key derivation, NIP-19 bech32 `nsec`/`npub` |
 | **[`kobe-casper`](kobe-casper/)** | [![crates.io][kobe-casper-crate]][kobe-casper-crate-url] [![docs.rs][kobe-casper-doc]][kobe-casper-doc-url] | Casper — secp256k1 / Ed25519 HD + AccountHash |
 | **[`kobe-cli`](kobe-cli/)** | [![crates.io][kobe-cli-crate]][kobe-cli-crate-url] | CLI — generate, import, derive; `upgrade` via sh.qntx.fun |
@@ -36,8 +37,9 @@ kobe-cli
         ├── kobe-svm    ── kobe-primitives/slip10
         ├── kobe-ton    ── kobe-primitives/slip10
         ├── kobe-tron   ── kobe-primitives/bip32
-        ├── kobe-xrpl   ── kobe-primitives/bip32
-        └── kobe-casper ── kobe-primitives/bip32 + slip10
+        ├── kobe-xrpl    ── kobe-primitives/bip32
+        ├── kobe-arweave ── kobe-primitives/bip32
+        └── kobe-casper  ── kobe-primitives/bip32 + slip10
 ```
 
 All chain crates consume key derivation through the wallet-level shortcuts
@@ -69,6 +71,7 @@ The umbrella `kobe` crate provides fine-grained feature control:
 | `xrpl` | | XRP Ledger chain support (enables `bip32`) |
 | `nostr` | | Nostr chain support (enables `bip32`) |
 | `casper` | | Casper Network support (enables `bip32` + `slip10`) |
+| `arweave` | | Arweave ECDSA support (enables `bip32`) |
 | `all-chains` | | Enable all chain crates |
 
 [kobe-crate]: https://img.shields.io/crates/v/kobe.svg
@@ -133,3 +136,7 @@ The umbrella `kobe` crate provides fine-grained feature control:
 [kobe-casper-crate-url]: https://crates.io/crates/kobe-casper
 [kobe-casper-doc]: https://img.shields.io/docsrs/kobe-casper.svg
 [kobe-casper-doc-url]: https://docs.rs/kobe-casper
+[kobe-arweave-crate]: https://img.shields.io/crates/v/kobe-arweave.svg
+[kobe-arweave-crate-url]: https://crates.io/crates/kobe-arweave
+[kobe-arweave-doc]: https://img.shields.io/docsrs/kobe-arweave.svg
+[kobe-arweave-doc-url]: https://docs.rs/kobe-arweave

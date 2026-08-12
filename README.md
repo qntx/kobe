@@ -17,9 +17,9 @@
 [rust-badge]: https://img.shields.io/badge/rust-edition%202024-orange.svg
 [rust-url]: https://doc.rust-lang.org/edition-guide/
 
-**`no_std`-compatible Rust toolkit for multi-chain HD wallet derivation — one BIP-39 seed, thirteen networks, zero hand-written cryptography, cross-implementation KATs.**
+**`no_std`-compatible Rust toolkit for multi-chain HD wallet derivation — one BIP-39 seed, fourteen networks, zero hand-written cryptography, cross-implementation KATs.**
 
-Kobe derives standards-compliant accounts and addresses for Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger, Nostr (NIP-06 / NIP-19), and Casper from a single BIP-39 mnemonic. It layers thin wrappers around [`bip39`](https://docs.rs/bip39), [`bip32`](https://docs.rs/bip32), [`k256`](https://docs.rs/k256), and [`ed25519-dalek`](https://docs.rs/ed25519-dalek) on top of a unified `Wallet` + `Derive` trait surface (Bitcoin address/WIF encoding is local in `kobe-btc`, not the full `bitcoin` crate); every library crate builds under `no_std + alloc`, mnemonics and private keys wrap in `Zeroizing<T>` and wipe on drop, and every chain's pipeline is pinned against independent reference implementations (bitcoinjs-lib, @ton/core, @noble/hashes, NIP-06 official vectors, ethanmarcuss/spark-address, casper-types AccountHash preimage, …).
+Kobe derives standards-compliant accounts and addresses for Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger, Arweave (ECDSA), Nostr (NIP-06 / NIP-19), and Casper from a single BIP-39 mnemonic. It layers thin wrappers around [`bip39`](https://docs.rs/bip39), [`bip32`](https://docs.rs/bip32), [`k256`](https://docs.rs/k256), and [`ed25519-dalek`](https://docs.rs/ed25519-dalek) on top of a unified `Wallet` + `Derive` trait surface (Bitcoin address/WIF encoding is local in `kobe-btc`, not the full `bitcoin` crate); every library crate builds under `no_std + alloc`, mnemonics and private keys wrap in `Zeroizing<T>` and wipe on drop, and every chain's pipeline is pinned against independent reference implementations (bitcoinjs-lib, @ton/core, @noble/hashes, NIP-06 official vectors, ethanmarcuss/spark-address, casper-types AccountHash preimage, Arweave `ar_wallet` / arweave-js `master-ec`, …).
 
 > **See also** [`signer`](https://github.com/qntx/signer) — the companion transaction-signing toolkit that consumes kobe's derived accounts via `Signer::from_derived`.
 
@@ -72,6 +72,7 @@ kobe fil    new                              # Filecoin (`f1…` secp256k1)
 kobe spark  new                              # Spark (Bitcoin L2), bech32m `spark1…`
 kobe spark  new --network testnet            # Spark testnet (`sparkt1…`)
 kobe xrpl   new                              # XRP Ledger classic `r…`
+kobe arweave new                             # Arweave ECDSA (Base64URL, coin 472)
 kobe nostr  new                              # Nostr NIP-06 (`nsec` / `npub`, NIP-19)
 
 # Import from an existing mnemonic
@@ -93,7 +94,7 @@ kobe upgrade --force                     # reinstall even when up to date
 echo "abandon abandon ... about" | kobe -r evm import -m -
 ```
 
-Every chain subcommand accepts the shared flags `-w/--words`, `-c/--count`, `-p/--passphrase`, and `--qr` through a flattened `SimpleArgs` group, so ergonomics stay consistent across the 13 networks. Global `-r` / `--reveal` opts into printing mnemonics and private keys (default: hidden).
+Every chain subcommand accepts the shared flags `-w/--words`, `-c/--count`, `-p/--passphrase`, and `--qr` through a flattened `SimpleArgs` group, so ergonomics stay consistent across the 14 networks. Global `-r` / `--reveal` opts into printing mnemonics and private keys (default: hidden).
 
 ### Library Usage
 
@@ -174,6 +175,7 @@ println!("Mnemonic: {}", wallet.mnemonic());
 | Filecoin   | `kobe-fil`     | secp256k1 (BIP-32)    | 461         | `m/44'/461'/0'/0/{i}`       | Base32 `f1…`                             |
 | Spark      | `kobe-spark`   | secp256k1 (BIP-32)    | 8797555 †   | `m/8797555'/{i}'/0'`        | Bech32m `spark1…` / `sparkt1…` / …       |
 | XRP Ledger | `kobe-xrpl`    | secp256k1 (BIP-32)    | 144         | `m/44'/144'/0'/0/{i}`       | Base58Check (XRPL alphabet) `r…`         |
+| Arweave    | `kobe-arweave` | secp256k1 (BIP-32)    | 472         | `m/44'/472'/0'/0/{i}`       | Base64URL(SHA-256(compressed pk)) §      |
 | Nostr      | `kobe-nostr`   | secp256k1 (BIP-340)   | 1237        | `m/44'/1237'/{i}'/0/0`      | NIP-19 `npub1…` / `nsec1…`               |
 | Solana     | `kobe-svm`     | Ed25519 (SLIP-10)     | 501         | `m/44'/501'/{i}'/0'`        | Base58 + optional 64-byte keypair        |
 | Sui        | `kobe-sui`     | Ed25519 (SLIP-10)     | 784         | `m/44'/784'/{i}'/0'/0'`     | `0x` + hex(`BLAKE2b-256(0x00 ‖ pubkey)`) |
@@ -184,10 +186,11 @@ println!("Mnemonic: {}", wallet.mnemonic());
 \* Cosmos coin type defaults to `118`; Terra (`330`), Secret (`529`), Kava (`459`), and custom chains are selectable via `ChainConfig`.
 † Spark purpose `8797555` is Spark-specific (`SHA-256("spark")` truncated), not a BIP-44 assignment.
 ‡ Casper default is secp256k1 (Ledger); Ed25519 uses `m/44'/506'/0'/0'/{i}'`. AccountHash preimage is `algorithm_name || 0x00 || raw_pubkey` per `casper-types`.
+§ Arweave ECDSA only (2.9+). Not an Ethereum address. RSA-PSS JWK wallets are out of scope.
 
 ## Design
 
-- **13 chains** — Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger, Nostr, Casper — one BIP-39 seed
+- **14 chains** — Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger, Arweave (ECDSA), Nostr, Casper — one BIP-39 seed
 - **Mature crypto dependencies** — `bip39` for mnemonic ↔ entropy, `bip32` + `k256` for BIP-32 secp256k1 (via `kobe-primitives`), `ed25519-dalek` for SLIP-10 Ed25519; hashing via `sha2` / `sha3` / `blake2` / `ripemd`; encoding via `bech32` / `bs58` (Bitcoin addresses/WIF implemented in-tree and KAT-pinned)
 - **Unified derivation contract** — shared `Derive` trait with an associated `Account` type + shared `DerivationStyle` trait; every chain has typed public keys via `DerivedPublicKey`, one shared `DeriveError`, and one shared `ParseDerivationStyleError`
 - **Consistent entry points** — `derive` / `derive_with` / `derive_at` / `derive_at_with` across every chain (Bitcoin's structured path also available as `derive_structured`)
