@@ -16,8 +16,8 @@
 //!                    │           │
 //!    used by BTC / EVM /         │  used by Solana / Sui /
 //!    Cosmos / Tron / Spark /     │  Aptos / TON /
-//!    Fil / XRPL / Nostr /        │  Casper (ed25519)
-//!    Casper (secp)               │
+//!    Fil / XRPL / Arweave /      │  Casper (ed25519)
+//!    Nostr / Casper (secp)       │
 //!                    └─────┬─────┘
 //!                          ▼
 //!                   DerivedAccount  ─◄── every chain wraps this

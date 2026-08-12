@@ -15,8 +15,8 @@ categories             = ["cryptography::cryptocurrencies"]
 # (`mainstream`, `all-chains`) to keep binary size and compile time predictable.
 default = ["std"]
 
-std        = ["alloc", "kobe-primitives/std", "kobe-aptos?/std", "kobe-btc?/std", "kobe-evm?/std", "kobe-svm?/std", "kobe-cosmos?/std", "kobe-tron?/std", "kobe-spark?/std", "kobe-fil?/std", "kobe-ton?/std", "kobe-sui?/std", "kobe-nostr?/std", "kobe-xrpl?/std", "kobe-casper?/std"]
-alloc      = ["kobe-primitives/alloc", "kobe-aptos?/alloc", "kobe-btc?/alloc", "kobe-evm?/alloc", "kobe-svm?/alloc", "kobe-cosmos?/alloc", "kobe-tron?/alloc", "kobe-spark?/alloc", "kobe-fil?/alloc", "kobe-ton?/alloc", "kobe-sui?/alloc", "kobe-nostr?/alloc", "kobe-xrpl?/alloc", "kobe-casper?/alloc"]
+std        = ["alloc", "kobe-primitives/std", "kobe-aptos?/std", "kobe-btc?/std", "kobe-evm?/std", "kobe-svm?/std", "kobe-cosmos?/std", "kobe-tron?/std", "kobe-spark?/std", "kobe-fil?/std", "kobe-ton?/std", "kobe-sui?/std", "kobe-nostr?/std", "kobe-xrpl?/std", "kobe-casper?/std", "kobe-arweave?/std"]
+alloc      = ["kobe-primitives/alloc", "kobe-aptos?/alloc", "kobe-btc?/alloc", "kobe-evm?/alloc", "kobe-svm?/alloc", "kobe-cosmos?/alloc", "kobe-tron?/alloc", "kobe-spark?/alloc", "kobe-fil?/alloc", "kobe-ton?/alloc", "kobe-sui?/alloc", "kobe-nostr?/alloc", "kobe-xrpl?/alloc", "kobe-casper?/alloc", "kobe-arweave?/alloc"]
 rand       = ["kobe-primitives/rand"]
 rand_core  = ["kobe-primitives/rand_core"]
 camouflage = ["kobe-primitives/camouflage"]
@@ -37,12 +37,13 @@ sui    = ["dep:kobe-sui", "slip10"]
 aptos  = ["dep:kobe-aptos", "slip10"]
 nostr  = ["dep:kobe-nostr", "bip32"]
 xrpl   = ["dep:kobe-xrpl", "bip32"]
-casper = ["dep:kobe-casper", "bip32", "slip10"]
+casper  = ["dep:kobe-casper", "bip32", "slip10"]
+arweave = ["dep:kobe-arweave", "bip32"]
 
 # Preset: the three most requested chains (previous 1.x default).
 mainstream = ["btc", "evm", "svm"]
 # Preset: every chain crate.
-all-chains = ["aptos", "btc", "evm", "svm", "cosmos", "tron", "spark", "fil", "ton", "sui", "nostr", "xrpl", "casper"]
+all-chains = ["aptos", "btc", "evm", "svm", "cosmos", "tron", "spark", "fil", "ton", "sui", "nostr", "xrpl", "casper", "arweave"]
 
 [dependencies]
 kobe-primitives = { workspace = true, features = ["alloc"] }
@@ -59,6 +60,7 @@ kobe-sui        = { workspace = true, optional = true }
 kobe-nostr      = { workspace = true, optional = true }
 kobe-xrpl       = { workspace = true, optional = true }
 kobe-casper     = { workspace = true, optional = true }
+kobe-arweave    = { workspace = true, optional = true }
 
 [package.metadata.docs.rs]
 all-features = true

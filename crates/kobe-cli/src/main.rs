@@ -49,6 +49,7 @@ fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
         Commands::Xrpl(cmd) => cmd.execute(json, reveal)?,
         Commands::Nostr(cmd) => cmd.execute(json, reveal)?,
         Commands::Casper(cmd) => cmd.execute(json, reveal)?,
+        Commands::Arweave(cmd) => cmd.execute(json, reveal)?,
         Commands::Mnemonic(cmd) => cmd.execute(json, reveal)?,
         Commands::Upgrade(cmd) => cmd.execute(json)?,
     }

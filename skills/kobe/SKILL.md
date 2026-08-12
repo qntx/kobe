@@ -2,16 +2,17 @@
 name: kobe
 description: >-
   Multi-chain cryptocurrency wallet CLI tool for generating, importing, and
-  managing HD wallets across 13 chains: Aptos, Bitcoin, Ethereum, Solana, Cosmos,
-  Tron, Sui, TON, Filecoin, Spark, XRP Ledger, Nostr, and Casper. Use when the user
-  asks to create wallets, generate addresses, derive keys, import mnemonics,
-  produce NIP-19 `npub` / `nsec` identities, Casper account-hash addresses, or
-  perform any cryptocurrency wallet operation. Supports JSON output via --json flag.
+  managing HD wallets across 14 chains: Aptos, Bitcoin, Ethereum, Solana, Cosmos,
+  Tron, Sui, TON, Filecoin, Spark, XRP Ledger, Arweave (ECDSA), Nostr, and Casper.
+  Use when the user asks to create wallets, generate addresses, derive keys,
+  import mnemonics, produce NIP-19 `npub` / `nsec` identities, Casper
+  account-hash addresses, Arweave Base64URL addresses, or perform any
+  cryptocurrency wallet operation. Supports JSON output via --json flag.
 ---
 
 # Kobe CLI — Multi-Chain HD Wallet Tool
 
-`kobe` is a single binary CLI for generating and managing cryptocurrency wallets across **13 chains**: Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger, Nostr, and Casper. It supports BIP-39 mnemonic generation, HD key derivation (BIP-32/44/49/84/86, SLIP-10, NIP-06), multiple derivation styles for hardware wallet compatibility, NIP-19 bech32 output for Nostr, Casper AccountHash addresses, and mnemonic camouflage encryption.
+`kobe` is a single binary CLI for generating and managing cryptocurrency wallets across **14 chains**: Aptos, Bitcoin, Ethereum, Solana, Cosmos, Tron, Sui, TON, Filecoin, Spark, XRP Ledger, Arweave (ECDSA), Nostr, and Casper. It supports BIP-39 mnemonic generation, HD key derivation (BIP-32/44/49/84/86, SLIP-10, NIP-06), multiple derivation styles for hardware wallet compatibility, NIP-19 bech32 output for Nostr, Casper AccountHash addresses, Arweave ECDSA Base64URL addresses, and mnemonic camouflage encryption.
 
 ## Installation
 
@@ -73,6 +74,7 @@ The `--json` and `-r` / `--reveal` flags are **global**. When `--json` is set, a
 | Filecoin   | `fil`      | `filecoin`        |
 | Spark      | `spark`    | —                 |
 | XRP Ledger | `xrpl`     | `xrp`, `ripple`   |
+| Arweave    | `arweave`  | `ar`              |
 | Nostr      | `nostr`    | —                 |
 | Casper     | `casper`   | `cspr`            |
 | Mnemonic   | `mnemonic` | `mn`              |
@@ -295,6 +297,10 @@ kobe spark new --network local     # sparkl1...
 # XRP Ledger
 kobe xrpl new
 
+# Arweave ECDSA (Base64URL(SHA-256(compressed pk)), path m/44'/472'/0'/0/{i})
+kobe arweave new
+kobe ar new -c 3
+
 # Casper (default secp256k1 Ledger path → account-hash-…)
 kobe casper new
 kobe casper new --algo ed25519 -c 3
@@ -417,6 +423,7 @@ All errors in JSON mode return exit code 1 with:
 | Filecoin   | 64-char hex string                                                       |
 | Spark      | 64-char hex string (compressed pubkey also provided)                     |
 | XRP Ledger | 64-char hex string                                                       |
+| Arweave    | 64-char hex string (ECDSA secp256k1; address is Base64URL 43 chars)      |
 | Nostr      | NIP-19 bech32 `nsec1…` (64-char hex also available; address is `npub1…`) |
 | Casper     | 64-char hex string (secp256k1 or Ed25519 secret; address is `account-hash-…`) |
 
@@ -505,6 +512,14 @@ Address: Bech32m-encoded compressed identity public key wrapped in a
 | Path Pattern          | Address Format     |
 | --------------------- | ------------------ |
 | `m/44'/144'/0'/0/{i}` | Base58Check `r...` |
+
+### Arweave ECDSA (BIP-44, SLIP-44 coin 472)
+
+| Path Pattern          | Address Format |
+| --------------------- | -------------- |
+| `m/44'/472'/0'/0/{i}` | Base64URL(SHA-256(compressed 33-byte secp256k1 pk)), 43 chars |
+
+Not an Ethereum address. RSA wallets are not supported by this command.
 
 ### Nostr (NIP-06)
 

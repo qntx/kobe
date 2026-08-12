@@ -1,9 +1,10 @@
 //! Shared command template for simple chains.
 //!
 //! Chains without network/address-type/style parameters (Aptos, Sui, Spark,
-//! Filecoin, Tron, XRPL, TON, Nostr, Casper, …) all expose the same `new` / `import`
-//! surface. This module provides a single generic subcommand reused by each
-//! chain's thin wrapper, eliminating hundreds of lines of boilerplate.
+//! Filecoin, Tron, XRPL, Arweave, TON, Nostr, Casper, …) all expose the same
+//! `new` / `import` surface. This module provides a single generic subcommand
+//! reused by each chain's thin wrapper, eliminating hundreds of lines of
+//! boilerplate.
 
 use std::io::{self, BufRead};
 

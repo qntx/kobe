@@ -4,6 +4,28 @@ All notable changes to this workspace are documented in this file. The format is
 
 ## [Unreleased]
 
+## [3.4.0] - 2026-08-12
+
+### Added
+
+- **Arweave ECDSA (`kobe-arweave`)** — offline HD derivation (SLIP-44 coin type
+  `472`), secp256k1 only:
+  - Path `m/44'/472'/0'/0/{i}`
+  - Address: Base64URL(SHA-256(**compressed** 33-byte public key)) — matches
+    protocol `ar_wallet` / arweave-js `master-ec` identifier hash
+  - Helpers: `address_from_compressed_pubkey`, `owner_from_compressed_pubkey`
+    (recovered owner encoding when tx `owner` is empty)
+  - CLI: `kobe arweave` / `kobe ar` (`new` / `import`)
+  - Umbrella feature: `arweave` (included in `all-chains`; not in `mainstream`)
+  - Explicit non-goals: RSA-PSS wallets, transaction signing (future
+    `signer-arweave`)
+- Rewritten [`CONTRIBUTING.md`](CONTRIBUTING.md): full chain registration
+  matrix (umbrella, CLI, CI no_std, crates.io publish order, docs, KATs).
+
+### Fixed
+
+- CI `no_std` job and crates.io publish order include `kobe-arweave`.
+
 ## [3.3.0] - 2026-08-09
 
 ### Added
