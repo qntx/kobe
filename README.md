@@ -34,13 +34,13 @@ Kobe derives standards-compliant accounts and addresses for Aptos, Bitcoin, Ethe
 **Shell** (macOS / Linux):
 
 ```bash
-curl -fsSL https://sh.qntx.fun/kobe | sh
+curl -fsSL https://sh.qntx.org/kobe | sh
 ```
 
 **PowerShell** (Windows):
 
 ```powershell
-irm https://sh.qntx.fun/kobe/ps | iex
+irm https://sh.qntx.org/kobe/ps | iex
 ```
 
 Or via Cargo:
@@ -85,7 +85,7 @@ kobe evm    new --json
 kobe -r evm new                          # show mnemonic + private keys
 kobe --json -r evm new                   # include them in JSON as well
 
-# Self-upgrade (sh.qntx.fun install path; same as re-running the install script)
+# Self-upgrade (sh.qntx.org install path; same as re-running the install script)
 kobe upgrade                             # install latest if newer (`update` is an alias)
 kobe upgrade --check                     # report only
 kobe upgrade --force                     # reinstall even when up to date
@@ -239,9 +239,9 @@ Unless you explicitly state otherwise, any contribution intentionally submitted 
 
 <div align="center">
 
-A **[QuantX](https://qntx.fun)** open-source project.
+A **[QuantX](https://qntx.org)** open-source project.
 
-<a href="https://qntx.fun"><img alt="QuantX" width="369" src="https://raw.githubusercontent.com/qntx/.github/main/profile/qntx.svg" /></a>
+<a href="https://qntx.org"><img alt="QuantX" width="369" src="https://raw.githubusercontent.com/qntx/.github/main/profile/qntx.svg" /></a>
 
 Code is law. We write both.
 
