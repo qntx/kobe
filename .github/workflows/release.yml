@@ -10,7 +10,9 @@ permissions:
 
 jobs:
   release:
-    uses: qntx/workflows/.github/workflows/release-rust.yml@main
+    uses: qntx/workflows/.github/workflows/release-rust.yml@v2.0.0
+    permissions:
+      contents: write
     with:
       bin: kobe
       package: kobe-cli
