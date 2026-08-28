@@ -4,9 +4,14 @@ on:
   push:
     tags: ["v*.*.*"]
 
+permissions:
+  contents: read
+
 jobs:
   publish:
-    uses: qntx/workflows/.github/workflows/publish-crates.yml@main
+    uses: qntx/workflows/.github/workflows/publish-crates.yml@v2.0.0
+    permissions:
+      contents: read
     with:
       packages: "kobe-primitives kobe-aptos kobe-arweave kobe-btc kobe-casper kobe-cosmos kobe-evm kobe-fil kobe-nostr kobe-spark kobe-sui kobe-svm kobe-ton kobe-tron kobe-xrpl kobe kobe-cli"
     secrets:
