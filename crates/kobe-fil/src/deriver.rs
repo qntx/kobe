@@ -1,7 +1,7 @@
 //! Filecoin address derivation from a unified wallet.
 
 #[cfg(feature = "alloc")]
-use alloc::{format, string::String, vec, vec::Vec};
+use alloc::{format, string::String, vec::Vec};
 
 use blake2::digest::consts::{U4, U20};
 use blake2::{Blake2b, Digest};

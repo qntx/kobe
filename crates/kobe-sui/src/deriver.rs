@@ -41,7 +41,7 @@ impl<'a> Deriver<'a> {
         let mut buf = Vec::with_capacity(33);
         buf.push(ED25519_FLAG);
         buf.extend_from_slice(pubkey_bytes);
-        let hash = blake2b_256(&buf)?;
+        let hash = blake2b_256(&buf);
 
         let mut sk_bytes = Zeroizing::new([0u8; 32]);
         sk_bytes.copy_from_slice(&signing_key.to_bytes());
@@ -69,8 +69,8 @@ impl Derive for Deriver<'_> {
 }
 
 /// Compute BLAKE2b-256.
-fn blake2b_256(data: &[u8]) -> Result<[u8; 32], DeriveError> {
-    Ok(Blake2b256::digest(data).into())
+fn blake2b_256(data: &[u8]) -> [u8; 32] {
+    Blake2b256::digest(data).into()
 }
 
 #[cfg(test)]

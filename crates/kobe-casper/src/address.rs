@@ -77,12 +77,12 @@ fn account_hash_from_parts(algorithm_name: &[u8], raw_key: &[u8]) -> Result<[u8;
     preimage.extend_from_slice(algorithm_name);
     preimage.push(0);
     preimage.extend_from_slice(raw_key);
-    blake2b_256(&preimage)
+    Ok(blake2b_256(&preimage))
 }
 
 /// `BLAKE2b`-256 (empty key), matching Casper's `crypto::blake2b`.
-fn blake2b_256(data: &[u8]) -> Result<[u8; 32], DeriveError> {
-    Ok(Blake2b256::digest(data).into())
+fn blake2b_256(data: &[u8]) -> [u8; 32] {
+    Blake2b256::digest(data).into()
 }
 
 #[cfg(test)]
@@ -142,7 +142,7 @@ mod tests {
         let mut wrong = Vec::with_capacity(33);
         wrong.push(ED25519_TAG);
         wrong.extend_from_slice(&pk);
-        let wrong_hash = blake2b_256(&wrong).unwrap();
+        let wrong_hash = blake2b_256(&wrong);
         assert_ne!(good, wrong_hash);
     }
 }
