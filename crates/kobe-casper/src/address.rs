@@ -9,8 +9,7 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use blake2::Blake2bVar;
-use blake2::digest::{Update, VariableOutput};
+use blake2::{Blake2b256, Digest};
 use kobe_primitives::DeriveError;
 
 /// Prefix applied to the hex-encoded `AccountHash` for display.
@@ -83,14 +82,7 @@ fn account_hash_from_parts(algorithm_name: &[u8], raw_key: &[u8]) -> Result<[u8;
 
 /// `BLAKE2b`-256 (empty key), matching Casper's `crypto::blake2b`.
 fn blake2b_256(data: &[u8]) -> Result<[u8; 32], DeriveError> {
-    let mut hasher =
-        Blake2bVar::new(32).map_err(|e| DeriveError::Crypto(format!("blake2b init: {e}")))?;
-    hasher.update(data);
-    let mut out = [0u8; 32];
-    hasher
-        .finalize_variable(&mut out)
-        .map_err(|e| DeriveError::Crypto(format!("blake2b finalize: {e}")))?;
-    Ok(out)
+    Ok(Blake2b256::digest(data).into())
 }
 
 #[cfg(test)]

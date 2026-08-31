@@ -3,8 +3,7 @@
 #[cfg(feature = "alloc")]
 use alloc::{format, string::String, vec::Vec};
 
-use blake2::Blake2bVar;
-use blake2::digest::{Update, VariableOutput};
+use blake2::{Blake2b256, Digest};
 use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
 use zeroize::Zeroizing;
 
@@ -71,14 +70,7 @@ impl Derive for Deriver<'_> {
 
 /// Compute BLAKE2b-256.
 fn blake2b_256(data: &[u8]) -> Result<[u8; 32], DeriveError> {
-    let mut hasher =
-        Blake2bVar::new(32).map_err(|e| DeriveError::Crypto(format!("blake2b init: {e}")))?;
-    hasher.update(data);
-    let mut out = [0u8; 32];
-    hasher
-        .finalize_variable(&mut out)
-        .map_err(|e| DeriveError::Crypto(format!("blake2b finalize: {e}")))?;
-    Ok(out)
+    Ok(Blake2b256::digest(data).into())
 }
 
 #[cfg(test)]

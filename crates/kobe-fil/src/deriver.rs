@@ -3,8 +3,8 @@
 #[cfg(feature = "alloc")]
 use alloc::{format, string::String, vec, vec::Vec};
 
-use blake2::Blake2bVar;
-use blake2::digest::{Update, VariableOutput};
+use blake2::digest::consts::{U4, U20};
+use blake2::{Blake2b, Digest};
 use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
 
 /// Filecoin lowercase base32 alphabet (RFC 4648, no padding).
@@ -72,15 +72,16 @@ impl Derive for Deriver<'_> {
 }
 
 /// Compute a Blake2b hash with a variable output length.
+///
+/// Filecoin f1 uses 20-byte payload and 4-byte checksum only.
 fn blake2b(data: &[u8], output_len: usize) -> Result<Vec<u8>, DeriveError> {
-    let mut hasher = Blake2bVar::new(output_len)
-        .map_err(|e| DeriveError::Crypto(format!("blake2b init: {e}")))?;
-    hasher.update(data);
-    let mut buf = vec![0u8; output_len];
-    hasher
-        .finalize_variable(&mut buf)
-        .map_err(|e| DeriveError::Crypto(format!("blake2b finalize: {e}")))?;
-    Ok(buf)
+    match output_len {
+        20 => Ok(Blake2b::<U20>::digest(data).to_vec()),
+        4 => Ok(Blake2b::<U4>::digest(data).to_vec()),
+        _ => Err(DeriveError::Crypto(format!(
+            "blake2b output length {output_len} is not used by Filecoin f1"
+        ))),
+    }
 }
 
 /// Encode bytes using Filecoin's lowercase base32 (no padding).
