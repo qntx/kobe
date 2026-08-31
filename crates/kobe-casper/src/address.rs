@@ -9,8 +9,7 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use blake2::Blake2bVar;
-use blake2::digest::{Update, VariableOutput};
+use blake2::{Blake2b256, Digest};
 use kobe_primitives::DeriveError;
 
 /// Prefix applied to the hex-encoded `AccountHash` for display.
@@ -57,7 +56,7 @@ pub fn tagged_public_key_hex(tag: u8, raw_key: &[u8]) -> String {
 /// Returns [`DeriveError::Crypto`] if `BLAKE2b` initialization or finalization
 /// fails (should not occur for a fixed 32-byte output size).
 pub fn account_hash_ed25519(pubkey: &[u8; 32]) -> Result<[u8; 32], DeriveError> {
-    account_hash_from_parts(ED25519_NAME, pubkey)
+    Ok(account_hash_from_parts(ED25519_NAME, pubkey))
 }
 
 /// Compute the Casper `AccountHash` for a compressed secp256k1 public key.
@@ -69,11 +68,11 @@ pub fn account_hash_ed25519(pubkey: &[u8; 32]) -> Result<[u8; 32], DeriveError> 
 /// Returns [`DeriveError::Crypto`] if `BLAKE2b` initialization or finalization
 /// fails.
 pub fn account_hash_secp256k1(compressed_pubkey: &[u8; 33]) -> Result<[u8; 32], DeriveError> {
-    account_hash_from_parts(SECP256K1_NAME, compressed_pubkey)
+    Ok(account_hash_from_parts(SECP256K1_NAME, compressed_pubkey))
 }
 
 /// Shared `AccountHash` construction: `name || 0x00 || raw_key` → `BLAKE2b`-256.
-fn account_hash_from_parts(algorithm_name: &[u8], raw_key: &[u8]) -> Result<[u8; 32], DeriveError> {
+fn account_hash_from_parts(algorithm_name: &[u8], raw_key: &[u8]) -> [u8; 32] {
     let mut preimage = Vec::with_capacity(algorithm_name.len() + 1 + raw_key.len());
     preimage.extend_from_slice(algorithm_name);
     preimage.push(0);
@@ -82,15 +81,8 @@ fn account_hash_from_parts(algorithm_name: &[u8], raw_key: &[u8]) -> Result<[u8;
 }
 
 /// `BLAKE2b`-256 (empty key), matching Casper's `crypto::blake2b`.
-fn blake2b_256(data: &[u8]) -> Result<[u8; 32], DeriveError> {
-    let mut hasher =
-        Blake2bVar::new(32).map_err(|e| DeriveError::Crypto(format!("blake2b init: {e}")))?;
-    hasher.update(data);
-    let mut out = [0u8; 32];
-    hasher
-        .finalize_variable(&mut out)
-        .map_err(|e| DeriveError::Crypto(format!("blake2b finalize: {e}")))?;
-    Ok(out)
+fn blake2b_256(data: &[u8]) -> [u8; 32] {
+    Blake2b256::digest(data).into()
 }
 
 #[cfg(test)]
@@ -150,7 +142,7 @@ mod tests {
         let mut wrong = Vec::with_capacity(33);
         wrong.push(ED25519_TAG);
         wrong.extend_from_slice(&pk);
-        let wrong_hash = blake2b_256(&wrong).unwrap();
+        let wrong_hash = blake2b_256(&wrong);
         assert_ne!(good, wrong_hash);
     }
 }

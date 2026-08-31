@@ -3,8 +3,7 @@
 #[cfg(feature = "alloc")]
 use alloc::{format, string::String, vec::Vec};
 
-use blake2::Blake2bVar;
-use blake2::digest::{Update, VariableOutput};
+use blake2::{Blake2b256, Digest};
 use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
 use zeroize::Zeroizing;
 
@@ -42,7 +41,7 @@ impl<'a> Deriver<'a> {
         let mut buf = Vec::with_capacity(33);
         buf.push(ED25519_FLAG);
         buf.extend_from_slice(pubkey_bytes);
-        let hash = blake2b_256(&buf)?;
+        let hash = blake2b_256(&buf);
 
         let mut sk_bytes = Zeroizing::new([0u8; 32]);
         sk_bytes.copy_from_slice(&signing_key.to_bytes());
@@ -70,15 +69,8 @@ impl Derive for Deriver<'_> {
 }
 
 /// Compute BLAKE2b-256.
-fn blake2b_256(data: &[u8]) -> Result<[u8; 32], DeriveError> {
-    let mut hasher =
-        Blake2bVar::new(32).map_err(|e| DeriveError::Crypto(format!("blake2b init: {e}")))?;
-    hasher.update(data);
-    let mut out = [0u8; 32];
-    hasher
-        .finalize_variable(&mut out)
-        .map_err(|e| DeriveError::Crypto(format!("blake2b finalize: {e}")))?;
-    Ok(out)
+fn blake2b_256(data: &[u8]) -> [u8; 32] {
+    Blake2b256::digest(data).into()
 }
 
 #[cfg(test)]
