@@ -41,7 +41,7 @@ base64           = { version = "0.23.1", default-features = false, features = ["
 bech32           = { version = "0.12.0", default-features = false, features = ["alloc"] }
 bip32            = { version = "0.5.3",  default-features = false, features = ["secp256k1", "alloc"] }
 bip39            = { version = "2.2.2",  default-features = false }
-blake2           = { version = "0.10.6", default-features = false }
+blake2           = { version = "0.11.0", default-features = false }
 bs58             = { version = "0.5.1",  default-features = false, features = ["alloc"] }
 ed25519-dalek    = { version = "3.0.0",  default-features = false }
 hex              = { version = "0.4.3",  default-features = false }
