@@ -4,9 +4,9 @@ version = 4
 
 [[package]]
 name = "alloy-primitives"
-version = "1.6.1"
+version = "1.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f007e257069855bdf21d27762fd3f3705a613f805c9a08309bf353503f081d71"
+checksum = "9c902f0ca3f8353c41e3e1ec3cf26be49412525bc48ab9d3c4710d7be4f01832"
 dependencies = [
  "bytes",
  "cfg-if",
