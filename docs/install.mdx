@@ -1,0 +1,24 @@
+---
+title: Install
+description: Install the kobe CLI and the kobe crate.
+---
+
+CLI:
+
+```bash
+curl -fsSL https://sh.qntx.org/kobe | sh
+```
+
+```powershell
+irm https://sh.qntx.org/kobe/ps | iex
+```
+
+```bash
+cargo install kobe-cli
+```
+
+Library (enable chains explicitly):
+
+```toml
+kobe = { version = "3.2", features = ["std", "evm", "btc", "svm"] }
+```
