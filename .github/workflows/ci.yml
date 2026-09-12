@@ -10,6 +10,40 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, sys
+          root = Path("docs")
+          meta_path = root / "meta.json"
+          if not meta_path.is_file():
+              sys.exit("missing docs/meta.json")
+          meta = json.loads(meta_path.read_text())
+          if not isinstance(meta.get("title"), str) or not meta["title"]:
+              sys.exit("meta.json title")
+          if not isinstance(meta.get("pages"), list):
+              sys.exit("meta.json pages")
+          if meta.get("root") not in (None, False):
+              sys.exit("library docs must not set root:true")
+          missing = []
+          for p in root.rglob("*.mdx"):
+              body = p.read_text()
+              if not body.startswith("---"):
+                  missing.append(str(p)); continue
+              fm = body.split("---", 2)[1]
+              if "title:" not in fm or "description:" not in fm:
+                  missing.append(str(p))
+          if missing:
+              sys.exit("frontmatter title/description required: " + ", ".join(missing))
+          print("docs ok")
+          PY
+
   lint:
     name: Lint
     runs-on: ubuntu-latest

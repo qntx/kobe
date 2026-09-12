@@ -1,0 +1,17 @@
+---
+title: CLI
+description: kobe subcommands from clap.
+---
+
+Binary name is `kobe`. Chain subcommands take `new` / `import`. Secrets (mnemonic, private keys) are hidden unless `-r` / `--reveal`.
+
+```bash
+kobe evm new
+kobe evm new --json
+kobe evm import -m "abandon abandon ... about"
+kobe -r evm new
+kobe upgrade
+kobe upgrade --check
+```
+
+`update` is an alias of `upgrade`. The installer origin is `https://sh.qntx.org/kobe` (not `.fun`).

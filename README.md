@@ -4,6 +4,8 @@
 
 no_std-compatible Rust toolkit for multi-chain HD wallet derivation from one BIP-39 seed.
 
+See [docs/](docs/).
+
 ## License
 
 Licensed under either of:
