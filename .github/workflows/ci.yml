@@ -10,11 +10,6 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  docs:
-    uses: qntx/workflows/.github/workflows/ci-docs.yml@v2
-    permissions:
-      contents: read
-
   lint:
     name: Lint
     runs-on: ubuntu-latest
