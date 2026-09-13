@@ -1,0 +1,11 @@
+name: Docs
+on:
+  push: { branches: [main] }
+  pull_request: { branches: [main] }
+permissions:
+  contents: read
+jobs:
+  docs:
+    uses: qntx/workflows/.github/workflows/ci-docs.yml@v2
+    permissions:
+      contents: read
