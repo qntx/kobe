@@ -18,7 +18,7 @@
 | **[`kobe-arweave`](kobe-arweave/)** | [![crates.io][kobe-arweave-crate]][kobe-arweave-crate-url] [![docs.rs][kobe-arweave-doc]][kobe-arweave-doc-url] | Arweave — ECDSA secp256k1, Base64URL(SHA-256(compressed pk)) |
 | **[`kobe-nostr`](kobe-nostr/)** | [![crates.io][kobe-nostr-crate]][kobe-nostr-crate-url] [![docs.rs][kobe-nostr-doc]][kobe-nostr-doc-url] | Nostr — NIP-06 key derivation, NIP-19 bech32 `nsec`/`npub` |
 | **[`kobe-casper`](kobe-casper/)** | [![crates.io][kobe-casper-crate]][kobe-casper-crate-url] [![docs.rs][kobe-casper-doc]][kobe-casper-doc-url] | Casper — secp256k1 / Ed25519 HD + AccountHash |
-| **[`kobe-cli`](kobe-cli/)** | [![crates.io][kobe-cli-crate]][kobe-cli-crate-url] | CLI — generate, import, derive; `upgrade` via sh.qntx.fun |
+| **[`kobe-cli`](kobe-cli/)** | [![crates.io][kobe-cli-crate]][kobe-cli-crate-url] | CLI — generate, import, derive; `upgrade` via sh.qntx.org |
 
 ## Dependency Graph
 

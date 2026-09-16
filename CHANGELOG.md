@@ -4,6 +4,10 @@ All notable changes to this workspace are documented in this file. The format is
 
 ## [Unreleased]
 
+### Changed
+
+- CLI installer origin is `https://sh.qntx.org/kobe` (not `.fun`).
+
 ## [3.4.0] - 2026-08-12
 
 ### Added
@@ -79,7 +83,7 @@ All notable changes to this workspace are documented in this file. The format is
 ### Added
 
 - CLI `kobe upgrade` (`update` alias): self-upgrade via the official
-  `sh.qntx.fun` installer. Supports `--check`, `--force`, and `--json`.
+  `sh.qntx.org` installer. Supports `--check`, `--force`, and `--json`.
   Cargo-installed binaries are not overwritten (prints `cargo install` hint).
 
 ### Changed

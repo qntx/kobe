@@ -227,7 +227,7 @@ broken releases before.
 | Mnemonics on shared hosts | Prefer `-m -` / stdin over argv. |
 | Simple chains | Reuse `SimpleSubcommand` (`new` / `import`). |
 | Complex chains | Dedicated modules (BTC network/type, EVM style, …). |
-| Self-upgrade | `kobe upgrade` (`update` alias) via `sh.qntx.fun`; does not overwrite Cargo installs. |
+| Self-upgrade | `kobe upgrade` (`update` alias) via `sh.qntx.org`; does not overwrite Cargo installs. |
 | Agent contract | Keep `skills/kobe/SKILL.md` verbs and flags 1:1 with clap. |
 
 ---
