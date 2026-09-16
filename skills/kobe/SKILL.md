@@ -21,13 +21,13 @@ description: >-
 **macOS / Linux:**
 
 ```sh
-curl -fsSL https://sh.qntx.fun/kobe | sh
+curl -fsSL https://sh.qntx.org/kobe | sh
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
-irm https://sh.qntx.fun/kobe/ps | iex
+irm https://sh.qntx.org/kobe/ps | iex
 ```
 
 These scripts download the latest pre-built binary from GitHub Releases and add it to PATH. No Rust toolchain required.
@@ -38,7 +38,7 @@ These scripts download the latest pre-built binary from GitHub Releases and add 
 kobe --version
 ```
 
-### Self-upgrade (sh.qntx.fun installs)
+### Self-upgrade (sh.qntx.org installs)
 
 ```sh
 kobe upgrade              # install latest if newer (`update` is an alias)

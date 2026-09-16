@@ -118,7 +118,7 @@ pub(crate) enum Commands {
     #[command(name = "mnemonic", alias = "mn")]
     Mnemonic(MnemonicCommand),
 
-    /// Upgrade this CLI via the official sh.qntx.fun installer.
+    /// Upgrade this CLI via the official sh.qntx.org installer.
     ///
     /// Primary name is `upgrade` (install a newer release of the binary).
     /// `update` is kept as an alias for familiarity.
@@ -139,5 +139,23 @@ mod tests {
     #[test]
     fn cli_structure_is_consistent() {
         Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn upgrade_help_does_not_advertise_fun() {
+        let help = Cli::command()
+            .find_subcommand("upgrade")
+            .expect("upgrade subcommand")
+            .clone()
+            .render_long_help()
+            .to_string();
+        assert!(
+            !help.contains("sh.qntx.fun"),
+            "help must not advertise sh.qntx.fun: {help}"
+        );
+        assert!(
+            help.contains("sh.qntx.org"),
+            "help must advertise sh.qntx.org: {help}"
+        );
     }
 }
