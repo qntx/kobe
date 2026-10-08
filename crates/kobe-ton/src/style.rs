@@ -5,7 +5,7 @@ use alloc::string::String;
 use core::fmt;
 use core::str::FromStr;
 
-use kobe_primitives::ParseDerivationStyleError;
+use kobe_core::ParseDerivationStyleError;
 
 /// TON derivation path styles.
 ///
@@ -13,7 +13,7 @@ use kobe_primitives::ParseDerivationStyleError;
 /// Ledger Live uses `m/44'/607'/{index}'/0'/0'`.
 ///
 /// The chain-agnostic contract (path / name / all / `FromStr`) is defined
-/// by the [`kobe_primitives::DerivationStyle`] trait.
+/// by the [`kobe_core::DerivationStyle`] trait.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum DerivationStyle {
@@ -25,7 +25,7 @@ pub enum DerivationStyle {
 }
 
 /// Every variant of [`DerivationStyle`], returned by
-/// [`kobe_primitives::DerivationStyle::all`].
+/// [`kobe_core::DerivationStyle::all`].
 const ALL_STYLES: &[DerivationStyle] = &[DerivationStyle::Standard, DerivationStyle::LedgerLive];
 
 /// Tokens accepted by [`DerivationStyle::from_str`].
@@ -39,7 +39,7 @@ const ACCEPTED_TOKENS: &[&str] = &[
     "live",
 ];
 
-impl kobe_primitives::DerivationStyle for DerivationStyle {
+impl kobe_core::DerivationStyle for DerivationStyle {
     fn path(self, index: u32) -> String {
         match self {
             Self::Standard => format!("m/44'/607'/{index}'"),
@@ -61,7 +61,7 @@ impl kobe_primitives::DerivationStyle for DerivationStyle {
 
 impl fmt::Display for DerivationStyle {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(<Self as kobe_primitives::DerivationStyle>::name(*self))
+        f.write_str(<Self as kobe_core::DerivationStyle>::name(*self))
     }
 }
 

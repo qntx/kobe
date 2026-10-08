@@ -6,12 +6,9 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-#[cfg(feature = "alloc")]
 extern crate alloc;
 
-#[cfg(feature = "alloc")]
 mod deriver;
 
-#[cfg(feature = "alloc")]
 pub use deriver::{Deriver, address_from_compressed_pubkey, owner_from_compressed_pubkey};
-pub use kobe_primitives::{DeriveError, DerivedAccount, DerivedPublicKey};
+pub use kobe_core::{DeriveError, DerivedAccount, DerivedPublicKey};

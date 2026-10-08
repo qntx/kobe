@@ -1,10 +1,9 @@
 //! Cosmos address derivation from a unified wallet.
 
-#[cfg(feature = "alloc")]
 use alloc::{borrow::Cow, format, string::String};
 
-use kobe_primitives::encoding::hash160;
-use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
+use kobe_core::encoding::hash160;
+use kobe_core::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
 
 /// Configuration for a Cosmos SDK chain.
 ///
@@ -103,7 +102,7 @@ impl<'a> Deriver<'a> {
     ///
     /// ```no_run
     /// use kobe_cosmos::{ChainConfig, Deriver};
-    /// # let wallet: &kobe_primitives::Wallet = todo!();
+    /// # let wallet: &kobe_core::Wallet = todo!();
     /// // Predefined chain:
     /// let d = Deriver::with_config(wallet, ChainConfig::OSMOSIS);
     /// // Custom chain:
@@ -165,7 +164,7 @@ fn encode_bech32_address(hrp: &str, compressed_pubkey: &[u8]) -> Result<String, 
 
 #[cfg(test)]
 mod tests {
-    use kobe_primitives::DeriveExt;
+    use kobe_core::DeriveExt;
 
     use super::*;
 

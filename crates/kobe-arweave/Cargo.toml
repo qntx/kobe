@@ -5,6 +5,8 @@ edition.workspace      = true
 rust-version.workspace = true
 license.workspace      = true
 repository.workspace   = true
+homepage.workspace     = true
+authors.workspace      = true
 readme                 = "README.md"
 description            = "Arweave ECDSA (secp256k1) wallet for Kobe"
 keywords               = ["arweave", "wallet", "crypto", "ecdsa", "no_std"]
@@ -12,13 +14,12 @@ categories             = ["cryptography", "no-std"]
 
 [features]
 default = ["std"]
-std     = ["alloc", "kobe-primitives/std"]
-alloc   = ["kobe-primitives/alloc"]
+std     = ["kobe-core/std"]
 
 [dependencies]
-base64.workspace  = true
-kobe-primitives   = { workspace = true, features = ["bip32"] }
-sha2.workspace    = true
+base64.workspace = true
+kobe-core        = { workspace = true, features = ["bip32"] }
+sha2.workspace   = true
 
 [lints]
 workspace = true

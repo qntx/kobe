@@ -1,15 +1,12 @@
 //! Bitcoin address derivation from a unified wallet.
 
-#[cfg(feature = "alloc")]
 use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
 use core::ops::Deref;
 
-use kobe_primitives::{
-    Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet, derive_range,
-};
+use kobe_core::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet, derive_range};
 use zeroize::Zeroizing;
 
 use crate::address::create_address;
@@ -250,7 +247,7 @@ fn infer_address_type(path: &DerivationPath) -> Option<AddressType> {
 
 #[cfg(test)]
 mod tests {
-    use kobe_primitives::DeriveExt;
+    use kobe_core::DeriveExt;
 
     use super::*;
     use crate::wif::decode_wif;

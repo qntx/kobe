@@ -5,6 +5,8 @@ edition.workspace      = true
 rust-version.workspace = true
 license.workspace      = true
 repository.workspace   = true
+homepage.workspace     = true
+authors.workspace      = true
 readme                 = "README.md"
 description            = "TON wallet for Kobe"
 keywords               = ["ton", "wallet", "crypto", "no_std"]
@@ -12,11 +14,10 @@ categories             = ["cryptography", "no-std"]
 
 [features]
 default = ["std"]
-std     = ["alloc", "kobe-primitives/std", "zeroize/std"]
-alloc   = ["kobe-primitives/alloc", "zeroize/alloc"]
+std     = ["kobe-core/std", "zeroize/std"]
 
 [dependencies]
-kobe-primitives   = { workspace = true, features = ["slip10"] }
+kobe-core         = { workspace = true, features = ["slip10"] }
 zeroize.workspace = true
 sha2.workspace    = true
 base64.workspace  = true

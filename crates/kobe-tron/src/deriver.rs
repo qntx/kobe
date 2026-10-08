@@ -1,9 +1,8 @@
 //! Tron address derivation from a unified wallet.
 
-#[cfg(feature = "alloc")]
 use alloc::{format, string::String, vec};
 
-use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
+use kobe_core::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
 use sha3::{Digest, Keccak256};
 
 /// Tron address deriver from a unified wallet seed.
@@ -62,7 +61,7 @@ impl Derive for Deriver<'_> {
 
 #[cfg(test)]
 mod tests {
-    use kobe_primitives::DeriveExt;
+    use kobe_core::DeriveExt;
 
     use super::*;
 

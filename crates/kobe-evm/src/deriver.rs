@@ -7,7 +7,7 @@ use core::fmt;
 use core::str::FromStr;
 
 use alloy_primitives::{Address, keccak256};
-use kobe_primitives::{
+use kobe_core::{
     // Anonymous trait import so method-call syntax (`style.path(i)`,
     // `style.name()`, `DerivationStyle::all()`) resolves without shadowing
     // the local `DerivationStyle` enum.
@@ -27,10 +27,10 @@ use kobe_primitives::{
 /// BIP-44 path layout. See individual variant docs for details.
 ///
 /// The chain-agnostic contract (path / name / all / `FromStr`) is defined
-/// by the [`kobe_primitives::DerivationStyle`] trait; import it to call
-/// [`path`](kobe_primitives::DerivationStyle::path),
-/// [`name`](kobe_primitives::DerivationStyle::name), or
-/// [`all`](kobe_primitives::DerivationStyle::all) through the trait.
+/// by the [`kobe_core::DerivationStyle`] trait; import it to call
+/// [`path`](kobe_core::DerivationStyle::path),
+/// [`name`](kobe_core::DerivationStyle::name), or
+/// [`all`](kobe_core::DerivationStyle::all) through the trait.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum DerivationStyle {
@@ -44,7 +44,7 @@ pub enum DerivationStyle {
 }
 
 /// Every variant of [`DerivationStyle`] — returned by
-/// [`kobe_primitives::DerivationStyle::all`].
+/// [`kobe_core::DerivationStyle::all`].
 const ALL_STYLES: &[DerivationStyle] = &[
     DerivationStyle::Standard,
     DerivationStyle::LedgerLive,
@@ -67,7 +67,7 @@ const ACCEPTED_TOKENS: &[&str] = &[
     "mew",
 ];
 
-impl kobe_primitives::DerivationStyle for DerivationStyle {
+impl kobe_core::DerivationStyle for DerivationStyle {
     fn path(self, index: u32) -> String {
         match self {
             Self::Standard => format!("m/44'/60'/0'/0/{index}"),
@@ -91,7 +91,7 @@ impl kobe_primitives::DerivationStyle for DerivationStyle {
 
 impl fmt::Display for DerivationStyle {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(<Self as kobe_primitives::DerivationStyle>::name(*self))
+        f.write_str(<Self as kobe_core::DerivationStyle>::name(*self))
     }
 }
 
@@ -190,7 +190,7 @@ impl Derive for Deriver<'_> {
 
 #[cfg(test)]
 mod tests {
-    use kobe_primitives::DeriveExt;
+    use kobe_core::DeriveExt;
 
     use super::*;
 

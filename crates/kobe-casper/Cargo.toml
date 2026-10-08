@@ -5,6 +5,8 @@ edition.workspace      = true
 rust-version.workspace = true
 license.workspace      = true
 repository.workspace   = true
+homepage.workspace     = true
+authors.workspace      = true
 readme                 = "README.md"
 description            = "Casper Network wallet for Kobe"
 keywords               = ["casper", "cspr", "wallet", "crypto", "no_std"]
@@ -12,13 +14,12 @@ categories             = ["cryptography", "no-std"]
 
 [features]
 default = ["std"]
-std     = ["alloc", "kobe-primitives/std", "hex/std"]
-alloc   = ["kobe-primitives/alloc", "hex/alloc"]
+std     = ["kobe-core/std", "hex/std"]
 
 [dependencies]
 # Casper uses both secp256k1 (Ledger default path) and Ed25519 (casper-client default).
-# Secrets zeroize via `kobe-primitives::DerivedAccount` / key types.
-kobe-primitives  = { workspace = true, features = ["bip32", "slip10"] }
+# Secrets zeroize via `kobe-core::DerivedAccount` / key types.
+kobe-core        = { workspace = true, features = ["bip32", "slip10"] }
 blake2.workspace = true
 hex.workspace    = true
 

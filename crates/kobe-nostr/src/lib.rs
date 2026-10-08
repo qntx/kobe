@@ -1,6 +1,6 @@
 //! Nostr wallet utilities for Kobe.
 //!
-//! Derives Nostr keys from a unified [`kobe_primitives::Wallet`] following
+//! Derives Nostr keys from a unified [`kobe_core::Wallet`] following
 //! [NIP-06](https://nips.nostr.com/6) (BIP-32 path `m/44'/1237'/<account>'/0/0`)
 //! and formats them as [NIP-19](https://nips.nostr.com/19) bech32 entities
 //! (`nsec` for private keys, `npub` for x-only public keys).
@@ -15,7 +15,7 @@
 //!
 //! ```no_run
 //! use kobe_nostr::Deriver;
-//! use kobe_primitives::Wallet;
+//! use kobe_core::Wallet;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let wallet = Wallet::from_mnemonic(
@@ -31,12 +31,9 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-#[cfg(feature = "alloc")]
 extern crate alloc;
 
-#[cfg(feature = "alloc")]
 mod deriver;
 
-#[cfg(feature = "alloc")]
 pub use deriver::{Deriver, NPUB_HRP, NSEC_HRP, NostrAccount};
-pub use kobe_primitives::{DeriveError, DerivedAccount, DerivedPublicKey};
+pub use kobe_core::{DeriveError, DerivedAccount, DerivedPublicKey};

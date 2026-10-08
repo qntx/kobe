@@ -5,6 +5,8 @@ edition.workspace      = true
 rust-version.workspace = true
 license.workspace      = true
 repository.workspace   = true
+homepage.workspace     = true
+authors.workspace      = true
 readme                 = "README.md"
 description            = "Bitcoin HD wallet derivation for Kobe"
 keywords               = ["bitcoin", "wallet", "crypto", "no_std"]
@@ -12,12 +14,11 @@ categories             = ["cryptography", "no-std"]
 
 [features]
 default = ["std"]
-std     = ["alloc", "kobe-primitives/std", "zeroize/std"]
-alloc   = ["kobe-primitives/alloc", "zeroize/alloc"]
+std     = ["kobe-core/std", "zeroize/std"]
 
 [dependencies]
 bech32.workspace  = true
-kobe-primitives   = { workspace = true, features = ["bip32", "encoding"] }
+kobe-core         = { workspace = true, features = ["bip32", "encoding"] }
 k256.workspace    = true
 sha2.workspace    = true
 zeroize.workspace = true

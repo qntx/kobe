@@ -5,11 +5,11 @@ use alloc::string::String;
 use core::fmt;
 use core::str::FromStr;
 
-use kobe_primitives::ParseDerivationStyleError;
+use kobe_core::ParseDerivationStyleError;
 
 /// Signature algorithm and matching HD path layout for Casper.
 ///
-/// Implements [`kobe_primitives::DerivationStyle`] so CLI / generic helpers
+/// Implements [`kobe_core::DerivationStyle`] so CLI / generic helpers
 /// can enumerate algorithms the same way they enumerate EVM styles.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
@@ -26,13 +26,13 @@ pub enum KeyAlgo {
     Ed25519,
 }
 
-/// Every variant — returned by [`kobe_primitives::DerivationStyle::all`].
+/// Every variant — returned by [`kobe_core::DerivationStyle::all`].
 const ALL_ALGOS: &[KeyAlgo] = &[KeyAlgo::Secp256k1, KeyAlgo::Ed25519];
 
 /// Tokens accepted by [`KeyAlgo::from_str`].
 const ACCEPTED_TOKENS: &[&str] = &["secp256k1", "secp", "ecdsa", "ed25519", "ed", "eddsa"];
 
-impl kobe_primitives::DerivationStyle for KeyAlgo {
+impl kobe_core::DerivationStyle for KeyAlgo {
     fn path(self, index: u32) -> String {
         match self {
             Self::Secp256k1 => format!("m/44'/506'/0'/0/{index}"),
@@ -54,7 +54,7 @@ impl kobe_primitives::DerivationStyle for KeyAlgo {
 
 impl fmt::Display for KeyAlgo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(<Self as kobe_primitives::DerivationStyle>::name(*self))
+        f.write_str(<Self as kobe_core::DerivationStyle>::name(*self))
     }
 }
 
@@ -73,7 +73,7 @@ impl FromStr for KeyAlgo {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, reason = "unit tests")]
 mod tests {
-    use kobe_primitives::DerivationStyle as _;
+    use kobe_core::DerivationStyle as _;
 
     use super::*;
 

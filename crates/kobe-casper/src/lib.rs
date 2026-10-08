@@ -33,7 +33,7 @@
 //!
 //! ```no_run
 //! use kobe_casper::{Deriver, KeyAlgo};
-//! use kobe_primitives::{Derive, Wallet};
+//! use kobe_core::{Derive, Wallet};
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let wallet = Wallet::from_mnemonic(
@@ -49,25 +49,16 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-#[cfg(feature = "alloc")]
 extern crate alloc;
 
-#[cfg(feature = "alloc")]
 mod address;
-#[cfg(feature = "alloc")]
 mod deriver;
-#[cfg(feature = "alloc")]
 mod key_algo;
 
-#[cfg(feature = "alloc")]
 pub use address::{
     ACCOUNT_HASH_PREFIX, ED25519_TAG, SECP256K1_TAG, account_hash_ed25519, account_hash_secp256k1,
     format_account_hash, tagged_public_key_hex,
 };
-#[cfg(feature = "alloc")]
 pub use deriver::{CasperAccount, Deriver};
-#[cfg(feature = "alloc")]
 pub use key_algo::KeyAlgo;
-pub use kobe_primitives::{
-    DeriveError, DerivedAccount, DerivedPublicKey, ParseDerivationStyleError,
-};
+pub use kobe_core::{DeriveError, DerivedAccount, DerivedPublicKey, ParseDerivationStyleError};

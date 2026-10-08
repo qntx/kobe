@@ -3,7 +3,7 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use kobe_primitives::{
+use kobe_core::{
     DerivationStyle as _, Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet,
     derive_range,
 };

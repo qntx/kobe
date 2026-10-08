@@ -1,4 +1,7 @@
 [toolchain]
-channel    = "stable"
+# Pin to the workspace MSRV (edition 2024). Bumping this requires
+# updating rust-version under [workspace.package] in Cargo.toml.
+channel    = "1.99"
 components = ["rustfmt", "clippy"]
+targets    = ["thumbv7m-none-eabi"]
 profile    = "minimal"

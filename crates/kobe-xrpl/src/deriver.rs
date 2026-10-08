@@ -11,11 +11,10 @@
 //! 5. Compute checksum: first 4 bytes of `SHA-256(SHA-256(versioned_payload))`
 //! 6. Encode `versioned_payload || checksum` with XRPL base58 alphabet
 
-#[cfg(feature = "alloc")]
 use alloc::{format, string::String, vec::Vec};
 
-use kobe_primitives::encoding::{double_sha256, hash160};
-use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
+use kobe_core::encoding::{double_sha256, hash160};
+use kobe_core::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
 
 /// XRPL base58 alphabet (differs from Bitcoin's).
 ///
@@ -96,7 +95,7 @@ fn encode_classic_address(compressed_pubkey: &[u8]) -> String {
 
 #[cfg(test)]
 mod tests {
-    use kobe_primitives::DeriveExt;
+    use kobe_core::DeriveExt;
 
     use super::*;
 

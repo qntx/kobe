@@ -310,7 +310,7 @@ impl AsRef<Self> for DerivedAccount {
 /// # Example
 ///
 /// ```no_run
-/// use kobe_primitives::{DerivedAccount, DeriveError, derive_range};
+/// use kobe_core::{DerivedAccount, DeriveError, derive_range};
 ///
 /// fn batch(count: u32) -> Result<Vec<DerivedAccount>, DeriveError> {
 ///     derive_range(0, count, |_i| todo!("derive one"))
@@ -342,7 +342,7 @@ where
 /// # Example
 ///
 /// ```no_run
-/// use kobe_primitives::{Derive, DerivedAccount};
+/// use kobe_core::{Derive, DerivedAccount};
 ///
 /// fn first_address<D: Derive>(d: &D) -> String {
 ///     // `as_ref` yields the unified view regardless of the chain newtype.
@@ -383,11 +383,11 @@ pub trait Derive {
 /// only requirement:
 ///
 /// ```no_run
-/// use kobe_primitives::{Derive, DeriveExt};
+/// use kobe_core::{Derive, DeriveExt};
 /// # struct D;
 /// # impl Derive for D {
-/// #     type Account = kobe_primitives::DerivedAccount;
-/// #     type Error = kobe_primitives::DeriveError;
+/// #     type Account = kobe_core::DerivedAccount;
+/// #     type Error = kobe_core::DeriveError;
 /// #     fn derive(&self, _: u32) -> Result<Self::Account, Self::Error> { unimplemented!() }
 /// #     fn derive_path(&self, _: &str) -> Result<Self::Account, Self::Error> { unimplemented!() }
 /// # }

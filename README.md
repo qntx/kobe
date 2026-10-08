@@ -2,9 +2,9 @@
 
 # kobe
 
-no_std-compatible Rust toolkit for multi-chain HD wallet derivation from one BIP-39 seed.
+Multi-chain HD wallet derivation in Rust (`no_std`), with a TypeScript SDK in the same repository.
 
-See [docs/](docs/).
+User documentation lives in [docs/](docs/); changes are tracked in [CHANGELOG.md](CHANGELOG.md); layering rules and invariants for contributors live in [AGENTS.md](AGENTS.md).
 
 ## License
 

@@ -143,12 +143,12 @@ Aliases: `phantom`/`backpack` → `standard`, `ledger`/`keystone` → `trust`, `
 All four axes are independent. Key material is unaffected by `--testnet`,
 `--bounceable`, and `--workchain`; only the human-readable address changes.
 
-| Flag            | Short | Values                                                         | Default    |
-| --------------- | ----- | -------------------------------------------------------------- | ---------- |
-| `--testnet`     | `-t`  | (flag) flips the address tag bit and walletId                  | mainnet    |
-| `--bounceable`  | `-b`  | (flag) emit `EQ…`/`kQ…` instead of `UQ…`/`0Q…`                 | off        |
-| `--workchain`   |       | Signed 8-bit workchain id (`0` basechain, `-1` masterchain)    | `0`        |
-| `--style`       | `-s`  | `standard` (alias `tonkeeper`), `ledger-live` (alias `live`)   | `standard` |
+| Flag           | Short | Values                                                       | Default    |
+| -------------- | ----- | ------------------------------------------------------------ | ---------- |
+| `--testnet`    | `-t`  | (flag) flips the address tag bit and walletId                | mainnet    |
+| `--bounceable` | `-b`  | (flag) emit `EQ…`/`kQ…` instead of `UQ…`/`0Q…`               | off        |
+| `--workchain`  |       | Signed 8-bit workchain id (`0` basechain, `-1` masterchain)  | `0`        |
+| `--style`      | `-s`  | `standard` (alias `tonkeeper`), `ledger-live` (alias `live`) | `standard` |
 
 ### Spark-specific flags
 
@@ -158,8 +158,8 @@ All four axes are independent. Key material is unaffected by `--testnet`,
 
 ### Casper-specific flags
 
-| Flag     | Short | Values                                        | Default     |
-| -------- | ----- | --------------------------------------------- | ----------- |
+| Flag     | Short | Values                                                                   | Default     |
+| -------- | ----- | ------------------------------------------------------------------------ | ----------- |
 | `--algo` |       | `secp256k1` (aliases `secp`, `ecdsa`), `ed25519` (aliases `ed`, `eddsa`) | `secp256k1` |
 
 Default path is Ledger secp256k1 `m/44'/506'/0'/0/{i}`. Ed25519 uses
@@ -410,21 +410,21 @@ All errors in JSON mode return exit code 1 with:
 
 ## Private Key Formats by Chain
 
-| Chain      | Format in `private_key` field                                            |
-| ---------- | ------------------------------------------------------------------------ |
-| Aptos      | 64-char hex string (Ed25519 secret key)                                  |
-| Bitcoin    | WIF (Wallet Import Format), e.g. `L1a...` or `5H...`                     |
-| Ethereum   | `0x`-prefixed 64-char hex string                                         |
-| Solana     | Base58-encoded 64-byte keypair (secret 32B + public 32B)                 |
-| Cosmos     | 64-char hex string                                                       |
-| Tron       | 64-char hex string                                                       |
-| Sui        | 64-char hex string (Ed25519 secret key)                                  |
-| TON        | 64-char hex string (Ed25519 secret key)                                  |
-| Filecoin   | 64-char hex string                                                       |
-| Spark      | 64-char hex string (compressed pubkey also provided)                     |
-| XRP Ledger | 64-char hex string                                                       |
-| Arweave    | 64-char hex string (ECDSA secp256k1; address is Base64URL 43 chars)      |
-| Nostr      | NIP-19 bech32 `nsec1…` (64-char hex also available; address is `npub1…`) |
+| Chain      | Format in `private_key` field                                                 |
+| ---------- | ----------------------------------------------------------------------------- |
+| Aptos      | 64-char hex string (Ed25519 secret key)                                       |
+| Bitcoin    | WIF (Wallet Import Format), e.g. `L1a...` or `5H...`                          |
+| Ethereum   | `0x`-prefixed 64-char hex string                                              |
+| Solana     | Base58-encoded 64-byte keypair (secret 32B + public 32B)                      |
+| Cosmos     | 64-char hex string                                                            |
+| Tron       | 64-char hex string                                                            |
+| Sui        | 64-char hex string (Ed25519 secret key)                                       |
+| TON        | 64-char hex string (Ed25519 secret key)                                       |
+| Filecoin   | 64-char hex string                                                            |
+| Spark      | 64-char hex string (compressed pubkey also provided)                          |
+| XRP Ledger | 64-char hex string                                                            |
+| Arweave    | 64-char hex string (ECDSA secp256k1; address is Base64URL 43 chars)           |
+| Nostr      | NIP-19 bech32 `nsec1…` (64-char hex also available; address is `npub1…`)      |
 | Casper     | 64-char hex string (secp256k1 or Ed25519 secret; address is `account-hash-…`) |
 
 ## Derivation Path Reference
@@ -477,10 +477,10 @@ All errors in JSON mode return exit code 1 with:
 
 ### TON (SLIP-10 Ed25519)
 
-| Style         | Path Pattern              | Compatible wallets                    |
-| ------------- | ------------------------- | ------------------------------------- |
-| `standard`    | `m/44'/607'/{i}'`         | Tonkeeper, `MyTonWallet`, Trust Wallet |
-| `ledger-live` | `m/44'/607'/{i}'/0'/0'`   | Ledger Live                           |
+| Style         | Path Pattern            | Compatible wallets                     |
+| ------------- | ----------------------- | -------------------------------------- |
+| `standard`    | `m/44'/607'/{i}'`       | Tonkeeper, `MyTonWallet`, Trust Wallet |
+| `ledger-live` | `m/44'/607'/{i}'/0'/0'` | Ledger Live                            |
 
 Wallet contract: v5r1. Address format is controlled by `--testnet`,
 `--bounceable`, and `--workchain` flags (independent of key derivation).
@@ -499,9 +499,9 @@ Wallet contract: v5r1. Address format is controlled by `--testnet`,
 
 ### Spark (BIP-32 secp256k1, Spark-specific purpose)
 
-| Path Pattern            | Notes                                                        |
-| ----------------------- | ------------------------------------------------------------ |
-| `m/8797555'/{i}'/0'`    | Purpose `8797555` = `SHA-256("spark")` truncated (per spec). |
+| Path Pattern         | Notes                                                        |
+| -------------------- | ------------------------------------------------------------ |
+| `m/8797555'/{i}'/0'` | Purpose `8797555` = `SHA-256("spark")` truncated (per spec). |
 
 Address: Bech32m-encoded compressed identity public key wrapped in a
 2-byte pseudo-protobuf header. HRP depends on `--network`: `spark` (mainnet),
@@ -515,8 +515,8 @@ Address: Bech32m-encoded compressed identity public key wrapped in a
 
 ### Arweave ECDSA (BIP-44, SLIP-44 coin 472)
 
-| Path Pattern          | Address Format |
-| --------------------- | -------------- |
+| Path Pattern          | Address Format                                                |
+| --------------------- | ------------------------------------------------------------- |
 | `m/44'/472'/0'/0/{i}` | Base64URL(SHA-256(compressed 33-byte secp256k1 pk)), 43 chars |
 
 Not an Ethereum address. RSA wallets are not supported by this command.
@@ -529,10 +529,10 @@ Not an Ethereum address. RSA wallets are not supported by this command.
 
 ### Casper (SLIP-44 coin type 506)
 
-| Algorithm   | Path Pattern              | Notes |
-| ----------- | ------------------------- | ----- |
-| `secp256k1` | `m/44'/506'/0'/0/{i}`     | Default (Ledger / casper-cli secp) |
-| `ed25519`   | `m/44'/506'/0'/0'/{i}'`   | SLIP-10 full-hardened |
+| Algorithm   | Path Pattern            | Notes                              |
+| ----------- | ----------------------- | ---------------------------------- |
+| `secp256k1` | `m/44'/506'/0'/0/{i}`   | Default (Ledger / casper-cli secp) |
+| `ed25519`   | `m/44'/506'/0'/0'/{i}'` | SLIP-10 full-hardened              |
 
 Address: BLAKE2b-256 of `algorithm_name || 0x00 || raw_pubkey` formatted as
 `account-hash-` + 64 lowercase hex (per `casper-types`).

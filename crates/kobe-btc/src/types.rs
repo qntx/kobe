@@ -1,6 +1,5 @@
 //! Common types for Bitcoin wallet operations.
 
-#[cfg(feature = "alloc")]
 use alloc::{
     format,
     string::{String, ToString},
@@ -9,10 +8,8 @@ use alloc::{
 use core::fmt;
 use core::str::FromStr;
 
-#[cfg(feature = "alloc")]
-use kobe_primitives::DeriveError;
+use kobe_core::DeriveError;
 
-#[cfg(feature = "alloc")]
 use crate::Network;
 
 /// Bitcoin address types.
@@ -106,14 +103,12 @@ impl FromStr for AddressType {
 /// One BIP-32 child index (hardened or normal).
 ///
 /// Encapsulated so callers never depend on a third-party path type.
-#[cfg(feature = "alloc")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PathSegment {
     index: u32,
     hardened: bool,
 }
 
-#[cfg(feature = "alloc")]
 impl PathSegment {
     /// Child index without the hardened high bit (always `< 2^31`).
     #[inline]
@@ -130,7 +125,6 @@ impl PathSegment {
     }
 }
 
-#[cfg(feature = "alloc")]
 impl fmt::Display for PathSegment {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.index)?;
@@ -145,7 +139,6 @@ impl fmt::Display for PathSegment {
 ///
 /// Validated and stored independently of any third-party BIP-32 crate so the
 /// public API does not leak `bip32::DerivationPath`.
-#[cfg(feature = "alloc")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DerivationPath {
     /// Canonical `m/…` form using `'` for hardened segments.
@@ -153,7 +146,6 @@ pub struct DerivationPath {
     segments: Vec<PathSegment>,
 }
 
-#[cfg(feature = "alloc")]
 impl DerivationPath {
     /// Standard path: `m/purpose'/coin_type'/account'/change/index`.
     ///
@@ -276,14 +268,12 @@ impl DerivationPath {
     }
 }
 
-#[cfg(feature = "alloc")]
 impl fmt::Display for DerivationPath {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.path)
     }
 }
 
-#[cfg(feature = "alloc")]
 impl AsRef<str> for DerivationPath {
     fn as_ref(&self) -> &str {
         &self.path
@@ -323,7 +313,6 @@ mod tests {
         assert_eq!(AddressType::default(), AddressType::P2wpkh);
     }
 
-    #[cfg(feature = "alloc")]
     #[test]
     fn derivation_path_display_keeps_master_prefix_and_tick() {
         let path = DerivationPath::from_path_str("m/84'/0'/0'/0/0").unwrap();
@@ -333,7 +322,6 @@ mod tests {
         assert!(!path.to_string().contains("84h"));
     }
 
-    #[cfg(feature = "alloc")]
     #[test]
     fn derivation_path_normalizes_h_suffix() {
         let path = DerivationPath::from_path_str("m/84h/0h/0h/0/0").unwrap();
@@ -341,7 +329,6 @@ mod tests {
         assert_eq!(path.as_str(), "m/84'/0'/0'/0/0");
     }
 
-    #[cfg(feature = "alloc")]
     #[test]
     fn derivation_path_rejects_empty_forms() {
         for bad in ["", "m", "M", "  m  ", " m", "x/0", "m//0", "m/foo"] {
@@ -355,7 +342,6 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "alloc")]
     #[test]
     fn first_segment_reports_hardened_purpose() {
         let path = DerivationPath::from_path_str("m/84'/0'/0'/0/0").unwrap();

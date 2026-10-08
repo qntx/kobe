@@ -1,4 +1,4 @@
-//! Kobe core primitives — the foundation of every chain crate.
+//! Kobe core — the foundation of every chain crate.
 //!
 //! This crate owns the type system shared by every `kobe-<chain>` crate:
 //! the [`Wallet`] entry point, the [`Derive`] / [`DeriveExt`] traits, the
@@ -43,27 +43,24 @@
 //!
 //! # `no_std` surface
 //!
-//! | Feature           | Needs `alloc` | Purpose                                |
-//! | ----------------- | :-----------: | -------------------------------------- |
-//! | `std`  (default)  |       ✔       | `std::error::Error`, OS RNG            |
-//! | `alloc`           |       ✔       | [`Wallet`], [`DerivedAccount`], [`mnemonic`] |
-//! | `bip32`           |       ✔       | [`bip32::DerivedSecp256k1Key`]         |
-//! | `slip10`          |       ✔       | [`slip10::DerivedEd25519Key`]          |
-//! | `encoding`        |       ✔       | [`encoding`] (`hash160` / `Base58Check`) |
-//! | `camouflage`      |       ✔       | [`camouflage`] (PBKDF2 XOR helpers)    |
-//! | `raw-seed`        |       ✔\*     | [`Wallet::seed`] escape hatch (off by default) |
-//! | `rand` / `rand_core` |     ✔       | [`Wallet::generate`]                   |
-//! | `test-vectors`    |       ✗       | Re-export of canonical BIP-39 fixtures |
+//! `alloc` is always required: every feature below works in `no_std` +
+//! `alloc`, and `std` (the default) is purely additive on top.
 //!
-//! \*`raw-seed` needs `alloc` (via the `Wallet` type) but adds no extra crates.
-//!
-//! Only [`DeriveError`] and [`test_vectors`] compile in pure `no_std`
-//! without `alloc`. Everything else requires at least `alloc`.
+//! | Feature              | Purpose                                          |
+//! | -------------------- | ------------------------------------------------ |
+//! | `std`  (default)     | `std::error::Error` impls                        |
+//! | `bip32`              | [`bip32::DerivedSecp256k1Key`]                   |
+//! | `slip10`             | [`slip10::DerivedEd25519Key`]                    |
+//! | `encoding`           | [`encoding`] (`hash160` / `Base58Check`)         |
+//! | `camouflage`         | [`camouflage`] (PBKDF2 XOR helpers)              |
+//! | `raw-seed`           | [`Wallet::seed`] escape hatch (off by default)   |
+//! | `rand` / `rand_core` | [`Wallet::generate`]                             |
+//! | `test-vectors`       | Re-export of canonical BIP-39 fixtures           |
 //!
 //! # Quick tour
 //!
 //! ```no_run
-//! use kobe_primitives::Wallet;
+//! use kobe_core::Wallet;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! // 1. Build a wallet from a BIP-39 mnemonic:
@@ -89,27 +86,12 @@
 //! [`kobe`]: https://docs.rs/kobe
 
 #![cfg_attr(not(feature = "std"), no_std)]
-// `proptest` is a workspace dev-dependency used only by the integration
-// tests under `tests/`. Library-test compilation triggers rustc's
-// `unused_crate_dependencies` lint; suppress it for test builds only so
-// production compilation still enforces the lint.
-#![cfg_attr(
-    test,
-    allow(
-        unused_crate_dependencies,
-        reason = "proptest is only referenced by the tests/ integration binary"
-    )
-)]
 
-#[cfg(feature = "alloc")]
 extern crate alloc;
 
-#[cfg(feature = "alloc")]
 mod derive;
 mod error;
-#[cfg(feature = "alloc")]
 mod style;
-#[cfg(feature = "alloc")]
 mod wallet;
 
 #[cfg(feature = "bip32")]
@@ -118,7 +100,6 @@ pub mod bip32;
 pub mod camouflage;
 #[cfg(feature = "encoding")]
 pub mod encoding;
-#[cfg(feature = "alloc")]
 pub mod mnemonic;
 #[cfg(feature = "slip10")]
 pub mod slip10;
@@ -126,14 +107,11 @@ pub mod slip10;
 pub use bip39::Language;
 #[cfg(feature = "rand_core")]
 pub use bip39::rand_core;
-#[cfg(feature = "alloc")]
 pub use derive::{
     Derive, DeriveExt, DerivedAccount, DerivedPublicKey, PublicKeyKind, derive_range,
 };
 pub use error::DeriveError;
-#[cfg(feature = "alloc")]
 pub use style::{DerivationStyle, ParseDerivationStyleError};
-#[cfg(feature = "alloc")]
 pub use wallet::Wallet;
 
 /// Convenient Result alias.
@@ -143,7 +121,7 @@ pub type Result<T> = core::result::Result<T, DeriveError>;
 ///
 /// Gated on the `test-vectors` feature so they do **not** ship with the
 /// default binary/`lib` build. The module contains only `&'static str`
-/// constants and is available in `no_std + no_alloc` environments.
+/// constants.
 #[cfg(feature = "test-vectors")]
 pub mod test_vectors {
     /// All-zero 128-bit entropy — yields the canonical BIP-39 test mnemonic

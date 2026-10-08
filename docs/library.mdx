@@ -15,4 +15,4 @@ let account = Deriver::new(&wallet).derive(0)?;
 println!("path={} address={}", account.path(), account.address());
 ```
 
-`Wallet::from_mnemonic` lives in `kobe-primitives`. Chain types are feature-gated re-exports on the `kobe` umbrella crate (`kobe::evm`, `kobe::btc`, …).
+`Wallet::from_mnemonic` lives in `kobe-core`. Chain types are feature-gated re-exports on the `kobe` umbrella crate (`kobe::evm`, `kobe::btc`, …).

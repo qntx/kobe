@@ -15,11 +15,10 @@
 //!   - `sparkrt` for regtest
 //!   - `sparkl` for local
 
-#[cfg(feature = "alloc")]
 use alloc::{format, string::String, vec::Vec};
 
 use bech32::{Bech32m, Hrp};
-use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
+use kobe_core::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
 
 /// Spark protocol networks, each bound to a distinct Bech32 HRP.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]

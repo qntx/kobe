@@ -5,6 +5,8 @@ edition.workspace      = true
 rust-version.workspace = true
 license.workspace      = true
 repository.workspace   = true
+homepage.workspace     = true
+authors.workspace      = true
 readme                 = "README.md"
 description            = "Cosmos wallet for Kobe"
 keywords               = ["cosmos", "wallet", "crypto", "no_std"]
@@ -12,11 +14,10 @@ categories             = ["cryptography", "no-std"]
 
 [features]
 default = ["std"]
-std     = ["alloc", "kobe-primitives/std"]
-alloc   = ["kobe-primitives/alloc"]
+std     = ["kobe-core/std"]
 
 [dependencies]
-kobe-primitives  = { workspace = true, features = ["bip32", "encoding"] }
+kobe-core        = { workspace = true, features = ["bip32", "encoding"] }
 bech32.workspace = true
 
 [lints]
