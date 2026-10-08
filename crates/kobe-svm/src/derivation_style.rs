@@ -4,7 +4,7 @@
 //! even though they all share SLIP-0010 Ed25519 as the underlying key
 //! scheme. This module captures the four widely-supported layouts and
 //! implements the chain-agnostic
-//! [`kobe_primitives::DerivationStyle`] trait so generic tooling (CLI
+//! [`kobe_core::DerivationStyle`] trait so generic tooling (CLI
 //! rendering, property tests, agent helpers) can treat Solana the same
 //! way it treats EVM or TON.
 
@@ -13,7 +13,7 @@ use alloc::string::String;
 use core::fmt;
 use core::str::FromStr;
 
-use kobe_primitives::ParseDerivationStyleError;
+use kobe_core::ParseDerivationStyleError;
 
 /// Solana derivation-path layouts, indexed by the account index.
 ///
@@ -40,7 +40,7 @@ pub enum DerivationStyle {
 }
 
 /// Every variant of [`DerivationStyle`], returned by
-/// [`kobe_primitives::DerivationStyle::all`].
+/// [`kobe_core::DerivationStyle::all`].
 const ALL_STYLES: &[DerivationStyle] = &[
     DerivationStyle::Standard,
     DerivationStyle::Trust,
@@ -86,7 +86,7 @@ impl DerivationStyle {
     }
 }
 
-impl kobe_primitives::DerivationStyle for DerivationStyle {
+impl kobe_core::DerivationStyle for DerivationStyle {
     fn path(self, index: u32) -> String {
         match self {
             Self::Standard => format!("m/44'/501'/{index}'/0'"),
@@ -112,7 +112,7 @@ impl kobe_primitives::DerivationStyle for DerivationStyle {
 
 impl fmt::Display for DerivationStyle {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(<Self as kobe_primitives::DerivationStyle>::name(*self))
+        f.write_str(<Self as kobe_core::DerivationStyle>::name(*self))
     }
 }
 
@@ -134,7 +134,7 @@ impl FromStr for DerivationStyle {
 
 #[cfg(test)]
 mod tests {
-    use kobe_primitives::DerivationStyle as _;
+    use kobe_core::DerivationStyle as _;
 
     use super::*;
 

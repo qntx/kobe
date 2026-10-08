@@ -1,83 +1,82 @@
 # Crates
 
-| Crate | | Description |
-| --- | --- | --- |
-| **[`kobe`](kobe/)** | [![crates.io][kobe-crate]][kobe-crate-url] [![docs.rs][kobe-doc]][kobe-doc-url] | Umbrella crate — re-exports `kobe-primitives` + feature-gated chain crates |
-| **[`kobe-primitives`](kobe-primitives/)** | [![crates.io][kobe-primitives-crate]][kobe-primitives-crate-url] [![docs.rs][kobe-primitives-doc]][kobe-primitives-doc-url] | Core library — BIP-39/32, SLIP-10, Wallet, `no_std` + `alloc` |
-| **[`kobe-aptos`](kobe-aptos/)** | [![crates.io][kobe-aptos-crate]][kobe-aptos-crate-url] [![docs.rs][kobe-aptos-doc]][kobe-aptos-doc-url] | Aptos — SLIP-10 Ed25519 + SHA3-256 |
-| **[`kobe-btc`](kobe-btc/)** | [![crates.io][kobe-btc-crate]][kobe-btc-crate-url] [![docs.rs][kobe-btc-doc]][kobe-btc-doc-url] | Bitcoin — P2PKH, P2SH-P2WPKH, P2WPKH, P2TR |
-| **[`kobe-evm`](kobe-evm/)** | [![crates.io][kobe-evm-crate]][kobe-evm-crate-url] [![docs.rs][kobe-evm-doc]][kobe-evm-doc-url] | Ethereum — MetaMask / Ledger Live / Ledger Legacy styles |
-| **[`kobe-svm`](kobe-svm/)** | [![crates.io][kobe-svm-crate]][kobe-svm-crate-url] [![docs.rs][kobe-svm-doc]][kobe-svm-doc-url] | Solana — Phantom / Trust / Ledger Live styles |
-| **[`kobe-cosmos`](kobe-cosmos/)** | [![crates.io][kobe-cosmos-crate]][kobe-cosmos-crate-url] [![docs.rs][kobe-cosmos-doc]][kobe-cosmos-doc-url] | Cosmos — configurable HRP and coin type |
-| **[`kobe-tron`](kobe-tron/)** | [![crates.io][kobe-tron-crate]][kobe-tron-crate-url] [![docs.rs][kobe-tron-doc]][kobe-tron-doc-url] | Tron — base58check addresses |
-| **[`kobe-sui`](kobe-sui/)** | [![crates.io][kobe-sui-crate]][kobe-sui-crate-url] [![docs.rs][kobe-sui-doc]][kobe-sui-doc-url] | Sui — SLIP-10 Ed25519 + BLAKE2b-256 |
-| **[`kobe-ton`](kobe-ton/)** | [![crates.io][kobe-ton-crate]][kobe-ton-crate-url] [![docs.rs][kobe-ton-doc]][kobe-ton-doc-url] | TON — wallet v5r1, Tonkeeper / Ledger Live styles |
-| **[`kobe-fil`](kobe-fil/)** | [![crates.io][kobe-fil-crate]][kobe-fil-crate-url] [![docs.rs][kobe-fil-doc]][kobe-fil-doc-url] | Filecoin — f1 secp256k1 addresses |
-| **[`kobe-spark`](kobe-spark/)** | [![crates.io][kobe-spark-crate]][kobe-spark-crate-url] [![docs.rs][kobe-spark-doc]][kobe-spark-doc-url] | Spark (Bitcoin L2) — identity keys + Bech32m `spark1…` addresses |
-| **[`kobe-xrpl`](kobe-xrpl/)** | [![crates.io][kobe-xrpl-crate]][kobe-xrpl-crate-url] [![docs.rs][kobe-xrpl-doc]][kobe-xrpl-doc-url] | XRP Ledger — classic `r`-addresses, secp256k1 |
-| **[`kobe-arweave`](kobe-arweave/)** | [![crates.io][kobe-arweave-crate]][kobe-arweave-crate-url] [![docs.rs][kobe-arweave-doc]][kobe-arweave-doc-url] | Arweave — ECDSA secp256k1, Base64URL(SHA-256(compressed pk)) |
-| **[`kobe-nostr`](kobe-nostr/)** | [![crates.io][kobe-nostr-crate]][kobe-nostr-crate-url] [![docs.rs][kobe-nostr-doc]][kobe-nostr-doc-url] | Nostr — NIP-06 key derivation, NIP-19 bech32 `nsec`/`npub` |
-| **[`kobe-casper`](kobe-casper/)** | [![crates.io][kobe-casper-crate]][kobe-casper-crate-url] [![docs.rs][kobe-casper-doc]][kobe-casper-doc-url] | Casper — secp256k1 / Ed25519 HD + AccountHash |
-| **[`kobe-cli`](kobe-cli/)** | [![crates.io][kobe-cli-crate]][kobe-cli-crate-url] | CLI — generate, import, derive; `upgrade` via sh.qntx.org |
+| Crate                               |                                                                                                                 | Description                                                          |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| **[`kobe`](kobe/)**                 | [![crates.io][kobe-crate]][kobe-crate-url] [![docs.rs][kobe-doc]][kobe-doc-url]                                 | Umbrella crate — re-exports `kobe-core` + feature-gated chain crates |
+| **[`kobe-core`](kobe-core/)**       | [![crates.io][kobe-core-crate]][kobe-core-crate-url] [![docs.rs][kobe-core-doc]][kobe-core-doc-url]             | Core library — BIP-39/32, SLIP-10, Wallet, `no_std` + `alloc`        |
+| **[`kobe-aptos`](kobe-aptos/)**     | [![crates.io][kobe-aptos-crate]][kobe-aptos-crate-url] [![docs.rs][kobe-aptos-doc]][kobe-aptos-doc-url]         | Aptos — SLIP-10 Ed25519 + SHA3-256                                   |
+| **[`kobe-btc`](kobe-btc/)**         | [![crates.io][kobe-btc-crate]][kobe-btc-crate-url] [![docs.rs][kobe-btc-doc]][kobe-btc-doc-url]                 | Bitcoin — P2PKH, P2SH-P2WPKH, P2WPKH, P2TR                           |
+| **[`kobe-evm`](kobe-evm/)**         | [![crates.io][kobe-evm-crate]][kobe-evm-crate-url] [![docs.rs][kobe-evm-doc]][kobe-evm-doc-url]                 | Ethereum — MetaMask / Ledger Live / Ledger Legacy styles             |
+| **[`kobe-svm`](kobe-svm/)**         | [![crates.io][kobe-svm-crate]][kobe-svm-crate-url] [![docs.rs][kobe-svm-doc]][kobe-svm-doc-url]                 | Solana — Phantom / Trust / Ledger Live styles                        |
+| **[`kobe-cosmos`](kobe-cosmos/)**   | [![crates.io][kobe-cosmos-crate]][kobe-cosmos-crate-url] [![docs.rs][kobe-cosmos-doc]][kobe-cosmos-doc-url]     | Cosmos — configurable HRP and coin type                              |
+| **[`kobe-tron`](kobe-tron/)**       | [![crates.io][kobe-tron-crate]][kobe-tron-crate-url] [![docs.rs][kobe-tron-doc]][kobe-tron-doc-url]             | Tron — base58check addresses                                         |
+| **[`kobe-sui`](kobe-sui/)**         | [![crates.io][kobe-sui-crate]][kobe-sui-crate-url] [![docs.rs][kobe-sui-doc]][kobe-sui-doc-url]                 | Sui — SLIP-10 Ed25519 + BLAKE2b-256                                  |
+| **[`kobe-ton`](kobe-ton/)**         | [![crates.io][kobe-ton-crate]][kobe-ton-crate-url] [![docs.rs][kobe-ton-doc]][kobe-ton-doc-url]                 | TON — wallet v5r1, Tonkeeper / Ledger Live styles                    |
+| **[`kobe-fil`](kobe-fil/)**         | [![crates.io][kobe-fil-crate]][kobe-fil-crate-url] [![docs.rs][kobe-fil-doc]][kobe-fil-doc-url]                 | Filecoin — f1 secp256k1 addresses                                    |
+| **[`kobe-spark`](kobe-spark/)**     | [![crates.io][kobe-spark-crate]][kobe-spark-crate-url] [![docs.rs][kobe-spark-doc]][kobe-spark-doc-url]         | Spark (Bitcoin L2) — identity keys + Bech32m `spark1…` addresses     |
+| **[`kobe-xrpl`](kobe-xrpl/)**       | [![crates.io][kobe-xrpl-crate]][kobe-xrpl-crate-url] [![docs.rs][kobe-xrpl-doc]][kobe-xrpl-doc-url]             | XRP Ledger — classic `r`-addresses, secp256k1                        |
+| **[`kobe-arweave`](kobe-arweave/)** | [![crates.io][kobe-arweave-crate]][kobe-arweave-crate-url] [![docs.rs][kobe-arweave-doc]][kobe-arweave-doc-url] | Arweave — ECDSA secp256k1, Base64URL(SHA-256(compressed pk))         |
+| **[`kobe-nostr`](kobe-nostr/)**     | [![crates.io][kobe-nostr-crate]][kobe-nostr-crate-url] [![docs.rs][kobe-nostr-doc]][kobe-nostr-doc-url]         | Nostr — NIP-06 key derivation, NIP-19 bech32 `nsec`/`npub`           |
+| **[`kobe-casper`](kobe-casper/)**   | [![crates.io][kobe-casper-crate]][kobe-casper-crate-url] [![docs.rs][kobe-casper-doc]][kobe-casper-doc-url]     | Casper — secp256k1 / Ed25519 HD + AccountHash                        |
+| **[`kobe-cli`](kobe-cli/)**         | [![crates.io][kobe-cli-crate]][kobe-cli-crate-url]                                                              | CLI — generate, import, derive; `upgrade` via sh.qntx.org            |
 
 ## Dependency Graph
 
 ```text
 kobe-cli
   └── kobe (umbrella)
-        ├── kobe-primitives (Wallet, Derive, DeriveExt, bip32, slip10, camouflage)
-        ├── kobe-aptos  ── kobe-primitives/slip10
-        ├── kobe-btc    ── kobe-primitives/bip32 + local address/WIF
-        ├── kobe-cosmos ── kobe-primitives/bip32
-        ├── kobe-evm    ── kobe-primitives/bip32
-        ├── kobe-fil    ── kobe-primitives/bip32
-        ├── kobe-nostr  ── kobe-primitives/bip32
-        ├── kobe-spark  ── kobe-primitives/bip32
-        ├── kobe-sui    ── kobe-primitives/slip10
-        ├── kobe-svm    ── kobe-primitives/slip10
-        ├── kobe-ton    ── kobe-primitives/slip10
-        ├── kobe-tron   ── kobe-primitives/bip32
-        ├── kobe-xrpl    ── kobe-primitives/bip32
-        ├── kobe-arweave ── kobe-primitives/bip32
-        └── kobe-casper  ── kobe-primitives/bip32 + slip10
+        ├── kobe-core (Wallet, Derive, DeriveExt, bip32, slip10, camouflage)
+        ├── kobe-aptos  ── kobe-core/slip10
+        ├── kobe-btc    ── kobe-core/bip32 + local address/WIF
+        ├── kobe-cosmos ── kobe-core/bip32
+        ├── kobe-evm    ── kobe-core/bip32
+        ├── kobe-fil    ── kobe-core/bip32
+        ├── kobe-nostr  ── kobe-core/bip32
+        ├── kobe-spark  ── kobe-core/bip32
+        ├── kobe-sui    ── kobe-core/slip10
+        ├── kobe-svm    ── kobe-core/slip10
+        ├── kobe-ton    ── kobe-core/slip10
+        ├── kobe-tron   ── kobe-core/bip32
+        ├── kobe-xrpl    ── kobe-core/bip32
+        ├── kobe-arweave ── kobe-core/bip32
+        └── kobe-casper  ── kobe-core/bip32 + slip10
 ```
 
 All chain crates consume key derivation through the wallet-level shortcuts
 `Wallet::derive_secp256k1(path)` and `Wallet::derive_ed25519(path)`, so the
-raw BIP-39 seed never leaves `kobe-primitives::Wallet`.
+raw BIP-39 seed never leaves `kobe-core::Wallet`.
 
 ## Feature Flags
 
 The umbrella `kobe` crate provides fine-grained feature control:
 
-| Feature | Default | Description |
-| --- | --- | --- |
-| `std` | ✅ | Enable `std` support (default = `["std"]` only) |
-| `alloc` | | Enable `alloc` (implied by `std`) |
-| `rand` | | Enable random mnemonic generation |
-| `camouflage` | | Enable mnemonic camouflage encryption |
-| `raw-seed` | | Expose `Wallet::seed` (escape hatch; prefer derivers) |
-| `mainstream` | | Preset: `btc` + `evm` + `svm` |
-| `btc` | | Bitcoin chain support (enables `bip32`) |
-| `evm` | | Ethereum chain support (enables `bip32`) |
-| `svm` | | Solana chain support (enables `slip10`) |
-| `cosmos` | | Cosmos chain support (enables `bip32`) |
-| `tron` | | Tron chain support (enables `bip32`) |
-| `spark` | | Spark chain support (enables `bip32`) |
-| `fil` | | Filecoin chain support (enables `bip32`) |
-| `ton` | | TON chain support (enables `slip10`) |
-| `sui` | | Sui chain support (enables `slip10`) |
-| `aptos` | | Aptos chain support (enables `slip10`) |
-| `xrpl` | | XRP Ledger chain support (enables `bip32`) |
-| `nostr` | | Nostr chain support (enables `bip32`) |
-| `casper` | | Casper Network support (enables `bip32` + `slip10`) |
-| `arweave` | | Arweave ECDSA support (enables `bip32`) |
-| `all-chains` | | Enable all chain crates |
+| Feature      | Default | Description                                                           |
+| ------------ | ------- | --------------------------------------------------------------------- |
+| `std`        | ✅      | Enable `std` support (default = `["std"]` only; `alloc` is always on) |
+| `rand`       |         | Enable random mnemonic generation                                     |
+| `camouflage` |         | Enable mnemonic camouflage encryption                                 |
+| `raw-seed`   |         | Expose `Wallet::seed` (escape hatch; prefer derivers)                 |
+| `mainstream` |         | Preset: `btc` + `evm` + `svm`                                         |
+| `btc`        |         | Bitcoin chain support (enables `bip32`)                               |
+| `evm`        |         | Ethereum chain support (enables `bip32`)                              |
+| `svm`        |         | Solana chain support (enables `slip10`)                               |
+| `cosmos`     |         | Cosmos chain support (enables `bip32`)                                |
+| `tron`       |         | Tron chain support (enables `bip32`)                                  |
+| `spark`      |         | Spark chain support (enables `bip32`)                                 |
+| `fil`        |         | Filecoin chain support (enables `bip32`)                              |
+| `ton`        |         | TON chain support (enables `slip10`)                                  |
+| `sui`        |         | Sui chain support (enables `slip10`)                                  |
+| `aptos`      |         | Aptos chain support (enables `slip10`)                                |
+| `xrpl`       |         | XRP Ledger chain support (enables `bip32`)                            |
+| `nostr`      |         | Nostr chain support (enables `bip32`)                                 |
+| `casper`     |         | Casper Network support (enables `bip32` + `slip10`)                   |
+| `arweave`    |         | Arweave ECDSA support (enables `bip32`)                               |
+| `all-chains` |         | Enable all chain crates                                               |
 
 [kobe-crate]: https://img.shields.io/crates/v/kobe.svg
 [kobe-crate-url]: https://crates.io/crates/kobe
-[kobe-primitives-crate]: https://img.shields.io/crates/v/kobe-primitives.svg
-[kobe-primitives-crate-url]: https://crates.io/crates/kobe-primitives
+[kobe-core-crate]: https://img.shields.io/crates/v/kobe-core.svg
+[kobe-core-crate-url]: https://crates.io/crates/kobe-core
 [kobe-aptos-crate]: https://img.shields.io/crates/v/kobe-aptos.svg
 [kobe-aptos-crate-url]: https://crates.io/crates/kobe-aptos
 [kobe-btc-crate]: https://img.shields.io/crates/v/kobe-btc.svg
@@ -102,8 +101,8 @@ The umbrella `kobe` crate provides fine-grained feature control:
 [kobe-cli-crate-url]: https://crates.io/crates/kobe-cli
 [kobe-doc]: https://img.shields.io/docsrs/kobe.svg
 [kobe-doc-url]: https://docs.rs/kobe
-[kobe-primitives-doc]: https://img.shields.io/docsrs/kobe-primitives.svg
-[kobe-primitives-doc-url]: https://docs.rs/kobe-primitives
+[kobe-core-doc]: https://img.shields.io/docsrs/kobe-core.svg
+[kobe-core-doc-url]: https://docs.rs/kobe-core
 [kobe-aptos-doc]: https://img.shields.io/docsrs/kobe-aptos.svg
 [kobe-aptos-doc-url]: https://docs.rs/kobe-aptos
 [kobe-btc-doc]: https://img.shields.io/docsrs/kobe-btc.svg

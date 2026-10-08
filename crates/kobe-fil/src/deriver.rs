@@ -1,11 +1,10 @@
 //! Filecoin address derivation from a unified wallet.
 
-#[cfg(feature = "alloc")]
 use alloc::{format, string::String, vec::Vec};
 
 use blake2::digest::consts::{U4, U20};
 use blake2::{Blake2b, Digest};
-use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
+use kobe_core::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
 
 /// Filecoin lowercase base32 alphabet (RFC 4648, no padding).
 const BASE32_ALPHABET: &[u8; 32] = b"abcdefghijklmnopqrstuvwxyz234567";
@@ -118,7 +117,7 @@ fn base32_encode(data: &[u8]) -> Result<String, DeriveError> {
 
 #[cfg(test)]
 mod tests {
-    use kobe_primitives::DeriveExt;
+    use kobe_core::DeriveExt;
 
     use super::*;
 

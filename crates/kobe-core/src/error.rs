@@ -5,7 +5,6 @@
 //! one `match` to handle errors from any chain. No chain defines its own
 //! error type.
 
-#[cfg(feature = "alloc")]
 use alloc::string::String;
 
 /// Errors produced by HD derivation, mnemonic handling, and address encoding.
@@ -29,25 +28,21 @@ pub enum DeriveError {
     Mnemonic(#[cfg_attr(feature = "std", from)] bip39::Error),
 
     /// Derivation path is malformed or unsupported.
-    #[cfg(feature = "alloc")]
     #[error("derivation path: {0}")]
     Path(String),
 
     /// A cryptographic primitive (HMAC, BIP-32 / SLIP-10, PBKDF2, BLAKE2,
     /// secp256k1, …) failed.
-    #[cfg(feature = "alloc")]
     #[error("cryptographic operation failed: {0}")]
     Crypto(String),
 
     /// Caller-supplied input failed validation (word count, hex, index,
     /// unknown derivation style, …).
-    #[cfg(feature = "alloc")]
     #[error("invalid input: {0}")]
     Input(String),
 
     /// Chain-specific address encoding failed (Bech32 / Bech32m, base58,
     /// base32, …).
-    #[cfg(feature = "alloc")]
     #[error("address encoding: {0}")]
     AddressEncoding(String),
 }

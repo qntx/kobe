@@ -1,9 +1,8 @@
 //! Aptos address derivation from a unified wallet.
 
-#[cfg(feature = "alloc")]
 use alloc::{format, string::String};
 
-use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
+use kobe_core::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
 use sha3::{Digest, Sha3_256};
 use zeroize::Zeroizing;
 
@@ -76,7 +75,7 @@ impl Derive for Deriver<'_> {
 
 #[cfg(test)]
 mod tests {
-    use kobe_primitives::DeriveExt;
+    use kobe_core::DeriveExt;
 
     use super::*;
 

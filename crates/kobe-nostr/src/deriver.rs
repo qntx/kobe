@@ -4,12 +4,11 @@
 //! at path `m/44'/1237'/{account}'/0/0` — and emits [NIP-19](https://nips.nostr.com/19)
 //! bech32 entities (`nsec` for the private key, `npub` for the x-only public key).
 
-#[cfg(feature = "alloc")]
 use alloc::{format, string::String};
 use core::ops::Deref;
 
 use bech32::{Bech32, Hrp};
-use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
+use kobe_core::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
 use zeroize::Zeroizing;
 
 /// NIP-19 human-readable part for secret keys.
@@ -191,7 +190,7 @@ impl AsRef<DerivedAccount> for NostrAccount {
 #[cfg(test)]
 #[allow(clippy::indexing_slicing, reason = "test assertions")]
 mod tests {
-    use kobe_primitives::DeriveExt;
+    use kobe_core::DeriveExt;
 
     use super::*;
 

@@ -4,9 +4,25 @@ All notable changes to this workspace are documented in this file. The format is
 
 ## [Unreleased]
 
+### Added
+
+- TypeScript workspace: `packages/kobe` (`@qntx/kobe`, no public API yet) built with Vite+ (`vp`), with lint, typecheck, pack and Hermes smoke gates; npm publishing through trusted publishing (OIDC) from `publish-npm.yml`.
+- Cross-language parity infrastructure: `vectors/` for shared test vectors and the `parity.json` capability ledger, validated by `scripts/parity/check.ts`.
+- Repository checks in `bun run lint`: lockstep versions (`scripts/check-version.ts`), the crate dependency graph (`scripts/check-layers.ts`), and TOML formatting (taplo).
+
 ### Changed
 
+- **Breaking:** `kobe-primitives` is renamed `kobe-core`; replace `kobe_primitives::` with `kobe_core::`. The `kobe` umbrella crate re-exports it unchanged.
+- **Breaking:** the `alloc` feature is removed from every crate: `alloc` is always required and `--no-default-features` now means `no_std` + `alloc`. Replace `default-features = false, features = ["alloc"]` with `default-features = false`.
+- **Breaking:** the toolchain is pinned to Rust 1.99 and the MSRV moves from 1.85 to 1.99.
+- **Breaking:** `kobe_casper::account_hash_ed25519` and `kobe_casper::account_hash_secp256k1` return `[u8; 32]` instead of `Result<[u8; 32], DeriveError>`; neither can fail.
+- npm and crates.io versions are lockstep: `bun run release` (bumpp) bumps `packages/kobe/package.json` and `Cargo.toml` together; internal crate dependencies pin the exact workspace version.
+- CI runs the shared `qntx/workflows` gates: Bun, Rust with all and with no default features (plus rustdoc and a publish dry run), portable `no_std` builds for `thumbv7m-none-eabi`, `wasm32-unknown-unknown`, iOS and Android without `getrandom`, and the Hermes smoke. crates.io publishing moved to `publish-crates.yml`.
 - CLI installer origin is `https://sh.qntx.org/kobe` (not `.fun`).
+
+### Removed
+
+- `Justfile` and `Makefile`; the local gate is `bun run lint && bun run typecheck && bun run test` plus the cargo commands in `CONTRIBUTING.md`.
 
 ## [3.4.0] - 2026-08-12
 
@@ -142,7 +158,7 @@ Major API redesign for long-term maintainability. Every chain crate is touched; 
 
 ### Breaking: `Derive` trait with associated `Account` type
 
-- `Derive::Account: AsRef<DerivedAccount>` — every chain now declares the concrete account type it returns, so chain-specific newtypes (`BtcAccount`, `SvmAccount`, `NostrAccount`) are returned *without* erasure.
+- `Derive::Account: AsRef<DerivedAccount>` — every chain now declares the concrete account type it returns, so chain-specific newtypes (`BtcAccount`, `SvmAccount`, `NostrAccount`) are returned _without_ erasure.
 - `DeriveExt::derive_many` returns `Vec<Self::Account>` instead of `Vec<DerivedAccount>`. Previously `btc_deriver.derive_many(...)` returned a `Vec<BtcAccount>` from the inherent method but a `Vec<DerivedAccount>` through the trait — the two silently disagreed. They now both return the newtype.
 - Removed the BTC/SVM/Nostr inherent `derive_many` methods that duplicated the trait method. Call `DeriveExt::derive_many` (in scope via `use kobe::DeriveExt`). The `derive_many_with` inherent methods stay because they take a chain-specific `style` / `address_type` argument.
 - `DerivedAccount` now implements `AsRef<Self>`; `BtcAccount`, `SvmAccount`, and `NostrAccount` implement `AsRef<DerivedAccount>` on top of their existing `Deref`.
@@ -305,7 +321,7 @@ Breaking across every crate. The most impactful changes are **address correctnes
 
 ### Security / correctness
 
-- **Aptos**: fixed `authentication_key` byte order. The scheme byte is now appended *after* the public key (`SHA3-256(pubkey || 0x00)`) per the `aptos-stdlib` Move source of truth; previously it was prepended, which produced addresses that did **not** match any Aptos account. Downstream users **must re-derive** every Aptos address generated with prior releases.
+- **Aptos**: fixed `authentication_key` byte order. The scheme byte is now appended _after_ the public key (`SHA3-256(pubkey || 0x00)`) per the `aptos-stdlib` Move source of truth; previously it was prepended, which produced addresses that did **not** match any Aptos account. Downstream users **must re-derive** every Aptos address generated with prior releases.
 - **TON**: fixed `walletId` computation on non-basechain workchains. The derivation now correctly folds the workchain byte into the v5r1 client context (`walletId = networkGlobalId ^ clientContext(workchain)`), so addresses generated with `workchain = -1` (masterchain) are now valid. Basechain (`workchain = 0`) addresses are unaffected.
 - **Spark**: replaced the placeholder `spark:<pubkey_hex>` encoder with the official Bech32m address format. New path: `m/8797555'/<account>'/0'`. New address format: `spark1…` / `sparkt1…` / `sparks1…` / `sparkrt1…` / `sparkl1…`. Cross-verified against the independent `ethanmarcuss/spark-address` reference.
 

@@ -1,6 +1,6 @@
 //! Multi-chain HD wallet derivation — umbrella crate.
 //!
-//! This crate re-exports [`kobe_primitives`] and all chain-specific crates behind
+//! This crate re-exports [`kobe_core`] and all chain-specific crates behind
 //! feature flags, so a single dependency covers everything:
 //!
 //! ```toml
@@ -30,6 +30,7 @@ pub use kobe_arweave as arweave;
 pub use kobe_btc as btc;
 #[cfg(feature = "casper")]
 pub use kobe_casper as casper;
+pub use kobe_core::*;
 #[cfg(feature = "cosmos")]
 pub use kobe_cosmos as cosmos;
 #[cfg(feature = "evm")]
@@ -38,7 +39,6 @@ pub use kobe_evm as evm;
 pub use kobe_fil as fil;
 #[cfg(feature = "nostr")]
 pub use kobe_nostr as nostr;
-pub use kobe_primitives::*;
 #[cfg(feature = "spark")]
 pub use kobe_spark as spark;
 #[cfg(feature = "sui")]
@@ -59,12 +59,11 @@ pub use kobe_xrpl as xrpl;
 /// `kobe::btc::Deriver`, …) remain explicit to avoid naming conflicts when
 /// multiple chains are enabled simultaneously.
 ///
-/// The [`kobe_primitives::DerivationStyle`] trait is re-exported
+/// The [`kobe_core::DerivationStyle`] trait is re-exported
 /// anonymously so calling `style.path(i)` / `style.name()` on any
 /// chain's style enum works without manually `use`-ing the trait.
-#[cfg(feature = "alloc")]
 pub mod prelude {
-    pub use kobe_primitives::{
+    pub use kobe_core::{
         DerivationStyle as _, Derive, DeriveError, DeriveExt, DerivedAccount, DerivedPublicKey,
         ParseDerivationStyleError, PublicKeyKind, Wallet,
     };

@@ -1,0 +1,22 @@
+name: Hermes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    uses: qntx/workflows/.github/workflows/ci-hermes.yml@v2
+    permissions:
+      contents: read
+    with:
+      # Must track the commit pinned in react-native/sdks/.hermesv1version for the
+      # React Native version meowl targets (RN 0.86 → hermes-v250829098.0.17).
+      hermes-commit: 3477757eb2475555cf8d8df24bfb1deb0613880d
+      script: smoke:hermes
+      working-directory: packages/kobe

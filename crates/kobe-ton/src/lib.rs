@@ -1,26 +1,17 @@
 //! TON wallet utilities for Kobe.
 //!
-//! Provides TON wallet v5r1 address derivation from a unified [`kobe_primitives::Wallet`].
+//! Provides TON wallet v5r1 address derivation from a unified [`kobe_core::Wallet`].
 //! Uses SLIP-10 Ed25519 derivation at path `m/44'/607'/{index}'`.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-#[cfg(feature = "alloc")]
 extern crate alloc;
 
-#[cfg(feature = "alloc")]
 mod address;
-#[cfg(feature = "alloc")]
 mod deriver;
-#[cfg(feature = "alloc")]
 mod style;
 
-#[cfg(feature = "alloc")]
 pub use address::AddressFormat;
-#[cfg(feature = "alloc")]
 pub use deriver::Deriver;
-#[cfg(feature = "alloc")]
-pub use kobe_primitives::ParseDerivationStyleError;
-pub use kobe_primitives::{DeriveError, DerivedAccount, DerivedPublicKey};
-#[cfg(feature = "alloc")]
+pub use kobe_core::{DeriveError, DerivedAccount, DerivedPublicKey, ParseDerivationStyleError};
 pub use style::DerivationStyle;

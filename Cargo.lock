@@ -652,11 +652,11 @@ dependencies = [
  "kobe-arweave",
  "kobe-btc",
  "kobe-casper",
+ "kobe-core",
  "kobe-cosmos",
  "kobe-evm",
  "kobe-fil",
  "kobe-nostr",
- "kobe-primitives",
  "kobe-spark",
  "kobe-sui",
  "kobe-svm",
@@ -670,7 +670,7 @@ name = "kobe-aptos"
 version = "3.4.0"
 dependencies = [
  "hex",
- "kobe-primitives",
+ "kobe-core",
  "sha3 0.12.0",
  "zeroize",
 ]
@@ -680,7 +680,7 @@ name = "kobe-arweave"
 version = "3.4.0"
 dependencies = [
  "base64",
- "kobe-primitives",
+ "kobe-core",
  "sha2 0.11.0",
 ]
 
@@ -692,7 +692,7 @@ dependencies = [
  "bs58",
  "hex",
  "k256",
- "kobe-primitives",
+ "kobe-core",
  "sha2 0.11.0",
  "zeroize",
 ]
@@ -703,7 +703,7 @@ version = "3.4.0"
 dependencies = [
  "blake2",
  "hex",
- "kobe-primitives",
+ "kobe-core",
 ]
 
 [[package]]
@@ -719,40 +719,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "kobe-cosmos"
-version = "3.4.0"
-dependencies = [
- "bech32",
- "kobe-primitives",
-]
-
-[[package]]
-name = "kobe-evm"
-version = "3.4.0"
-dependencies = [
- "alloy-primitives",
- "kobe-primitives",
-]
-
-[[package]]
-name = "kobe-fil"
-version = "3.4.0"
-dependencies = [
- "blake2",
- "kobe-primitives",
-]
-
-[[package]]
-name = "kobe-nostr"
-version = "3.4.0"
-dependencies = [
- "bech32",
- "kobe-primitives",
- "zeroize",
-]
-
-[[package]]
-name = "kobe-primitives"
+name = "kobe-core"
 version = "3.4.0"
 dependencies = [
  "bip32",
@@ -769,12 +736,45 @@ dependencies = [
 ]
 
 [[package]]
+name = "kobe-cosmos"
+version = "3.4.0"
+dependencies = [
+ "bech32",
+ "kobe-core",
+]
+
+[[package]]
+name = "kobe-evm"
+version = "3.4.0"
+dependencies = [
+ "alloy-primitives",
+ "kobe-core",
+]
+
+[[package]]
+name = "kobe-fil"
+version = "3.4.0"
+dependencies = [
+ "blake2",
+ "kobe-core",
+]
+
+[[package]]
+name = "kobe-nostr"
+version = "3.4.0"
+dependencies = [
+ "bech32",
+ "kobe-core",
+ "zeroize",
+]
+
+[[package]]
 name = "kobe-spark"
 version = "3.4.0"
 dependencies = [
  "bech32",
  "hex",
- "kobe-primitives",
+ "kobe-core",
 ]
 
 [[package]]
@@ -783,7 +783,7 @@ version = "3.4.0"
 dependencies = [
  "blake2",
  "hex",
- "kobe-primitives",
+ "kobe-core",
  "zeroize",
 ]
 
@@ -792,7 +792,7 @@ name = "kobe-svm"
 version = "3.4.0"
 dependencies = [
  "bs58",
- "kobe-primitives",
+ "kobe-core",
  "zeroize",
 ]
 
@@ -801,7 +801,7 @@ name = "kobe-ton"
 version = "3.4.0"
 dependencies = [
  "base64",
- "kobe-primitives",
+ "kobe-core",
  "sha2 0.11.0",
  "zeroize",
 ]
@@ -811,7 +811,7 @@ name = "kobe-tron"
 version = "3.4.0"
 dependencies = [
  "bs58",
- "kobe-primitives",
+ "kobe-core",
  "sha3 0.12.0",
 ]
 
@@ -820,7 +820,7 @@ name = "kobe-xrpl"
 version = "3.4.0"
 dependencies = [
  "bs58",
- "kobe-primitives",
+ "kobe-core",
 ]
 
 [[package]]

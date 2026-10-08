@@ -6,8 +6,8 @@ use alloc::string::String;
 use k256::elliptic_curve::ops::Reduce;
 use k256::elliptic_curve::sec1::ToEncodedPoint;
 use k256::{ProjectivePoint, PublicKey, Scalar, U256};
-use kobe_primitives::DeriveError;
-use kobe_primitives::encoding::{base58check_versioned, hash160};
+use kobe_core::DeriveError;
+use kobe_core::encoding::{base58check_versioned, hash160};
 use sha2::{Digest, Sha256};
 
 use crate::{AddressType, Network};

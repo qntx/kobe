@@ -1,10 +1,9 @@
 //! Sui address derivation from a unified wallet.
 
-#[cfg(feature = "alloc")]
 use alloc::{format, string::String, vec::Vec};
 
 use blake2::{Blake2b256, Digest};
-use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
+use kobe_core::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
 use zeroize::Zeroizing;
 
 /// Ed25519 signature scheme flag used by Sui.
@@ -75,7 +74,7 @@ fn blake2b_256(data: &[u8]) -> [u8; 32] {
 
 #[cfg(test)]
 mod tests {
-    use kobe_primitives::DeriveExt;
+    use kobe_core::DeriveExt;
 
     use super::*;
 

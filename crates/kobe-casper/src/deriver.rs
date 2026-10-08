@@ -3,7 +3,7 @@
 use alloc::string::String;
 use core::ops::Deref;
 
-use kobe_primitives::{
+use kobe_core::{
     DerivationStyle as _, Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet,
 };
 
@@ -191,7 +191,7 @@ impl<'a> Deriver<'a> {
     fn derive_secp(&self, path: &str) -> Result<CasperAccount, DeriveError> {
         let key = self.wallet.derive_secp256k1(path)?;
         let compressed = key.compressed_pubkey();
-        let digest = account_hash_secp256k1(&compressed)?;
+        let digest = account_hash_secp256k1(&compressed);
         let address = format_account_hash(&digest);
         let tagged = tagged_public_key_hex(SECP256K1_TAG, &compressed);
         let sk = key.private_key_bytes();
@@ -213,7 +213,7 @@ impl<'a> Deriver<'a> {
     fn derive_ed25519(&self, path: &str) -> Result<CasperAccount, DeriveError> {
         let derived = self.wallet.derive_ed25519(path)?;
         let pubkey_bytes = derived.public_key_bytes();
-        let digest = account_hash_ed25519(&pubkey_bytes)?;
+        let digest = account_hash_ed25519(&pubkey_bytes);
         let address = format_account_hash(&digest);
         let tagged = tagged_public_key_hex(ED25519_TAG, &pubkey_bytes);
         let sk_bytes = derived.private_key_bytes();
@@ -258,7 +258,7 @@ mod tests {
     use alloc::format;
     use alloc::vec::Vec;
 
-    use kobe_primitives::DeriveExt;
+    use kobe_core::DeriveExt;
 
     use super::*;
     use crate::address::{account_hash_ed25519, account_hash_secp256k1, format_account_hash};
@@ -268,7 +268,7 @@ mod tests {
 
     /// Locked HD KAT — abandon @ secp `m/44'/506'/0'/0/0`.
     ///
-    /// Private key from workspace BIP-32 (`kobe-primitives`). `AccountHash` via
+    /// Private key from workspace BIP-32 (`kobe-core`). `AccountHash` via
     /// `casper-types` preimage (`b"secp256k1" || 0x00 || compressed_pk`),
     /// independently re-checked with Python `hashlib.blake2b` over the
     /// public key in `SECP0_TAGGED` (strip leading `02` tag byte).
@@ -315,7 +315,7 @@ mod tests {
             DerivedPublicKey::Secp256k1Compressed(b) => b,
             other => panic!("expected compressed secp, got {other:?}"),
         };
-        let digest = account_hash_secp256k1(pk).unwrap();
+        let digest = account_hash_secp256k1(pk);
         assert_eq!(a.address(), format_account_hash(&digest));
         assert_eq!(a.tagged_public_key_hex(), format!("02{}", hex::encode(pk)));
     }
@@ -330,7 +330,7 @@ mod tests {
             DerivedPublicKey::Ed25519(b) => b,
             other => panic!("expected ed25519, got {other:?}"),
         };
-        let digest = account_hash_ed25519(pk).unwrap();
+        let digest = account_hash_ed25519(pk);
         assert_eq!(a.address(), format_account_hash(&digest));
         assert!(a.tagged_public_key_hex().starts_with("01"));
         assert_eq!(a.tagged_public_key_hex().len(), 2 + 64);

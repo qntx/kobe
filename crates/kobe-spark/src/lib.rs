@@ -1,7 +1,7 @@
 //! Spark protocol (Bitcoin L2) wallet utilities for Kobe.
 //!
 //! Implements the [Spark](https://docs.spark.money) identity-key derivation
-//! and Bech32m address encoding from a unified [`kobe_primitives::Wallet`]:
+//! and Bech32m address encoding from a unified [`kobe_core::Wallet`]:
 //!
 //! - **Derivation path**: `m/8797555'/{account}'/0'` — hardened BIP-32
 //!   secp256k1. The purpose `8797555` is the Spark-specific constant
@@ -13,7 +13,7 @@
 //! # Example
 //!
 //! ```no_run
-//! use kobe_primitives::Wallet;
+//! use kobe_core::Wallet;
 //! use kobe_spark::{Deriver, Network};
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -29,12 +29,9 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-#[cfg(feature = "alloc")]
 extern crate alloc;
 
-#[cfg(feature = "alloc")]
 mod deriver;
 
-#[cfg(feature = "alloc")]
 pub use deriver::{Deriver, Network, SPARK_PURPOSE};
-pub use kobe_primitives::{DeriveError, DerivedAccount, DerivedPublicKey};
+pub use kobe_core::{DeriveError, DerivedAccount, DerivedPublicKey};

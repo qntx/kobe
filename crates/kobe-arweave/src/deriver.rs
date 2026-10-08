@@ -17,11 +17,10 @@
 //! Signing (65-byte recoverable ECDSA, empty `owner`, format=2) belongs in a
 //! companion signer crate, not here.
 
-#[cfg(feature = "alloc")]
 use alloc::{format, string::String};
 
 use base64::Engine;
-use kobe_primitives::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
+use kobe_core::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
 use sha2::{Digest, Sha256};
 
 /// Encode a compressed secp256k1 public key as an Arweave address.
@@ -95,7 +94,7 @@ impl Derive for Deriver<'_> {
 mod tests {
     use alloc::vec::Vec;
 
-    use kobe_primitives::DeriveExt;
+    use kobe_core::DeriveExt;
 
     use super::*;
 

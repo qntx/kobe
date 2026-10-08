@@ -1,8 +1,14 @@
 # cargo-deny configuration for the Kobe workspace.
-# Run: `cargo deny check` (also wired into CI / Justfile).
+#
+# Run with `cargo deny check` to enforce supply-chain hygiene:
+# - advisories: every transitive dependency must be free of known CVEs
+# - bans:       one version of every crate; the full `bitcoin` crate is denied
+# - licenses:   only permissive licenses are allowed
+# - sources:    only crates.io is trusted
 
 [graph]
-all-features = true
+all-features        = true
+no-default-features = false
 
 [output]
 feature-depth = 1
@@ -12,26 +18,11 @@ feature-depth = 1
 # yet that bumps ruint past the RUSTSEC-2026-0220 fix ( >= 1.20 ).
 # Impact for Kobe: EVM path uses keccak + EIP-55 checksum, not untrusted
 # checked-shift formatting. Revisit when alloy-primitives upgrades ruint.
-ignore = [
-    { id = "RUSTSEC-2026-0220", reason = "ruint pinned by alloy-primitives 1.6.1; not exploitable on Kobe EVM derive path" },
-    { id = "RUSTSEC-2024-0436", reason = "paste unmaintained; transitive of alloy-primitives only; no Kobe direct use" },
-]
+ignore = [{ id = "RUSTSEC-2026-0220", reason = "ruint pinned by alloy-primitives 1.6.1; not exploitable on Kobe EVM derive path" }, { id = "RUSTSEC-2024-0436", reason = "paste unmaintained; transitive of alloy-primitives only; no Kobe direct use" }]
 
 [licenses]
 confidence-threshold = 0.8
-allow                = [
-    "MIT",
-    "Apache-2.0",
-    "Apache-2.0 WITH LLVM-exception",
-    "BSD-2-Clause",
-    "BSD-3-Clause",
-    "BSD-1-Clause",
-    "CC0-1.0",
-    "Unlicense",
-    "Zlib",
-    "MPL-2.0",
-    "Unicode-3.0",
-]
+allow                = ["MIT", "Apache-2.0", "Apache-2.0 WITH LLVM-exception", "BSD-2-Clause", "BSD-3-Clause", "BSD-1-Clause", "CC0-1.0", "Unlicense", "Zlib", "MPL-2.0", "Unicode-3.0"]
 
 [licenses.private]
 ignore = false
@@ -45,20 +36,13 @@ external-default-features  = "allow"
 allow-workspace            = true
 
 # Full `bitcoin` stack is banned: kobe-btc implements address/WIF locally
-# and derives via kobe-primitives. `bitcoin_hashes` remains only as a
+# and derives via kobe-core. `bitcoin_hashes` remains only as a
 # transitive of `bip39` (acceptable, not the full protocol crate).
-deny = [
-    { crate = "bitcoin", reason = "kobe-btc must not reintroduce the full bitcoin crate; use local encoding + Wallet::derive_secp256k1" },
-]
+deny = [{ crate = "bitcoin", reason = "kobe-btc must not reintroduce the full bitcoin crate; use local encoding + Wallet::derive_secp256k1" }]
 
 # Dual RustCrypto lines until bip32 0.5 / k256 0.13 and ed25519-dalek 3 /
 # workspace sha2 0.11 align on one digest generation (see refactor plan Phase F).
-skip = [
-    { crate = "sha2@0.10", reason = "pulled by bip32 0.5 / k256 0.13 / bs58; workspace uses sha2 0.11" },
-    { crate = "hmac@0.12", reason = "pulled by bip32 0.5 / k256 ecdsa path; workspace uses hmac 0.13" },
-    { crate = "digest@0.10", reason = "RustCrypto 0.10 line via bip32/k256; workspace uses digest 0.11" },
-    { crate = "ripemd@0.1", reason = "pulled by bip32 0.5; chains use ripemd 0.2" },
-]
+skip = [{ crate = "sha2@0.10", reason = "pulled by bip32 0.5 / k256 0.13 / bs58; workspace uses sha2 0.11" }, { crate = "hmac@0.12", reason = "pulled by bip32 0.5 / k256 ecdsa path; workspace uses hmac 0.13" }, { crate = "digest@0.10", reason = "RustCrypto 0.10 line via bip32/k256; workspace uses digest 0.11" }, { crate = "ripemd@0.1", reason = "pulled by bip32 0.5; chains use ripemd 0.2" }]
 
 [sources]
 unknown-registry = "deny"

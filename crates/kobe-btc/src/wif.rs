@@ -4,10 +4,10 @@
 
 use alloc::string::String;
 
-use kobe_primitives::DeriveError;
-use kobe_primitives::encoding::base58check_encode;
+use kobe_core::DeriveError;
+use kobe_core::encoding::base58check_encode;
 #[cfg(test)]
-use kobe_primitives::encoding::double_sha256;
+use kobe_core::encoding::double_sha256;
 #[cfg(test)]
 use zeroize::Zeroize;
 use zeroize::Zeroizing;

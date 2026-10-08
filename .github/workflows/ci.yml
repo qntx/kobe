@@ -9,63 +9,41 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   ci:
+    uses: qntx/workflows/.github/workflows/ci-bun.yml@v2
+    permissions:
+      contents: read
+    # bun run build → vp run -r build (no Rust)
+    # bun run test → vp run -r test + repo-level scripts/*.test.ts
+
+  rust:
     uses: qntx/workflows/.github/workflows/ci-rust.yml@v2
     permissions:
       contents: read
     with:
+      # rust-version omitted: rust-toolchain.toml pins the toolchain.
       deny: true
+      doc: true
+      package-check: true
 
-  no-std:
-    name: no_std
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
-        with:
-          toolchain: stable
-          targets: thumbv7m-none-eabi
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-      - name: Install ARM cross-compiler
-        run: sudo apt-get update && sudo apt-get install -y gcc-arm-none-eabi
-      - name: kobe-primitives (pure no_std)
-        run: cargo check -p kobe-primitives --target thumbv7m-none-eabi --no-default-features
-      - name: kobe-primitives (alloc)
-        run: cargo check -p kobe-primitives --target thumbv7m-none-eabi --no-default-features --features alloc
-      - name: kobe-primitives (alloc + all optional)
-        run: cargo check -p kobe-primitives --target thumbv7m-none-eabi --no-default-features --features "alloc,bip32,slip10,camouflage,encoding"
-      - name: kobe-aptos (no_std)
-        run: cargo check -p kobe-aptos --target thumbv7m-none-eabi --no-default-features --features alloc
-      - name: kobe-btc (no_std)
-        run: cargo check -p kobe-btc --target thumbv7m-none-eabi --no-default-features --features alloc
-      - name: kobe-evm (no_std)
-        run: cargo check -p kobe-evm --target thumbv7m-none-eabi --no-default-features --features alloc
-      - name: kobe-svm (no_std)
-        run: cargo check -p kobe-svm --target thumbv7m-none-eabi --no-default-features --features alloc
-      - name: kobe-cosmos (no_std)
-        run: cargo check -p kobe-cosmos --target thumbv7m-none-eabi --no-default-features --features alloc
-      - name: kobe-tron (no_std)
-        run: cargo check -p kobe-tron --target thumbv7m-none-eabi --no-default-features --features alloc
-      - name: kobe-spark (no_std)
-        run: cargo check -p kobe-spark --target thumbv7m-none-eabi --no-default-features --features alloc
-      - name: kobe-fil (no_std)
-        run: cargo check -p kobe-fil --target thumbv7m-none-eabi --no-default-features --features alloc
-      - name: kobe-ton (no_std)
-        run: cargo check -p kobe-ton --target thumbv7m-none-eabi --no-default-features --features alloc
-      - name: kobe-sui (no_std)
-        run: cargo check -p kobe-sui --target thumbv7m-none-eabi --no-default-features --features alloc
-      - name: kobe-nostr (no_std)
-        run: cargo check -p kobe-nostr --target thumbv7m-none-eabi --no-default-features --features alloc
-      - name: kobe-xrpl (no_std)
-        run: cargo check -p kobe-xrpl --target thumbv7m-none-eabi --no-default-features --features alloc
-      - name: kobe-casper (no_std)
-        run: cargo check -p kobe-casper --target thumbv7m-none-eabi --no-default-features --features alloc
-      - name: kobe-arweave (no_std)
-        run: cargo check -p kobe-arweave --target thumbv7m-none-eabi --no-default-features --features alloc
-      - name: kobe (no_std)
-        run: cargo check -p kobe --target thumbv7m-none-eabi --no-default-features --features alloc
-      - name: kobe (no_std + all chains)
-        run: cargo check -p kobe --target thumbv7m-none-eabi --no-default-features --features "alloc,all-chains"
+  rust-minimal:
+    uses: qntx/workflows/.github/workflows/ci-rust.yml@v2
+    permissions:
+      contents: read
+    with:
+      features: --no-default-features
+
+  portable:
+    uses: qntx/workflows/.github/workflows/ci-rust-cross.yml@v2
+    permissions:
+      contents: read
+    with:
+      targets: thumbv7m-none-eabi wasm32-unknown-unknown aarch64-linux-android x86_64-linux-android aarch64-apple-ios aarch64-apple-ios-sim
+      packages: kobe-core kobe-aptos kobe-arweave kobe-btc kobe-casper kobe-cosmos kobe-evm kobe-fil kobe-nostr kobe-spark kobe-sui kobe-svm kobe-ton kobe-tron kobe-xrpl kobe
+      features: --no-default-features
+      forbid-deps: getrandom

@@ -4,8 +4,8 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::ops::Deref;
 
-use kobe_primitives::slip10::DerivedEd25519Key;
-use kobe_primitives::{
+use kobe_core::slip10::DerivedEd25519Key;
+use kobe_core::{
     // Anonymous trait import so `style.path(i)` resolves through the shared
     // trait; the local `DerivationStyle` enum keeps the bare name.
     DerivationStyle as _,
@@ -88,7 +88,7 @@ impl From<SvmAccount> for DerivedAccount {
 
 /// Solana address deriver from a unified wallet seed.
 ///
-/// This deriver takes a seed from [`kobe_primitives::Wallet`] and derives
+/// This deriver takes a seed from [`kobe_core::Wallet`] and derives
 /// Solana addresses following BIP44/SLIP-0010 standards.
 #[derive(Debug)]
 pub struct Deriver<'a> {
@@ -212,7 +212,7 @@ fn build_svm_account(derived: &DerivedEd25519Key, path: String) -> SvmAccount {
 #[cfg(test)]
 #[allow(clippy::indexing_slicing, reason = "test assertions")]
 mod tests {
-    use kobe_primitives::DeriveExt;
+    use kobe_core::DeriveExt;
 
     use super::*;
 

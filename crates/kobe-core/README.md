@@ -1,4 +1,4 @@
-# kobe-primitives
+# kobe-core
 
 Multi-chain HD wallet derivation library
 
