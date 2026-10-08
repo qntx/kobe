@@ -155,7 +155,8 @@ impl Wallet {
     ///
     /// # Errors
     ///
-    /// Returns an error if the entropy length is invalid.
+    /// Returns [`DeriveError::Input`] if the entropy is not 16, 20, 24, 28, or
+    /// 32 bytes long.
     pub fn from_entropy(entropy: &[u8], passphrase: Option<&str>) -> Result<Self, DeriveError> {
         Self::from_entropy_in(Language::English, entropy, passphrase)
     }
@@ -173,12 +174,20 @@ impl Wallet {
     ///
     /// # Errors
     ///
-    /// Returns an error if the entropy length is invalid.
+    /// Returns [`DeriveError::Input`] if the entropy is not 16, 20, 24, 28, or
+    /// 32 bytes long.
     pub fn from_entropy_in(
         language: Language,
         entropy: &[u8],
         passphrase: Option<&str>,
     ) -> Result<Self, DeriveError> {
+        // Reject bad lengths as caller input, matching the shared error codes.
+        if !matches!(entropy.len(), 16 | 20 | 24 | 28 | 32) {
+            return Err(DeriveError::Input(alloc::format!(
+                "entropy length must be 16, 20, 24, 28, or 32 bytes, got {}",
+                entropy.len()
+            )));
+        }
         let mnemonic = Mnemonic::from_entropy_in(language, entropy)?;
         Ok(Self::from_parts(&mnemonic, language, passphrase))
     }

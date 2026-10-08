@@ -125,4 +125,52 @@ describe("parity check", () => {
     );
     expect(errors).toStrictEqual([]);
   });
+
+  test("stable capability rejects a vector cited only on the ts side", () => {
+    const c = cap({
+      status: "stable",
+      rust: { module: "src/x.rs", tests: ["tests/x.rs"] },
+      vectors: ["vectors/core/x.json"],
+    });
+    const files = new Map([
+      ["src/x.ts", ""],
+      ["src/x.rs", ""],
+      ["tests/x.test.ts", 'readFileSync("vectors/core/x.json")'],
+      ["tests/x.rs", 'include_str!("other.json")'],
+      ["vectors/core/x.json", "{}"],
+    ]);
+    const errors = checkParity(
+      parity([c]),
+      ["vectors/core/x.json"],
+      (p) => files.has(p),
+      mapReader(files),
+    );
+    expect(errors).toStrictEqual([
+      'capability "core.example": vector vectors/core/x.json is not referenced by any of its rust test files',
+    ]);
+  });
+
+  test("stable capability rejects a vector cited only on the rust side", () => {
+    const c = cap({
+      status: "stable",
+      rust: { module: "src/x.rs", tests: ["tests/x.rs"] },
+      vectors: ["vectors/core/x.json"],
+    });
+    const files = new Map([
+      ["src/x.ts", ""],
+      ["src/x.rs", ""],
+      ["tests/x.test.ts", "reads nothing relevant"],
+      ["tests/x.rs", 'include_str!("vectors/core/x.json")'],
+      ["vectors/core/x.json", "{}"],
+    ]);
+    const errors = checkParity(
+      parity([c]),
+      ["vectors/core/x.json"],
+      (p) => files.has(p),
+      mapReader(files),
+    );
+    expect(errors).toStrictEqual([
+      'capability "core.example": vector vectors/core/x.json is not referenced by any of its ts test files',
+    ]);
+  });
 });

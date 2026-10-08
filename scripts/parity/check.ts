@@ -95,14 +95,26 @@ export function checkParity(
         continue;
       }
       const needles = [vector, basename(vector)];
-      const cited = testFiles.some((testFile) => {
-        if (!fileExists(testFile)) {
-          return false;
+      const cites = (files: string[]): boolean =>
+        files.some((testFile) => {
+          if (!fileExists(testFile)) {
+            return false;
+          }
+          const content = readFile(testFile);
+          return needles.some((needle) => content.includes(needle));
+        });
+      const tsCited = cites(ts.tests);
+      const rustCited = cites(rust.tests);
+      if (status === "stable") {
+        // A stable capability is confirmed by both implementations: each
+        // side's runner must cite every vector.
+        if (!tsCited) {
+          errors.push(`${label}: vector ${vector} is not referenced by any of its ts test files`);
         }
-        const content = readFile(testFile);
-        return needles.some((needle) => content.includes(needle));
-      });
-      if (!cited) {
+        if (!rustCited) {
+          errors.push(`${label}: vector ${vector} is not referenced by any of its rust test files`);
+        }
+      } else if (!tsCited && !rustCited) {
         errors.push(`${label}: vector ${vector} is not referenced by any of its test files`);
       }
     }

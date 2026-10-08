@@ -27,12 +27,16 @@
   ],
   "type": "module",
   "sideEffects": false,
-  "types": "./dist/index.d.mts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.mts",
-      "import": "./dist/index.mjs",
-      "default": "./dist/index.mjs"
+    "./core": {
+      "types": "./dist/core.d.mts",
+      "import": "./dist/core.mjs",
+      "default": "./dist/core.mjs"
+    },
+    "./nostr": {
+      "types": "./dist/nostr.d.mts",
+      "import": "./dist/nostr.mjs",
+      "default": "./dist/nostr.mjs"
     },
     "./package.json": "./package.json"
   },
@@ -47,6 +51,13 @@
     "smoke:hermes": "bun scripts/hermes-smoke.ts",
     "check:pkg": "vp pack && publint && attw --pack . --profile esm-only",
     "pack:local": "vp pack && bun pm pack"
+  },
+  "dependencies": {
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
+    "@scure/base": "^2.4.0",
+    "@scure/bip32": "^2.4.0",
+    "@scure/bip39": "^2.4.0"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",

@@ -110,7 +110,7 @@ pub use bip39::rand_core;
 pub use derive::{
     Derive, DeriveExt, DerivedAccount, DerivedPublicKey, PublicKeyKind, derive_range,
 };
-pub use error::DeriveError;
+pub use error::{DeriveError, ErrorCode};
 pub use style::{DerivationStyle, ParseDerivationStyleError};
 pub use wallet::Wallet;
 

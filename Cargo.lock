@@ -816,6 +816,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "kobe-vectors"
+version = "3.4.0"
+dependencies = [
+ "hex",
+ "kobe-core",
+ "kobe-nostr",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "kobe-xrpl"
 version = "3.4.0"
 dependencies = [

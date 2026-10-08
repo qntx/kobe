@@ -75,6 +75,27 @@ const config: UserConfig = defineConfig({
           "eslint/no-restricted-imports": ["error", platformNeutralImports],
         },
       },
+      {
+        // src/core is the leaf layer: it must not reach ../nostr or the
+        // package root. Overrides replace the rule config, so the
+        // platform-neutral restrictions are re-added explicitly.
+        files: ["packages/kobe/src/core/**"],
+        rules: {
+          "eslint/no-restricted-imports": [
+            "error",
+            {
+              paths: platformNeutralImports.paths,
+              patterns: [
+                ...platformNeutralImports.patterns,
+                {
+                  group: ["..", "../", "../index", "../index.ts", "../nostr", "../nostr/**"],
+                  message: "core is the leaf layer (AGENTS.md layering)",
+                },
+              ],
+            },
+          ],
+        },
+      },
     ],
   }),
   fmt: {

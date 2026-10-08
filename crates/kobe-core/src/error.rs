@@ -47,6 +47,62 @@ pub enum DeriveError {
     AddressEncoding(String),
 }
 
+/// Stable machine-readable code for a [`DeriveError`], shared with the
+/// TypeScript implementation (`KobeError.code`); [`as_str`](Self::as_str)
+/// returns the shared string.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum ErrorCode {
+    /// BIP-39 mnemonic decoding / encoding failed.
+    Mnemonic,
+    /// Derivation path is malformed or unsupported.
+    Path,
+    /// A cryptographic primitive failed.
+    Crypto,
+    /// Caller-supplied input failed validation.
+    Input,
+    /// Chain-specific address encoding failed.
+    AddressEncoding,
+}
+
+impl ErrorCode {
+    /// The `KobeErrorCode` string used by the TypeScript implementation.
+    #[inline]
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Mnemonic => "mnemonic",
+            Self::Path => "path",
+            Self::Crypto => "crypto",
+            Self::Input => "input",
+            Self::AddressEncoding => "address-encoding",
+        }
+    }
+}
+
+impl core::fmt::Display for ErrorCode {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl DeriveError {
+    /// Machine-readable code identifying which variant this error is.
+    ///
+    /// 1:1 with the variants and with `KobeError.code` in TypeScript.
+    #[inline]
+    #[must_use]
+    pub const fn code(&self) -> ErrorCode {
+        match self {
+            Self::Mnemonic(_) => ErrorCode::Mnemonic,
+            Self::Path(_) => ErrorCode::Path,
+            Self::Crypto(_) => ErrorCode::Crypto,
+            Self::Input(_) => ErrorCode::Input,
+            Self::AddressEncoding(_) => ErrorCode::AddressEncoding,
+        }
+    }
+}
+
 #[cfg(not(feature = "std"))]
 impl From<bip39::Error> for DeriveError {
     fn from(e: bip39::Error) -> Self {

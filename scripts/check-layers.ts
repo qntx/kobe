@@ -44,6 +44,8 @@ const ALLOWED: Record<string, string[]> = {
   ...Object.fromEntries(CHAIN_CRATES.map((name) => [name, ["kobe-core"]])),
   kobe: [ALL],
   "kobe-cli": ["kobe"],
+  // Test-only vector runner (publish = false): may reach every crate.
+  "kobe-vectors": [ALL],
 };
 
 function isRecord(value: unknown): value is JsonObject {

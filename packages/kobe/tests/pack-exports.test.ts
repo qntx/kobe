@@ -17,38 +17,44 @@ function readPkg(): Pkg {
 
 describe("applyPackExports", () => {
   test("maps a .mjs string export to types/import/default", () => {
-    const out = applyPackExports({ ".": "./dist/index.mjs" });
-    expect(out["."]).toStrictEqual({
-      types: "./dist/index.d.mts",
-      import: "./dist/index.mjs",
-      default: "./dist/index.mjs",
+    const out = applyPackExports({ "./core": "./dist/core.mjs" });
+    expect(out["./core"]).toStrictEqual({
+      types: "./dist/core.d.mts",
+      import: "./dist/core.mjs",
+      default: "./dist/core.mjs",
     });
   });
 
   test("leaves non-mjs strings and object exports unchanged", () => {
     const pkgJson = "./package.json";
-    const index = { types: "./dist/index.d.mts", import: "./dist/index.mjs" };
-    const out = applyPackExports({ "./package.json": pkgJson, ".": index });
+    const core = { types: "./dist/core.d.mts", import: "./dist/core.mjs" };
+    const out = applyPackExports({ "./package.json": pkgJson, "./core": core });
     expect(out["./package.json"]).toBe(pkgJson);
-    expect(out["."]).toBe(index);
+    expect(out["./core"]).toBe(core);
   });
 });
 
 describe("package.json publish shape", () => {
-  test("exports . with types and import paths", () => {
-    expect(readPkg().exports["."]).toStrictEqual({
-      types: "./dist/index.d.mts",
-      import: "./dist/index.mjs",
-      default: "./dist/index.mjs",
-    });
+  test("is subpath-only: ./core and ./nostr, no package root", () => {
+    const pkg = readPkg();
+    expect(pkg.exports["."]).toBeUndefined();
+    for (const subpath of ["./core", "./nostr"] as const) {
+      const name = subpath.slice(2);
+      expect(pkg.exports[subpath]).toStrictEqual({
+        types: `./dist/${name}.d.mts`,
+        import: `./dist/${name}.mjs`,
+        default: `./dist/${name}.mjs`,
+      });
+    }
   });
 
   test("exports ./package.json", () => {
     expect(readPkg().exports["./package.json"]).toBe("./package.json");
   });
 
-  test("vite pack entries include src/index.ts", () => {
+  test("vite pack entries include the core and nostr indexes", () => {
     const src = readFileSync(join(root, "vite.config.ts"), "utf8");
-    expect(src).toContain('index: "src/index.ts"');
+    expect(src).toContain('core: "src/core/index.ts"');
+    expect(src).toContain('nostr: "src/nostr/index.ts"');
   });
 });

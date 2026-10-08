@@ -68,4 +68,18 @@ describe("check-layers", () => {
     const errors = checkLayers([crate("kobe-mystery", [])]);
     expect(errors).toStrictEqual(['unknown crate "kobe-mystery"']);
   });
+
+  test("kobe-vectors may depend on any crate", () => {
+    const crates = [
+      crate("kobe-core", []),
+      crate("kobe-nostr", ["kobe-core"]),
+      crate("kobe-vectors", ["kobe-core", "kobe-nostr", "kobe"], false),
+    ];
+    expect(checkLayers(crates)).toStrictEqual([]);
+  });
+
+  test("kobe-vectors is not a P-level crate", () => {
+    const errors = checkLayers([crate("kobe-vectors", ["tokio"], false)]);
+    expect(errors).toStrictEqual([]);
+  });
 });

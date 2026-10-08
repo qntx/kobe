@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "capability": "core.bip32",
+  "source": {
+    "kind": "generated",
+    "generator": "kobe-core + @qntx/kobe (cross-confirmed)",
+    "version": "3.4.0"
+  },
+  "cases": [
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "path": "m",
+      "privateKey": "1837c1be8e2995ec11cda2b066151be2cfb48adf9e47b151d46adab3a21cdf67",
+      "compressedPublicKey": "03d902f35f560e0470c63313c7369168d9d7df2d49bf295fd9fb7cb109ccee0494",
+      "uncompressedPublicKey": "04d902f35f560e0470c63313c7369168d9d7df2d49bf295fd9fb7cb109ccee04947d000a1345d3845dd83b4c5814f876c918305b598f066c958fad972bf59f2ec7"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "path": "m/44'/60'/0'/0/0",
+      "privateKey": "1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727",
+      "compressedPublicKey": "0237b0bb7a8288d38ed49a524b5dc98cff3eb5ca824c9f9dc0dfdb3d9cd600f299",
+      "uncompressedPublicKey": "0437b0bb7a8288d38ed49a524b5dc98cff3eb5ca824c9f9dc0dfdb3d9cd600f299a6179912b7451c09896c4098eca7ce6b2e58330672795e847c4d6af44e024230"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "path": "m/44'/0'/0'/0/0",
+      "privateKey": "e284129cc0922579a535bbf4d1a3b25773090d28c909bc0fed73b5e0222cc372",
+      "compressedPublicKey": "03aaeb52dd7494c361049de67cc680e83ebcbbbdbeb13637d92cd845f70308af5e",
+      "uncompressedPublicKey": "04aaeb52dd7494c361049de67cc680e83ebcbbbdbeb13637d92cd845f70308af5e9370164133294e5fd1679672fe7866c307daf97281a28f66dca7cbb52919824f"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "path": "m/84'/0'/0'/0/0",
+      "privateKey": "4604b4b710fe91f584fff084e1a9159fe4f8408fff380596a604948474ce4fa3",
+      "compressedPublicKey": "0330d54fd0dd420a6e5f8d3624f5f3482cae350f79d5f0753bf5beef9c2d91af3c",
+      "uncompressedPublicKey": "0430d54fd0dd420a6e5f8d3624f5f3482cae350f79d5f0753bf5beef9c2d91af3c04717159ce0828a7f686c2c7510b7aa7d4c685ebc2051642ccbebc7099e2f679"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "path": "m/44'/1237'/0'/0/0",
+      "privateKey": "5f29af3b9676180290e77a4efad265c4c2ff28a5302461f73597fda26bb25731",
+      "compressedPublicKey": "02e8bcf3823669444d0b49ad45d65088635d9fd8500a75b5f20b59abefa56a144f",
+      "uncompressedPublicKey": "04e8bcf3823669444d0b49ad45d65088635d9fd8500a75b5f20b59abefa56a144ff660d7b4e14f52deb4d0fdb551f214f1b4eab581dc48c6b373ec61144395aa46"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "path": "44'/60'/0'",
+      "error": "path"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "path": "m/abc",
+      "error": "path"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "path": "m/2147483648",
+      "error": "path"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "path": "",
+      "error": "path"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "path": " m/0",
+      "error": "path"
+    }
+  ]
+}
