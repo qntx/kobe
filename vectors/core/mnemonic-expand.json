@@ -32,6 +32,10 @@
       "error": "input"
     },
     {
+      "input": "aban aban aban aban aban aban aban aban aban aban aban stor",
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon story"
+    },
+    {
       "input": "aban aban abandonn aban aban aban aban aban aban aban aban aban",
       "error": "input"
     }

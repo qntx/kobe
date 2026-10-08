@@ -2,7 +2,7 @@
 
 use alloc::{format, string::String};
 
-use kobe_core::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
+use kobe_core::{Derive, DerivedAccount, DerivedPublicKey, Error, Wallet};
 use sha3::{Digest, Sha3_256};
 use zeroize::Zeroizing;
 
@@ -34,7 +34,7 @@ impl<'a> Deriver<'a> {
     /// # Errors
     ///
     /// Returns an error if key derivation fails.
-    pub fn derive_at(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
+    pub fn derive_at(&self, path: &str) -> Result<DerivedAccount, Error> {
         let derived_key = self.wallet.derive_ed25519(path)?;
         let signing_key = derived_key.to_signing_key();
         let verifying_key = signing_key.verifying_key();
@@ -62,13 +62,13 @@ impl<'a> Deriver<'a> {
 
 impl Derive for Deriver<'_> {
     type Account = DerivedAccount;
-    type Error = DeriveError;
+    type Error = Error;
 
-    fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
+    fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
         self.derive_at(&format!("m/44'/637'/{index}'/0'/0'"))
     }
 
-    fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
+    fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
         self.derive_at(path)
     }
 }

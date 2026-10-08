@@ -6,7 +6,7 @@ use alloc::string::String;
 use k256::elliptic_curve::ops::Reduce;
 use k256::elliptic_curve::sec1::ToEncodedPoint;
 use k256::{ProjectivePoint, PublicKey, Scalar, U256};
-use kobe_core::DeriveError;
+use kobe_core::Error;
 use kobe_core::encoding::{base58check_versioned, hash160};
 use sha2::{Digest, Sha256};
 
@@ -17,11 +17,11 @@ pub(crate) fn create_address(
     public_key: &[u8; 33],
     network: Network,
     address_type: AddressType,
-) -> Result<String, DeriveError> {
+) -> Result<String, Error> {
     match public_key.first().copied() {
         Some(0x02 | 0x03) => {}
         _ => {
-            return Err(DeriveError::Crypto(
+            return Err(Error::Crypto(
                 "btc: expected compressed public key prefix 0x02 or 0x03".into(),
             ));
         }
@@ -58,14 +58,14 @@ fn p2sh_p2wpkh(public_key: &[u8; 33], network: Network) -> String {
     base58check_versioned(version, &hash160(&redeem))
 }
 
-fn p2wpkh(public_key: &[u8; 33], network: Network) -> Result<String, DeriveError> {
+fn p2wpkh(public_key: &[u8; 33], network: Network) -> Result<String, Error> {
     let program = hash160(public_key);
     let hrp = match network {
         Network::Mainnet => bech32::hrp::BC,
         Network::Testnet => bech32::hrp::TB,
     };
     bech32::segwit::encode_v0(hrp, &program)
-        .map_err(|e| DeriveError::AddressEncoding(format!("btc p2wpkh: {e}")))
+        .map_err(|e| Error::AddressEncoding(format!("btc p2wpkh: {e}")))
 }
 
 /// Key-path-only P2TR (BIP-341).
@@ -74,11 +74,11 @@ fn p2wpkh(public_key: &[u8; 33], network: Network) -> Result<String, DeriveError
 /// Output key: `Q = P + t·G` with `t = int(hashTapTweak(x)) mod n`.
 /// The address program is the x-coordinate of `Q` (parity is irrelevant for
 /// encoding). This crate does not sign or spend.
-fn p2tr(public_key: &[u8; 33], network: Network) -> Result<String, DeriveError> {
+fn p2tr(public_key: &[u8; 33], network: Network) -> Result<String, Error> {
     let mut even_key = *public_key;
     even_key[0] = 0x02;
     let internal = PublicKey::from_sec1_bytes(&even_key)
-        .map_err(|e| DeriveError::Crypto(format!("btc p2tr internal key: {e}")))?;
+        .map_err(|e| Error::Crypto(format!("btc p2tr internal key: {e}")))?;
     let internal_x = &even_key[1..];
 
     let tag = Sha256::digest(b"TapTweak");
@@ -96,14 +96,14 @@ fn p2tr(public_key: &[u8; 33], network: Network) -> Result<String, DeriveError> 
     let encoded = q_proj.to_affine().to_encoded_point(true);
     let output_x = encoded
         .x()
-        .ok_or_else(|| DeriveError::Crypto("btc p2tr: output key at infinity".into()))?;
+        .ok_or_else(|| Error::Crypto("btc p2tr: output key at infinity".into()))?;
 
     let hrp = match network {
         Network::Mainnet => bech32::hrp::BC,
         Network::Testnet => bech32::hrp::TB,
     };
     bech32::segwit::encode_v1(hrp, output_x)
-        .map_err(|e| DeriveError::AddressEncoding(format!("btc p2tr: {e}")))
+        .map_err(|e| Error::AddressEncoding(format!("btc p2tr: {e}")))
 }
 
 #[cfg(test)]
@@ -126,7 +126,7 @@ mod tests {
         pk[0] = 0x04;
         assert!(matches!(
             create_address(&pk, Network::Mainnet, AddressType::P2wpkh),
-            Err(DeriveError::Crypto(_))
+            Err(Error::Crypto(_))
         ));
     }
 

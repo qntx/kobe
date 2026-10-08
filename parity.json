@@ -29,7 +29,7 @@
         "module": "crates/kobe-core/src/bip32.rs",
         "tests": ["crates/kobe-vectors/tests/core.rs"]
       },
-      "vectors": ["vectors/core/bip32.json"]
+      "vectors": ["vectors/core/bip32.json", "vectors/bip32/official.json"]
     },
     {
       "id": "core.mnemonic.expand",

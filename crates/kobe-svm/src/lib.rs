@@ -12,4 +12,4 @@ mod deriver;
 
 pub use derivation_style::DerivationStyle;
 pub use deriver::{Deriver, SvmAccount};
-pub use kobe_core::{DeriveError, DerivedAccount, DerivedPublicKey, ParseDerivationStyleError};
+pub use kobe_core::{DerivedAccount, DerivedPublicKey, Error, ParseDerivationStyleError};

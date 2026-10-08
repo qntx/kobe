@@ -11,4 +11,4 @@ extern crate alloc;
 mod deriver;
 
 pub use deriver::{Deriver, address_from_compressed_pubkey, owner_from_compressed_pubkey};
-pub use kobe_core::{DeriveError, DerivedAccount, DerivedPublicKey};
+pub use kobe_core::{DerivedAccount, DerivedPublicKey, Error};

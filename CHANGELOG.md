@@ -8,7 +8,11 @@ All notable changes to this workspace are documented in this file. The format is
 
 - TypeScript wallet core and Nostr module: `@qntx/kobe/core` (`Wallet`, `KobeError`, `expandMnemonic`, `isValidMnemonic`, `DerivedAccount`/`DerivedPublicKey`/`DerivedSecp256k1Key` types) and `@qntx/kobe/nostr` (`NostrDeriver`, `NostrAccount`), migrated from `@qntx/wallet`.
 - Shared-vector runners on both sides: `crates/kobe-vectors` (Rust, `publish = false`) and `packages/kobe/tests/vectors/` (TS) execute the same `vectors/` files; `parity.json` tracks `core.bip39`, `core.bip32`, `core.mnemonic.expand`, and `nostr.nip06` as stable tier-A capabilities.
-- `kobe_core::ErrorCode` (`as_str()` yields the TS `KobeError.code` strings) and `DeriveError::code()`, the shared error-code vocabulary documented in `vectors/README.md`.
+- `kobe_core::ErrorCode` (`as_str()` yields the TS `KobeError.code` strings) and `Error::code()`, the shared error-code vocabulary documented in `vectors/README.md`.
+- `Wallet::generate_with(rng, word_count, passphrase)` — caller-supplied `rand_core::CryptoRng` entropy for wallet generation, always available (`rand_core` is re-exported from `kobe_core`).
+- `Wallet::generate(word_count, passphrase)` behind the new non-default `os-rng` feature (OS entropy via `getrandom`; portable `--no-default-features` builds stay `getrandom`-free).
+- Official BIP-32 test vectors 1–4 (`vectors/bip32/official.json`, extracted from `bitcoin/bips` `bip-0032.mediawiki`) executed by both vector runners; kobe does not parse extended keys, so the invalid-key test vector 5 is out of scope.
+- Passphrase-rule vectors in `vectors/core/bip39.json`: NFKD normalization (NFC and NFD forms of the same passphrase produce identical seeds), empty string equals no passphrase, and passphrases are never trimmed.
 - TypeScript workspace: `packages/kobe` (`@qntx/kobe`) built with Vite+ (`vp`), with lint, typecheck, pack and Hermes smoke gates; npm publishing through trusted publishing (OIDC) from `publish-npm.yml`.
 - Cross-language parity infrastructure: `vectors/` for shared test vectors and the `parity.json` capability ledger, validated by `scripts/parity/check.ts`.
 - Repository checks in `bun run lint`: lockstep versions (`scripts/check-version.ts`), the crate dependency graph (`scripts/check-layers.ts`), and TOML formatting (taplo).
@@ -18,8 +22,12 @@ All notable changes to this workspace are documented in this file. The format is
 - **Breaking:** `kobe-primitives` is renamed `kobe-core`; replace `kobe_primitives::` with `kobe_core::`. The `kobe` umbrella crate re-exports it unchanged.
 - **Breaking:** the `alloc` feature is removed from every crate: `alloc` is always required and `--no-default-features` now means `no_std` + `alloc`. Replace `default-features = false, features = ["alloc"]` with `default-features = false`.
 - **Breaking:** the toolchain is pinned to Rust 1.99 and the MSRV moves from 1.85 to 1.99.
-- **Breaking:** `kobe_casper::account_hash_ed25519` and `kobe_casper::account_hash_secp256k1` return `[u8; 32]` instead of `Result<[u8; 32], DeriveError>`; neither can fail.
-- **Breaking:** `Wallet::from_entropy` / `from_entropy_in` reject an entropy slice whose length is not 16/20/24/28/32 with `DeriveError::Input` instead of `DeriveError::Mnemonic` (shared error-code contract with the TypeScript `Wallet.fromEntropy`).
+- **Breaking:** `kobe_casper::account_hash_ed25519` and `kobe_casper::account_hash_secp256k1` return `[u8; 32]` instead of `Result<[u8; 32], Error>`; neither can fail.
+- **Breaking:** `Wallet::from_entropy` rejects an entropy slice whose length is not 16/20/24/28/32 with `Error::Input` instead of `Error::Mnemonic` (shared error-code contract with the TypeScript `Wallet.fromEntropy`).
+- **Breaking:** `kobe_core::DeriveError` is renamed `kobe_core::Error` (re-exported as `Error` by every chain crate and the `kobe` umbrella).
+- **Breaking:** `bip39` upgraded to 3.0.0 and is no longer part of the public API: the `Language` re-export and every language-selecting `_in` function are gone (`Wallet::generate_in`, `generate_in_with`, `from_entropy_in`, `from_mnemonic_in`, `Wallet::language`, `mnemonic::expand_in`, `camouflage::{encrypt_in, decrypt_in}`); `camouflage::{encrypt_with, decrypt_with}` drop their `language` parameter. The English wordlist is used internally.
+- **Breaking:** the `rand` and `rand_core` features are replaced by `os-rng` (`Wallet::generate`) plus the always-on `Wallet::generate_with` taking a `rand_core 0.10` `CryptoRng`; the `bip39::rand_core` re-export is gone.
+- **Breaking:** `bip32::DerivedSecp256k1Key::derive` takes `seed: &[u8]` (16–64 bytes, `Error::Input` otherwise) instead of `&[u8; 64]`; the TypeScript `deriveSecp256k1FromSeed` applies the same rule with code `input`.
 - **Breaking:** `@qntx/kobe` is subpath-only (`@qntx/kobe/core`, `@qntx/kobe/nostr`); there is no package-root import.
 - npm and crates.io versions are lockstep: `bun run release` (bumpp) bumps `packages/kobe/package.json` and `Cargo.toml` together; internal crate dependencies pin the exact workspace version.
 - CI runs the shared `qntx/workflows` gates: Bun, Rust with all and with no default features (plus rustdoc and a publish dry run), portable `no_std` builds for `thumbv7m-none-eabi`, `wasm32-unknown-unknown`, iOS and Android without `getrandom`, and the Hermes smoke. crates.io publishing moved to `publish-crates.yml`.

@@ -34,4 +34,4 @@ extern crate alloc;
 mod deriver;
 
 pub use deriver::{Deriver, Network, SPARK_PURPOSE};
-pub use kobe_core::{DeriveError, DerivedAccount, DerivedPublicKey};
+pub use kobe_core::{DerivedAccount, DerivedPublicKey, Error};

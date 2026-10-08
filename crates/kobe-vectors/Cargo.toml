@@ -16,6 +16,7 @@ kobe-nostr = { workspace = true }
 serde      = { workspace = true }
 serde_json = { workspace = true, features = ["std"] }
 hex        = { workspace = true }
+bs58       = { workspace = true }
 
 [lints]
 workspace = true

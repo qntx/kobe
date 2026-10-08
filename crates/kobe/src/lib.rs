@@ -64,7 +64,7 @@ pub use kobe_xrpl as xrpl;
 /// chain's style enum works without manually `use`-ing the trait.
 pub mod prelude {
     pub use kobe_core::{
-        DerivationStyle as _, Derive, DeriveError, DeriveExt, DerivedAccount, DerivedPublicKey,
+        DerivationStyle as _, Derive, DeriveExt, DerivedAccount, DerivedPublicKey, Error,
         ParseDerivationStyleError, PublicKeyKind, Wallet,
     };
 }

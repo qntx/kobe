@@ -6,7 +6,7 @@ use alloc::{
 };
 use core::ops::Deref;
 
-use kobe_core::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet, derive_range};
+use kobe_core::{Derive, DerivedAccount, DerivedPublicKey, Error, Wallet, derive_range};
 use zeroize::Zeroizing;
 
 use crate::address::create_address;
@@ -117,7 +117,7 @@ impl<'a> Deriver<'a> {
     ///
     /// Returns an error if path, key, address, or WIF derivation fails.
     #[inline]
-    pub fn derive(&self, index: u32) -> Result<BtcAccount, DeriveError> {
+    pub fn derive(&self, index: u32) -> Result<BtcAccount, Error> {
         self.derive_with(AddressType::P2wpkh, index)
     }
 
@@ -127,11 +127,7 @@ impl<'a> Deriver<'a> {
     ///
     /// Returns an error if path, key, address, or WIF derivation fails.
     #[inline]
-    pub fn derive_with(
-        &self,
-        address_type: AddressType,
-        index: u32,
-    ) -> Result<BtcAccount, DeriveError> {
+    pub fn derive_with(&self, address_type: AddressType, index: u32) -> Result<BtcAccount, Error> {
         let path = DerivationPath::bip_standard(address_type, self.network, 0, false, index)?;
         self.derive_structured(&path, address_type)
     }
@@ -146,7 +142,7 @@ impl<'a> Deriver<'a> {
         address_type: AddressType,
         start: u32,
         count: u32,
-    ) -> Result<Vec<BtcAccount>, DeriveError> {
+    ) -> Result<Vec<BtcAccount>, Error> {
         derive_range(start, count, |i| self.derive_with(address_type, i))
     }
 
@@ -155,10 +151,10 @@ impl<'a> Deriver<'a> {
     /// # Errors
     ///
     /// Returns an error if the path is invalid or account derivation fails.
-    pub fn derive_at(&self, path: &str) -> Result<BtcAccount, DeriveError> {
+    pub fn derive_at(&self, path: &str) -> Result<BtcAccount, Error> {
         let parsed = DerivationPath::from_path_str(path)?;
         let address_type = infer_address_type(&parsed).ok_or_else(|| {
-            DeriveError::Path(alloc::format!(
+            Error::Path(alloc::format!(
                 "btc: cannot infer address type from path '{path}'; \
                  purpose must be 44'/49'/84'/86'. \
                  Use Deriver::derive_at_with(path, address_type) for custom paths."
@@ -176,7 +172,7 @@ impl<'a> Deriver<'a> {
         &self,
         path: &str,
         address_type: AddressType,
-    ) -> Result<BtcAccount, DeriveError> {
+    ) -> Result<BtcAccount, Error> {
         let parsed = DerivationPath::from_path_str(path)?;
         self.derive_structured(&parsed, address_type)
     }
@@ -190,7 +186,7 @@ impl<'a> Deriver<'a> {
         &self,
         path: &DerivationPath,
         address_type: AddressType,
-    ) -> Result<BtcAccount, DeriveError> {
+    ) -> Result<BtcAccount, Error> {
         let path_string = path.to_string();
         let derived = self.wallet.derive_secp256k1(&path_string)?;
 
@@ -225,13 +221,13 @@ impl<'a> Deriver<'a> {
 
 impl Derive for Deriver<'_> {
     type Account = BtcAccount;
-    type Error = DeriveError;
+    type Error = Error;
 
-    fn derive(&self, index: u32) -> Result<BtcAccount, DeriveError> {
+    fn derive(&self, index: u32) -> Result<BtcAccount, Error> {
         self.derive_with(AddressType::P2wpkh, index)
     }
 
-    fn derive_path(&self, path: &str) -> Result<BtcAccount, DeriveError> {
+    fn derive_path(&self, path: &str) -> Result<BtcAccount, Error> {
         self.derive_at(path)
     }
 }
@@ -491,14 +487,14 @@ mod tests {
         let d = deriver(&wallet, Network::Mainnet);
 
         let err = d.derive_path("m/1'/2'/3'").unwrap_err();
-        assert!(matches!(err, DeriveError::Path(_)));
-        if let DeriveError::Path(msg) = &err {
+        assert!(matches!(err, Error::Path(_)));
+        if let Error::Path(msg) = &err {
             assert!(msg.contains("cannot infer address type"));
             assert!(msg.contains("derive_at_with"));
         }
 
         let non_hardened_err = d.derive_path("m/44/0'/0'/0/0").unwrap_err();
-        assert!(matches!(non_hardened_err, DeriveError::Path(_)));
+        assert!(matches!(non_hardened_err, Error::Path(_)));
     }
 
     #[test]

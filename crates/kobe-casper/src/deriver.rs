@@ -3,9 +3,7 @@
 use alloc::string::String;
 use core::ops::Deref;
 
-use kobe_core::{
-    DerivationStyle as _, Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet,
-};
+use kobe_core::{DerivationStyle as _, Derive, DerivedAccount, DerivedPublicKey, Error, Wallet};
 
 use crate::address::{
     ED25519_TAG, SECP256K1_TAG, account_hash_ed25519, account_hash_secp256k1, format_account_hash,
@@ -146,7 +144,7 @@ impl<'a> Deriver<'a> {
     ///
     /// Returns an error if key derivation or `AccountHash` hashing fails.
     #[inline]
-    pub fn derive(&self, index: u32) -> Result<CasperAccount, DeriveError> {
+    pub fn derive(&self, index: u32) -> Result<CasperAccount, Error> {
         self.derive_with(self.algo, index)
     }
 
@@ -155,7 +153,7 @@ impl<'a> Deriver<'a> {
     /// # Errors
     ///
     /// Returns an error if key derivation or `AccountHash` hashing fails.
-    pub fn derive_with(&self, algo: KeyAlgo, index: u32) -> Result<CasperAccount, DeriveError> {
+    pub fn derive_with(&self, algo: KeyAlgo, index: u32) -> Result<CasperAccount, Error> {
         self.derive_at_with(&algo.path(index), algo)
     }
 
@@ -169,7 +167,7 @@ impl<'a> Deriver<'a> {
     ///
     /// Returns an error if key derivation or `AccountHash` hashing fails.
     #[inline]
-    pub fn derive_at(&self, path: &str) -> Result<CasperAccount, DeriveError> {
+    pub fn derive_at(&self, path: &str) -> Result<CasperAccount, Error> {
         self.derive_at_with(path, self.algo)
     }
 
@@ -181,14 +179,14 @@ impl<'a> Deriver<'a> {
     /// # Errors
     ///
     /// Returns an error if key derivation or `AccountHash` hashing fails.
-    pub fn derive_at_with(&self, path: &str, algo: KeyAlgo) -> Result<CasperAccount, DeriveError> {
+    pub fn derive_at_with(&self, path: &str, algo: KeyAlgo) -> Result<CasperAccount, Error> {
         match algo {
             KeyAlgo::Secp256k1 => self.derive_secp(path),
             KeyAlgo::Ed25519 => self.derive_ed25519(path),
         }
     }
 
-    fn derive_secp(&self, path: &str) -> Result<CasperAccount, DeriveError> {
+    fn derive_secp(&self, path: &str) -> Result<CasperAccount, Error> {
         let key = self.wallet.derive_secp256k1(path)?;
         let compressed = key.compressed_pubkey();
         let digest = account_hash_secp256k1(&compressed);
@@ -210,7 +208,7 @@ impl<'a> Deriver<'a> {
         })
     }
 
-    fn derive_ed25519(&self, path: &str) -> Result<CasperAccount, DeriveError> {
+    fn derive_ed25519(&self, path: &str) -> Result<CasperAccount, Error> {
         let derived = self.wallet.derive_ed25519(path)?;
         let pubkey_bytes = derived.public_key_bytes();
         let digest = account_hash_ed25519(&pubkey_bytes);
@@ -235,13 +233,13 @@ impl<'a> Deriver<'a> {
 
 impl Derive for Deriver<'_> {
     type Account = CasperAccount;
-    type Error = DeriveError;
+    type Error = Error;
 
-    fn derive(&self, index: u32) -> Result<CasperAccount, DeriveError> {
+    fn derive(&self, index: u32) -> Result<CasperAccount, Error> {
         Deriver::derive(self, index)
     }
 
-    fn derive_path(&self, path: &str) -> Result<CasperAccount, DeriveError> {
+    fn derive_path(&self, path: &str) -> Result<CasperAccount, Error> {
         self.derive_at(path)
     }
 }

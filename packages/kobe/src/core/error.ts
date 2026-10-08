@@ -9,7 +9,7 @@ export type KobeErrorCode = "mnemonic" | "path" | "crypto" | "input" | "address-
 /**
  * Unified HD / mnemonic / path / address-encoding failure.
  *
- * `code` partitions failures by domain, 1:1 with `kobe_core::DeriveError` variants:
+ * `code` partitions failures by domain, 1:1 with `kobe_core::Error` variants:
  *
  * - `mnemonic` — a phrase failed to parse or validate (unknown word, bad checksum, word count,
  *   uppercase).

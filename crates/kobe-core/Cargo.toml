@@ -13,10 +13,11 @@ keywords               = ["crypto", "wallet", "bip39", "mnemonic", "no_std"]
 categories             = ["cryptography", "no-std"]
 
 [features]
-default    = ["std"]
-std        = ["bip39/std", "zeroize/std"]
-rand       = ["bip39/rand"]
-rand_core  = ["bip39/rand_core"]
+default = ["std"]
+std     = ["bip39/std", "zeroize/std"]
+# OS entropy for `Wallet::generate`; off by default so portable
+# `--no-default-features` builds carry no `getrandom`.
+os-rng     = ["dep:getrandom"]
 camouflage = ["dep:hmac", "dep:sha2"]
 slip10     = ["dep:ed25519-dalek", "dep:hmac", "dep:sha2"]
 bip32      = ["dep:bip32-crate", "dep:k256"]
@@ -32,6 +33,8 @@ test-vectors = []
 
 [dependencies]
 bip39.workspace     = true
+rand_core.workspace = true
+getrandom           = { workspace = true, optional = true }
 hmac                = { workspace = true, optional = true }
 sha2                = { workspace = true, optional = true }
 ripemd              = { workspace = true, optional = true }

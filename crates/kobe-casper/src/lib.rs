@@ -61,4 +61,4 @@ pub use address::{
 };
 pub use deriver::{CasperAccount, Deriver};
 pub use key_algo::KeyAlgo;
-pub use kobe_core::{DeriveError, DerivedAccount, DerivedPublicKey, ParseDerivationStyleError};
+pub use kobe_core::{DerivedAccount, DerivedPublicKey, Error, ParseDerivationStyleError};

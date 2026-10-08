@@ -13,5 +13,5 @@ mod style;
 
 pub use address::AddressFormat;
 pub use deriver::Deriver;
-pub use kobe_core::{DeriveError, DerivedAccount, DerivedPublicKey, ParseDerivationStyleError};
+pub use kobe_core::{DerivedAccount, DerivedPublicKey, Error, ParseDerivationStyleError};
 pub use style::DerivationStyle;

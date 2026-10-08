@@ -30,7 +30,7 @@
 //!
 //! # Operational safety
 //!
-//! The [`DeriveError::Input`] returned on invalid
+//! The [`Error::Input`] returned on invalid
 //! phrases may repeat user-supplied tokens verbatim (for diagnostic
 //! purposes). **Never log the raw `Display` / `Debug` output of camouflage
 //! errors in production** — hash or drop them first. Use the typed variant
@@ -38,12 +38,12 @@
 
 use alloc::string::{String, ToString};
 
-use bip39::{Language, Mnemonic};
+use bip39::Mnemonic;
 use hmac::{Hmac, KeyInit, Mac};
 use sha2::Sha256;
 use zeroize::Zeroizing;
 
-use crate::DeriveError;
+use crate::Error;
 
 /// Camouflage algorithm / parameter version.
 ///
@@ -87,22 +87,8 @@ const MAX_ENTROPY_LEN: usize = 32;
 ///
 /// Returns an error if the mnemonic is invalid, the password is empty, or
 /// key derivation fails.
-pub fn encrypt(phrase: &str, password: &str) -> Result<Zeroizing<String>, DeriveError> {
-    transform(Language::English, phrase, password, Version::default())
-}
-
-/// Encrypt in the specified language with the current default [`Version`].
-///
-/// # Errors
-///
-/// Returns an error if the mnemonic is invalid, the password is empty, or
-/// key derivation fails.
-pub fn encrypt_in(
-    language: Language,
-    phrase: &str,
-    password: &str,
-) -> Result<Zeroizing<String>, DeriveError> {
-    transform(language, phrase, password, Version::default())
+pub fn encrypt(phrase: &str, password: &str) -> Result<Zeroizing<String>, Error> {
+    transform(phrase, password, Version::default())
 }
 
 /// Encrypt with an explicit [`Version`] (use for forward compatibility tests
@@ -113,12 +99,11 @@ pub fn encrypt_in(
 /// Returns an error if the mnemonic is invalid, the password is empty, or
 /// key derivation fails.
 pub fn encrypt_with(
-    language: Language,
     phrase: &str,
     password: &str,
     version: Version,
-) -> Result<Zeroizing<String>, DeriveError> {
-    transform(language, phrase, password, version)
+) -> Result<Zeroizing<String>, Error> {
+    transform(phrase, password, version)
 }
 
 /// Decrypt a camouflaged mnemonic with the current default [`Version`].
@@ -130,22 +115,8 @@ pub fn encrypt_with(
 ///
 /// Returns an error if the mnemonic is invalid, the password is empty, or
 /// key derivation fails.
-pub fn decrypt(camouflaged: &str, password: &str) -> Result<Zeroizing<String>, DeriveError> {
-    transform(Language::English, camouflaged, password, Version::default())
-}
-
-/// Decrypt in the specified language with the current default [`Version`].
-///
-/// # Errors
-///
-/// Returns an error if the mnemonic is invalid, the password is empty, or
-/// key derivation fails.
-pub fn decrypt_in(
-    language: Language,
-    camouflaged: &str,
-    password: &str,
-) -> Result<Zeroizing<String>, DeriveError> {
-    transform(language, camouflaged, password, Version::default())
+pub fn decrypt(camouflaged: &str, password: &str) -> Result<Zeroizing<String>, Error> {
+    transform(camouflaged, password, Version::default())
 }
 
 /// Decrypt with an explicit [`Version`]. Required for decrypting ciphertexts
@@ -156,30 +127,22 @@ pub fn decrypt_in(
 /// Returns an error if the mnemonic is invalid, the password is empty, or
 /// key derivation fails.
 pub fn decrypt_with(
-    language: Language,
     camouflaged: &str,
     password: &str,
     version: Version,
-) -> Result<Zeroizing<String>, DeriveError> {
-    transform(language, camouflaged, password, version)
+) -> Result<Zeroizing<String>, Error> {
+    transform(camouflaged, password, version)
 }
 
 /// Core transformation: XOR the mnemonic's entropy with a password-derived
 /// key. Since XOR is self-inverse, this single function handles both encrypt
-/// and decrypt, parameterised by [`Version`].
-fn transform(
-    language: Language,
-    phrase: &str,
-    password: &str,
-    version: Version,
-) -> Result<Zeroizing<String>, DeriveError> {
+/// and decrypt, parameterised by [`Version`]. English wordlist only.
+fn transform(phrase: &str, password: &str, version: Version) -> Result<Zeroizing<String>, Error> {
     if password.is_empty() {
-        return Err(DeriveError::Input(String::from(
-            "password must not be empty",
-        )));
+        return Err(Error::Input(String::from("password must not be empty")));
     }
 
-    let mnemonic = Mnemonic::parse_in(language, phrase)?;
+    let mnemonic = Mnemonic::parse(phrase)?;
     let entropy = Zeroizing::new(mnemonic.to_entropy());
     let entropy_len = entropy.len();
 
@@ -194,12 +157,10 @@ fn transform(
         *dst = ent ^ kb;
     }
 
-    let new_mnemonic = Mnemonic::from_entropy_in(
-        language,
-        new_entropy.get(..entropy_len).ok_or_else(|| {
-            DeriveError::Crypto(String::from("camouflage: entropy truncation failed"))
-        })?,
-    )?;
+    let new_mnemonic =
+        Mnemonic::from_entropy(new_entropy.get(..entropy_len).ok_or_else(|| {
+            Error::Crypto(String::from("camouflage: entropy truncation failed"))
+        })?)?;
     Ok(Zeroizing::new(new_mnemonic.to_string()))
 }
 
@@ -232,9 +193,9 @@ fn pbkdf2_hmac_sha256(
     salt: &[u8],
     iterations: u32,
     output: &mut [u8],
-) -> Result<(), DeriveError> {
+) -> Result<(), Error> {
     let prf = Hmac::<Sha256>::new_from_slice(password)
-        .map_err(|_| DeriveError::Crypto(String::from("pbkdf2: HMAC key init failed")))?;
+        .map_err(|_| Error::Crypto(String::from("pbkdf2: HMAC key init failed")))?;
 
     for (i, chunk) in output.chunks_mut(HMAC_SHA256_LEN).enumerate() {
         chunk.fill(0);
@@ -243,13 +204,12 @@ fn pbkdf2_hmac_sha256(
         let mut mac = prf.clone();
         mac.update(salt);
         let block_num = u32::try_from(i + 1)
-            .map_err(|_| DeriveError::Crypto(String::from("pbkdf2: block counter overflow")))?;
+            .map_err(|_| Error::Crypto(String::from("pbkdf2: block counter overflow")))?;
         mac.update(&block_num.to_be_bytes());
         let mut u = mac.finalize().into_bytes();
         chunk.copy_from_slice(
-            u.get(..chunk.len()).ok_or_else(|| {
-                DeriveError::Crypto(String::from("pbkdf2: output buffer overrun"))
-            })?,
+            u.get(..chunk.len())
+                .ok_or_else(|| Error::Crypto(String::from("pbkdf2: output buffer overrun")))?,
         );
 
         // U_2 .. U_c
@@ -272,15 +232,14 @@ fn derive_key(
     password: &str,
     len: usize,
     version: Version,
-) -> Result<Zeroizing<[u8; MAX_ENTROPY_LEN]>, DeriveError> {
+) -> Result<Zeroizing<[u8; MAX_ENTROPY_LEN]>, Error> {
     let mut key = Zeroizing::new([0u8; MAX_ENTROPY_LEN]);
     pbkdf2_hmac_sha256(
         password.as_bytes(),
         version.salt(),
         version.iterations(),
-        key.get_mut(..len).ok_or_else(|| {
-            DeriveError::Crypto(String::from("pbkdf2: key buffer truncation failed"))
-        })?,
+        key.get_mut(..len)
+            .ok_or_else(|| Error::Crypto(String::from("pbkdf2: key buffer truncation failed")))?,
     )?;
     Ok(key)
 }
@@ -304,7 +263,7 @@ mod tests {
         assert_ne!(camouflaged.as_str(), TEST_24);
 
         // Camouflaged mnemonic must be a valid BIP-39 phrase.
-        assert!(Mnemonic::parse_in(Language::English, camouflaged.as_str()).is_ok());
+        assert!(Mnemonic::parse(camouflaged.as_str()).is_ok());
 
         // Decryption must recover the original.
         let recovered = decrypt(&camouflaged, PASSWORD).unwrap();
@@ -324,7 +283,7 @@ mod tests {
     fn roundtrip_15_words() {
         let camouflaged = encrypt(TEST_15, PASSWORD).unwrap();
         assert_ne!(camouflaged.as_str(), TEST_15);
-        assert!(Mnemonic::parse_in(Language::English, camouflaged.as_str()).is_ok());
+        assert!(Mnemonic::parse(camouflaged.as_str()).is_ok());
 
         let recovered = decrypt(&camouflaged, PASSWORD).unwrap();
         assert_eq!(recovered.as_str(), TEST_15);
@@ -334,7 +293,7 @@ mod tests {
     fn roundtrip_18_words() {
         let camouflaged = encrypt(TEST_18, PASSWORD).unwrap();
         assert_ne!(camouflaged.as_str(), TEST_18);
-        assert!(Mnemonic::parse_in(Language::English, camouflaged.as_str()).is_ok());
+        assert!(Mnemonic::parse(camouflaged.as_str()).is_ok());
 
         let recovered = decrypt(&camouflaged, PASSWORD).unwrap();
         assert_eq!(recovered.as_str(), TEST_18);
@@ -344,7 +303,7 @@ mod tests {
     fn roundtrip_21_words() {
         let camouflaged = encrypt(TEST_21, PASSWORD).unwrap();
         assert_ne!(camouflaged.as_str(), TEST_21);
-        assert!(Mnemonic::parse_in(Language::English, camouflaged.as_str()).is_ok());
+        assert!(Mnemonic::parse(camouflaged.as_str()).is_ok());
 
         let recovered = decrypt(&camouflaged, PASSWORD).unwrap();
         assert_eq!(recovered.as_str(), TEST_21);

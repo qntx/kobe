@@ -11,4 +11,4 @@ extern crate alloc;
 mod deriver;
 
 pub use deriver::{DerivationStyle, Deriver};
-pub use kobe_core::{DeriveError, DerivedAccount, DerivedPublicKey, ParseDerivationStyleError};
+pub use kobe_core::{DerivedAccount, DerivedPublicKey, Error, ParseDerivationStyleError};

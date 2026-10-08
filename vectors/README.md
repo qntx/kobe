@@ -44,15 +44,15 @@ JSON files share a single envelope:
 ## Error codes
 
 `error` fields use the shared code vocabulary: `KobeError.code` in TypeScript
-and `kobe_core::DeriveError::code().as_str()` (the `ErrorCode` enum) in Rust.
+and `kobe_core::Error::code().as_str()` (the `ErrorCode` enum) in Rust.
 
 | Code               | Variant                        | Raised for                                                                                                                                                   |
 | ------------------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `mnemonic`         | `DeriveError::Mnemonic`        | any failure to parse or validate a mnemonic phrase (unknown word, bad checksum, word count, uppercase)                                                       |
-| `path`             | `DeriveError::Path`            | a malformed derivation path                                                                                                                                  |
-| `crypto`           | `DeriveError::Crypto`          | an underlying cryptographic primitive failure                                                                                                                |
-| `input`            | `DeriveError::Input`           | caller-supplied input failed validation (entropy length not 16/20/24/28/32, `generate` word count, account/index range, prefix expansion, use after dispose) |
-| `address-encoding` | `DeriveError::AddressEncoding` | a bech32 / base58 / … encoding failure                                                                                                                       |
+| `mnemonic`         | `Error::Mnemonic`        | any failure to parse or validate a mnemonic phrase (unknown word, bad checksum, word count, uppercase)                                                       |
+| `path`             | `Error::Path`            | a malformed derivation path                                                                                                                                  |
+| `crypto`           | `Error::Crypto`          | an underlying cryptographic primitive failure                                                                                                                |
+| `input`            | `Error::Input`           | caller-supplied input failed validation (entropy length not 16/20/24/28/32, `generate` word count, account/index range, prefix expansion, use after dispose) |
+| `address-encoding` | `Error::AddressEncoding` | a bech32 / base58 / … encoding failure                                                                                                                       |
 
 Phrases are normalized by collapsing whitespace runs to single spaces with no
 case folding. Derivation paths are strict — `m` or `m/…`, no trimming.

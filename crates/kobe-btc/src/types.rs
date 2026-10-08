@@ -8,7 +8,7 @@ use alloc::{
 use core::fmt;
 use core::str::FromStr;
 
-use kobe_core::DeriveError;
+use kobe_core::Error;
 
 use crate::Network;
 
@@ -151,14 +151,14 @@ impl DerivationPath {
     ///
     /// # Errors
     ///
-    /// Returns [`DeriveError::Path`] if the generated path is invalid.
+    /// Returns [`Error::Path`] if the generated path is invalid.
     pub fn bip_standard(
         address_type: AddressType,
         network: Network,
         account: u32,
         change: bool,
         address_index: u32,
-    ) -> Result<Self, DeriveError> {
+    ) -> Result<Self, Error> {
         let purpose = address_type.purpose();
         let coin_type = network.coin_type();
         let change_val = u32::from(change);
@@ -173,12 +173,12 @@ impl DerivationPath {
     ///
     /// # Errors
     ///
-    /// - Empty / master-only path → [`DeriveError::Path`]
-    /// - Malformed path → [`DeriveError::Path`]
-    pub fn from_path_str(path: &str) -> Result<Self, DeriveError> {
+    /// - Empty / master-only path → [`Error::Path`]
+    /// - Malformed path → [`Error::Path`]
+    pub fn from_path_str(path: &str) -> Result<Self, Error> {
         let trimmed = path.trim();
         if trimmed.is_empty() || trimmed.eq_ignore_ascii_case("m") {
-            return Err(DeriveError::Path(
+            return Err(Error::Path(
                 "btc: derivation path must contain at least one segment".into(),
             ));
         }
@@ -186,15 +186,15 @@ impl DerivationPath {
         let rest = trimmed
             .strip_prefix('m')
             .or_else(|| trimmed.strip_prefix('M'))
-            .ok_or_else(|| DeriveError::Path("btc: derivation path must start with 'm'".into()))?;
+            .ok_or_else(|| Error::Path("btc: derivation path must start with 'm'".into()))?;
 
         if rest.is_empty() {
-            return Err(DeriveError::Path(
+            return Err(Error::Path(
                 "btc: derivation path must contain at least one segment".into(),
             ));
         }
         if !rest.starts_with('/') {
-            return Err(DeriveError::Path(
+            return Err(Error::Path(
                 "btc: derivation path segments must be separated by '/'".into(),
             ));
         }
@@ -202,9 +202,7 @@ impl DerivationPath {
         let mut segments = Vec::new();
         for raw in rest[1..].split('/') {
             if raw.is_empty() {
-                return Err(DeriveError::Path(
-                    "btc: empty derivation path segment".into(),
-                ));
+                return Err(Error::Path("btc: empty derivation path segment".into()));
             }
             let (num_part, hardened) = raw
                 .strip_suffix('\'')
@@ -212,16 +210,16 @@ impl DerivationPath {
                 .or_else(|| raw.strip_suffix(['h', 'H']).map(|n| (n, true)))
                 .unwrap_or((raw, false));
             if num_part.is_empty() || !num_part.bytes().all(|b| b.is_ascii_digit()) {
-                return Err(DeriveError::Path(format!(
+                return Err(Error::Path(format!(
                     "btc: invalid derivation path segment '{raw}'"
                 )));
             }
             let index: u32 = num_part.parse().map_err(|_| {
-                DeriveError::Path(format!("btc: invalid derivation path index '{num_part}'"))
+                Error::Path(format!("btc: invalid derivation path index '{num_part}'"))
             })?;
             // BIP-32 child index occupies 31 bits; the high bit is the hardened flag.
             if index >= (1u32 << 31) {
-                return Err(DeriveError::Path(format!(
+                return Err(Error::Path(format!(
                     "btc: derivation path index out of range: {index}"
                 )));
             }
@@ -229,7 +227,7 @@ impl DerivationPath {
         }
 
         if segments.is_empty() {
-            return Err(DeriveError::Path(
+            return Err(Error::Path(
                 "btc: derivation path must contain at least one segment".into(),
             ));
         }
@@ -333,10 +331,7 @@ mod tests {
     fn derivation_path_rejects_empty_forms() {
         for bad in ["", "m", "M", "  m  ", " m", "x/0", "m//0", "m/foo"] {
             assert!(
-                matches!(
-                    DerivationPath::from_path_str(bad),
-                    Err(DeriveError::Path(_))
-                ),
+                matches!(DerivationPath::from_path_str(bad), Err(Error::Path(_))),
                 "expected Path error for {bad:?}"
             );
         }

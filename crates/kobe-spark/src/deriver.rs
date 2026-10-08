@@ -18,7 +18,7 @@
 use alloc::{format, string::String, vec::Vec};
 
 use bech32::{Bech32m, Hrp};
-use kobe_core::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
+use kobe_core::{Derive, DerivedAccount, DerivedPublicKey, Error, Wallet};
 
 /// Spark protocol networks, each bound to a distinct Bech32 HRP.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -122,7 +122,7 @@ impl<'a> Deriver<'a> {
     ///
     /// Returns an error if key derivation or address encoding fails.
     #[inline]
-    pub fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
+    pub fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
         self.derive_at(&format!("m/{SPARK_PURPOSE}'/{index}'/0'"))
     }
 
@@ -132,7 +132,7 @@ impl<'a> Deriver<'a> {
     ///
     /// Returns an error if the path is malformed, derivation fails, or the
     /// resulting pubkey cannot be Bech32m-encoded.
-    pub fn derive_at(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
+    pub fn derive_at(&self, path: &str) -> Result<DerivedAccount, Error> {
         let key = self.wallet.derive_secp256k1(path)?;
         let pubkey_bytes = key.compressed_pubkey();
         let address = encode_spark_address(&pubkey_bytes, self.network)?;
@@ -148,13 +148,13 @@ impl<'a> Deriver<'a> {
 
 impl Derive for Deriver<'_> {
     type Account = DerivedAccount;
-    type Error = DeriveError;
+    type Error = Error;
 
-    fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
+    fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
         Deriver::derive(self, index)
     }
 
-    fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
+    fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
         self.derive_at(path)
     }
 }
@@ -166,21 +166,18 @@ impl Derive for Deriver<'_> {
 ///
 /// # Errors
 ///
-/// Returns [`DeriveError::AddressEncoding`] if HRP parsing or encoding fails
+/// Returns [`Error::AddressEncoding`] if HRP parsing or encoding fails
 /// (practically never, as the HRPs are compile-time constants).
-fn encode_spark_address(
-    compressed_pubkey: &[u8; 33],
-    network: Network,
-) -> Result<String, DeriveError> {
+fn encode_spark_address(compressed_pubkey: &[u8; 33], network: Network) -> Result<String, Error> {
     let mut payload = Vec::with_capacity(2 + compressed_pubkey.len());
     payload.push(PROTO_TAG);
     payload.push(COMPRESSED_PUBKEY_LEN);
     payload.extend_from_slice(compressed_pubkey);
 
     let hrp = Hrp::parse(network.hrp())
-        .map_err(|e| DeriveError::AddressEncoding(format!("spark: invalid HRP: {e}")))?;
+        .map_err(|e| Error::AddressEncoding(format!("spark: invalid HRP: {e}")))?;
     bech32::encode::<Bech32m>(hrp, &payload)
-        .map_err(|e| DeriveError::AddressEncoding(format!("spark bech32m: {e}")))
+        .map_err(|e| Error::AddressEncoding(format!("spark bech32m: {e}")))
 }
 
 #[cfg(test)]

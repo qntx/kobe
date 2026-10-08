@@ -4,8 +4,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use kobe_core::{
-    DerivationStyle as _, Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet,
-    derive_range,
+    DerivationStyle as _, Derive, DerivedAccount, DerivedPublicKey, Error, Wallet, derive_range,
 };
 use zeroize::Zeroizing;
 
@@ -56,11 +55,7 @@ impl<'a> Deriver<'a> {
     /// # Errors
     ///
     /// Returns an error if key derivation or address encoding fails.
-    pub fn derive_with(
-        &self,
-        style: DerivationStyle,
-        index: u32,
-    ) -> Result<DerivedAccount, DeriveError> {
+    pub fn derive_with(&self, style: DerivationStyle, index: u32) -> Result<DerivedAccount, Error> {
         self.derive_at(&style.path(index))
     }
 
@@ -74,7 +69,7 @@ impl<'a> Deriver<'a> {
         style: DerivationStyle,
         start: u32,
         count: u32,
-    ) -> Result<Vec<DerivedAccount>, DeriveError> {
+    ) -> Result<Vec<DerivedAccount>, Error> {
         derive_range(start, count, |i| self.derive_with(style, i))
     }
 
@@ -83,7 +78,7 @@ impl<'a> Deriver<'a> {
     /// # Errors
     ///
     /// Returns an error if key derivation fails.
-    pub fn derive_at(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
+    pub fn derive_at(&self, path: &str) -> Result<DerivedAccount, Error> {
         let derived_key = self.wallet.derive_ed25519(path)?;
         let signing_key = derived_key.to_signing_key();
         let verifying_key = signing_key.verifying_key();
@@ -113,13 +108,13 @@ impl<'a> Deriver<'a> {
 
 impl Derive for Deriver<'_> {
     type Account = DerivedAccount;
-    type Error = DeriveError;
+    type Error = Error;
 
-    fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
+    fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
         self.derive_with(DerivationStyle::Standard, index)
     }
 
-    fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
+    fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
         self.derive_at(path)
     }
 }

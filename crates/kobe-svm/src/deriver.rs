@@ -10,9 +10,9 @@ use kobe_core::{
     // trait; the local `DerivationStyle` enum keeps the bare name.
     DerivationStyle as _,
     Derive,
-    DeriveError,
     DerivedAccount,
     DerivedPublicKey,
+    Error,
     Wallet,
     derive_range,
 };
@@ -112,7 +112,7 @@ impl<'a> Deriver<'a> {
     ///
     /// Returns an error if derivation fails.
     #[inline]
-    pub fn derive(&self, index: u32) -> Result<SvmAccount, DeriveError> {
+    pub fn derive(&self, index: u32) -> Result<SvmAccount, Error> {
         self.derive_with(DerivationStyle::Standard, index)
     }
 
@@ -127,11 +127,7 @@ impl<'a> Deriver<'a> {
     /// # Errors
     ///
     /// Returns an error if derivation fails.
-    pub fn derive_with(
-        &self,
-        style: DerivationStyle,
-        index: u32,
-    ) -> Result<SvmAccount, DeriveError> {
+    pub fn derive_with(&self, style: DerivationStyle, index: u32) -> Result<SvmAccount, Error> {
         let path = style.path(index);
         let derived = self.wallet.derive_ed25519(&path)?;
         Ok(build_svm_account(&derived, path))
@@ -147,7 +143,7 @@ impl<'a> Deriver<'a> {
         style: DerivationStyle,
         start: u32,
         count: u32,
-    ) -> Result<Vec<SvmAccount>, DeriveError> {
+    ) -> Result<Vec<SvmAccount>, Error> {
         derive_range(start, count, |i| self.derive_with(style, i))
     }
 
@@ -159,7 +155,7 @@ impl<'a> Deriver<'a> {
     /// # Errors
     ///
     /// Returns an error if derivation fails.
-    pub fn derive_at(&self, path: &str) -> Result<SvmAccount, DeriveError> {
+    pub fn derive_at(&self, path: &str) -> Result<SvmAccount, Error> {
         let derived = self.wallet.derive_ed25519(path)?;
         Ok(build_svm_account(&derived, String::from(path)))
     }
@@ -167,13 +163,13 @@ impl<'a> Deriver<'a> {
 
 impl Derive for Deriver<'_> {
     type Account = SvmAccount;
-    type Error = DeriveError;
+    type Error = Error;
 
-    fn derive(&self, index: u32) -> Result<SvmAccount, DeriveError> {
+    fn derive(&self, index: u32) -> Result<SvmAccount, Error> {
         self.derive_with(DerivationStyle::Standard, index)
     }
 
-    fn derive_path(&self, path: &str) -> Result<SvmAccount, DeriveError> {
+    fn derive_path(&self, path: &str) -> Result<SvmAccount, Error> {
         self.derive_at(path)
     }
 }

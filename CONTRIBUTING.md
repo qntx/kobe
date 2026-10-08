@@ -157,7 +157,7 @@ Account newtypes implement `AsRef<DerivedAccount>` (and usually `Deref`).
 
 ### Errors
 
-Surface `kobe_core::DeriveError` only (`Path`, `Crypto`, `Input`,
+Surface `kobe_core::Error` only (`Path`, `Crypto`, `Input`,
 `AddressEncoding`, `Mnemonic`).
 
 ### Naming

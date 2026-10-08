@@ -2,8 +2,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
+import { base58 } from "@scure/base";
 import { describe, expect, test } from "vite-plus/test";
 
+import { deriveSecp256k1FromSeed } from "../../src/core/bip32.ts";
 import { KobeError } from "../../src/core/error.ts";
 import { expandMnemonic } from "../../src/core/expand.ts";
 import { Wallet, walletSeed } from "../../src/core/wallet.ts";
@@ -34,6 +36,9 @@ const BIP32 = JSON.parse(readFileSync(join(root, "core/bip32.json"), "utf8")) as
     uncompressedPublicKey?: string;
     error?: string;
   }>;
+};
+const BIP32_OFFICIAL = JSON.parse(readFileSync(join(root, "bip32/official.json"), "utf8")) as {
+  cases: Array<{ seed: string; chains: Array<{ path: string; xpub: string; xprv: string }> }>;
 };
 const MNEMONIC_EXPAND = JSON.parse(
   readFileSync(join(root, "core/mnemonic-expand.json"), "utf8"),
@@ -148,6 +153,23 @@ describe("vectors/core/bip32.json", () => {
       const wallet = Wallet.fromMnemonic(c.mnemonic, c.passphrase);
       expect(codeOf(() => wallet.deriveSecp256k1(c.path))).toBe(c.error);
       wallet.dispose();
+    }
+  });
+});
+
+describe("vectors/bip32/official.json", () => {
+  test("official vectors 1-4 derive xprv/xpub payloads from raw seeds", () => {
+    for (const c of BIP32_OFFICIAL.cases) {
+      const seed = hexToBytes(c.seed);
+      for (const chain of c.chains) {
+        const key = deriveSecp256k1FromSeed(seed, chain.path);
+        // Base58Check payload only — the checksum is not under test.
+        const xprv = base58.decode(chain.xprv);
+        const xpub = base58.decode(chain.xpub);
+        expect(bytesToHex(key.privateKeyBytes())).toBe(bytesToHex(xprv.slice(46, 78)));
+        expect(bytesToHex(key.compressedPublicKey())).toBe(bytesToHex(xpub.slice(45, 78)));
+        key.dispose();
+      }
     }
   });
 });
