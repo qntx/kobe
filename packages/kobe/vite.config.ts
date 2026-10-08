@@ -20,7 +20,8 @@ const config: UserConfig = defineConfig({
   pack: {
     deps: { resolveDepSubpath: true },
     entry: {
-      index: "src/index.ts",
+      core: "src/core/index.ts",
+      nostr: "src/nostr/index.ts",
     },
     dts: {
       generator: "tsgo",

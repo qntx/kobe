@@ -6,7 +6,10 @@ All notable changes to this workspace are documented in this file. The format is
 
 ### Added
 
-- TypeScript workspace: `packages/kobe` (`@qntx/kobe`, no public API yet) built with Vite+ (`vp`), with lint, typecheck, pack and Hermes smoke gates; npm publishing through trusted publishing (OIDC) from `publish-npm.yml`.
+- TypeScript wallet core and Nostr module: `@qntx/kobe/core` (`Wallet`, `KobeError`, `expandMnemonic`, `isValidMnemonic`, `DerivedAccount`/`DerivedPublicKey`/`DerivedSecp256k1Key` types) and `@qntx/kobe/nostr` (`NostrDeriver`, `NostrAccount`), migrated from `@qntx/wallet`.
+- Shared-vector runners on both sides: `crates/kobe-vectors` (Rust, `publish = false`) and `packages/kobe/tests/vectors/` (TS) execute the same `vectors/` files; `parity.json` tracks `core.bip39`, `core.bip32`, `core.mnemonic.expand`, and `nostr.nip06` as stable tier-A capabilities.
+- `kobe_core::ErrorCode` (`as_str()` yields the TS `KobeError.code` strings) and `DeriveError::code()`, the shared error-code vocabulary documented in `vectors/README.md`.
+- TypeScript workspace: `packages/kobe` (`@qntx/kobe`) built with Vite+ (`vp`), with lint, typecheck, pack and Hermes smoke gates; npm publishing through trusted publishing (OIDC) from `publish-npm.yml`.
 - Cross-language parity infrastructure: `vectors/` for shared test vectors and the `parity.json` capability ledger, validated by `scripts/parity/check.ts`.
 - Repository checks in `bun run lint`: lockstep versions (`scripts/check-version.ts`), the crate dependency graph (`scripts/check-layers.ts`), and TOML formatting (taplo).
 
@@ -16,6 +19,8 @@ All notable changes to this workspace are documented in this file. The format is
 - **Breaking:** the `alloc` feature is removed from every crate: `alloc` is always required and `--no-default-features` now means `no_std` + `alloc`. Replace `default-features = false, features = ["alloc"]` with `default-features = false`.
 - **Breaking:** the toolchain is pinned to Rust 1.99 and the MSRV moves from 1.85 to 1.99.
 - **Breaking:** `kobe_casper::account_hash_ed25519` and `kobe_casper::account_hash_secp256k1` return `[u8; 32]` instead of `Result<[u8; 32], DeriveError>`; neither can fail.
+- **Breaking:** `Wallet::from_entropy` / `from_entropy_in` reject an entropy slice whose length is not 16/20/24/28/32 with `DeriveError::Input` instead of `DeriveError::Mnemonic` (shared error-code contract with the TypeScript `Wallet.fromEntropy`).
+- **Breaking:** `@qntx/kobe` is subpath-only (`@qntx/kobe/core`, `@qntx/kobe/nostr`); there is no package-root import.
 - npm and crates.io versions are lockstep: `bun run release` (bumpp) bumps `packages/kobe/package.json` and `Cargo.toml` together; internal crate dependencies pin the exact workspace version.
 - CI runs the shared `qntx/workflows` gates: Bun, Rust with all and with no default features (plus rustdoc and a publish dry run), portable `no_std` builds for `thumbv7m-none-eabi`, `wasm32-unknown-unknown`, iOS and Android without `getrandom`, and the Hermes smoke. crates.io publishing moved to `publish-crates.yml`.
 - CLI installer origin is `https://sh.qntx.org/kobe` (not `.fun`).

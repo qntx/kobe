@@ -1,4 +1,65 @@
 {
   "schema": 1,
-  "capabilities": []
+  "capabilities": [
+    {
+      "id": "core.bip39",
+      "tier": "A",
+      "status": "stable",
+      "milestone": "S1",
+      "ts": {
+        "module": "packages/kobe/src/core/wallet.ts",
+        "tests": ["packages/kobe/tests/vectors/core.test.ts"]
+      },
+      "rust": {
+        "module": "crates/kobe-core/src/wallet.rs",
+        "tests": ["crates/kobe-vectors/tests/core.rs"]
+      },
+      "vectors": ["vectors/bip39/trezor.json", "vectors/core/bip39.json"]
+    },
+    {
+      "id": "core.bip32",
+      "tier": "A",
+      "status": "stable",
+      "milestone": "S1",
+      "ts": {
+        "module": "packages/kobe/src/core/bip32.ts",
+        "tests": ["packages/kobe/tests/vectors/core.test.ts"]
+      },
+      "rust": {
+        "module": "crates/kobe-core/src/bip32.rs",
+        "tests": ["crates/kobe-vectors/tests/core.rs"]
+      },
+      "vectors": ["vectors/core/bip32.json"]
+    },
+    {
+      "id": "core.mnemonic.expand",
+      "tier": "A",
+      "status": "stable",
+      "milestone": "S1",
+      "ts": {
+        "module": "packages/kobe/src/core/expand.ts",
+        "tests": ["packages/kobe/tests/vectors/core.test.ts"]
+      },
+      "rust": {
+        "module": "crates/kobe-core/src/mnemonic.rs",
+        "tests": ["crates/kobe-vectors/tests/core.rs"]
+      },
+      "vectors": ["vectors/core/mnemonic-expand.json"]
+    },
+    {
+      "id": "nostr.nip06",
+      "tier": "A",
+      "status": "stable",
+      "milestone": "S1",
+      "ts": {
+        "module": "packages/kobe/src/nostr/deriver.ts",
+        "tests": ["packages/kobe/tests/vectors/nostr.test.ts"]
+      },
+      "rust": {
+        "module": "crates/kobe-nostr/src/deriver.rs",
+        "tests": ["crates/kobe-vectors/tests/nostr.rs"]
+      },
+      "vectors": ["vectors/nostr/nip06.json"]
+    }
+  ]
 }

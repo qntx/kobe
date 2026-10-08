@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "capability": "core.mnemonic.expand",
+  "source": {
+    "kind": "generated",
+    "generator": "kobe-core + @qntx/kobe (cross-confirmed)",
+    "version": "3.4.0"
+  },
+  "cases": [
+    {
+      "input": "aban aban aban aban aban aban aban aban aban aban aban abou",
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+    },
+    {
+      "input": "abandon aban abandon aban abandon aban abandon aban abandon aban abandon about",
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+    },
+    {
+      "input": "abil acti addr admi wall wris",
+      "mnemonic": "ability action address admit wall wrist"
+    },
+    {
+      "input": "zoo art ice",
+      "mnemonic": "zoo art ice"
+    },
+    {
+      "input": "aba aba aba aba aba aba aba aba aba aba aba aba",
+      "error": "input"
+    },
+    {
+      "input": "aban aban aban aban aban aban aban aban aban aban aban zzzz",
+      "error": "input"
+    },
+    {
+      "input": "aban aban abandonn aban aban aban aban aban aban aban aban aban",
+      "error": "input"
+    }
+  ]
+}
