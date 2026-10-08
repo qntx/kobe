@@ -30,7 +30,9 @@ kobe-nostr   = { version = "=3.4.0", path = "crates/kobe-nostr", default-feature
 kobe-xrpl    = { version = "=3.4.0", path = "crates/kobe-xrpl", default-features = false }
 kobe-casper  = { version = "=3.4.0", path = "crates/kobe-casper", default-features = false }
 kobe-arweave = { version = "=3.4.0", path = "crates/kobe-arweave", default-features = false }
+kobe-vault   = { version = "=3.4.0", path = "crates/kobe-vault", default-features = false }
 
+aes-gcm          = { version = "0.11.1", default-features = false, features = ["aes", "alloc"] }
 alloy-primitives = { version = "1.6.1", default-features = false, features = ["k256"] }
 base64           = { version = "0.23.1", default-features = false, features = ["alloc"] }
 bech32           = { version = "0.12.0", default-features = false, features = ["alloc"] }
@@ -41,16 +43,19 @@ bs58             = { version = "0.5.1", default-features = false, features = ["a
 ed25519-dalek    = { version = "3.0.0", default-features = false }
 getrandom        = { version = "0.4.3", default-features = false }
 hex              = { version = "0.4.3", default-features = false, features = ["alloc"] }
+hkdf             = { version = "0.13.0", default-features = false }
 hmac             = { version = "0.13.0", default-features = false }
 # Pinned to 0.13.x: bip32 0.5 and alloy-primitives still depend on k256 0.13.
 # Bump when those crates publish k256 0.14 support (bip32 0.6 is still pre-release).
-k256      = { version = "0.13.4", default-features = false, features = ["ecdsa"] }
-rand_core = { version = "0.10.1", default-features = false }
-ripemd    = { version = "0.2.0", default-features = false }
-sha2      = { version = "0.11.0", default-features = false }
-sha3      = { version = "0.12.0", default-features = false }
-thiserror = { version = "2.0.19", default-features = false }
-zeroize   = { version = "1.9.0", default-features = false, features = ["derive", "alloc"] }
+k256                  = { version = "0.13.4", default-features = false, features = ["ecdsa"] }
+rand_core             = { version = "0.10.1", default-features = false }
+pbkdf2                = { version = "0.13.0", default-features = false, features = ["hmac"] }
+ripemd                = { version = "0.2.0", default-features = false }
+sha2                  = { version = "0.11.0", default-features = false }
+sha3                  = { version = "0.12.0", default-features = false }
+thiserror             = { version = "2.0.19", default-features = false }
+unicode-normalization = { version = "0.1.25", default-features = false }
+zeroize               = { version = "1.9.0", default-features = false, features = ["derive", "alloc"] }
 
 clap       = { version = "4.6.6", features = ["derive"] }
 colored    = "3.1.1"

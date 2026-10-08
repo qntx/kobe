@@ -60,6 +60,66 @@
         "tests": ["crates/kobe-vectors/tests/nostr.rs"]
       },
       "vectors": ["vectors/nostr/nip06.json"]
+    },
+    {
+      "id": "vault.seal",
+      "tier": "A",
+      "status": "stable",
+      "milestone": "S3",
+      "ts": {
+        "module": "packages/kobe/src/vault/envelope.ts",
+        "tests": ["packages/kobe/tests/vectors/vault.test.ts"]
+      },
+      "rust": {
+        "module": "crates/kobe-vault/src/lib.rs",
+        "tests": ["crates/kobe-vectors/tests/vault.rs"]
+      },
+      "vectors": ["vectors/vault/seal.json"]
+    },
+    {
+      "id": "vault.password-key",
+      "tier": "A",
+      "status": "stable",
+      "milestone": "S3",
+      "ts": {
+        "module": "packages/kobe/src/vault/kdf.ts",
+        "tests": ["packages/kobe/tests/vectors/vault.test.ts"]
+      },
+      "rust": {
+        "module": "crates/kobe-vault/src/lib.rs",
+        "tests": ["crates/kobe-vectors/tests/vault.rs"]
+      },
+      "vectors": ["vectors/vault/password-key.json"]
+    },
+    {
+      "id": "vault.prf-key",
+      "tier": "A",
+      "status": "stable",
+      "milestone": "S3",
+      "ts": {
+        "module": "packages/kobe/src/vault/kdf.ts",
+        "tests": ["packages/kobe/tests/vectors/vault.test.ts"]
+      },
+      "rust": {
+        "module": "crates/kobe-vault/src/lib.rs",
+        "tests": ["crates/kobe-vectors/tests/vault.rs"]
+      },
+      "vectors": ["vectors/vault/prf-key.json"]
+    },
+    {
+      "id": "vault.passkey-wallet",
+      "tier": "A",
+      "status": "stable",
+      "milestone": "S3",
+      "ts": {
+        "module": "packages/kobe/src/vault/passkey.ts",
+        "tests": ["packages/kobe/tests/vectors/vault.test.ts"]
+      },
+      "rust": {
+        "module": "crates/kobe-vault/src/lib.rs",
+        "tests": ["crates/kobe-vectors/tests/vault.rs"]
+      },
+      "vectors": ["vectors/vault/passkey-wallet.json"]
     }
   ]
 }

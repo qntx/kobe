@@ -13,10 +13,12 @@ authors.workspace      = true
 [dev-dependencies]
 kobe-core  = { workspace = true, features = ["bip32", "raw-seed"] }
 kobe-nostr = { workspace = true }
+kobe-vault = { workspace = true }
 serde      = { workspace = true }
 serde_json = { workspace = true, features = ["std"] }
 hex        = { workspace = true }
 bs58       = { workspace = true }
+rand_core  = { workspace = true }
 
 [lints]
 workspace = true

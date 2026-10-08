@@ -69,6 +69,16 @@ describe("check-layers", () => {
     expect(errors).toStrictEqual(['unknown crate "kobe-mystery"']);
   });
 
+  test("kobe-vault is P-level and may only depend on kobe-core", () => {
+    expect(checkLayers([crate("kobe-vault", ["kobe-core"])])).toStrictEqual([]);
+    expect(checkLayers([crate("kobe-vault", ["kobe-btc"])])).toStrictEqual([
+      "kobe-vault: must not depend on kobe-btc",
+    ]);
+    expect(checkLayers([crate("kobe-vault", ["tokio"])])).toStrictEqual([
+      "kobe-vault: P-level crate must not depend on tokio",
+    ]);
+  });
+
   test("kobe-vectors may depend on any crate", () => {
     const crates = [
       crate("kobe-core", []),

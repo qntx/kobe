@@ -1,9 +1,12 @@
 /**
- * Bundle entry for the Hermes smoke test: import both package entries and run a BIP-39 / NIP-06
- * known-answer check on Hermes.
+ * Bundle entry for the Hermes smoke test: import the package entries and run BIP-39 / NIP-06 /
+ * vault known-answer checks on Hermes.
  */
+import { hexToBytes } from "@noble/hashes/utils.js";
+
 import { Wallet } from "../../src/core/index.ts";
 import { NostrDeriver } from "../../src/nostr/index.ts";
+import { derivePrfKey, open, passkeyWallet, seal } from "../../src/vault/index.ts";
 
 declare function print(msg: string): void;
 declare function quit(code: number): void;
@@ -15,6 +18,24 @@ const TV1_NPUB = "npub1zutzeysacnf9rru6zqwmxd54mud0k44tst6l70ja5mhv8jjumytsd2x7n
 const ABANDON =
   "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
+// vectors/vault/seal.json case 0.
+const SEAL_KEY = "0000000000000000000000000000000000000000000000000000000000000001";
+const SEAL_NONCE = "0102030405060708090a0b0c";
+const SEAL_CONTEXT = "meowl-vault/2/id-1/data";
+const SEALED = "010102030405060708090a0b0c1c6344d213ca9070b73382f90fd89691";
+
+// vectors/vault/prf-key.json case 0.
+const PRF = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
+const PRF_INFO = "meowl/vault/v1";
+const PRF_KEY = "2b305bcbd48f2920ca2e178cd78e8f69f7cf38a79e0b75cdc0b0909a07c134e4";
+
+// vectors/vault/passkey-wallet.json case 0.
+const PASSKEY_NPUB = "npub1y8d9v47f0w2muh9tswfhgej59r73gs26nndr4q8acxj7twwgydgserahqq";
+
+function hex(b: Uint8Array): string {
+  return Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+}
+
 try {
   const wallet = Wallet.fromEntropy(new Uint8Array(16));
   if (wallet.mnemonic() !== ABANDON) {
@@ -25,6 +46,26 @@ try {
   if (account.npub() !== TV1_NPUB) {
     throw new Error("NIP-06 npub mismatch");
   }
+
+  const sealed = seal(hexToBytes(SEAL_KEY), new Uint8Array(0), SEAL_CONTEXT, (out) =>
+    out.set(hexToBytes(SEAL_NONCE)),
+  );
+  if (hex(sealed) !== SEALED) {
+    throw new Error("vault seal mismatch");
+  }
+  if (open(hexToBytes(SEAL_KEY), sealed, SEAL_CONTEXT).length > 0) {
+    throw new Error("vault open mismatch");
+  }
+
+  if (hex(derivePrfKey(hexToBytes(PRF), PRF_INFO)) !== PRF_KEY) {
+    throw new Error("derivePrfKey mismatch");
+  }
+
+  const passkey = passkeyWallet(hexToBytes(PRF));
+  if (new NostrDeriver(passkey).derive(0).npub() !== PASSKEY_NPUB) {
+    throw new Error("passkeyWallet npub mismatch");
+  }
+
   print("HERMES_SMOKE_OK");
 } catch (error) {
   print(

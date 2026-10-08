@@ -20,6 +20,10 @@ use alloc::string::String;
 ///   overflow, unknown derivation style).
 /// - [`AddressEncoding`](Self::AddressEncoding) — chain-specific address
 ///   encoding failures (Bech32 / Bech32m HRP, base58check, base32, …).
+/// - [`Decrypt`](Self::Decrypt) — AEAD open failed (wrong key, tampered
+///   ciphertext/tag, or mismatched context).
+/// - [`UnsupportedVersion`](Self::UnsupportedVersion) — sealed data uses an
+///   envelope version this build does not support.
 #[derive(Debug, thiserror::Error)]
 #[allow(
     clippy::error_impl_error,
@@ -49,6 +53,15 @@ pub enum Error {
     /// base32, …).
     #[error("address encoding: {0}")]
     AddressEncoding(String),
+
+    /// Authenticated decryption failed (wrong key, tampered data, or wrong
+    /// context). Deliberately carries no detail to avoid oracle leakage.
+    #[error("decryption failed")]
+    Decrypt,
+
+    /// The sealed data uses an envelope version this build does not support.
+    #[error("unsupported envelope version: {0}")]
+    UnsupportedVersion(u8),
 }
 
 /// Stable machine-readable code for an [`Error`], shared with the
@@ -67,6 +80,10 @@ pub enum ErrorCode {
     Input,
     /// Chain-specific address encoding failed.
     AddressEncoding,
+    /// Authenticated decryption failed.
+    Decrypt,
+    /// Unsupported envelope version.
+    Version,
 }
 
 impl ErrorCode {
@@ -80,6 +97,8 @@ impl ErrorCode {
             Self::Crypto => "crypto",
             Self::Input => "input",
             Self::AddressEncoding => "address-encoding",
+            Self::Decrypt => "decrypt",
+            Self::Version => "version",
         }
     }
 }
@@ -103,6 +122,8 @@ impl Error {
             Self::Crypto(_) => ErrorCode::Crypto,
             Self::Input(_) => ErrorCode::Input,
             Self::AddressEncoding(_) => ErrorCode::AddressEncoding,
+            Self::Decrypt => ErrorCode::Decrypt,
+            Self::UnsupportedVersion(_) => ErrorCode::Version,
         }
     }
 }

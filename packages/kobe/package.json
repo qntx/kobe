@@ -38,6 +38,11 @@
       "import": "./dist/nostr.mjs",
       "default": "./dist/nostr.mjs"
     },
+    "./vault": {
+      "types": "./dist/vault.d.mts",
+      "import": "./dist/vault.mjs",
+      "default": "./dist/vault.mjs"
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {
@@ -53,6 +58,7 @@
     "pack:local": "vp pack && bun pm pack"
   },
   "dependencies": {
+    "@noble/ciphers": "^2.4.0",
     "@noble/curves": "^2.4.0",
     "@noble/hashes": "^2.4.0",
     "@scure/base": "^2.4.0",
