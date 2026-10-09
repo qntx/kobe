@@ -13,7 +13,7 @@ use hmac::{Hmac, KeyInit, Mac};
 use sha2::Sha512;
 use zeroize::Zeroizing;
 
-use crate::DeriveError;
+use crate::Error;
 
 /// HMAC-SHA512 type alias.
 type HmacSha512 = Hmac<Sha512>;
@@ -48,9 +48,9 @@ impl DerivedEd25519Key {
     /// # Errors
     ///
     /// Returns an error if the HMAC key is invalid (should not happen in practice).
-    pub fn from_seed(seed: &[u8]) -> Result<Self, DeriveError> {
+    pub fn from_seed(seed: &[u8]) -> Result<Self, Error> {
         let mut mac = HmacSha512::new_from_slice(ED25519_CURVE)
-            .map_err(|_| DeriveError::Crypto(String::from("slip10: invalid seed length")))?;
+            .map_err(|_| Error::Crypto(String::from("slip10: invalid seed length")))?;
         mac.update(seed);
         let result = mac.finalize().into_bytes();
 
@@ -74,12 +74,11 @@ impl DerivedEd25519Key {
     /// # Errors
     ///
     /// Returns an error if the HMAC key is invalid.
-    pub fn derive_hardened(&self, index: u32) -> Result<Self, DeriveError> {
+    pub fn derive_hardened(&self, index: u32) -> Result<Self, Error> {
         let hardened_index = index | 0x8000_0000;
 
-        let mut mac = HmacSha512::new_from_slice(&*self.chain_code).map_err(|_| {
-            DeriveError::Crypto(String::from("slip10: chain code HMAC init failed"))
-        })?;
+        let mut mac = HmacSha512::new_from_slice(&*self.chain_code)
+            .map_err(|_| Error::Crypto(String::from("slip10: chain code HMAC init failed")))?;
         mac.update(&[0x00]);
         mac.update(&*self.private_key);
         mac.update(&hardened_index.to_be_bytes());
@@ -106,16 +105,16 @@ impl DerivedEd25519Key {
     ///
     /// # Errors
     ///
-    /// Returns [`DeriveError::Path`] if the path is malformed, contains an
+    /// Returns [`Error::Path`] if the path is malformed, contains an
     /// unhardened segment, or derivation fails.
-    pub fn derive_path(seed: &[u8], path: &str) -> Result<Self, DeriveError> {
+    pub fn derive_path(seed: &[u8], path: &str) -> Result<Self, Error> {
         let trimmed = path.trim();
         let remainder = if trimmed == "m" {
             ""
         } else if let Some(rest) = trimmed.strip_prefix("m/") {
             rest
         } else {
-            return Err(DeriveError::Path(String::from(
+            return Err(Error::Path(String::from(
                 "slip10: path must start with 'm/' or be exactly 'm'",
             )));
         };
@@ -173,29 +172,29 @@ impl DerivedEd25519Key {
 ///
 /// Rejects unhardened components (no trailing `'` or `h`), because
 /// SLIP-0010 Ed25519 does not define unhardened derivation.
-fn parse_hardened_component(component: &str) -> Result<u32, DeriveError> {
+fn parse_hardened_component(component: &str) -> Result<u32, Error> {
     let digits = component
         .strip_suffix('\'')
         .or_else(|| component.strip_suffix('h'))
         .ok_or_else(|| {
-            DeriveError::Path(format!(
+            Error::Path(format!(
                 "slip10: path component '{component}' must be hardened (append ' or h); \
                  Ed25519 does not support unhardened derivation"
             ))
         })?;
 
     if digits.is_empty() {
-        return Err(DeriveError::Path(format!(
+        return Err(Error::Path(format!(
             "slip10: empty index in path component '{component}'"
         )));
     }
 
     let index: u32 = digits
         .parse()
-        .map_err(|_| DeriveError::Path(format!("slip10: invalid path component: {component}")))?;
+        .map_err(|_| Error::Path(format!("slip10: invalid path component: {component}")))?;
 
     if index & 0x8000_0000 != 0 {
-        return Err(DeriveError::Path(format!(
+        return Err(Error::Path(format!(
             "slip10: path component '{component}' exceeds maximum index 2^31 - 1"
         )));
     }
@@ -367,8 +366,8 @@ mod tests {
     fn unhardened_component_rejected() {
         let seed = hex::decode(TV1_SEED).unwrap();
         let err = DerivedEd25519Key::derive_path(&seed, "m/44/0").unwrap_err();
-        let DeriveError::Path(msg) = &err else {
-            unreachable!("expected DeriveError::Path, got {err:?}");
+        let Error::Path(msg) = &err else {
+            unreachable!("expected Error::Path, got {err:?}");
         };
         assert!(
             msg.contains("must be hardened"),
@@ -390,8 +389,8 @@ mod tests {
     fn index_overflow_rejected() {
         let seed = hex::decode(TV1_SEED).unwrap();
         let err = DerivedEd25519Key::derive_path(&seed, "m/2147483648'").unwrap_err();
-        let DeriveError::Path(msg) = &err else {
-            unreachable!("expected DeriveError::Path, got {err:?}");
+        let Error::Path(msg) = &err else {
+            unreachable!("expected Error::Path, got {err:?}");
         };
         assert!(msg.contains("exceeds maximum"), "unexpected message: {msg}");
     }

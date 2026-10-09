@@ -20,7 +20,7 @@ use alloc::vec::Vec;
 
 use zeroize::Zeroizing;
 
-use crate::DeriveError;
+use crate::Error;
 
 /// Strongly typed public key emitted by an HD derivation.
 ///
@@ -99,12 +99,12 @@ impl DerivedPublicKey {
     ///
     /// # Errors
     ///
-    /// Returns [`DeriveError::Crypto`] if the slice is not exactly 33 bytes long.
-    pub fn compressed(bytes: &[u8]) -> Result<Self, DeriveError> {
+    /// Returns [`Error::Crypto`] if the slice is not exactly 33 bytes long.
+    pub fn compressed(bytes: &[u8]) -> Result<Self, Error> {
         <[u8; 33]>::try_from(bytes)
             .map(Self::Secp256k1Compressed)
             .map_err(|_| {
-                DeriveError::Crypto(alloc::format!(
+                Error::Crypto(alloc::format!(
                     "compressed secp256k1 public key requires 33 bytes, got {}",
                     bytes.len()
                 ))
@@ -115,12 +115,12 @@ impl DerivedPublicKey {
     ///
     /// # Errors
     ///
-    /// Returns [`DeriveError::Crypto`] if the slice is not exactly 65 bytes long.
-    pub fn uncompressed(bytes: &[u8]) -> Result<Self, DeriveError> {
+    /// Returns [`Error::Crypto`] if the slice is not exactly 65 bytes long.
+    pub fn uncompressed(bytes: &[u8]) -> Result<Self, Error> {
         <[u8; 65]>::try_from(bytes)
             .map(Self::Secp256k1Uncompressed)
             .map_err(|_| {
-                DeriveError::Crypto(alloc::format!(
+                Error::Crypto(alloc::format!(
                     "uncompressed secp256k1 public key requires 65 bytes, got {}",
                     bytes.len()
                 ))
@@ -303,26 +303,26 @@ impl AsRef<Self> for DerivedAccount {
 ///
 /// # Errors
 ///
-/// Returns [`DeriveError::Input`] (wrapped via `E: From<DeriveError>`) if
+/// Returns [`Error::Input`] (wrapped via `E: From<Error>`) if
 /// `start + count` overflows `u32`, or propagates any error produced by
 /// `f`.
 ///
 /// # Example
 ///
 /// ```no_run
-/// use kobe_core::{DerivedAccount, DeriveError, derive_range};
+/// use kobe_core::{DerivedAccount, Error, derive_range};
 ///
-/// fn batch(count: u32) -> Result<Vec<DerivedAccount>, DeriveError> {
+/// fn batch(count: u32) -> Result<Vec<DerivedAccount>, Error> {
 ///     derive_range(0, count, |_i| todo!("derive one"))
 /// }
 /// ```
 pub fn derive_range<T, E, F>(start: u32, count: u32, f: F) -> Result<Vec<T>, E>
 where
     F: FnMut(u32) -> Result<T, E>,
-    E: From<DeriveError>,
+    E: From<Error>,
 {
     let end = start.checked_add(count).ok_or_else(|| {
-        E::from(DeriveError::Input(String::from(
+        E::from(Error::Input(String::from(
             "derive_many: start + count overflows u32",
         )))
     })?;
@@ -360,7 +360,7 @@ pub trait Derive {
     type Account: AsRef<DerivedAccount>;
 
     /// The error type returned by derivation operations.
-    type Error: core::fmt::Debug + core::fmt::Display + From<DeriveError>;
+    type Error: core::fmt::Debug + core::fmt::Display + From<Error>;
 
     /// Derive an account at the given index using the chain's default path.
     ///
@@ -387,7 +387,7 @@ pub trait Derive {
 /// # struct D;
 /// # impl Derive for D {
 /// #     type Account = kobe_core::DerivedAccount;
-/// #     type Error = kobe_core::DeriveError;
+/// #     type Error = kobe_core::Error;
 /// #     fn derive(&self, _: u32) -> Result<Self::Account, Self::Error> { unimplemented!() }
 /// #     fn derive_path(&self, _: &str) -> Result<Self::Account, Self::Error> { unimplemented!() }
 /// # }
@@ -399,7 +399,7 @@ pub trait DeriveExt: Derive {
     ///
     /// # Errors
     ///
-    /// Returns [`DeriveError::Input`] if `start + count` overflows `u32`,
+    /// Returns [`Error::Input`] if `start + count` overflows `u32`,
     /// or propagates any derivation error.
     #[inline]
     fn derive_many(&self, start: u32, count: u32) -> Result<Vec<Self::Account>, Self::Error> {

@@ -31,7 +31,7 @@ mod types;
 mod wif;
 
 pub use deriver::{BtcAccount, Deriver};
-pub use kobe_core::{DeriveError, DerivedAccount, DerivedPublicKey};
+pub use kobe_core::{DerivedAccount, DerivedPublicKey, Error};
 pub use network::{Network, ParseNetworkError};
 pub use types::{AddressType, ParseAddressTypeError};
 pub use types::{DerivationPath, PathSegment};

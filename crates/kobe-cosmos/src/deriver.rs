@@ -3,7 +3,7 @@
 use alloc::{borrow::Cow, format, string::String};
 
 use kobe_core::encoding::hash160;
-use kobe_core::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
+use kobe_core::{Derive, DerivedAccount, DerivedPublicKey, Error, Wallet};
 
 /// Configuration for a Cosmos SDK chain.
 ///
@@ -125,7 +125,7 @@ impl<'a> Deriver<'a> {
     /// # Errors
     ///
     /// Returns an error if key derivation or Bech32 encoding fails.
-    pub fn derive_at(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
+    pub fn derive_at(&self, path: &str) -> Result<DerivedAccount, Error> {
         let key = self.wallet.derive_secp256k1(path)?;
         let pubkey_bytes = key.compressed_pubkey();
         let address = encode_bech32_address(&self.config.hrp, &pubkey_bytes)?;
@@ -141,25 +141,25 @@ impl<'a> Deriver<'a> {
 
 impl Derive for Deriver<'_> {
     type Account = DerivedAccount;
-    type Error = DeriveError;
+    type Error = Error;
 
-    fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
+    fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
         let path = format!("m/44'/{}'/0'/0/{index}", self.config.coin_type);
         self.derive_at(&path)
     }
 
-    fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
+    fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
         self.derive_at(path)
     }
 }
 
 /// Encode a compressed public key as a bech32 Cosmos address.
-fn encode_bech32_address(hrp: &str, compressed_pubkey: &[u8]) -> Result<String, DeriveError> {
+fn encode_bech32_address(hrp: &str, compressed_pubkey: &[u8]) -> Result<String, Error> {
     let hash = hash160(compressed_pubkey);
     let hrp_parsed = bech32::Hrp::parse(hrp)
-        .map_err(|e| DeriveError::AddressEncoding(format!("cosmos: invalid HRP: {e}")))?;
+        .map_err(|e| Error::AddressEncoding(format!("cosmos: invalid HRP: {e}")))?;
     bech32::encode::<bech32::Bech32>(hrp_parsed, &hash)
-        .map_err(|e| DeriveError::AddressEncoding(format!("cosmos bech32 encoding: {e}")))
+        .map_err(|e| Error::AddressEncoding(format!("cosmos bech32 encoding: {e}")))
 }
 
 #[cfg(test)]

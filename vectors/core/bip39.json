@@ -4,7 +4,8 @@
   "source": {
     "kind": "generated",
     "generator": "kobe-core + @qntx/kobe (cross-confirmed; the zero-entropy mnemonics and the 12-word seed are the canonical BIP-39 values, also covered by vectors/bip39/trezor.json)",
-    "version": "3.4.0"
+    "version": "3.4.0",
+    "reference": "Seeds cross-checked with Node.js v24.21.0 crypto.pbkdf2Sync(mnemonic, \"mnemonic\" + passphrase.normalize(\"NFKD\"), 2048, 64, \"sha512\")"
   },
   "cases": [
     {
@@ -44,6 +45,34 @@
     {
       "entropy": "000000000000000000000000000000",
       "error": "input"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "élève",
+      "entropy": "00000000000000000000000000000000",
+      "seed": "e9b542da69d3a4a48ef2e78b426a50685147f8d3ae6a2a9c57f7e27a0fec9f32be06e8384d688c2349499df928adda2f5a01da836e5be454f3ef084a9633cabb",
+      "wordCount": 12
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "élève",
+      "entropy": "00000000000000000000000000000000",
+      "seed": "e9b542da69d3a4a48ef2e78b426a50685147f8d3ae6a2a9c57f7e27a0fec9f32be06e8384d688c2349499df928adda2f5a01da836e5be454f3ef084a9633cabb",
+      "wordCount": 12
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "  spaced  ",
+      "entropy": "00000000000000000000000000000000",
+      "seed": "b24d644ecc1cb2e01c55583a6f9652ba06fa04cd0daed7aa681ab13c496d2262978f6e74ecb9c5c0f7c915e3d3de01c9447a826d4f22467a8fa4bd9538b40e92",
+      "wordCount": 12
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "spaced",
+      "entropy": "00000000000000000000000000000000",
+      "seed": "f891a392503df5cacd38d154143010b05c7effaa6c38e8c9209312e1ef430ca59b56a556a450b91b77c9af57ccb73c281a8d68629c997c9b9e66fc9f259dca3b",
+      "wordCount": 12
     }
   ]
 }

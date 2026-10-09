@@ -2,10 +2,24 @@
 
 use alloc::string::{String, ToString};
 
-use bip39::{Language, Mnemonic};
+use bip39::Mnemonic;
 use zeroize::Zeroizing;
 
-use crate::DeriveError;
+use crate::Error;
+
+/// Entropy length in bytes for a BIP-39 word count (12 words = 128 bits, …).
+fn entropy_len(word_count: usize) -> Result<usize, Error> {
+    match word_count {
+        12 => Ok(16),
+        15 => Ok(20),
+        18 => Ok(24),
+        21 => Ok(28),
+        24 => Ok(32),
+        _ => Err(Error::Input(alloc::format!(
+            "word count must be 12, 15, 18, 21, or 24, got {word_count}"
+        ))),
+    }
+}
 
 /// A unified HD wallet that can derive keys for multiple cryptocurrencies.
 ///
@@ -21,7 +35,7 @@ use crate::DeriveError;
 /// This provides an extra layer of security - the same mnemonic with different
 /// passphrases will produce completely different wallets.
 pub struct Wallet {
-    /// BIP39 mnemonic phrase.
+    /// BIP39 mnemonic phrase (English wordlist).
     mnemonic: Zeroizing<String>,
     /// Seed derived from mnemonic + passphrase.
     ///
@@ -36,8 +50,6 @@ pub struct Wallet {
     seed: Zeroizing<[u8; 64]>,
     /// Whether a passphrase was used.
     has_passphrase: bool,
-    /// Language of the mnemonic.
-    language: Language,
 }
 
 impl core::fmt::Debug for Wallet {
@@ -47,14 +59,13 @@ impl core::fmt::Debug for Wallet {
             .field("mnemonic", &"[REDACTED]")
             .field("seed", &"[REDACTED]")
             .field("has_passphrase", &self.has_passphrase)
-            .field("language", &self.language)
             .field("word_count", &self.word_count())
             .finish()
     }
 }
 
 impl Wallet {
-    /// Generate a new wallet with a random mnemonic.
+    /// Generate a new wallet with a random mnemonic using the OS RNG.
     ///
     /// # Arguments
     ///
@@ -63,48 +74,21 @@ impl Wallet {
     ///
     /// # Errors
     ///
-    /// Returns an error if the word count is invalid.
+    /// Returns [`Error::Input`] if the word count is not 12, 15, 18, 21,
+    /// or 24, or [`Error::Crypto`] if the OS random source fails.
     ///
     /// # Note
     ///
-    /// This function requires the `rand` feature to be enabled.
-    #[cfg(feature = "rand")]
-    pub fn generate(word_count: usize, passphrase: Option<&str>) -> Result<Self, DeriveError> {
-        Self::generate_in(Language::English, word_count, passphrase)
+    /// This function requires the `os-rng` feature to be enabled.
+    #[cfg(feature = "os-rng")]
+    pub fn generate(word_count: usize, passphrase: Option<&str>) -> Result<Self, Error> {
+        let mut entropy = Zeroizing::new(alloc::vec![0u8; entropy_len(word_count)?]);
+        getrandom::fill(entropy.as_mut_slice())
+            .map_err(|e| Error::Crypto(alloc::format!("os rng failed: {e}")))?;
+        Self::from_entropy(&entropy, passphrase)
     }
 
-    /// Generate a new wallet with a random mnemonic in the specified language.
-    ///
-    /// # Arguments
-    ///
-    /// * `language` - Language for the mnemonic word list
-    /// * `word_count` - Number of words (12, 15, 18, 21, or 24)
-    /// * `passphrase` - Optional BIP39 passphrase for additional security
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the word count is invalid.
-    ///
-    /// # Note
-    ///
-    /// This function requires the `rand` feature to be enabled.
-    #[cfg(feature = "rand")]
-    pub fn generate_in(
-        language: Language,
-        word_count: usize,
-        passphrase: Option<&str>,
-    ) -> Result<Self, DeriveError> {
-        if !matches!(word_count, 12 | 15 | 18 | 21 | 24) {
-            return Err(DeriveError::Input(alloc::format!(
-                "word count must be 12, 15, 18, 21, or 24, got {word_count}"
-            )));
-        }
-
-        let mnemonic = Mnemonic::generate_in(language, word_count)?;
-        Ok(Self::from_parts(&mnemonic, language, passphrase))
-    }
-
-    /// Generate a new wallet with a custom random number generator.
+    /// Generate a new wallet with a caller-supplied random number generator.
     ///
     /// This is useful in `no_std` environments where you provide your own
     /// cryptographically secure RNG instead of relying on the system RNG.
@@ -112,38 +96,27 @@ impl Wallet {
     /// # Arguments
     ///
     /// * `rng` - A cryptographically secure random number generator
-    /// * `language` - Language for the mnemonic word list
     /// * `word_count` - Number of words (12, 15, 18, 21, or 24)
     /// * `passphrase` - Optional BIP39 passphrase for additional security
     ///
     /// # Errors
     ///
-    /// Returns an error if the word count is invalid.
-    ///
-    /// # Note
-    ///
-    /// This function requires the `rand_core` feature to be enabled.
-    #[cfg(feature = "rand_core")]
-    pub fn generate_in_with<R>(
+    /// Returns [`Error::Input`] if the word count is not 12, 15, 18, 21,
+    /// or 24.
+    pub fn generate_with<R>(
         rng: &mut R,
-        language: Language,
         word_count: usize,
         passphrase: Option<&str>,
-    ) -> Result<Self, DeriveError>
+    ) -> Result<Self, Error>
     where
-        R: bip39::rand_core::RngCore + bip39::rand_core::CryptoRng,
+        R: rand_core::CryptoRng + ?Sized,
     {
-        if !matches!(word_count, 12 | 15 | 18 | 21 | 24) {
-            return Err(DeriveError::Input(alloc::format!(
-                "word count must be 12, 15, 18, 21, or 24, got {word_count}"
-            )));
-        }
-
-        let mnemonic = Mnemonic::generate_in_with(rng, language, word_count)?;
-        Ok(Self::from_parts(&mnemonic, language, passphrase))
+        let mut entropy = Zeroizing::new(alloc::vec![0u8; entropy_len(word_count)?]);
+        rng.fill_bytes(entropy.as_mut_slice());
+        Self::from_entropy(&entropy, passphrase)
     }
 
-    /// Create a wallet from raw entropy bytes (English by default).
+    /// Create a wallet from raw entropy bytes.
     ///
     /// This is useful in `no_std` environments where you provide your own entropy
     /// source instead of relying on the system RNG.
@@ -155,46 +128,21 @@ impl Wallet {
     ///
     /// # Errors
     ///
-    /// Returns [`DeriveError::Input`] if the entropy is not 16, 20, 24, 28, or
+    /// Returns [`Error::Input`] if the entropy is not 16, 20, 24, 28, or
     /// 32 bytes long.
-    pub fn from_entropy(entropy: &[u8], passphrase: Option<&str>) -> Result<Self, DeriveError> {
-        Self::from_entropy_in(Language::English, entropy, passphrase)
-    }
-
-    /// Create a wallet from raw entropy bytes in the specified language.
-    ///
-    /// This is useful in `no_std` environments where you provide your own entropy
-    /// source instead of relying on the system RNG.
-    ///
-    /// # Arguments
-    ///
-    /// * `language` - Language for the mnemonic word list
-    /// * `entropy` - Raw entropy bytes (16, 20, 24, 28, or 32 bytes for 12-24 words)
-    /// * `passphrase` - Optional BIP39 passphrase for additional security
-    ///
-    /// # Errors
-    ///
-    /// Returns [`DeriveError::Input`] if the entropy is not 16, 20, 24, 28, or
-    /// 32 bytes long.
-    pub fn from_entropy_in(
-        language: Language,
-        entropy: &[u8],
-        passphrase: Option<&str>,
-    ) -> Result<Self, DeriveError> {
+    pub fn from_entropy(entropy: &[u8], passphrase: Option<&str>) -> Result<Self, Error> {
         // Reject bad lengths as caller input, matching the shared error codes.
         if !matches!(entropy.len(), 16 | 20 | 24 | 28 | 32) {
-            return Err(DeriveError::Input(alloc::format!(
+            return Err(Error::Input(alloc::format!(
                 "entropy length must be 16, 20, 24, 28, or 32 bytes, got {}",
                 entropy.len()
             )));
         }
-        let mnemonic = Mnemonic::from_entropy_in(language, entropy)?;
-        Ok(Self::from_parts(&mnemonic, language, passphrase))
+        let mnemonic = Mnemonic::from_entropy(entropy)?;
+        Ok(Self::from_parts(&mnemonic, passphrase))
     }
 
     /// Create a wallet from an existing mnemonic phrase.
-    ///
-    /// The language will be automatically detected from the phrase.
     ///
     /// # Arguments
     ///
@@ -204,10 +152,9 @@ impl Wallet {
     /// # Errors
     ///
     /// Returns an error if the mnemonic is invalid.
-    pub fn from_mnemonic(phrase: &str, passphrase: Option<&str>) -> Result<Self, DeriveError> {
+    pub fn from_mnemonic(phrase: &str, passphrase: Option<&str>) -> Result<Self, Error> {
         let mnemonic: Mnemonic = phrase.parse()?;
-        let language = mnemonic.language();
-        Ok(Self::from_parts(&mnemonic, language, passphrase))
+        Ok(Self::from_parts(&mnemonic, passphrase))
     }
 
     /// Expand 4-letter BIP-39 English prefixes then import (same path as CLI `import`).
@@ -217,43 +164,19 @@ impl Wallet {
     /// # Errors
     ///
     /// Returns an error if expansion or BIP-39 parse fails.
-    pub fn from_mnemonic_expanded(
-        phrase: &str,
-        passphrase: Option<&str>,
-    ) -> Result<Self, DeriveError> {
+    pub fn from_mnemonic_expanded(phrase: &str, passphrase: Option<&str>) -> Result<Self, Error> {
         let expanded = crate::mnemonic::expand(phrase)?;
         Self::from_mnemonic(&expanded, passphrase)
     }
 
-    /// Create a wallet from an existing mnemonic phrase in the specified language.
-    ///
-    /// # Arguments
-    ///
-    /// * `language` - Language for the mnemonic word list
-    /// * `phrase` - BIP39 mnemonic phrase
-    /// * `passphrase` - Optional BIP39 passphrase
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the mnemonic is invalid.
-    pub fn from_mnemonic_in(
-        language: Language,
-        phrase: &str,
-        passphrase: Option<&str>,
-    ) -> Result<Self, DeriveError> {
-        let mnemonic = Mnemonic::parse_in(language, phrase)?;
-        Ok(Self::from_parts(&mnemonic, language, passphrase))
-    }
-
     /// Build a wallet from a validated mnemonic, deriving the seed.
-    fn from_parts(mnemonic: &Mnemonic, language: Language, passphrase: Option<&str>) -> Self {
+    fn from_parts(mnemonic: &Mnemonic, passphrase: Option<&str>) -> Self {
         let passphrase_str = passphrase.unwrap_or("");
         let seed_bytes = mnemonic.to_seed(passphrase_str);
         Self {
             mnemonic: Zeroizing::new(mnemonic.to_string()),
             seed: Zeroizing::new(seed_bytes),
             has_passphrase: passphrase.is_some(),
-            language,
         }
     }
 
@@ -296,11 +219,8 @@ impl Wallet {
     /// Returns an error if the path is malformed or derivation fails.
     #[cfg(feature = "bip32")]
     #[inline]
-    pub fn derive_secp256k1(
-        &self,
-        path: &str,
-    ) -> Result<crate::bip32::DerivedSecp256k1Key, DeriveError> {
-        crate::bip32::DerivedSecp256k1Key::derive(&self.seed, path)
+    pub fn derive_secp256k1(&self, path: &str) -> Result<crate::bip32::DerivedSecp256k1Key, Error> {
+        crate::bip32::DerivedSecp256k1Key::derive(self.seed.as_slice(), path)
     }
 
     /// Derive an Ed25519 key pair at the given SLIP-10 path.
@@ -314,10 +234,7 @@ impl Wallet {
     /// Returns an error if the path is malformed or derivation fails.
     #[cfg(feature = "slip10")]
     #[inline]
-    pub fn derive_ed25519(
-        &self,
-        path: &str,
-    ) -> Result<crate::slip10::DerivedEd25519Key, DeriveError> {
+    pub fn derive_ed25519(&self, path: &str) -> Result<crate::slip10::DerivedEd25519Key, Error> {
         crate::slip10::DerivedEd25519Key::derive_path(self.seed.as_slice(), path)
     }
 
@@ -330,13 +247,6 @@ impl Wallet {
     #[must_use]
     pub const fn has_passphrase(&self) -> bool {
         self.has_passphrase
-    }
-
-    /// Get the language of the mnemonic.
-    #[inline]
-    #[must_use]
-    pub const fn language(&self) -> Language {
-        self.language
     }
 
     /// Get the word count of the mnemonic.
@@ -353,7 +263,28 @@ mod tests {
 
     const TEST_MNEMONIC: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
-    #[cfg(feature = "rand")]
+    struct ZeroRng;
+
+    impl rand_core::TryRng for ZeroRng {
+        type Error = rand_core::Infallible;
+
+        fn try_next_u32(&mut self) -> Result<u32, Self::Error> {
+            Ok(0)
+        }
+
+        fn try_next_u64(&mut self) -> Result<u64, Self::Error> {
+            Ok(0)
+        }
+
+        fn try_fill_bytes(&mut self, dst: &mut [u8]) -> Result<(), Self::Error> {
+            dst.fill(0);
+            Ok(())
+        }
+    }
+
+    impl rand_core::TryCryptoRng for ZeroRng {}
+
+    #[cfg(feature = "os-rng")]
     #[test]
     fn test_generate_12_words() {
         let wallet = Wallet::generate(12, None).unwrap();
@@ -361,14 +292,14 @@ mod tests {
         assert!(!wallet.has_passphrase());
     }
 
-    #[cfg(feature = "rand")]
+    #[cfg(feature = "os-rng")]
     #[test]
     fn test_generate_24_words() {
         let wallet = Wallet::generate(24, None).unwrap();
         assert_eq!(wallet.word_count(), 24);
     }
 
-    #[cfg(feature = "rand")]
+    #[cfg(feature = "os-rng")]
     #[test]
     fn test_generate_with_passphrase() {
         let wallet = Wallet::generate(12, Some("secret")).unwrap();
@@ -376,10 +307,25 @@ mod tests {
     }
 
     #[test]
+    fn test_generate_with_rng() {
+        let mut rng = ZeroRng;
+        let wallet = Wallet::generate_with(&mut rng, 12, None).unwrap();
+        // All-zero 128-bit entropy → canonical abandon…about mnemonic.
+        assert_eq!(wallet.mnemonic(), TEST_MNEMONIC);
+    }
+
+    #[test]
+    fn test_generate_with_bad_word_count() {
+        let mut rng = ZeroRng;
+        let result = Wallet::generate_with(&mut rng, 13, None);
+        assert!(matches!(result, Err(Error::Input(_))));
+    }
+
+    #[test]
     fn test_invalid_entropy_length() {
         // 15 bytes is invalid (should be 16, 20, 24, 28, or 32)
         let result = Wallet::from_entropy(&[0u8; 15], None);
-        assert!(result.is_err());
+        assert!(matches!(result, Err(Error::Input(_))));
     }
 
     #[test]

@@ -11,7 +11,7 @@
 ## Architecture invariants
 
 - Rust crate layering: `kobe-core` is the leaf; every chain crate (`kobe-<chain>`) depends only on `kobe-core`; the `kobe` umbrella re-exports `kobe-core` and every chain behind features; `kobe-cli` consumes only `kobe`. `scripts/check-layers.ts` enforces the graph and rejects unregistered `kobe-*` crates.
-- Library crates (every crate except `kobe-cli`) are `no_std` + `alloc` and sans-IO. `std` (default) is an additive feature, and OS entropy stays behind the `rand` feature. They must build for `thumbv7m-none-eabi`, `wasm32-unknown-unknown`, and the iOS/Android targets with `--no-default-features`, with no `getrandom` in the dependency graph (CI `portable` job).
+- Library crates (every crate except `kobe-cli`) are `no_std` + `alloc` and sans-IO. `std` (default) is an additive feature, and OS entropy stays behind the `os-rng` feature. They must build for `thumbv7m-none-eabi`, `wasm32-unknown-unknown`, and the iOS/Android targets with `--no-default-features`, with no `getrandom` in the dependency graph (CI `portable` job).
 - `packages/*/src/` is platform-neutral: no Node-only or browser-only globals and no `node:*` imports (lint-enforced). All I/O is injected; there are no ambient singletons.
 - Secret-bearing types zeroize on drop and redact `Debug`; never `#[derive(Debug)]` on them.
 

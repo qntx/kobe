@@ -1,7 +1,7 @@
 //! Unified error type for the entire workspace.
 //!
 //! Every chain crate (`kobe-evm`, `kobe-btc`, `kobe-svm`, …) surfaces its
-//! failures through this single [`DeriveError`] enum, so callers can write
+//! failures through this single [`Error`] enum, so callers can write
 //! one `match` to handle errors from any chain. No chain defines its own
 //! error type.
 
@@ -21,8 +21,12 @@ use alloc::string::String;
 /// - [`AddressEncoding`](Self::AddressEncoding) — chain-specific address
 ///   encoding failures (Bech32 / Bech32m HRP, base58check, base32, …).
 #[derive(Debug, thiserror::Error)]
+#[allow(
+    clippy::error_impl_error,
+    reason = "the unified workspace error type is deliberately named `Error`"
+)]
 #[non_exhaustive]
-pub enum DeriveError {
+pub enum Error {
     /// BIP-39 mnemonic decoding / encoding failed.
     #[error("mnemonic: {0}")]
     Mnemonic(#[cfg_attr(feature = "std", from)] bip39::Error),
@@ -47,7 +51,7 @@ pub enum DeriveError {
     AddressEncoding(String),
 }
 
-/// Stable machine-readable code for a [`DeriveError`], shared with the
+/// Stable machine-readable code for an [`Error`], shared with the
 /// TypeScript implementation (`KobeError.code`); [`as_str`](Self::as_str)
 /// returns the shared string.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -86,7 +90,7 @@ impl core::fmt::Display for ErrorCode {
     }
 }
 
-impl DeriveError {
+impl Error {
     /// Machine-readable code identifying which variant this error is.
     ///
     /// 1:1 with the variants and with `KobeError.code` in TypeScript.
@@ -104,7 +108,7 @@ impl DeriveError {
 }
 
 #[cfg(not(feature = "std"))]
-impl From<bip39::Error> for DeriveError {
+impl From<bip39::Error> for Error {
     fn from(e: bip39::Error) -> Self {
         Self::Mnemonic(e)
     }

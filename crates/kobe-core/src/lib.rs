@@ -2,7 +2,7 @@
 //!
 //! This crate owns the type system shared by every `kobe-<chain>` crate:
 //! the [`Wallet`] entry point, the [`Derive`] / [`DeriveExt`] traits, the
-//! typed [`DerivedPublicKey`] enum, the unified [`DeriveError`], and the
+//! typed [`DerivedPublicKey`] enum, the unified [`Error`], and the
 //! BIP-32 / SLIP-10 / Camouflage primitives that chain crates compose.
 //!
 //! # Module map
@@ -54,7 +54,7 @@
 //! | `encoding`           | [`encoding`] (`hash160` / `Base58Check`)         |
 //! | `camouflage`         | [`camouflage`] (PBKDF2 XOR helpers)              |
 //! | `raw-seed`           | [`Wallet::seed`] escape hatch (off by default)   |
-//! | `rand` / `rand_core` | [`Wallet::generate`]                             |
+//! | `os-rng`             | [`Wallet::generate`] via the OS RNG              |
 //! | `test-vectors`       | Re-export of canonical BIP-39 fixtures           |
 //!
 //! # Quick tour
@@ -104,18 +104,17 @@ pub mod mnemonic;
 #[cfg(feature = "slip10")]
 pub mod slip10;
 
-pub use bip39::Language;
-#[cfg(feature = "rand_core")]
-pub use bip39::rand_core;
 pub use derive::{
     Derive, DeriveExt, DerivedAccount, DerivedPublicKey, PublicKeyKind, derive_range,
 };
-pub use error::{DeriveError, ErrorCode};
+pub use error::{Error, ErrorCode};
+// `rand_core::CryptoRng` appears in `Wallet::generate_with`'s signature.
+pub use rand_core;
 pub use style::{DerivationStyle, ParseDerivationStyleError};
 pub use wallet::Wallet;
 
 /// Convenient Result alias.
-pub type Result<T> = core::result::Result<T, DeriveError>;
+pub type Result<T> = core::result::Result<T, Error>;
 
 /// Well-known BIP-39 / SLIP-10 test vectors, exposed for downstream test suites.
 ///

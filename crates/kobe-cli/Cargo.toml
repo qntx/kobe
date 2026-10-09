@@ -20,7 +20,7 @@ path = "src/main.rs"
 doc = false
 
 [dependencies]
-kobe                 = { workspace = true, features = ["std", "rand", "camouflage", "all-chains"] }
+kobe                 = { workspace = true, features = ["std", "os-rng", "camouflage", "all-chains"] }
 clap.workspace       = true
 colored.workspace    = true
 qrcode.workspace     = true

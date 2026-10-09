@@ -14,6 +14,10 @@
     clippy::tests_outside_test_module,
     reason = "integration test crate is itself the test module"
 )]
+#![allow(
+    clippy::indexing_slicing,
+    reason = "fixed-size Base58Check payloads are sliced at spec offsets"
+)]
 
 use kobe_core::Wallet;
 use serde::Deserialize;
@@ -29,6 +33,10 @@ const BIP39: &str = include_str!(concat!(
 const BIP32: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../vectors/core/bip32.json"
+));
+const BIP32_OFFICIAL: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../vectors/bip32/official.json"
 ));
 const MNEMONIC_EXPAND: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -236,6 +244,59 @@ fn bip32() {
             (private_key, error) => {
                 panic!("case {index}: malformed (privateKey {private_key:?}, error {error:?})")
             }
+        }
+    }
+}
+
+/// One link of an official BIP-32 test chain: path plus its `Base58Check`
+/// extended keys. The checksum is not under test — only payload bytes are
+/// compared (xprv key at 46..78, xpub compressed pubkey at 45..78).
+#[derive(Debug, Deserialize)]
+struct Bip32OfficialChain {
+    path: String,
+    xpub: String,
+    xprv: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct Bip32OfficialCase {
+    seed: String,
+    chains: Vec<Bip32OfficialChain>,
+}
+
+#[derive(Debug, Deserialize)]
+struct Bip32OfficialVector {
+    cases: Vec<Bip32OfficialCase>,
+}
+
+#[test]
+fn bip32_official() {
+    let vector: Bip32OfficialVector =
+        serde_json::from_str(BIP32_OFFICIAL).expect("official.json must parse");
+    assert!(!vector.cases.is_empty(), "official.json has no cases");
+    for (index, case) in vector.cases.iter().enumerate() {
+        let seed =
+            hex::decode(&case.seed).unwrap_or_else(|_| panic!("case {index}: seed must be hex"));
+        for (chain_index, chain) in case.chains.iter().enumerate() {
+            let label = format!("case {index} chain {chain_index} ({})", chain.path);
+            let key = kobe_core::bip32::DerivedSecp256k1Key::derive(&seed, &chain.path)
+                .unwrap_or_else(|e| panic!("{label}: derive failed: {e}"));
+            let xprv = bs58::decode(&chain.xprv)
+                .into_vec()
+                .unwrap_or_else(|e| panic!("{label}: xprv must be base58: {e}"));
+            let xpub = bs58::decode(&chain.xpub)
+                .into_vec()
+                .unwrap_or_else(|e| panic!("{label}: xpub must be base58: {e}"));
+            assert_eq!(
+                &key.private_key_bytes()[..],
+                &xprv[46..78],
+                "{label}: private key vs xprv payload"
+            );
+            assert_eq!(
+                &key.compressed_pubkey()[..],
+                &xpub[45..78],
+                "{label}: compressed pubkey vs xpub payload"
+            );
         }
     }
 }

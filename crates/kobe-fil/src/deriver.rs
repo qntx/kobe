@@ -4,7 +4,7 @@ use alloc::{format, string::String, vec::Vec};
 
 use blake2::digest::consts::{U4, U20};
 use blake2::{Blake2b, Digest};
-use kobe_core::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
+use kobe_core::{Derive, DerivedAccount, DerivedPublicKey, Error, Wallet};
 
 /// Filecoin lowercase base32 alphabet (RFC 4648, no padding).
 const BASE32_ALPHABET: &[u8; 32] = b"abcdefghijklmnopqrstuvwxyz234567";
@@ -31,7 +31,7 @@ impl<'a> Deriver<'a> {
     ///
     /// Returns an error if key derivation, `BLAKE2b` hashing, or base32
     /// encoding fails.
-    pub fn derive_at(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
+    pub fn derive_at(&self, path: &str) -> Result<DerivedAccount, Error> {
         let key = self.wallet.derive_secp256k1(path)?;
         let pubkey_bytes = key.uncompressed_pubkey();
 
@@ -59,13 +59,13 @@ impl<'a> Deriver<'a> {
 
 impl Derive for Deriver<'_> {
     type Account = DerivedAccount;
-    type Error = DeriveError;
+    type Error = Error;
 
-    fn derive(&self, index: u32) -> Result<DerivedAccount, DeriveError> {
+    fn derive(&self, index: u32) -> Result<DerivedAccount, Error> {
         self.derive_at(&format!("m/44'/461'/0'/0/{index}"))
     }
 
-    fn derive_path(&self, path: &str) -> Result<DerivedAccount, DeriveError> {
+    fn derive_path(&self, path: &str) -> Result<DerivedAccount, Error> {
         self.derive_at(path)
     }
 }
@@ -73,18 +73,18 @@ impl Derive for Deriver<'_> {
 /// Compute a Blake2b hash with a variable output length.
 ///
 /// Filecoin f1 uses 20-byte payload and 4-byte checksum only.
-fn blake2b(data: &[u8], output_len: usize) -> Result<Vec<u8>, DeriveError> {
+fn blake2b(data: &[u8], output_len: usize) -> Result<Vec<u8>, Error> {
     match output_len {
         20 => Ok(Blake2b::<U20>::digest(data).to_vec()),
         4 => Ok(Blake2b::<U4>::digest(data).to_vec()),
-        _ => Err(DeriveError::Crypto(format!(
+        _ => Err(Error::Crypto(format!(
             "blake2b output length {output_len} is not used by Filecoin f1"
         ))),
     }
 }
 
 /// Encode bytes using Filecoin's lowercase base32 (no padding).
-fn base32_encode(data: &[u8]) -> Result<String, DeriveError> {
+fn base32_encode(data: &[u8]) -> Result<String, Error> {
     let mut result = String::new();
     let mut buffer: u64 = 0;
     let mut bits_in_buffer = 0;
@@ -96,11 +96,7 @@ fn base32_encode(data: &[u8]) -> Result<String, DeriveError> {
             bits_in_buffer -= 5;
             let index = ((buffer >> bits_in_buffer) & 0x1f) as usize;
             result.push(char::from(*BASE32_ALPHABET.get(index).ok_or_else(
-                || {
-                    DeriveError::AddressEncoding(String::from(
-                        "filecoin base32: index out of range",
-                    ))
-                },
+                || Error::AddressEncoding(String::from("filecoin base32: index out of range")),
             )?));
         }
     }
@@ -108,7 +104,7 @@ fn base32_encode(data: &[u8]) -> Result<String, DeriveError> {
     if bits_in_buffer > 0 {
         let index = ((buffer << (5 - bits_in_buffer)) & 0x1f) as usize;
         result.push(char::from(*BASE32_ALPHABET.get(index).ok_or_else(
-            || DeriveError::AddressEncoding(String::from("filecoin base32: index out of range")),
+            || Error::AddressEncoding(String::from("filecoin base32: index out of range")),
         )?));
     }
 

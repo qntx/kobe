@@ -8,7 +8,7 @@ use alloc::{format, string::String};
 use core::ops::Deref;
 
 use bech32::{Bech32, Hrp};
-use kobe_core::{Derive, DeriveError, DerivedAccount, DerivedPublicKey, Wallet};
+use kobe_core::{Derive, DerivedAccount, DerivedPublicKey, Error, Wallet};
 use zeroize::Zeroizing;
 
 /// NIP-19 human-readable part for secret keys.
@@ -114,7 +114,7 @@ impl<'a> Deriver<'a> {
     ///
     /// Returns an error if key derivation or bech32 encoding fails.
     #[inline]
-    pub fn derive(&self, index: u32) -> Result<NostrAccount, DeriveError> {
+    pub fn derive(&self, index: u32) -> Result<NostrAccount, Error> {
         self.derive_at(&format!("m/44'/1237'/{index}'/0/0"))
     }
 
@@ -123,7 +123,7 @@ impl<'a> Deriver<'a> {
     /// # Errors
     ///
     /// Returns an error if the path is invalid or derivation fails.
-    pub fn derive_at(&self, path: &str) -> Result<NostrAccount, DeriveError> {
+    pub fn derive_at(&self, path: &str) -> Result<NostrAccount, Error> {
         let key = self.wallet.derive_secp256k1(path)?;
 
         // NIP-19 / BIP-340: the x-only public key is the last 32 bytes of the
@@ -132,21 +132,21 @@ impl<'a> Deriver<'a> {
         let compressed = key.compressed_pubkey();
         let mut xonly = [0u8; 32];
         xonly.copy_from_slice(compressed.get(1..).ok_or_else(|| {
-            DeriveError::Crypto(String::from(
+            Error::Crypto(String::from(
                 "nostr: compressed pubkey shorter than 33 bytes",
             ))
         })?);
 
         let npub_hrp = Hrp::parse(NPUB_HRP)
-            .map_err(|e| DeriveError::AddressEncoding(format!("nostr: invalid npub HRP: {e}")))?;
+            .map_err(|e| Error::AddressEncoding(format!("nostr: invalid npub HRP: {e}")))?;
         let npub = bech32::encode::<Bech32>(npub_hrp, &xonly)
-            .map_err(|e| DeriveError::AddressEncoding(format!("nostr npub encoding: {e}")))?;
+            .map_err(|e| Error::AddressEncoding(format!("nostr npub encoding: {e}")))?;
 
         let nsec_hrp = Hrp::parse(NSEC_HRP)
-            .map_err(|e| DeriveError::AddressEncoding(format!("nostr: invalid nsec HRP: {e}")))?;
+            .map_err(|e| Error::AddressEncoding(format!("nostr: invalid nsec HRP: {e}")))?;
         let sk_bytes = key.private_key_bytes();
         let nsec = bech32::encode::<Bech32>(nsec_hrp, sk_bytes.as_slice())
-            .map_err(|e| DeriveError::AddressEncoding(format!("nostr nsec encoding: {e}")))?;
+            .map_err(|e| Error::AddressEncoding(format!("nostr nsec encoding: {e}")))?;
 
         let inner = DerivedAccount::new(
             String::from(path),
@@ -164,18 +164,18 @@ impl<'a> Deriver<'a> {
 
 impl Derive for Deriver<'_> {
     type Account = NostrAccount;
-    type Error = DeriveError;
+    type Error = Error;
 
     /// Derive a Nostr account at the given NIP-06 `account` index.
     ///
     /// The returned [`NostrAccount`] wraps a [`DerivedAccount`] plus the
     /// NIP-19 `nsec` bech32 encoding; `Deref` / `AsRef<DerivedAccount>`
     /// expose the unified view.
-    fn derive(&self, index: u32) -> Result<NostrAccount, DeriveError> {
+    fn derive(&self, index: u32) -> Result<NostrAccount, Error> {
         Deriver::derive(self, index)
     }
 
-    fn derive_path(&self, path: &str) -> Result<NostrAccount, DeriveError> {
+    fn derive_path(&self, path: &str) -> Result<NostrAccount, Error> {
         self.derive_at(path)
     }
 }

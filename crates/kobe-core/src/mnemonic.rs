@@ -25,9 +25,7 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use bip39::Language;
-
-use crate::DeriveError;
+use crate::Error;
 
 /// Minimum prefix length required for unambiguous word expansion.
 ///
@@ -36,7 +34,8 @@ const MIN_PREFIX_LEN: usize = 4;
 
 /// Expand abbreviated words in a mnemonic phrase to their full BIP-39 form.
 ///
-/// Each whitespace-separated token is matched against the BIP-39 wordlist:
+/// Each whitespace-separated token is matched against the English BIP-39
+/// wordlist:
 /// - If the token is an exact match, it is kept as-is.
 /// - If the token is a prefix (>= 4 characters) that uniquely identifies
 ///   a single word, it is expanded to that word.
@@ -48,22 +47,10 @@ const MIN_PREFIX_LEN: usize = 4;
 ///
 /// # Errors
 ///
-/// Returns [`DeriveError::Input`] if a token does not match any word,
+/// Returns [`Error::Input`] if a token does not match any word,
 /// matches multiple words, or is a non-exact token shorter than 4 characters.
-pub fn expand(phrase: &str) -> Result<String, DeriveError> {
-    expand_in(Language::English, phrase)
-}
-
-/// Expand abbreviated words using the specified language wordlist.
-///
-/// See [`expand`] for details.
-///
-/// # Errors
-///
-/// Returns [`DeriveError::Input`] if any token fails to resolve to a single
-/// BIP-39 word.
-pub fn expand_in(language: Language, phrase: &str) -> Result<String, DeriveError> {
-    let word_list = language.word_list();
+pub fn expand(phrase: &str) -> Result<String, Error> {
+    let word_list = bip39::Language::English.word_list();
     let tokens: Vec<&str> = phrase.split_whitespace().collect();
 
     let mut result = String::new();
@@ -80,12 +67,12 @@ pub fn expand_in(language: Language, phrase: &str) -> Result<String, DeriveError
 /// Resolve a single token against the wordlist.
 ///
 /// Returns the full word if the token is an exact match or a unique prefix.
-fn resolve_token<'a>(word_list: &'a [&'a str; 2048], token: &str) -> Result<&'a str, DeriveError> {
+fn resolve_token<'a>(word_list: &'a [&'a str; 2048], token: &str) -> Result<&'a str, Error> {
     // Fast path: exact match via binary search (wordlist is sorted).
     if let Ok(idx) = word_list.binary_search(&token) {
         return word_list.get(idx).copied().ok_or_else(|| {
             // Should be unreachable: binary_search Ok implies a valid index.
-            DeriveError::Input(String::from("mnemonic: internal wordlist lookup failed"))
+            Error::Input(String::from("mnemonic: internal wordlist lookup failed"))
         });
     }
 
@@ -93,7 +80,7 @@ fn resolve_token<'a>(word_list: &'a [&'a str; 2048], token: &str) -> Result<&'a 
     // Error messages deliberately omit the raw token so CLI stderr / JSON
     // errors do not re-echo partial secret material from failed imports.
     if token.len() < MIN_PREFIX_LEN {
-        return Err(DeriveError::Input(alloc::format!(
+        return Err(Error::Input(alloc::format!(
             "mnemonic: word prefix is too short (minimum {MIN_PREFIX_LEN} characters)"
         )));
     }
@@ -109,11 +96,11 @@ fn resolve_token<'a>(word_list: &'a [&'a str; 2048], token: &str) -> Result<&'a 
         .collect();
 
     match matches.as_slice() {
-        [] => Err(DeriveError::Input(String::from(
+        [] => Err(Error::Input(String::from(
             "mnemonic: word prefix does not match any BIP-39 word",
         ))),
         [only] => Ok(*only),
-        many => Err(DeriveError::Input(alloc::format!(
+        many => Err(Error::Input(alloc::format!(
             "mnemonic: word prefix is ambiguous (matches {} BIP-39 words)",
             many.len()
         ))),
@@ -160,7 +147,7 @@ mod tests {
     fn prefix_too_short_rejected() {
         let result = expand("aba aba aba aba aba aba aba aba aba aba aba aba");
         let err = result.unwrap_err();
-        let DeriveError::Input(msg) = &err else {
+        let Error::Input(msg) = &err else {
             unreachable!("expected Input error, got {err:?}");
         };
         assert!(msg.contains("too short"), "unexpected message: {msg}");
@@ -174,7 +161,7 @@ mod tests {
     fn unknown_prefix_rejected() {
         let result = expand("aban aban aban aban aban aban aban aban aban aban aban zzzz");
         let err = result.unwrap_err();
-        let DeriveError::Input(msg) = &err else {
+        let Error::Input(msg) = &err else {
             unreachable!("expected Input error, got {err:?}");
         };
         assert!(msg.contains("does not match"), "unexpected message: {msg}");
@@ -185,15 +172,12 @@ mod tests {
     }
 
     #[test]
-    fn ambiguous_prefix_rejected() {
-        // "abst" matches both "abstract" and "absurd" — wait, let me check.
-        // Actually in BIP-39, each 4-letter prefix is unique, so we need a
-        // shorter-than-4 prefix to get ambiguity. But we already reject < 4.
-        // A 4-letter prefix should never be ambiguous in the English wordlist.
-        // So this test verifies the error path with a synthetic scenario
-        // by using a 3-letter prefix that would be ambiguous.
-        let result = expand("aba");
-        assert!(result.is_err());
+    fn ambiguous_prefix_is_unreachable() {
+        // The English BIP-39 wordlist guarantees unique 4-letter prefixes,
+        // so no token can hit the ambiguity branch. "stor" resolves to
+        // "story" — the only word with that prefix ("storm"/"store" are not
+        // BIP-39 words).
+        assert_eq!(expand("stor").unwrap(), "story");
     }
 
     #[test]

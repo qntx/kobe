@@ -11,7 +11,7 @@ use bip32_crate::{DerivationPath, XPrv};
 use k256::ecdsa::SigningKey;
 use zeroize::Zeroizing;
 
-use crate::DeriveError;
+use crate::Error;
 
 /// A secp256k1 key pair derived via BIP-32.
 ///
@@ -24,22 +24,31 @@ pub struct DerivedSecp256k1Key {
 }
 
 impl DerivedSecp256k1Key {
-    /// Derive a secp256k1 key pair from a 64-byte seed at the given BIP-32 path.
+    /// Derive a secp256k1 key pair from a seed at the given BIP-32 path.
     ///
     /// # Arguments
     ///
-    /// * `seed` - 64-byte BIP-39 seed
+    /// * `seed` - BIP-32 seed (16–64 bytes, i.e. BIP-32's 128–512 bits;
+    ///   a 64-byte BIP-39 seed is the usual input)
     /// * `path` - BIP-32 derivation path (e.g. `m/44'/60'/0'/0/0`)
     ///
     /// # Errors
     ///
-    /// Returns an error if the path is invalid or derivation fails.
-    pub fn derive(seed: &[u8; 64], path: &str) -> Result<Self, DeriveError> {
+    /// Returns [`Error::Input`] if the seed is not 16–64 bytes long, an
+    /// error if the path is invalid, or [`Error::Crypto`] if derivation
+    /// fails.
+    pub fn derive(seed: &[u8], path: &str) -> Result<Self, Error> {
+        if !(16..=64).contains(&seed.len()) {
+            return Err(Error::Input(format!(
+                "bip32: seed length must be 16 to 64 bytes, got {}",
+                seed.len()
+            )));
+        }
         let dp: DerivationPath = path
             .parse()
-            .map_err(|e| DeriveError::Path(format!("bip32: {e}")))?;
+            .map_err(|e| Error::Path(format!("bip32: {e}")))?;
         let xprv = XPrv::derive_from_path(seed, &dp)
-            .map_err(|e| DeriveError::Crypto(format!("bip32 derivation failed: {e}")))?;
+            .map_err(|e| Error::Crypto(format!("bip32 derivation failed: {e}")))?;
         Ok(Self { xprv })
     }
 

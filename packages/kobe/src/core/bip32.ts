@@ -83,17 +83,18 @@ class DerivedSecp256k1KeyImpl implements DerivedSecp256k1Key {
 }
 
 /**
- * Derive a BIP-32 secp256k1 key at `path` from a 64-byte BIP-39 seed.
+ * Derive a BIP-32 secp256k1 key at `path` from a 16–64-byte seed (BIP-32's 128–512 bits; a 64-byte
+ * BIP-39 seed is the usual input).
  *
  * Paths are strict: `m` or `m/…`, no trimming, no case folding. The private key is copied out of
  * the HDKey tree, then `wipePrivateData()` clears every intermediate key on both the child and the
  * root.
  *
- * @throws KobeError path | crypto
+ * @throws KobeError input | path | crypto
  */
 export function deriveSecp256k1FromSeed(seed: Uint8Array, path: string): DerivedSecp256k1Key {
-  if (seed.length < 16) {
-    throw new KobeError("crypto", "seed too short for BIP-32");
+  if (seed.length < 16 || seed.length > 64) {
+    throw new KobeError("input", "seed must be 16 to 64 bytes for BIP-32");
   }
   if (path !== "m" && !path.startsWith("m/")) {
     throw new KobeError("path", "path must start with 'm/' or be exactly 'm'");

@@ -10,4 +10,4 @@ extern crate alloc;
 mod deriver;
 
 pub use deriver::{ChainConfig, Deriver};
-pub use kobe_core::{DeriveError, DerivedAccount, DerivedPublicKey};
+pub use kobe_core::{DerivedAccount, DerivedPublicKey, Error};
