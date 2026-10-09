@@ -69,7 +69,7 @@ describe("vault envelope properties", () => {
     const rng = new SplitMix64(0xf11fn);
     const key = rng.bytes(32);
     const plaintext = rng.bytes(48);
-    const context = "meowl-vault/2/test/data";
+    const context = "kobe/test/v1/test/data";
     const sealed = seal(key, plaintext, context, (out) => out.set(rng.bytes(12)));
 
     expect(codeOf(() => open(key, flipByte(sealed, 0), context))).toBe("version");
@@ -84,9 +84,7 @@ describe("vault envelope properties", () => {
   test("context mismatch fails with decrypt", () => {
     const rng = new SplitMix64(0xc0ffeen);
     const key = rng.bytes(32);
-    const sealed = seal(key, rng.bytes(24), "meowl-vault/2/a/data", (out) =>
-      out.set(rng.bytes(12)),
-    );
-    expect(codeOf(() => open(key, sealed, "meowl-vault/2/b/data"))).toBe("decrypt");
+    const sealed = seal(key, rng.bytes(24), "kobe/test/v1/a/data", (out) => out.set(rng.bytes(12)));
+    expect(codeOf(() => open(key, sealed, "kobe/test/v1/b/data"))).toBe("decrypt");
   });
 });

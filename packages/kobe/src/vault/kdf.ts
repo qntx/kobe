@@ -13,8 +13,8 @@ const MIN_SALT_LEN = 16;
 const MAX_PASSWORD_ITERATIONS = 10_000_000;
 
 /**
- * Injected PBKDF2-SHA256 implementation. Defaults to noble's `pbkdf2Async`; inject WebCrypto on
- * platforms that have it (e.g. Meowl Web) — there is no auto-detection.
+ * Injected PBKDF2-SHA256 implementation. Defaults to noble's `pbkdf2Async`; inject WebCrypto where
+ * it is available — there is no auto-detection.
  */
 export type Pbkdf2Sha256 = (
   password: Uint8Array,

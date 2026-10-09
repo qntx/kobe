@@ -201,8 +201,8 @@ pub fn prf_key(prf_output: &[u8], info: &str) -> Result<Zeroizing<[u8; 32]>, Err
 /// Build a 12-word [`Wallet`] from a 32-byte PRF output:
 /// `Wallet::from_entropy(prf[0..16])` with no passphrase.
 ///
-/// The PRF input string (e.g. `meowl/wallet/v1`) is the application's
-/// business, not kobe's.
+/// The PRF input is chosen by the application; kobe only consumes the
+/// 32-byte output.
 ///
 /// # Errors
 ///

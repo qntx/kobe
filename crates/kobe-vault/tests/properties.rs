@@ -100,7 +100,7 @@ fn flipping_any_byte_fails() {
     let mut rng = SplitMix64::new(0xf11f);
     let key = rng.bytes(32);
     let plaintext = rng.bytes(48);
-    let context = "meowl-vault/2/test/data";
+    let context = "kobe/test/v1/test/data";
     let sealed =
         seal(&key, &plaintext, context, &mut rng).unwrap_or_else(|e| panic!("seal failed: {e}"));
 
@@ -117,7 +117,7 @@ fn context_mismatch_fails_with_decrypt() {
     let mut rng = SplitMix64::new(0xc0_ffee);
     let key = rng.bytes(32);
     let plaintext = rng.bytes(24);
-    let sealed = seal(&key, &plaintext, "meowl-vault/2/a/data", &mut rng)
+    let sealed = seal(&key, &plaintext, "kobe/test/v1/a/data", &mut rng)
         .unwrap_or_else(|e| panic!("seal failed: {e}"));
-    assert_eq!(open_code(&key, &sealed, "meowl-vault/2/b/data"), "decrypt");
+    assert_eq!(open_code(&key, &sealed, "kobe/test/v1/b/data"), "decrypt");
 }

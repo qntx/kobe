@@ -8,7 +8,7 @@ const PRF_LEN = 32;
  * Build a 12-word {@link Wallet} from a 32-byte PRF output: `Wallet.fromEntropy(prf[0..16])` with no
  * passphrase.
  *
- * The PRF input string (e.g. `meowl/wallet/v1`) is the application's business, not kobe's.
+ * The PRF input is chosen by the application; kobe only consumes the 32-byte output.
  *
  * @throws KobeError input if `prfOutput` is not exactly 32 bytes
  */

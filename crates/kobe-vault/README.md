@@ -7,7 +7,7 @@ workspace. `no_std` + `alloc`; `std` (default) is additive.
 
 - AES-256-GCM, 96-bit nonce drawn from the caller's RNG, 128-bit tag.
 - `key` is exactly 32 bytes; `context` is a non-empty UTF-8 string chosen by
-  the application (e.g. `meowl-vault/2/<id>/<type>`).
+  the application (e.g. `example-app/v1/<record-id>/<type>`).
 - AAD = `[0x01] || UTF-8(context)` — the version byte is bound into the AAD.
 - Sealed bytes = `[0x01] || nonce(12) || ciphertext || tag(16)`; minimum
   length 29 (empty plaintext is allowed).
