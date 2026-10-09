@@ -4,8 +4,11 @@ All notable changes to this workspace are documented in this file. The format is
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-10-09
+
 ### Added
 
+- `kobe-vault` and `@qntx/kobe/vault` — the versioned key-store format shared by both implementations: envelope v1 (`seal` / `open`: AES-256-GCM, caller-supplied 96-bit nonce, AAD = version byte `0x01` ‖ caller context), `password_key` / `derivePasswordKey` (PBKDF2-HMAC-SHA256 over the NFKC-normalized password, `PASSWORD_ITERATIONS = 600_000`, injectable PBKDF2 on the TS side), `prf_key` / `derivePrfKey` (HKDF-SHA256 over a 32-byte PRF output with a caller-supplied label), and `passkey_wallet` / `passkeyWallet` (the first 16 bytes of a PRF output as BIP-39 entropy). Vectors in `vectors/vault/`; error codes `decrypt` and `version` join the shared vocabulary.
 - `Wallet::id()` / `Wallet.id()` — stable, non-secret wallet identifier: the first 16 hex chars of `SHA-256("kobe/wallet-id/v1" ‖ pubkey)`, where `pubkey` is the compressed BIP-32 master public key over the BIP-39 seed. Shared capability `core.wallet-id` with vectors in `vectors/core/wallet-id.json`; on the Rust side it is available with the `bip32` feature.
 - TypeScript wallet core and Nostr module: `@qntx/kobe/core` (`Wallet`, `KobeError`, `expandMnemonic`, `isValidMnemonic`, `DerivedAccount`/`DerivedPublicKey`/`DerivedSecp256k1Key` types) and `@qntx/kobe/nostr` (`NostrDeriver`, `NostrAccount`), migrated from `@qntx/wallet`.
 - Shared-vector runners on both sides: `crates/kobe-vectors` (Rust, `publish = false`) and `packages/kobe/tests/vectors/` (TS) execute the same `vectors/` files; `parity.json` tracks `core.bip39`, `core.bip32`, `core.mnemonic.expand`, and `nostr.nip06` as stable tier-A capabilities.

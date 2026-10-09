@@ -1,6 +1,6 @@
 {
   "name": "@qntx/kobe",
-  "version": "3.4.0",
+  "version": "4.0.0",
   "description": "Multi-chain HD wallet SDK in TypeScript",
   "keywords": [
     "bip39",
