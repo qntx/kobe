@@ -23,6 +23,7 @@
         "@noble/ciphers": "^2.4.0",
         "@noble/curves": "^2.4.0",
         "@noble/hashes": "^2.4.0",
+        "@qntx/nostr": "^0.10.1",
         "@scure/base": "^2.4.0",
         "@scure/bip32": "^2.4.0",
         "@scure/bip39": "^2.4.0",
@@ -172,6 +173,8 @@
     "@publint/pack": ["@publint/pack@0.1.7", "", { "dependencies": { "tinyexec": "^1.3.0" } }, "sha512-4EDEmvxWtgsCnnVeBvtFIFZtUhPPt1+bA9JrSwU4Sa//6oKtzCSlGGXYJr44OD9aGISymbieJ4mCKHUygUDU+g=="],
 
     "@qntx/kobe": ["@qntx/kobe@workspace:packages/kobe"],
+
+    "@qntx/nostr": ["@qntx/nostr@0.10.1", "", { "dependencies": { "@noble/ciphers": "^2.4.0", "@noble/curves": "^2.4.0", "@noble/hashes": "^2.4.0", "@scure/base": "^2.4.0" }, "peerDependencies": { "ws": "^8.18.0" }, "optionalPeers": ["ws"] }, "sha512-IXX01CjrWBnsQmrHm4ckJZyqd/CJtkAqzw9IDRwkUGqAc8G297046DaZDVEcf+ot/capVWGXNZ2+x84KpXI3Vg=="],
 
     "@qntx/oxfmt": ["@qntx/oxfmt@1.1.1", "", { "peerDependencies": { "oxfmt": ">=0.66.0 <1.0.0" }, "optionalPeers": ["oxfmt"] }, "sha512-i/+3GBLZlwDNW6gT1Z76LKEfPBm4LMSjee0URPRn5YeILbEtGQtMuUNNLcfabYpGPZI4wGL3YyPjdD3/Abf9Kw=="],
 

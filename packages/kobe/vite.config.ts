@@ -23,6 +23,7 @@ const config: UserConfig = defineConfig({
       core: "src/core/index.ts",
       nostr: "src/nostr/index.ts",
       vault: "src/vault/index.ts",
+      backend: "src/backend/index.ts",
     },
     dts: {
       generator: "tsgo",

@@ -120,6 +120,18 @@
         "tests": ["crates/kobe-vectors/tests/vault.rs"]
       },
       "vectors": ["vectors/vault/passkey-wallet.json"]
+    },
+    {
+      "id": "backend.interface",
+      "tier": "B",
+      "status": "ts-only",
+      "milestone": "S4a",
+      "ts": {
+        "module": "packages/kobe/src/backend/pure.ts",
+        "tests": ["packages/kobe/tests/backend/pure.test.ts"]
+      },
+      "rust": null,
+      "vectors": []
     }
   ]
 }

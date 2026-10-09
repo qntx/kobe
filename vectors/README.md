@@ -55,6 +55,7 @@ and `kobe_core::Error::code().as_str()` (the `ErrorCode` enum) in Rust.
 | `address-encoding` | `Error::AddressEncoding`    | a bech32 / base58 / … encoding failure                                                                                                                       |
 | `decrypt`          | `Error::Decrypt`            | AEAD open failed (wrong key, tampered data, or mismatched context)                                                                                           |
 | `version`          | `Error::UnsupportedVersion` | sealed data uses an envelope version this build does not support                                                                                             |
+| `handle`           | — (backend-level only)      | a released, revoked, never-issued, or wrong-kind backend handle; `kobe-ffi` reports it as an ABI status, there is no `kobe_core::Error` variant              |
 
 Phrases are normalized by collapsing whitespace runs to single spaces with no
 case folding. Derivation paths are strict — `m` or `m/…`, no trimming.

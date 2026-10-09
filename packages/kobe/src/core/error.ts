@@ -11,7 +11,8 @@ export type KobeErrorCode =
   | "input"
   | "address-encoding"
   | "decrypt"
-  | "version";
+  | "version"
+  | "handle";
 
 /**
  * Unified HD / mnemonic / path / address-encoding failure.
@@ -27,6 +28,8 @@ export type KobeErrorCode =
  * - `address-encoding` — bech32 / base58 / … encoding failure.
  * - `decrypt` — AEAD open failed (wrong key, tampered data, wrong context).
  * - `version` — sealed data uses an envelope version this build does not support.
+ * - `handle` — backend-level only: a released, revoked, never-issued, or wrong-kind handle (no
+ *   `kobe_core::Error` variant; kobe-ffi reports it as an ABI status).
  */
 export class KobeError extends Error {
   override readonly name = "KobeError";

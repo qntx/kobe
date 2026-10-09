@@ -28,6 +28,11 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
+    "./backend": {
+      "types": "./dist/backend.d.mts",
+      "import": "./dist/backend.mjs",
+      "default": "./dist/backend.mjs"
+    },
     "./core": {
       "types": "./dist/core.d.mts",
       "import": "./dist/core.mjs",
@@ -61,6 +66,7 @@
     "@noble/ciphers": "^2.4.0",
     "@noble/curves": "^2.4.0",
     "@noble/hashes": "^2.4.0",
+    "@qntx/nostr": "^0.10.1",
     "@scure/base": "^2.4.0",
     "@scure/bip32": "^2.4.0",
     "@scure/bip39": "^2.4.0"

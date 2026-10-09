@@ -50,6 +50,31 @@ the `kobe-vault` crate):
 - `passkeyWallet(prfOutput)` — a 12-word `Wallet` from a 32-byte PRF output.
 - `VAULT_VERSION` (`1`), `PASSWORD_ITERATIONS` (`600_000`).
 
+### `@qntx/kobe/backend`
+
+The `KobeBackend` contract — the injection point between the app and the
+crypto implementation — plus `createPureBackend()`, the pure TypeScript
+implementation. A native backend (`kobe-ffi` + `@qntx/kobe-native`,
+same interface) arrives later; a shared conformance suite lives at
+`tests/backend/conformance.ts`.
+
+- Wallets and Nostr keys are held behind integer handles
+  (`WalletHandle` / `NostrKeyHandle`) issued by the backend instance — there
+  is no global registry. A released, revoked, never-issued, or wrong-kind
+  handle fails with `KobeError("handle")`.
+- `generateWallet` / `importMnemonic` / `importPasskeyPrf`,
+  `exportMnemonic`, `sealWallet` / `openWallet` (vault envelope v1 over the
+  mnemonic bytes), `deriveNostrKey` (NIP-06), `importNostrKey` /
+  `importNsec` / `exportNostrKey` / `exportNsec` / `nostrPublicKey`,
+  `signEvent`, `nip44Encrypt` / `nip44Decrypt`, `nip04Encrypt` /
+  `nip04Decrypt`.
+- `release(handle)` wipes that handle's secrets (`SecretKey.zeroize()`,
+  conversation keys, `Wallet.dispose()`); it is idempotent and never throws.
+  `revokeAll()` releases every issued handle. Releasing a wallet does not
+  release keys derived from it.
+- `createPureBackend({ rng? })` — `rng` feeds only `generateWallet` and
+  defaults to `crypto.getRandomValues`.
+
 ## Runtime requirements
 
 Platform-neutral (Node, browsers, Hermes): the library expects

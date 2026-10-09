@@ -88,7 +88,18 @@ const config: UserConfig = defineConfig({
               patterns: [
                 ...platformNeutralImports.patterns,
                 {
-                  group: ["..", "../", "../index", "../index.ts", "../nostr", "../nostr/**"],
+                  group: [
+                    "..",
+                    "../",
+                    "../index",
+                    "../index.ts",
+                    "../nostr",
+                    "../nostr/**",
+                    "../vault",
+                    "../vault/**",
+                    "../backend",
+                    "../backend/**",
+                  ],
                   message: "core is the leaf layer (AGENTS.md layering)",
                 },
               ],
@@ -107,8 +118,66 @@ const config: UserConfig = defineConfig({
               patterns: [
                 ...platformNeutralImports.patterns,
                 {
-                  group: ["..", "../", "../index", "../index.ts", "../nostr", "../nostr/**"],
+                  group: [
+                    "..",
+                    "../",
+                    "../index",
+                    "../index.ts",
+                    "../nostr",
+                    "../nostr/**",
+                    "../backend",
+                    "../backend/**",
+                  ],
                   message: "vault may only reach ../core (AGENTS.md layering)",
+                },
+              ],
+            },
+          ],
+        },
+      },
+      {
+        // src/nostr may reach ../core; it must never reach ../backend.
+        files: ["packages/kobe/src/nostr/**"],
+        rules: {
+          "eslint/no-restricted-imports": [
+            "error",
+            {
+              paths: platformNeutralImports.paths,
+              patterns: [
+                ...platformNeutralImports.patterns,
+                {
+                  group: [
+                    "..",
+                    "../",
+                    "../index",
+                    "../index.ts",
+                    "../vault",
+                    "../vault/**",
+                    "../backend",
+                    "../backend/**",
+                  ],
+                  message: "nostr may only reach ../core (AGENTS.md layering)",
+                },
+              ],
+            },
+          ],
+        },
+      },
+      {
+        // src/backend composes ../core, ../vault and ../nostr. The interface
+        // is async-only; the pure backend resolves synchronously.
+        files: ["packages/kobe/src/backend/**"],
+        rules: {
+          "typescript/require-await": "off",
+          "eslint/no-restricted-imports": [
+            "error",
+            {
+              paths: platformNeutralImports.paths,
+              patterns: [
+                ...platformNeutralImports.patterns,
+                {
+                  group: ["..", "../", "../index", "../index.ts"],
+                  message: "backend may reach ../core, ../vault and ../nostr only",
                 },
               ],
             },
