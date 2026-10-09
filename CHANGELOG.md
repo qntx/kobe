@@ -6,6 +6,7 @@ All notable changes to this workspace are documented in this file. The format is
 
 ### Added
 
+- `Wallet::id()` / `Wallet.id()` — stable, non-secret wallet identifier: the first 16 hex chars of `SHA-256("kobe/wallet-id/v1" ‖ pubkey)`, where `pubkey` is the compressed BIP-32 master public key over the BIP-39 seed. Shared capability `core.wallet-id` with vectors in `vectors/core/wallet-id.json`; on the Rust side it is available with the `bip32` feature.
 - TypeScript wallet core and Nostr module: `@qntx/kobe/core` (`Wallet`, `KobeError`, `expandMnemonic`, `isValidMnemonic`, `DerivedAccount`/`DerivedPublicKey`/`DerivedSecp256k1Key` types) and `@qntx/kobe/nostr` (`NostrDeriver`, `NostrAccount`), migrated from `@qntx/wallet`.
 - Shared-vector runners on both sides: `crates/kobe-vectors` (Rust, `publish = false`) and `packages/kobe/tests/vectors/` (TS) execute the same `vectors/` files; `parity.json` tracks `core.bip39`, `core.bip32`, `core.mnemonic.expand`, and `nostr.nip06` as stable tier-A capabilities.
 - `kobe_core::ErrorCode` (`as_str()` yields the TS `KobeError.code` strings) and `Error::code()`, the shared error-code vocabulary documented in `vectors/README.md`.
@@ -29,6 +30,8 @@ All notable changes to this workspace are documented in this file. The format is
 - **Breaking:** the `rand` and `rand_core` features are replaced by `os-rng` (`Wallet::generate`) plus the always-on `Wallet::generate_with` taking a `rand_core 0.10` `CryptoRng`; the `bip39::rand_core` re-export is gone.
 - **Breaking:** `bip32::DerivedSecp256k1Key::derive` takes `seed: &[u8]` (16–64 bytes, `Error::Input` otherwise) instead of `&[u8; 64]`; the TypeScript `deriveSecp256k1FromSeed` applies the same rule with code `input`.
 - **Breaking:** `@qntx/kobe` is subpath-only (`@qntx/kobe/core`, `@qntx/kobe/nostr`); there is no package-root import.
+- **Breaking:** `kobe_svm::DerivationStyle` is named by path layout: `Standard` → `Bip44Change` (`m/44'/501'/{i}'/0'`; Phantom, Solflare, Backpack, MetaMask, OKX, solana-keygen), `Trust` → `Bip44` (`m/44'/501'/{i}'`; Trust Wallet, Ledger Live, Keystone), and `LedgerLive` is removed — no known wallet uses `m/44'/501'/{i}'/0'/0'` (Ledger Live actually derives at the `Bip44` path). `kobe solana --style` values are now `bip44-change` / `bip44` / `legacy`.
+- **Breaking:** `kobe_nostr::NostrAccount::nsec()` returns `Result<Zeroizing<String>, Error>` and encodes on demand from the account's private key bytes instead of returning a `&Zeroizing<String>` computed at derivation time; the TS `NostrAccount.nsec()` also encodes on demand so the secret is never held as a string.
 - npm and crates.io versions are lockstep: `bun run release` (bumpp) bumps `packages/kobe/package.json` and `Cargo.toml` together; internal crate dependencies pin the exact workspace version.
 - CI runs the shared `qntx/workflows` gates: Bun, Rust with all and with no default features (plus rustdoc and a publish dry run), portable `no_std` builds for `thumbv7m-none-eabi`, `wasm32-unknown-unknown`, iOS and Android without `getrandom`, and the Hermes smoke. crates.io publishing moved to `publish-crates.yml`.
 - CLI installer origin is `https://sh.qntx.org/kobe` (not `.fun`).

@@ -42,6 +42,10 @@ const MNEMONIC_EXPAND: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../vectors/core/mnemonic-expand.json"
 ));
+const WALLET_ID: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../vectors/core/wallet-id.json"
+));
 
 /// `Option<&str>` passphrase for `Wallet` constructors: an empty vector
 /// passphrase means "none supplied" (matches the TS `passphrase = ""`
@@ -298,6 +302,47 @@ fn bip32_official() {
                 "{label}: compressed pubkey vs xpub payload"
             );
         }
+    }
+}
+
+/// `Wallet::id` case: the BIP-32 master key (`m`) compressed public key and
+/// the first 16 hex chars of `SHA-256("kobe/wallet-id/v1" ‖ pubkey)` are
+/// both pinned so a divergence in the underlying BIP-32 stack cannot hide
+/// inside the hash.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WalletIdCase {
+    mnemonic: String,
+    passphrase: Option<String>,
+    master_public_key: String,
+    id: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct WalletIdVector {
+    cases: Vec<WalletIdCase>,
+}
+
+#[test]
+fn wallet_id() {
+    let vector: WalletIdVector =
+        serde_json::from_str(WALLET_ID).expect("wallet-id.json must parse");
+    assert!(!vector.cases.is_empty(), "wallet-id.json has no cases");
+    for (index, case) in vector.cases.iter().enumerate() {
+        let wallet = Wallet::from_mnemonic(&case.mnemonic, passphrase(case.passphrase.as_ref()))
+            .unwrap_or_else(|e| panic!("case {index}: from_mnemonic failed: {e}"));
+        let master = wallet
+            .derive_secp256k1("m")
+            .unwrap_or_else(|e| panic!("case {index}: master key derivation failed: {e}"));
+        assert_eq!(
+            master.compressed_pubkey_hex(),
+            case.master_public_key.as_str(),
+            "case {index}: master public key"
+        );
+        let id = wallet
+            .id()
+            .unwrap_or_else(|e| panic!("case {index}: id failed: {e}"));
+        assert_eq!(id, case.id.as_str(), "case {index}: id");
     }
 }
 

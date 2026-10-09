@@ -3,7 +3,7 @@ import { assertU32Index, deriveRange } from "../core/derive.ts";
 import type { Wallet } from "../core/wallet.ts";
 import { createNostrAccount } from "./account.ts";
 import type { NostrAccount } from "./account.ts";
-import { encodeNpub, encodeNsec, nostrPath, xonlyFromCompressed } from "./nip19.ts";
+import { encodeNpub, nostrPath, xonlyFromCompressed } from "./nip19.ts";
 
 /**
  * Nostr account deriver from a unified wallet — `kobe_nostr::Deriver` analog.
@@ -35,7 +35,6 @@ export class NostrDeriver {
         privateKey: sk,
         xonlyPublicKey: xonly,
         npub: encodeNpub(xonly),
-        nsec: encodeNsec(sk),
       });
     } finally {
       wipeBytes(sk);

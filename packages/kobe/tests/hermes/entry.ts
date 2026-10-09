@@ -18,6 +18,9 @@ const TV1_NPUB = "npub1zutzeysacnf9rru6zqwmxd54mud0k44tst6l70ja5mhv8jjumytsd2x7n
 const ABANDON =
   "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
+// vectors/core/wallet-id.json case 0 (ABANDON, no passphrase).
+const WALLET_ID = "4966e32ef7f4204b";
+
 // vectors/vault/seal.json case 0.
 const SEAL_KEY = "0000000000000000000000000000000000000000000000000000000000000001";
 const SEAL_NONCE = "0102030405060708090a0b0c";
@@ -40,6 +43,9 @@ try {
   const wallet = Wallet.fromEntropy(new Uint8Array(16));
   if (wallet.mnemonic() !== ABANDON) {
     throw new Error("fromEntropy mnemonic mismatch");
+  }
+  if (wallet.id() !== WALLET_ID) {
+    throw new Error("wallet id mismatch");
   }
   const tv1 = Wallet.fromMnemonic(TV1_MNEMONIC);
   const account = new NostrDeriver(tv1).derive(0);

@@ -24,7 +24,7 @@
 //! )?;
 //! let account = Deriver::new(&wallet).derive(0)?;
 //! assert!(account.npub().starts_with("npub1"));
-//! assert!(account.nsec().starts_with("nsec1"));
+//! assert!(account.nsec()?.starts_with("nsec1"));
 //! # Ok(())
 //! # }
 //! ```

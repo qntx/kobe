@@ -47,6 +47,21 @@
       "vectors": ["vectors/core/mnemonic-expand.json"]
     },
     {
+      "id": "core.wallet-id",
+      "tier": "A",
+      "status": "stable",
+      "milestone": "KB1",
+      "ts": {
+        "module": "packages/kobe/src/core/wallet.ts",
+        "tests": ["packages/kobe/tests/vectors/core.test.ts"]
+      },
+      "rust": {
+        "module": "crates/kobe-core/src/wallet.rs",
+        "tests": ["crates/kobe-vectors/tests/core.rs"]
+      },
+      "vectors": ["vectors/core/wallet-id.json"]
+    },
+    {
       "id": "nostr.nip06",
       "tier": "A",
       "status": "stable",

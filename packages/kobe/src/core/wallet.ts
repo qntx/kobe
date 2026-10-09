@@ -1,3 +1,5 @@
+import { sha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex, concatBytes } from "@noble/hashes/utils.js";
 import {
   entropyToMnemonic,
   generateMnemonic,
@@ -30,6 +32,9 @@ const WORD_COUNT_TO_STRENGTH: Record<WordCount, number> = {
 };
 
 const ENTROPY_LENS = new Set([16, 20, 24, 28, 32]);
+
+/** Domain separation tag for {@link Wallet.id} — ASCII bytes, no length prefix. */
+const WALLET_ID_DOMAIN = asciiBytes("kobe/wallet-id/v1");
 
 type WalletSecrets = {
   /** Normalized mnemonic phrase as ASCII bytes (English words only). */
@@ -203,6 +208,29 @@ export class Wallet {
    */
   deriveSecp256k1(path: string): DerivedSecp256k1Key {
     return deriveSecp256k1FromSeed(this.#secrets().seed, path);
+  }
+
+  /**
+   * Stable, non-secret wallet identifier: the first 16 hex chars (8 bytes) of
+   * `SHA-256("kobe/wallet-id/v1" ‖ master_pubkey)`, where `master_pubkey` is the 33-byte compressed
+   * secp256k1 public key of the BIP-32 root node (`m`) over the BIP-39 seed. The domain separator
+   * is concatenated as raw UTF-8 bytes — no length prefix.
+   *
+   * The id commits to the whole wallet (mnemonic + passphrase) without revealing key material and
+   * is safe to expose.
+   *
+   * @throws KobeError path | crypto | input if disposed
+   */
+  id(): string {
+    const key = this.deriveSecp256k1("m");
+    try {
+      return bytesToHex(sha256(concatBytes(WALLET_ID_DOMAIN, key.compressedPublicKey()))).slice(
+        0,
+        16,
+      );
+    } finally {
+      key.dispose();
+    }
   }
 
   /** Wipe the mnemonic and the seed. Idempotent. */

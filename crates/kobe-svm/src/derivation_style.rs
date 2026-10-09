@@ -2,7 +2,7 @@
 //!
 //! Different Solana wallets use slightly different BIP-44 path layouts
 //! even though they all share SLIP-0010 Ed25519 as the underlying key
-//! scheme. This module captures the four widely-supported layouts and
+//! scheme. This module captures the three layouts seen in the wild and
 //! implements the chain-agnostic
 //! [`kobe_core::DerivationStyle`] trait so generic tooling (CLI
 //! rendering, property tests, agent helpers) can treat Solana the same
@@ -17,70 +17,66 @@ use kobe_core::ParseDerivationStyleError;
 
 /// Solana derivation-path layouts, indexed by the account index.
 ///
+/// Variants are named after the path shape, not a vendor: the same layout
+/// is shared by several wallets.
+///
 /// # Path specifications
 ///
-/// | Variant        | Path layout                     | Compatible wallets                        |
-/// | -------------- | ------------------------------- | ----------------------------------------- |
-/// | `Standard`     | `m/44'/501'/{index}'/0'`        | Phantom, Backpack, Solflare, Magic Eden   |
-/// | `Trust`        | `m/44'/501'/{index}'`           | Trust Wallet, Ledger (native), Keystone   |
-/// | `LedgerLive`   | `m/44'/501'/{index}'/0'/0'`     | Ledger Live                               |
-/// | `Legacy`       | `m/501'/{index}'/0'/0'`         | Older Phantom, Sollet (**deprecated**)    |
+/// | Variant        | Path layout                | Compatible wallets                                        |
+/// | -------------- | -------------------------- | --------------------------------------------------------- |
+/// | `Bip44Change`  | `m/44'/501'/{index}'/0'`   | Phantom, Solflare, Backpack, `MetaMask`, OKX, solana-keygen |
+/// | `Bip44`        | `m/44'/501'/{index}'`      | Trust Wallet, Ledger Live, Keystone                       |
+/// | `Legacy`       | `m/501'/{index}'/0'/0'`    | Sollet (**deprecated** — import only)                     |
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum DerivationStyle {
-    /// `m/44'/501'/{index}'/0'` — Phantom, Backpack, Solflare, …
+    /// `m/44'/501'/{index}'/0'` — Phantom, Solflare, Backpack, `MetaMask`,
+    /// OKX, solana-keygen.
     #[default]
-    Standard,
-    /// `m/44'/501'/{index}'` — Trust Wallet, Ledger (native), Keystone.
-    Trust,
-    /// `m/44'/501'/{index}'/0'/0'` — Ledger Live.
-    LedgerLive,
-    /// `m/501'/{index}'/0'/0'` — legacy Phantom / Sollet (deprecated).
+    Bip44Change,
+    /// `m/44'/501'/{index}'` — Trust Wallet, Ledger Live, Keystone.
+    Bip44,
+    /// `m/501'/{index}'/0'/0'` — Sollet (deprecated, kept for imports).
     Legacy,
 }
 
 /// Every variant of [`DerivationStyle`], returned by
 /// [`kobe_core::DerivationStyle::all`].
 const ALL_STYLES: &[DerivationStyle] = &[
-    DerivationStyle::Standard,
-    DerivationStyle::Trust,
-    DerivationStyle::LedgerLive,
+    DerivationStyle::Bip44Change,
+    DerivationStyle::Bip44,
     DerivationStyle::Legacy,
 ];
 
 /// Tokens accepted by [`DerivationStyle::from_str`] (canonical + wallet aliases).
 const ACCEPTED_TOKENS: &[&str] = &[
-    "standard",
+    "bip44-change",
     "phantom",
-    "backpack",
     "solflare",
-    "trezor",
+    "backpack",
+    "bip44",
     "trust",
     "trustwallet",
     "ledger",
-    "ledger-native",
-    "ledgernative",
-    "keystone",
     "ledger-live",
     "ledgerlive",
-    "live",
+    "keystone",
     "legacy",
-    "old",
     "sollet",
+    "old",
 ];
 
 impl DerivationStyle {
-    /// Short machine-readable identifier (e.g. `"standard"`, `"ledger-live"`).
+    /// Short machine-readable identifier (e.g. `"bip44-change"`, `"legacy"`).
     ///
     /// Kept as an inherent `const fn` rather than a trait method because
-    /// it is Solana-specific API used by the CLI for backwards compatibility;
-    /// other chains do not all expose a short id.
+    /// it is Solana-specific API used by the CLI; other chains do not all
+    /// expose a short id.
     #[must_use]
     pub const fn id(self) -> &'static str {
         match self {
-            Self::Standard => "standard",
-            Self::Trust => "trust",
-            Self::LedgerLive => "ledger-live",
+            Self::Bip44Change => "bip44-change",
+            Self::Bip44 => "bip44",
             Self::Legacy => "legacy",
         }
     }
@@ -89,19 +85,17 @@ impl DerivationStyle {
 impl kobe_core::DerivationStyle for DerivationStyle {
     fn path(self, index: u32) -> String {
         match self {
-            Self::Standard => format!("m/44'/501'/{index}'/0'"),
-            Self::Trust => format!("m/44'/501'/{index}'"),
-            Self::LedgerLive => format!("m/44'/501'/{index}'/0'/0'"),
+            Self::Bip44Change => format!("m/44'/501'/{index}'/0'"),
+            Self::Bip44 => format!("m/44'/501'/{index}'"),
             Self::Legacy => format!("m/501'/{index}'/0'/0'"),
         }
     }
 
     fn name(self) -> &'static str {
         match self {
-            Self::Standard => "Standard (Phantom/Backpack)",
-            Self::Trust => "Trust (Ledger/Keystone)",
-            Self::LedgerLive => "Ledger Live",
-            Self::Legacy => "Legacy (deprecated)",
+            Self::Bip44Change => "BIP-44 change (Phantom/Solflare/Backpack)",
+            Self::Bip44 => "BIP-44 (Trust Wallet/Ledger Live/Keystone)",
+            Self::Legacy => "Legacy (Sollet, deprecated)",
         }
     }
 
@@ -121,12 +115,10 @@ impl FromStr for DerivationStyle {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "standard" | "phantom" | "backpack" | "solflare" | "trezor" => Ok(Self::Standard),
-            "trust" | "trustwallet" | "ledger" | "ledger-native" | "ledgernative" | "keystone" => {
-                Ok(Self::Trust)
-            }
-            "ledger-live" | "ledgerlive" | "live" => Ok(Self::LedgerLive),
-            "legacy" | "old" | "sollet" => Ok(Self::Legacy),
+            "bip44-change" | "phantom" | "solflare" | "backpack" => Ok(Self::Bip44Change),
+            "bip44" | "trust" | "trustwallet" | "ledger" | "ledger-live" | "ledgerlive"
+            | "keystone" => Ok(Self::Bip44),
+            "legacy" | "sollet" | "old" => Ok(Self::Legacy),
             _ => Err(ParseDerivationStyleError::new("solana", s, ACCEPTED_TOKENS)),
         }
     }
@@ -139,27 +131,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_standard_paths() {
-        let style = DerivationStyle::Standard;
+    fn test_bip44_change_paths() {
+        let style = DerivationStyle::Bip44Change;
         assert_eq!(style.path(0), "m/44'/501'/0'/0'");
         assert_eq!(style.path(1), "m/44'/501'/1'/0'");
         assert_eq!(style.path(10), "m/44'/501'/10'/0'");
     }
 
     #[test]
-    fn test_trust_paths() {
-        let style = DerivationStyle::Trust;
+    fn test_bip44_paths() {
+        let style = DerivationStyle::Bip44;
         assert_eq!(style.path(0), "m/44'/501'/0'");
         assert_eq!(style.path(1), "m/44'/501'/1'");
         assert_eq!(style.path(10), "m/44'/501'/10'");
-    }
-
-    #[test]
-    fn test_ledger_live_paths() {
-        let style = DerivationStyle::LedgerLive;
-        assert_eq!(style.path(0), "m/44'/501'/0'/0'/0'");
-        assert_eq!(style.path(1), "m/44'/501'/1'/0'/0'");
-        assert_eq!(style.path(10), "m/44'/501'/10'/0'/0'");
     }
 
     #[test]
@@ -172,38 +156,44 @@ mod tests {
 
     #[test]
     fn test_from_str() {
-        // Standard aliases
+        // Bip44Change aliases
         assert_eq!(
-            "standard".parse::<DerivationStyle>().unwrap(),
-            DerivationStyle::Standard
+            "bip44-change".parse::<DerivationStyle>().unwrap(),
+            DerivationStyle::Bip44Change
         );
         assert_eq!(
             "phantom".parse::<DerivationStyle>().unwrap(),
-            DerivationStyle::Standard
+            DerivationStyle::Bip44Change
+        );
+        assert_eq!(
+            "solflare".parse::<DerivationStyle>().unwrap(),
+            DerivationStyle::Bip44Change
         );
         assert_eq!(
             "backpack".parse::<DerivationStyle>().unwrap(),
-            DerivationStyle::Standard
+            DerivationStyle::Bip44Change
         );
 
-        // Trust aliases
+        // Bip44 aliases
+        assert_eq!(
+            "bip44".parse::<DerivationStyle>().unwrap(),
+            DerivationStyle::Bip44
+        );
         assert_eq!(
             "trust".parse::<DerivationStyle>().unwrap(),
-            DerivationStyle::Trust
+            DerivationStyle::Bip44
         );
         assert_eq!(
             "ledger".parse::<DerivationStyle>().unwrap(),
-            DerivationStyle::Trust
+            DerivationStyle::Bip44
+        );
+        assert_eq!(
+            "ledger-live".parse::<DerivationStyle>().unwrap(),
+            DerivationStyle::Bip44
         );
         assert_eq!(
             "keystone".parse::<DerivationStyle>().unwrap(),
-            DerivationStyle::Trust
-        );
-
-        // Ledger Live
-        assert_eq!(
-            "ledger-live".parse::<DerivationStyle>().unwrap(),
-            DerivationStyle::LedgerLive
+            DerivationStyle::Bip44
         );
 
         // Legacy
@@ -211,15 +201,26 @@ mod tests {
             "legacy".parse::<DerivationStyle>().unwrap(),
             DerivationStyle::Legacy
         );
+        assert_eq!(
+            "sollet".parse::<DerivationStyle>().unwrap(),
+            DerivationStyle::Legacy
+        );
     }
 
     #[test]
     fn test_from_str_invalid() {
         assert!("invalid".parse::<DerivationStyle>().is_err());
+        // Removed pre-4.0 names must not resolve.
+        assert!("standard".parse::<DerivationStyle>().is_err());
+        assert!("live".parse::<DerivationStyle>().is_err());
+        assert!("bip44change".parse::<DerivationStyle>().is_err());
+        assert!("solana-keygen".parse::<DerivationStyle>().is_err());
+        assert!("metamask".parse::<DerivationStyle>().is_err());
+        assert!("okx".parse::<DerivationStyle>().is_err());
     }
 
     #[test]
     fn test_default() {
-        assert_eq!(DerivationStyle::default(), DerivationStyle::Standard);
+        assert_eq!(DerivationStyle::default(), DerivationStyle::Bip44Change);
     }
 }

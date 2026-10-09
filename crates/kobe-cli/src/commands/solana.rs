@@ -9,22 +9,34 @@ use crate::output::{self, AccountOutput, HdWalletOutput};
 
 #[derive(Debug, Clone, Copy, Default, ValueEnum)]
 enum CliDerivationStyle {
+    /// `m/44'/501'/{index}'/0'` — Phantom, Solflare, Backpack, `MetaMask`, OKX, solana-keygen.
     #[default]
-    #[value(alias = "phantom", alias = "backpack")]
-    Standard,
-    #[value(alias = "ledger", alias = "keystone")]
-    Trust,
-    LedgerLive,
-    #[value(alias = "old")]
+    #[value(
+        name = "bip44-change",
+        alias = "phantom",
+        alias = "solflare",
+        alias = "backpack"
+    )]
+    Bip44Change,
+    /// `m/44'/501'/{index}'` — Trust Wallet, Ledger Live, Keystone.
+    #[value(
+        name = "bip44",
+        alias = "trust",
+        alias = "ledger",
+        alias = "ledger-live",
+        alias = "keystone"
+    )]
+    Bip44,
+    /// `m/501'/{index}'/0'/0'` — Sollet (deprecated, import only).
+    #[value(alias = "sollet", alias = "old")]
     Legacy,
 }
 
 impl From<CliDerivationStyle> for DerivationStyle {
     fn from(style: CliDerivationStyle) -> Self {
         match style {
-            CliDerivationStyle::Standard => Self::Standard,
-            CliDerivationStyle::Trust => Self::Trust,
-            CliDerivationStyle::LedgerLive => Self::LedgerLive,
+            CliDerivationStyle::Bip44Change => Self::Bip44Change,
+            CliDerivationStyle::Bip44 => Self::Bip44,
             CliDerivationStyle::Legacy => Self::Legacy,
         }
     }
@@ -58,8 +70,8 @@ enum SolanaSubcommand {
 /// Solana-specific CLI flags, on top of the shared mnemonic / count options.
 #[derive(Args, Debug, Clone)]
 struct SolanaArgs {
-    /// Derivation path style (standard, trust, ledger-live, legacy).
-    #[arg(short, long, default_value = "standard")]
+    /// Derivation path style (bip44-change, bip44, legacy).
+    #[arg(short, long, default_value = "bip44-change")]
     style: CliDerivationStyle,
 
     #[command(flatten)]

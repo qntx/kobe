@@ -64,7 +64,7 @@ describe("NostrDeriver", () => {
     const a = new NostrDeriver(w).derive(0);
     const nsec = a.nsec();
     const skHex = a.privateKeyHex();
-    // `util.inspect` hides `#inner`'s private field and `#nsec`.
+    // `util.inspect` hides `#inner`'s private field; `nsec` is computed on demand.
     expect(inspect(a)).not.toContain(nsec);
     expect(inspect(a)).not.toContain(skHex);
     expect(JSON.stringify(a)).not.toContain(nsec);

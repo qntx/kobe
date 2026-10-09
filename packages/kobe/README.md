@@ -22,6 +22,10 @@ BIP-39 / BIP-32 wallet core:
   `deriveSecp256k1(path)` and `dispose()` (wipes both buffers; later access
   throws `KobeError("input")`). `toString()` / `toJSON()` are redacted;
   secrets live in private state, so `util.inspect` never shows them.
+  `id()` returns a stable, non-secret wallet identifier — the first 16 hex
+  chars of `SHA-256("kobe/wallet-id/v1" ‖ pubkey)`, where `pubkey` is the
+  compressed BIP-32 master public key. Identical across the Rust and TS
+  implementations (`vectors/core/wallet-id.json`).
 - `isValidMnemonic(phrase)`, `expandMnemonic(phrase)`.
 - Types: `KobeError` (`code: KobeErrorCode`), `GenerateWalletOptions`,
   `WordCount`, `DerivedSecp256k1Key`, `DerivedAccount`, `DerivedPublicKey`.
@@ -32,7 +36,8 @@ NIP-06 Nostr derivation:
 
 - `NostrDeriver` — `new NostrDeriver(wallet)`, `derive(account)`,
   `deriveAt(path)`, `deriveMany(start, count)`.
-- `NostrAccount` — `DerivedAccount` plus `nsec()` / `npub()` (NIP-19).
+- `NostrAccount` — `DerivedAccount` plus `nsec()` / `npub()` (NIP-19); the
+  `nsec` string is computed on demand, never held.
 
 ### `@qntx/kobe/vault`
 

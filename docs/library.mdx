@@ -11,8 +11,28 @@ let wallet = Wallet::from_mnemonic(
     "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
     None,
 )?;
+let id = wallet.id()?;
 let account = Deriver::new(&wallet).derive(0)?;
 println!("path={} address={}", account.path(), account.address());
 ```
 
-`Wallet::from_mnemonic` lives in `kobe-core`. Chain types are feature-gated re-exports on the `kobe` umbrella crate (`kobe::evm`, `kobe::btc`, …).
+`Wallet::from_mnemonic` lives in `kobe-core`. Chain types are feature-gated re-exports on the `kobe` umbrella crate (`kobe::evm`, `kobe::btc`, …). `wallet.id()` returns a stable, non-secret identifier: the first 16 hex chars of `SHA-256("kobe/wallet-id/v1" ‖ compressed BIP-32 master public key)`.
+
+## TypeScript
+
+```ts
+import { passkeyWallet } from "@qntx/kobe/vault";
+import { NostrDeriver } from "@qntx/kobe/nostr";
+
+const wallet = passkeyWallet(prfOutput); // or Wallet.fromMnemonic(phrase)
+const id = wallet.id();
+const account = new NostrDeriver(wallet).derive(0);
+const secretKey = account.privateKeyBytes(); // hand to your Nostr library's signer
+account.dispose();
+wallet.dispose();
+```
+
+For Nostr, kobe only derives keys and encodes `nsec`/`npub`; event signing,
+NIP-44, and friends belong to the Nostr protocol library (e.g.
+`@qntx/nostr`'s `Keys.fromSecretKey`). Secrets are held as bytes only —
+`nsec()` and `mnemonic()` encode on demand.

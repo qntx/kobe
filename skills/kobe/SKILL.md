@@ -125,11 +125,11 @@ The `mnemonic` command supports:
 
 ### SVM-specific flags
 
-| Flag      | Short | Values                                       | Default    |
-| --------- | ----- | -------------------------------------------- | ---------- |
-| `--style` | `-s`  | `standard`, `trust`, `ledger-live`, `legacy` | `standard` |
+| Flag      | Short | Values                            | Default        |
+| --------- | ----- | --------------------------------- | -------------- |
+| `--style` | `-s`  | `bip44-change`, `bip44`, `legacy` | `bip44-change` |
 
-Aliases: `phantom`/`backpack` → `standard`, `ledger`/`keystone` → `trust`, `old` → `legacy`
+Aliases: `phantom`/`solflare`/`backpack` → `bip44-change`, `trust`/`ledger`/`ledger-live`/`keystone` → `bip44`, `sollet`/`old` → `legacy`
 
 ### Cosmos-specific flags
 
@@ -205,13 +205,13 @@ kobe --json evm new
 ### Solana
 
 ```bash
-# Generate a new wallet (Phantom-compatible Standard path)
+# Generate a new wallet (Phantom-compatible BIP-44 change path)
 kobe svm new
 
-# Trust Wallet style, 3 accounts
-kobe svm new --style trust -c 3
+# Trust Wallet / Ledger Live style, 3 accounts
+kobe svm new --style bip44 -c 3
 
-# Import from mnemonic (phantom is alias for standard)
+# Import from mnemonic (phantom is an alias of bip44-change)
 kobe svm import -m "abandon abandon ..." --style phantom
 
 # JSON output
@@ -448,12 +448,11 @@ All errors in JSON mode return exit code 1 with:
 
 ### Solana (SLIP-10 Ed25519)
 
-| Style       | Path Pattern            | Compatible Wallets              |
-| ----------- | ----------------------- | ------------------------------- |
-| Standard    | `m/44'/501'/{i}'/0'`    | Phantom, Backpack, Solflare     |
-| Trust       | `m/44'/501'/{i}'`       | Trust Wallet, Ledger, Keystone  |
-| Ledger Live | `m/44'/501'/{i}'/0'/0'` | Ledger Live                     |
-| Legacy      | `m/501'/{i}'/0'/0'`     | Old Phantom/Sollet (deprecated) |
+| Style          | Path Pattern         | Compatible Wallets                                        |
+| -------------- | -------------------- | --------------------------------------------------------- |
+| `bip44-change` | `m/44'/501'/{i}'/0'` | Phantom, Solflare, Backpack, MetaMask, OKX, solana-keygen |
+| `bip44`        | `m/44'/501'/{i}'`    | Trust Wallet, Ledger Live, Keystone                       |
+| `legacy`       | `m/501'/{i}'/0'/0'`  | Sollet (deprecated, import only)                          |
 
 ### Cosmos (BIP-44)
 
