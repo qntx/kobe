@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "capability": "vault.seal",
+  "source": {
+    "kind": "generated",
+    "generator": "@qntx/kobe 3.4.0",
+    "version": "3.4.0",
+    "reference": "Node.js crypto (OpenSSL) v24.21.0 — createCipheriv aes-256-gcm with setAAD"
+  },
+  "cases": [
+    {
+      "key": "0000000000000000000000000000000000000000000000000000000000000001",
+      "context": "meowl-vault/2/id-1/data",
+      "nonce": "0102030405060708090a0b0c",
+      "plaintext": "",
+      "sealed": "010102030405060708090a0b0c1c6344d213ca9070b73382f90fd89691"
+    },
+    {
+      "key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "context": "meowl-vault/2/id-2/dek",
+      "nonce": "ffffffffffffffffffffffff",
+      "plaintext": "b6dfbeca426e5483522c19a6f3d7a112275dab3176cd30247a65b83141b4e82e",
+      "sealed": "01ffffffffffffffffffffffffbe259a8ac5b70d8e772048fc1cdc21fbfdbff756742689c5578d7a1803cd243b3fddf86a3e279040f103f6cf014d7038"
+    },
+    {
+      "key": "0000000000000000000000000000000000000000000000000000000000000001",
+      "context": "meowl-vault/2/id-3/seed",
+      "nonce": "000102030405060708090a0b",
+      "plaintext": "6a3549e819c90cab0429ac6aeb08c11ae0c66346fcb33893bfbf61fe34b9918fc924954166013d7c0e459258330592d76a28a26b456ffb061974b351837d5850",
+      "sealed": "01000102030405060708090a0bcf1f15651f315520b4456eefdec5253e89e5e2ef6dd9961fce305aa1c4e967a725cabfa285fc83b39dedc098226176ddf658e79e3434f6594da75e9ad13e24104a086fec023ff8ccf6e446fe30045103"
+    },
+    {
+      "key": "0000000000000000000000000000000000000000000000000000000000000001",
+      "context": "meowl-vault/2/日本語/デーク",
+      "nonce": "aabbccddeeff001122334455",
+      "plaintext": "deadbeef",
+      "sealed": "01aabbccddeeff001122334455d6150278e6e31f4a32f100b848d1a67e9cf37a5f"
+    },
+    {
+      "key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "context": "meowl-vault/2/id-3/seed",
+      "sealed": "01000102030405060708090a0bcf1f15651f315520b4456eefdec5253e89e5e2ef6dd9961fce305aa1c4e967a725cabfa285fc83b39dedc098226176ddf658e79e3434f6594da75e9ad13e24104a086fec023ff8ccf6e446fe30045103",
+      "error": "decrypt"
+    },
+    {
+      "key": "0000000000000000000000000000000000000000000000000000000000000001",
+      "context": "meowl-vault/2/id-4/seed",
+      "sealed": "01000102030405060708090a0bcf1f15651f315520b4456eefdec5253e89e5e2ef6dd9961fce305aa1c4e967a725cabfa285fc83b39dedc098226176ddf658e79e3434f6594da75e9ad13e24104a086fec023ff8ccf6e446fe30045103",
+      "error": "decrypt"
+    },
+    {
+      "key": "0000000000000000000000000000000000000000000000000000000000000001",
+      "context": "meowl-vault/2/id-3/seed",
+      "sealed": "01000102030405060708090a0bcf1f15651f315520b4456eefdec5253e89e5e2ef6dd9961fce305aa1c4e967a725cabfa285fc83b39dedc098226176ddf658e79e3434f6594da75e9ad13e24104a086fec023ff8ccf6e446fe30045102",
+      "error": "decrypt"
+    },
+    {
+      "key": "0000000000000000000000000000000000000000000000000000000000000001",
+      "context": "meowl-vault/2/id-3/seed",
+      "sealed": "01010102030405060708090a0bcf1f15651f315520b4456eefdec5253e89e5e2ef6dd9961fce305aa1c4e967a725cabfa285fc83b39dedc098226176ddf658e79e3434f6594da75e9ad13e24104a086fec023ff8ccf6e446fe30045103",
+      "error": "decrypt"
+    },
+    {
+      "key": "0000000000000000000000000000000000000000000000000000000000000001",
+      "context": "meowl-vault/2/id-3/seed",
+      "sealed": "00000102030405060708090a0bcf1f15651f315520b4456eefdec5253e89e5e2ef6dd9961fce305aa1c4e967a725cabfa285fc83b39dedc098226176ddf658e79e3434f6594da75e9ad13e24104a086fec023ff8ccf6e446fe30045103",
+      "error": "version"
+    },
+    {
+      "key": "0000000000000000000000000000000000000000000000000000000000000001",
+      "context": "meowl-vault/2/id-3/seed",
+      "sealed": "02000102030405060708090a0bcf1f15651f315520b4456eefdec5253e89e5e2ef6dd9961fce305aa1c4e967a725cabfa285fc83b39dedc098226176ddf658e79e3434f6594da75e9ad13e24104a086fec023ff8ccf6e446fe30045103",
+      "error": "version"
+    },
+    {
+      "key": "0000000000000000000000000000000000000000000000000000000000000001",
+      "context": "meowl-vault/2/id-3/seed",
+      "sealed": "01000102030405060708090a0bcf1f15651f315520b4456eefdec525",
+      "error": "input"
+    },
+    {
+      "key": "00000000000000000000000000000000000000000000000000000000000000",
+      "context": "meowl-vault/2/id-3/seed",
+      "sealed": "01000102030405060708090a0bcf1f15651f315520b4456eefdec5253e89e5e2ef6dd9961fce305aa1c4e967a725cabfa285fc83b39dedc098226176ddf658e79e3434f6594da75e9ad13e24104a086fec023ff8ccf6e446fe30045103",
+      "error": "input"
+    },
+    {
+      "key": "0000000000000000000000000000000000000000000000000000000000000001",
+      "context": "",
+      "sealed": "01000102030405060708090a0bcf1f15651f315520b4456eefdec5253e89e5e2ef6dd9961fce305aa1c4e967a725cabfa285fc83b39dedc098226176ddf658e79e3434f6594da75e9ad13e24104a086fec023ff8ccf6e446fe30045103",
+      "error": "input"
+    }
+  ]
+}

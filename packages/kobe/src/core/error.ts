@@ -4,7 +4,14 @@
  * Every failure raised by this package is a {@link KobeError} carrying one of these codes; shared
  * vector error cases name the same strings.
  */
-export type KobeErrorCode = "mnemonic" | "path" | "crypto" | "input" | "address-encoding";
+export type KobeErrorCode =
+  | "mnemonic"
+  | "path"
+  | "crypto"
+  | "input"
+  | "address-encoding"
+  | "decrypt"
+  | "version";
 
 /**
  * Unified HD / mnemonic / path / address-encoding failure.
@@ -18,6 +25,8 @@ export type KobeErrorCode = "mnemonic" | "path" | "crypto" | "input" | "address-
  * - `input` — caller-supplied input failed validation (entropy length, `generate` word count,
  *   account/index range, prefix expansion, use after `dispose`).
  * - `address-encoding` — bech32 / base58 / … encoding failure.
+ * - `decrypt` — AEAD open failed (wrong key, tampered data, wrong context).
+ * - `version` — sealed data uses an envelope version this build does not support.
  */
 export class KobeError extends Error {
   override readonly name = "KobeError";

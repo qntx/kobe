@@ -46,13 +46,15 @@ JSON files share a single envelope:
 `error` fields use the shared code vocabulary: `KobeError.code` in TypeScript
 and `kobe_core::Error::code().as_str()` (the `ErrorCode` enum) in Rust.
 
-| Code               | Variant                        | Raised for                                                                                                                                                   |
-| ------------------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `mnemonic`         | `Error::Mnemonic`        | any failure to parse or validate a mnemonic phrase (unknown word, bad checksum, word count, uppercase)                                                       |
-| `path`             | `Error::Path`            | a malformed derivation path                                                                                                                                  |
-| `crypto`           | `Error::Crypto`          | an underlying cryptographic primitive failure                                                                                                                |
-| `input`            | `Error::Input`           | caller-supplied input failed validation (entropy length not 16/20/24/28/32, `generate` word count, account/index range, prefix expansion, use after dispose) |
-| `address-encoding` | `Error::AddressEncoding` | a bech32 / base58 / … encoding failure                                                                                                                       |
+| Code               | Variant                     | Raised for                                                                                                                                                   |
+| ------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `mnemonic`         | `Error::Mnemonic`           | any failure to parse or validate a mnemonic phrase (unknown word, bad checksum, word count, uppercase)                                                       |
+| `path`             | `Error::Path`               | a malformed derivation path                                                                                                                                  |
+| `crypto`           | `Error::Crypto`             | an underlying cryptographic primitive failure                                                                                                                |
+| `input`            | `Error::Input`              | caller-supplied input failed validation (entropy length not 16/20/24/28/32, `generate` word count, account/index range, prefix expansion, use after dispose) |
+| `address-encoding` | `Error::AddressEncoding`    | a bech32 / base58 / … encoding failure                                                                                                                       |
+| `decrypt`          | `Error::Decrypt`            | AEAD open failed (wrong key, tampered data, or mismatched context)                                                                                           |
+| `version`          | `Error::UnsupportedVersion` | sealed data uses an envelope version this build does not support                                                                                             |
 
 Phrases are normalized by collapsing whitespace runs to single spaces with no
 case folding. Derivation paths are strict — `m` or `m/…`, no trimming.

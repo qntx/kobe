@@ -44,6 +44,6 @@ jobs:
       contents: read
     with:
       targets: thumbv7m-none-eabi wasm32-unknown-unknown aarch64-linux-android x86_64-linux-android aarch64-apple-ios aarch64-apple-ios-sim
-      packages: kobe-core kobe-aptos kobe-arweave kobe-btc kobe-casper kobe-cosmos kobe-evm kobe-fil kobe-nostr kobe-spark kobe-sui kobe-svm kobe-ton kobe-tron kobe-xrpl kobe
+      packages: kobe-core kobe-aptos kobe-arweave kobe-btc kobe-casper kobe-cosmos kobe-evm kobe-fil kobe-nostr kobe-spark kobe-sui kobe-svm kobe-ton kobe-tron kobe-xrpl kobe-vault kobe
       features: --no-default-features
       forbid-deps: getrandom

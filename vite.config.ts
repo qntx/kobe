@@ -96,6 +96,25 @@ const config: UserConfig = defineConfig({
           ],
         },
       },
+      {
+        // src/vault may import only src/core (AGENTS.md layering).
+        files: ["packages/kobe/src/vault/**"],
+        rules: {
+          "eslint/no-restricted-imports": [
+            "error",
+            {
+              paths: platformNeutralImports.paths,
+              patterns: [
+                ...platformNeutralImports.patterns,
+                {
+                  group: ["..", "../", "../index", "../index.ts", "../nostr", "../nostr/**"],
+                  message: "vault may only reach ../core (AGENTS.md layering)",
+                },
+              ],
+            },
+          ],
+        },
+      },
     ],
   }),
   fmt: {

@@ -34,7 +34,7 @@ const CHAIN_CRATES = [
 
 // Every library crate (all except kobe-cli) is a P-level crate: no_std +
 // alloc, sans-IO, and required to build for the portable targets.
-const P_LEVEL = new Set(["kobe-core", ...CHAIN_CRATES, "kobe"]);
+const P_LEVEL = new Set(["kobe-core", ...CHAIN_CRATES, "kobe-vault", "kobe"]);
 
 const RUNTIME_BANNED = new Set(["tokio", "reqwest"]);
 
@@ -42,6 +42,7 @@ const ALL = "*";
 const ALLOWED: Record<string, string[]> = {
   "kobe-core": [],
   ...Object.fromEntries(CHAIN_CRATES.map((name) => [name, ["kobe-core"]])),
+  "kobe-vault": ["kobe-core"],
   kobe: [ALL],
   "kobe-cli": ["kobe"],
   // Test-only vector runner (publish = false): may reach every crate.

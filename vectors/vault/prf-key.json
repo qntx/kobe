@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "capability": "vault.prf-key",
+  "source": {
+    "kind": "generated",
+    "generator": "@qntx/kobe 3.4.0",
+    "version": "3.4.0",
+    "reference": "Node.js crypto (OpenSSL) v24.21.0 — hkdfSync(sha256, prf, empty salt, info, 32)"
+  },
+  "cases": [
+    {
+      "prf": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "info": "meowl/vault/v1",
+      "key": "2b305bcbd48f2920ca2e178cd78e8f69f7cf38a79e0b75cdc0b0909a07c134e4"
+    },
+    {
+      "prf": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "info": "meowl/wallet/v1",
+      "key": "e7ecf08bc5cf6d36888f326aa56f319416d49e7018427f86bbacd3bc0276dcd9"
+    },
+    {
+      "prf": "16810f86ddcbdf33a723d8b4ad2faac9ee90a1eb2a5cea2c8e95a40c2d64cb3b",
+      "info": "meowl-vault/2/k1/prf",
+      "key": "d949ab9570534b989685678b0f3e465c6a95cbd28034eadce13874a59ad116e8"
+    },
+    {
+      "prf": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e",
+      "info": "meowl/vault/v1",
+      "error": "input"
+    },
+    {
+      "prf": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "info": "",
+      "error": "input"
+    }
+  ]
+}

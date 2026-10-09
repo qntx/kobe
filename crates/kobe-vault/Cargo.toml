@@ -1,0 +1,37 @@
+[package]
+name                   = "kobe-vault"
+version.workspace      = true
+edition.workspace      = true
+rust-version.workspace = true
+license.workspace      = true
+repository.workspace   = true
+homepage.workspace     = true
+authors.workspace      = true
+readme                 = "README.md"
+description            = "Versioned AES-256-GCM envelope encryption and key derivation for Kobe"
+keywords               = ["crypto", "vault", "aes-gcm", "pbkdf2", "no_std"]
+categories             = ["cryptography", "no-std"]
+
+[features]
+default = ["std"]
+std     = ["kobe-core/std", "unicode-normalization/std"]
+
+[dependencies]
+kobe-core.workspace             = true
+aes-gcm.workspace               = true
+hkdf.workspace                  = true
+pbkdf2.workspace                = true
+sha2.workspace                  = true
+rand_core.workspace             = true
+unicode-normalization.workspace = true
+zeroize.workspace               = true
+
+[dev-dependencies]
+rand_core.workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[lints]
+workspace = true
