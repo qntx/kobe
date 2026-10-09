@@ -24,7 +24,7 @@ impl NostrCommand {
             json,
             reveal,
             |w, n| Ok(Deriver::new(w).derive_many(0, n)?),
-            |a| a.nsec().as_str().to_owned(),
+            |a| Ok(a.nsec()?.as_str().to_owned()),
         )
     }
 }

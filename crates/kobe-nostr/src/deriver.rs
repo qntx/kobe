@@ -19,15 +19,14 @@ pub const NPUB_HRP: &str = "npub";
 /// A Nostr-specific derived account — [`DerivedAccount`] plus NIP-19 `nsec`.
 ///
 /// Wraps the unified [`DerivedAccount`] (path, 32-byte private key, 32-byte
-/// x-only public key, `npub1…` address) and adds the NIP-19 `nsec1…` bech32
-/// encoding of the private key, zeroized on drop.
+/// x-only public key, `npub1…` address); the NIP-19 `nsec1…` bech32 encoding
+/// is computed on demand so the secret only ever lives as key bytes.
 ///
 /// Implements `Deref<Target = DerivedAccount>`, so all shared accessors
 /// (`address()`, `public_key_bytes()`, etc.) are available directly.
 #[derive(Clone)]
 pub struct NostrAccount {
     inner: DerivedAccount,
-    nsec: Zeroizing<String>,
 }
 
 impl core::fmt::Debug for NostrAccount {
@@ -41,10 +40,16 @@ impl core::fmt::Debug for NostrAccount {
 
 impl NostrAccount {
     /// NIP-19 `nsec1…` bech32 encoding of the 32-byte private key, zeroized on drop.
+    ///
+    /// Computed on demand from [`DerivedAccount::private_key_bytes`]; the
+    /// secret is never held as a string.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::AddressEncoding`] if bech32 encoding fails.
     #[inline]
-    #[must_use]
-    pub const fn nsec(&self) -> &Zeroizing<String> {
-        &self.nsec
+    pub fn nsec(&self) -> Result<Zeroizing<String>, Error> {
+        encode_nsec(self.inner.private_key_bytes().as_slice())
     }
 
     /// NIP-19 `npub1…` bech32 encoding of the x-only public key.
@@ -63,13 +68,21 @@ impl NostrAccount {
         &self.inner
     }
 
-    /// Consume and yield the underlying [`DerivedAccount`], dropping the
-    /// Nostr-specific `nsec` field.
+    /// Consume and yield the underlying [`DerivedAccount`].
     #[inline]
     #[must_use]
     pub fn into_derived_account(self) -> DerivedAccount {
         self.inner
     }
+}
+
+/// Encode a 32-byte secret key as a NIP-19 `nsec1…` bech32 string.
+fn encode_nsec(secret_key: &[u8]) -> Result<Zeroizing<String>, Error> {
+    let hrp = Hrp::parse(NSEC_HRP)
+        .map_err(|e| Error::AddressEncoding(format!("nostr: invalid nsec HRP: {e}")))?;
+    bech32::encode::<Bech32>(hrp, secret_key)
+        .map(Zeroizing::new)
+        .map_err(|e| Error::AddressEncoding(format!("nostr nsec encoding: {e}")))
 }
 
 impl Deref for NostrAccount {
@@ -142,23 +155,14 @@ impl<'a> Deriver<'a> {
         let npub = bech32::encode::<Bech32>(npub_hrp, &xonly)
             .map_err(|e| Error::AddressEncoding(format!("nostr npub encoding: {e}")))?;
 
-        let nsec_hrp = Hrp::parse(NSEC_HRP)
-            .map_err(|e| Error::AddressEncoding(format!("nostr: invalid nsec HRP: {e}")))?;
-        let sk_bytes = key.private_key_bytes();
-        let nsec = bech32::encode::<Bech32>(nsec_hrp, sk_bytes.as_slice())
-            .map_err(|e| Error::AddressEncoding(format!("nostr nsec encoding: {e}")))?;
-
         let inner = DerivedAccount::new(
             String::from(path),
-            sk_bytes,
+            key.private_key_bytes(),
             DerivedPublicKey::Secp256k1XOnly(xonly),
             npub,
         );
 
-        Ok(NostrAccount {
-            inner,
-            nsec: Zeroizing::new(nsec),
-        })
+        Ok(NostrAccount { inner })
     }
 }
 
@@ -235,7 +239,7 @@ mod tests {
         assert_eq!(a.private_key_hex().as_str(), TV1_PRIV_HEX);
         assert_eq!(a.public_key_hex(), TV1_PUB_HEX);
         assert_eq!(a.npub(), TV1_NPUB);
-        assert_eq!(a.nsec().as_str(), TV1_NSEC);
+        assert_eq!(a.nsec().unwrap().as_str(), TV1_NSEC);
         // `address()` is the canonical NIP-19 representation of the pubkey.
         assert_eq!(a.address(), TV1_NPUB);
     }
@@ -249,7 +253,7 @@ mod tests {
         assert_eq!(a.private_key_hex().as_str(), TV2_PRIV_HEX);
         assert_eq!(a.public_key_hex(), TV2_PUB_HEX);
         assert_eq!(a.npub(), TV2_NPUB);
-        assert_eq!(a.nsec().as_str(), TV2_NSEC);
+        assert_eq!(a.nsec().unwrap().as_str(), TV2_NSEC);
     }
 
     /// `derive_many` from [`DeriveExt`] must agree with scalar `derive` for
@@ -265,7 +269,10 @@ mod tests {
             assert_eq!(batch[i].address(), single[i].address());
             assert_eq!(batch[i].path(), single[i].path());
             assert_eq!(batch[i].npub(), single[i].npub());
-            assert_eq!(batch[i].nsec().as_str(), single[i].nsec().as_str());
+            assert_eq!(
+                batch[i].nsec().unwrap().as_str(),
+                single[i].nsec().unwrap().as_str()
+            );
         }
     }
 

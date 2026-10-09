@@ -80,6 +80,7 @@ describe("Wallet", () => {
     for (const f of [
       () => w.mnemonic(),
       () => w.mnemonicBytes(),
+      () => w.id(),
       () => w.deriveSecp256k1("m/44'/60'/0'/0/0"),
       () => walletSeed(w),
     ]) {

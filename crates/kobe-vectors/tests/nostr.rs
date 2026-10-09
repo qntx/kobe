@@ -63,7 +63,14 @@ fn nip06() {
             case.public_key.as_str(),
             "case {index}"
         );
-        assert_eq!(account.nsec().as_str(), case.nsec.as_str(), "case {index}");
+        assert_eq!(
+            account
+                .nsec()
+                .unwrap_or_else(|e| panic!("case {index}: nsec failed: {e}"))
+                .as_str(),
+            case.nsec.as_str(),
+            "case {index}"
+        );
         assert_eq!(account.npub(), case.npub.as_str(), "case {index}");
         assert_eq!(account.address(), case.npub.as_str(), "case {index}");
         assert_eq!(

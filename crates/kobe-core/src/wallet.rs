@@ -7,6 +7,12 @@ use zeroize::Zeroizing;
 
 use crate::Error;
 
+/// Domain separation tag for [`Wallet::id`]: concatenated as raw UTF-8
+/// bytes (no length prefix) in front of the compressed BIP-32 master
+/// public key before hashing.
+#[cfg(feature = "bip32")]
+const WALLET_ID_DOMAIN: &[u8] = b"kobe/wallet-id/v1";
+
 /// Entropy length in bytes for a BIP-39 word count (12 words = 128 bits, …).
 fn entropy_len(word_count: usize) -> Result<usize, Error> {
     match word_count {
@@ -236,6 +242,34 @@ impl Wallet {
     #[inline]
     pub fn derive_ed25519(&self, path: &str) -> Result<crate::slip10::DerivedEd25519Key, Error> {
         crate::slip10::DerivedEd25519Key::derive_path(self.seed.as_slice(), path)
+    }
+
+    /// Stable, non-secret identifier for this wallet.
+    ///
+    /// The id is the first 16 hex characters (8 bytes) of
+    /// `SHA-256(b"kobe/wallet-id/v1" || master_pubkey)`, where
+    /// `master_pubkey` is the 33-byte compressed secp256k1 public key of
+    /// the BIP-32 root node (`m`) derived from the BIP-39 seed. The domain
+    /// separator is concatenated as raw UTF-8 bytes — no length prefix.
+    ///
+    /// The id commits to the whole wallet (mnemonic + passphrase) without
+    /// revealing key material and is safe to expose. Different mnemonics —
+    /// or the same mnemonic with a different passphrase — produce
+    /// different ids.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the BIP-32 master key cannot be derived.
+    #[cfg(feature = "bip32")]
+    pub fn id(&self) -> Result<String, Error> {
+        use sha2::Digest as _;
+
+        let master = crate::bip32::DerivedSecp256k1Key::derive(self.seed.as_slice(), "m")?;
+        let digest = sha2::Sha256::new()
+            .chain_update(WALLET_ID_DOMAIN)
+            .chain_update(master.compressed_pubkey())
+            .finalize();
+        Ok(hex::encode(digest.split_at(8).0))
     }
 
     /// Check if a passphrase was supplied at construction time.

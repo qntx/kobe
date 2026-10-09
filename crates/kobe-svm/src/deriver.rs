@@ -104,25 +104,25 @@ impl<'a> Deriver<'a> {
         Self { wallet }
     }
 
-    /// Derive a Solana account using the Standard derivation style.
+    /// Derive a Solana account using the default [`DerivationStyle::Bip44Change`] layout.
     ///
-    /// Uses path `m/44'/501'/{index}'/0'` (Phantom, Backpack, Solflare).
+    /// Uses path `m/44'/501'/{index}'/0'` (Phantom, Solflare, Backpack,
+    /// `MetaMask`, OKX, solana-keygen).
     ///
     /// # Errors
     ///
     /// Returns an error if derivation fails.
     #[inline]
     pub fn derive(&self, index: u32) -> Result<SvmAccount, Error> {
-        self.derive_with(DerivationStyle::Standard, index)
+        self.derive_with(DerivationStyle::Bip44Change, index)
     }
 
     /// Derive a Solana account with a specific [`DerivationStyle`].
     ///
     /// Supported path layouts:
-    /// - **Standard** (Phantom/Backpack): `m/44'/501'/{index}'/0'`
-    /// - **Trust**: `m/44'/501'/{index}'`
-    /// - **Ledger Live**: `m/44'/501'/{index}'/0'/0'`
-    /// - **Legacy**: `m/501'/{index}'/0'/0'`
+    /// - **BIP-44 change** (Phantom, Solflare, Backpack, `MetaMask`, OKX, solana-keygen): `m/44'/501'/{index}'/0'`
+    /// - **BIP-44** (Trust Wallet, Ledger Live, Keystone): `m/44'/501'/{index}'`
+    /// - **Legacy** (Sollet, deprecated): `m/501'/{index}'/0'/0'`
     ///
     /// # Errors
     ///
@@ -166,7 +166,7 @@ impl Derive for Deriver<'_> {
     type Error = Error;
 
     fn derive(&self, index: u32) -> Result<SvmAccount, Error> {
-        self.derive_with(DerivationStyle::Standard, index)
+        self.derive_with(DerivationStyle::Bip44Change, index)
     }
 
     fn derive_path(&self, path: &str) -> Result<SvmAccount, Error> {
@@ -269,18 +269,15 @@ mod tests {
     fn derivation_styles_produce_distinct_addresses() {
         let w = test_wallet();
         let d = Deriver::new(&w);
-        let standard = d.derive_with(DerivationStyle::Standard, 0).unwrap();
-        let trust = d.derive_with(DerivationStyle::Trust, 0).unwrap();
-        let ledger = d.derive_with(DerivationStyle::LedgerLive, 0).unwrap();
+        let bip44_change = d.derive_with(DerivationStyle::Bip44Change, 0).unwrap();
+        let bip44 = d.derive_with(DerivationStyle::Bip44, 0).unwrap();
         let legacy = d.derive_with(DerivationStyle::Legacy, 0).unwrap();
-        assert_eq!(standard.path(), "m/44'/501'/0'/0'");
-        assert_eq!(trust.path(), "m/44'/501'/0'");
-        assert_eq!(ledger.path(), "m/44'/501'/0'/0'/0'");
+        assert_eq!(bip44_change.path(), "m/44'/501'/0'/0'");
+        assert_eq!(bip44.path(), "m/44'/501'/0'");
         assert_eq!(legacy.path(), "m/501'/0'/0'/0'");
-        assert_ne!(standard.address(), trust.address());
-        assert_ne!(standard.address(), ledger.address());
-        assert_ne!(standard.address(), legacy.address());
-        assert_ne!(trust.address(), ledger.address());
+        assert_ne!(bip44_change.address(), bip44.address());
+        assert_ne!(bip44_change.address(), legacy.address());
+        assert_ne!(bip44.address(), legacy.address());
     }
 
     /// `derive_many` must agree with scalar `derive` for every index.

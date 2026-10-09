@@ -124,7 +124,7 @@ impl SimpleSubcommand {
         F: FnOnce(&Wallet, u32) -> CliResult<Vec<DerivedAccount>>,
     {
         self.execute_with(chain, json, reveal, derive_fn, |a| {
-            a.private_key_hex().as_str().to_owned()
+            Ok(a.private_key_hex().as_str().to_owned())
         })
     }
 
@@ -138,7 +138,7 @@ impl SimpleSubcommand {
     /// # Errors
     ///
     /// Returns an error if mnemonic expansion, wallet construction, derivation,
-    /// or rendering fails.
+    /// private-key formatting, or rendering fails.
     pub(crate) fn execute_with<A, F, G>(
         self,
         chain: &'static str,
@@ -150,7 +150,7 @@ impl SimpleSubcommand {
     where
         A: AsRef<DerivedAccount>,
         F: FnOnce(&Wallet, u32) -> CliResult<Vec<A>>,
-        G: Fn(&A) -> String,
+        G: Fn(&A) -> CliResult<String>,
     {
         let (mnemonic, args) = match self {
             Self::New { args } => (None, args),
@@ -169,16 +169,20 @@ impl SimpleSubcommand {
             accounts: accounts
                 .iter()
                 .enumerate()
-                .map(|(i, a)| {
+                .map(|(i, a)| -> CliResult<AccountOutput> {
                     let da = a.as_ref();
-                    AccountOutput {
+                    Ok(AccountOutput {
                         index: u32::try_from(i).unwrap_or(u32::MAX),
                         derivation_path: da.path().to_owned(),
                         address: da.address().to_owned(),
-                        private_key: reveal.then(|| format_private_key(a)),
-                    }
+                        private_key: if reveal {
+                            Some(format_private_key(a)?)
+                        } else {
+                            None
+                        },
+                    })
                 })
-                .collect(),
+                .collect::<CliResult<Vec<_>>>()?,
         };
         output::render_hd_wallet(&out, json, args.qr)?;
         Ok(())

@@ -1,6 +1,6 @@
 ---
 title: Install
-description: Install the kobe CLI and the kobe crate.
+description: Install the kobe CLI, the kobe crate, and the @qntx/kobe package.
 ---
 
 CLI:
@@ -20,5 +20,15 @@ cargo install kobe-cli
 Library (enable chains explicitly):
 
 ```toml
-kobe = { version = "3.2", features = ["std", "evm", "btc", "svm"] }
+kobe = { version = "4", features = ["std", "evm", "btc", "svm"] }
 ```
+
+TypeScript:
+
+```bash
+bun add @qntx/kobe
+```
+
+(or `npm install @qntx/kobe`). The package is subpath-only — there is no root
+entry; import from `@qntx/kobe/core`, `@qntx/kobe/nostr`, or
+`@qntx/kobe/vault`.

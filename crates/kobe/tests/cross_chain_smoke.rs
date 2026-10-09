@@ -122,7 +122,7 @@ mod smoke {
         // when using the shared abandon mnemonic (not NIP official TV mnemonics).
         let a = kobe::nostr::Deriver::new(&w).derive(0).unwrap();
         assert!(a.npub().starts_with("npub1"));
-        assert!(a.nsec().starts_with("nsec1"));
+        assert!(a.nsec().unwrap().starts_with("nsec1"));
     }
 
     #[test]

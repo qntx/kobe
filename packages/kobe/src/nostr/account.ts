@@ -1,6 +1,7 @@
 import { createDerivedAccount } from "../core/account.ts";
 import type { DerivedAccount } from "../core/account.ts";
-import { KobeError } from "../core/error.ts";
+import { wipeBytes } from "../core/bytes.ts";
+import { encodeNsec } from "./nip19.ts";
 
 /** A Nostr-specific derived account — `DerivedAccount` plus NIP-19 `nsec`. */
 export type NostrAccount = {
@@ -15,14 +16,12 @@ class NostrAccountImpl implements NostrAccount {
   readonly publicKey: DerivedAccount["publicKey"];
   readonly address: string;
   readonly #inner: DerivedAccount;
-  #nsec: string | undefined;
 
-  constructor(inner: DerivedAccount, nsec: string) {
+  constructor(inner: DerivedAccount) {
     this.#inner = inner;
     this.path = inner.path;
     this.publicKey = inner.publicKey;
     this.address = inner.address;
-    this.#nsec = nsec;
   }
 
   privateKeyBytes(): Uint8Array {
@@ -42,10 +41,12 @@ class NostrAccountImpl implements NostrAccount {
   }
 
   nsec(): string {
-    if (this.#nsec === undefined) {
-      throw new KobeError("input", "disposed");
+    const sk = this.#inner.privateKeyBytes();
+    try {
+      return encodeNsec(sk);
+    } finally {
+      wipeBytes(sk);
     }
-    return this.#nsec;
   }
 
   npub(): string {
@@ -54,7 +55,6 @@ class NostrAccountImpl implements NostrAccount {
 
   dispose(): void {
     this.#inner.dispose();
-    this.#nsec = undefined;
   }
 
   toString(): string {
@@ -72,7 +72,6 @@ export function createNostrAccount(input: {
   privateKey: Uint8Array;
   xonlyPublicKey: Uint8Array;
   npub: string;
-  nsec: string;
 }): NostrAccount {
   const inner = createDerivedAccount({
     path: input.path,
@@ -80,5 +79,5 @@ export function createNostrAccount(input: {
     publicKey: { kind: "secp256k1-xonly", bytes: input.xonlyPublicKey },
     address: input.npub,
   });
-  return new NostrAccountImpl(inner, input.nsec);
+  return new NostrAccountImpl(inner);
 }

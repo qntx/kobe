@@ -43,6 +43,9 @@ const BIP32_OFFICIAL = JSON.parse(readFileSync(join(root, "bip32/official.json")
 const MNEMONIC_EXPAND = JSON.parse(
   readFileSync(join(root, "core/mnemonic-expand.json"), "utf8"),
 ) as { cases: Array<{ input: string; mnemonic?: string; error?: string }> };
+const WALLET_ID = JSON.parse(readFileSync(join(root, "core/wallet-id.json"), "utf8")) as {
+  cases: Array<{ mnemonic: string; passphrase?: string; masterPublicKey: string; id: string }>;
+};
 
 /** Run `f`, returning the thrown `KobeError.code`; sentinels keep assertions unconditional. */
 function codeOf(f: () => unknown): string {
@@ -82,6 +85,8 @@ const bip32Invalid = bip32Cases.filter((c) => c.error !== undefined);
 
 const expandValid = MNEMONIC_EXPAND.cases.filter((c) => c.error === undefined);
 const expandInvalid = MNEMONIC_EXPAND.cases.filter((c) => c.error !== undefined);
+
+const walletIdCases = WALLET_ID.cases.map((c) => ({ ...c, passphrase: c.passphrase ?? "" }));
 
 describe("vectors/bip39/trezor.json", () => {
   test("entropy → mnemonic and mnemonic → seed (passphrase TREZOR)", () => {
@@ -170,6 +175,21 @@ describe("vectors/bip32/official.json", () => {
         expect(bytesToHex(key.compressedPublicKey())).toBe(bytesToHex(xpub.slice(45, 78)));
         key.dispose();
       }
+    }
+  });
+});
+
+describe("vectors/core/wallet-id.json", () => {
+  test("id = hex(sha256('kobe/wallet-id/v1' ‖ compressed BIP-32 master pubkey))[..16]", () => {
+    for (const c of walletIdCases) {
+      const wallet = Wallet.fromMnemonic(c.mnemonic, c.passphrase);
+      // The master pubkey is pinned separately so a BIP-32 divergence
+      // between @scure/bip32 and the Rust `bip32` crate cannot hide in the hash.
+      const master = wallet.deriveSecp256k1("m");
+      expect(master.compressedPublicKeyHex()).toBe(c.masterPublicKey);
+      master.dispose();
+      expect(wallet.id()).toBe(c.id);
+      wallet.dispose();
     }
   });
 });

@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "capability": "core.wallet-id",
+  "source": {
+    "kind": "generated",
+    "generator": "kobe-core + @qntx/kobe (independent BIP-32 implementations; masterPublicKey and id cross-confirmed before freezing)",
+    "version": "3.4.0",
+    "reference": "Mnemonics and the TREZOR passphrase reuse the official BIP-39 cases in vectors/bip39/trezor.json. masterPublicKey and id were additionally recomputed with Node crypto (OpenSSL: PBKDF2-SHA512, HMAC-SHA512 'Bitcoin seed', secp256k1 ECDH public key, SHA-256) and, for the TREZOR cases, the master public key matches the official BIP-39 xprv."
+  },
+  "cases": [
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "masterPublicKey": "03d902f35f560e0470c63313c7369168d9d7df2d49bf295fd9fb7cb109ccee0494",
+      "id": "4966e32ef7f4204b"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "masterPublicKey": "02f632717d78bf73e74aa8461e2e782532abae4eed5110241025afb59ebfd3d2fd",
+      "id": "95730e9b5e315ece"
+    },
+    {
+      "mnemonic": "legal winner thank year wave sausage worth useful legal winner thank yellow",
+      "passphrase": "TREZOR",
+      "masterPublicKey": "02bc7bee393496147faacecaef88aceb43e2122f573f6ced92f85ca184a52a28b4",
+      "id": "f440778191823b2c"
+    },
+    {
+      "mnemonic": "ozone drill grab fiber curtain grace pudding thank cruise elder eight picnic",
+      "passphrase": "TREZOR",
+      "masterPublicKey": "02953b5627534160c0a053aa4bfd2ae3d9a18869932d1aa9a04b2acc8640205999",
+      "id": "ac38ee3f838ed5fb"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon agent",
+      "passphrase": "",
+      "masterPublicKey": "0368229d5e5904646b45d382a39f9a285b417974af1b275edba12c01c5c78b2403",
+      "id": "2d48fa88b9241cac"
+    },
+    {
+      "mnemonic": "legal winner thank year wave sausage worth useful legal winner thank year wave sausage worth useful legal will",
+      "passphrase": "TREZOR",
+      "masterPublicKey": "028599153abfff278f80064ccf85075286d6802a1bc7e47b8b4f3b378a1b51887f",
+      "id": "94ee59c4a4393317"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "masterPublicKey": "025660b70c8770245fb97ce9a811885e8045a1f333a799dcd3035788606cc55754",
+      "id": "eac1eeb2e00c0964"
+    },
+    {
+      "mnemonic": "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo vote",
+      "passphrase": "TREZOR",
+      "masterPublicKey": "02054f858a3cc671093a0dd40c278640b2731954cf385a9a19e39b321cb24efd13",
+      "id": "a2bd39c9ad8eff06"
+    }
+  ]
+}
