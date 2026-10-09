@@ -21,13 +21,13 @@ const ABANDON =
 // vectors/vault/seal.json case 0.
 const SEAL_KEY = "0000000000000000000000000000000000000000000000000000000000000001";
 const SEAL_NONCE = "0102030405060708090a0b0c";
-const SEAL_CONTEXT = "meowl-vault/2/id-1/data";
-const SEALED = "010102030405060708090a0b0c1c6344d213ca9070b73382f90fd89691";
+const SEAL_CONTEXT = "kobe/test/v1/id-1/data";
+const SEALED = "010102030405060708090a0b0c174fdcfdda669b37ac0db6ce6ad46a30";
 
 // vectors/vault/prf-key.json case 0.
 const PRF = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
-const PRF_INFO = "meowl/vault/v1";
-const PRF_KEY = "2b305bcbd48f2920ca2e178cd78e8f69f7cf38a79e0b75cdc0b0909a07c134e4";
+const PRF_INFO = "kobe/test/v1/kek";
+const PRF_KEY = "e6cfcaf65be954c01e73902a2288a935d3e8f2c6d2c434e6c1d19c941e458917";
 
 // vectors/vault/passkey-wallet.json case 0.
 const PASSKEY_NPUB = "npub1y8d9v47f0w2muh9tswfhgej59r73gs26nndr4q8acxj7twwgydgserahqq";

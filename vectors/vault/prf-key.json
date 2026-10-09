@@ -10,22 +10,22 @@
   "cases": [
     {
       "prf": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
-      "info": "meowl/vault/v1",
-      "key": "2b305bcbd48f2920ca2e178cd78e8f69f7cf38a79e0b75cdc0b0909a07c134e4"
+      "info": "kobe/test/v1/kek",
+      "key": "e6cfcaf65be954c01e73902a2288a935d3e8f2c6d2c434e6c1d19c941e458917"
     },
     {
       "prf": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-      "info": "meowl/wallet/v1",
-      "key": "e7ecf08bc5cf6d36888f326aa56f319416d49e7018427f86bbacd3bc0276dcd9"
+      "info": "kobe/test/v1/wallet",
+      "key": "0b4003915005d8c5fe4bdf87e4b747869a753d691e949f3d108fb3b3945e3b4a"
     },
     {
       "prf": "16810f86ddcbdf33a723d8b4ad2faac9ee90a1eb2a5cea2c8e95a40c2d64cb3b",
-      "info": "meowl-vault/2/k1/prf",
-      "key": "d949ab9570534b989685678b0f3e465c6a95cbd28034eadce13874a59ad116e8"
+      "info": "kobe/test/v1/k1/prf",
+      "key": "9407f2d1c5dc3ac29c9ce89c9364313768c2636c8e757d23568fc74ef22e2580"
     },
     {
       "prf": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e",
-      "info": "meowl/vault/v1",
+      "info": "kobe/test/v1/kek",
       "error": "input"
     },
     {
