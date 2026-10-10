@@ -32,22 +32,19 @@ kobe-casper  = { version = "=4.0.0", path = "crates/kobe-casper", default-featur
 kobe-arweave = { version = "=4.0.0", path = "crates/kobe-arweave", default-features = false }
 kobe-vault   = { version = "=4.0.0", path = "crates/kobe-vault", default-features = false }
 
-aes-gcm          = { version = "0.11.1", default-features = false, features = ["aes", "alloc"] }
-alloy-primitives = { version = "1.6.1", default-features = false, features = ["k256"] }
-base64           = { version = "0.23.1", default-features = false, features = ["alloc"] }
-bech32           = { version = "0.12.0", default-features = false, features = ["alloc"] }
-bip32            = { version = "0.5.3", default-features = false, features = ["secp256k1", "alloc"] }
-bip39            = { version = "3.0.0", default-features = false, features = ["alloc"] }
-blake2           = { version = "0.11.0", default-features = false }
-bs58             = { version = "0.5.1", default-features = false, features = ["alloc"] }
-ed25519-dalek    = { version = "3.0.0", default-features = false }
-getrandom        = { version = "0.4.3", default-features = false }
-hex              = { version = "0.4.3", default-features = false, features = ["alloc"] }
-hkdf             = { version = "0.13.0", default-features = false }
-hmac             = { version = "0.13.0", default-features = false }
-# Pinned to 0.13.x: bip32 0.5 and alloy-primitives still depend on k256 0.13.
-# Bump when those crates publish k256 0.14 support (bip32 0.6 is still pre-release).
-k256                  = { version = "0.13.4", default-features = false, features = ["ecdsa"] }
+aes-gcm               = { version = "0.11.1", default-features = false, features = ["aes", "alloc"] }
+base64                = { version = "0.23.1", default-features = false, features = ["alloc"] }
+bech32                = { version = "0.12.0", default-features = false, features = ["alloc"] }
+bip32-crate           = { package = "bip32", version = "0.6.0", default-features = false, features = ["secp256k1", "alloc"] }
+bip39                 = { version = "3.0.0", default-features = false, features = ["alloc"] }
+blake2                = { version = "0.11.0", default-features = false }
+bs58                  = { version = "0.5.1", default-features = false, features = ["alloc"] }
+ed25519-dalek         = { version = "3.0.0", default-features = false }
+getrandom             = { version = "0.4.3", default-features = false }
+hex                   = { version = "0.4.3", default-features = false, features = ["alloc"] }
+hkdf                  = { version = "0.13.0", default-features = false }
+hmac                  = { version = "0.13.0", default-features = false }
+k256                  = { version = "0.14.0", default-features = false, features = ["ecdsa"] }
 rand_core             = { version = "0.10.1", default-features = false }
 pbkdf2                = { version = "0.13.0", default-features = false, features = ["hmac"] }
 ripemd                = { version = "0.2.0", default-features = false }

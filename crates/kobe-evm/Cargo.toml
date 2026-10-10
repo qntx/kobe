@@ -17,8 +17,9 @@ default = ["std"]
 std     = ["kobe-core/std"]
 
 [dependencies]
-kobe-core                  = { workspace = true, features = ["bip32"] }
-alloy-primitives.workspace = true
+kobe-core      = { workspace = true, features = ["bip32"] }
+sha3.workspace = true
+hex.workspace  = true
 
 [lints]
 workspace = true

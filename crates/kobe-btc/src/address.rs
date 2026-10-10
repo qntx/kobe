@@ -4,8 +4,8 @@ use alloc::format;
 use alloc::string::String;
 
 use k256::elliptic_curve::ops::Reduce;
-use k256::elliptic_curve::sec1::ToEncodedPoint;
-use k256::{ProjectivePoint, PublicKey, Scalar, U256};
+use k256::elliptic_curve::sec1::ToSec1Point;
+use k256::{FieldBytes, ProjectivePoint, PublicKey, Scalar};
 use kobe_core::Error;
 use kobe_core::encoding::{base58check_versioned, hash160};
 use sha2::{Digest, Sha256};
@@ -88,12 +88,12 @@ fn p2tr(public_key: &[u8; 33], network: Network) -> Result<String, Error> {
     hasher.update(internal_x);
     let tweak_bytes: [u8; 32] = hasher.finalize().into();
     // BIP-341: t = int(hashTapTweak(...)) mod n (not reject-if-out-of-range).
-    let tweak = <Scalar as Reduce<U256>>::reduce_bytes(&tweak_bytes.into());
+    let tweak = <Scalar as Reduce<FieldBytes>>::reduce(&tweak_bytes.into());
 
     let q_proj = ProjectivePoint::from(*internal.as_affine()) + ProjectivePoint::GENERATOR * tweak;
     // Address program is the x-coordinate of Q. Negating Q preserves x, so
     // even-y normalization is not required for encoding (only for signing).
-    let encoded = q_proj.to_affine().to_encoded_point(true);
+    let encoded = q_proj.to_affine().to_sec1_point(true);
     let output_x = encoded
         .x()
         .ok_or_else(|| Error::Crypto("btc p2tr: output key at infinity".into()))?;
