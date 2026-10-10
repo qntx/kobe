@@ -766,7 +766,9 @@ name = "kobe-evm"
 version = "4.0.0"
 dependencies = [
  "hex",
+ "k256",
  "kobe-core",
+ "serde_json",
  "sha3",
 ]
 
@@ -855,6 +857,7 @@ dependencies = [
  "bs58",
  "hex",
  "kobe-core",
+ "kobe-evm",
  "kobe-nostr",
  "kobe-vault",
  "rand_core",

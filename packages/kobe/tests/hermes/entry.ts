@@ -7,6 +7,7 @@ import { hexToBytes } from "@noble/hashes/utils.js";
 import { Wallet } from "../../src/core/index.ts";
 import { Secp256k1Signer } from "../../src/core/secp256k1.ts";
 import { SecretKey } from "../../src/core/secret.ts";
+import { EvmSigner } from "../../src/evm/index.ts";
 import { NostrDeriver } from "../../src/nostr/index.ts";
 import { derivePrfKey, open, passkeyWallet, seal } from "../../src/vault/index.ts";
 
@@ -42,6 +43,10 @@ const SECP_KEY = "4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f3623
 const SECP_DIGEST = "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20";
 const SECP_SIG =
   "68597f9553ac0acc453b5a75af2c731e3ca14dbfeae2231123fd202765b12738247bc920ef3e3ceebbc865651f98dc26a25a0d63240c5da091863fe0296e389b00";
+
+// vectors/evm/sign.json personal-message case 0 (EIP-191 over "signer kat v3").
+const EVM_EIP191_SIG =
+  "bd238f0d6957ec577e5f90d781f63ff97e730ad39007e4bdde7b903af5f448762e2ef82e254d3c17337883c34a74d9fb0399226f818e4d1621377107f465f6901c";
 
 function hex(b: Uint8Array): string {
   return Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
@@ -91,6 +96,18 @@ try {
   }
   if (!secpSigner.verify(hexToBytes(SECP_DIGEST), secpRecoverable)) {
     throw new Error("secp256k1 verify mismatch");
+  }
+
+  const evmSigner = EvmSigner.fromSecretKey(SecretKey.fromBytes(hexToBytes(SECP_KEY)));
+  const eip191 = evmSigner.signPersonalMessage(new TextEncoder().encode("signer kat v3"));
+  const eip191Wire = new Uint8Array(65);
+  eip191Wire.set(eip191.signature);
+  eip191Wire[64] = 27 + eip191.recovery;
+  if (hex(eip191Wire) !== EVM_EIP191_SIG) {
+    throw new Error("evm EIP-191 signature mismatch");
+  }
+  if (evmSigner.address() !== "0x2c7536E3605D9C16a7a3D7b1898e529396a65c23") {
+    throw new Error("evm address mismatch");
   }
 
   print("HERMES_SMOKE_OK");

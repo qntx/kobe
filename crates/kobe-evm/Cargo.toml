@@ -14,12 +14,14 @@ categories             = ["cryptography", "no-std"]
 
 [features]
 default = ["std"]
-std     = ["kobe-core/std"]
+std     = ["kobe-core/std", "serde_json/std"]
 
 [dependencies]
-kobe-core      = { workspace = true, features = ["bip32"] }
+kobe-core      = { workspace = true, features = ["bip32", "secp256k1"] }
 sha3.workspace = true
 hex.workspace  = true
+k256           = { workspace = true }
+serde_json     = { workspace = true }
 
 [lints]
 workspace = true

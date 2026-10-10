@@ -210,6 +210,81 @@
         "tests": ["crates/kobe-vectors/tests/core.rs"]
       },
       "vectors": ["vectors/core/slip10.json"]
+    },
+    {
+      "id": "evm.derive",
+      "tier": "A",
+      "status": "stable",
+      "milestone": "KB2",
+      "ts": {
+        "module": "packages/kobe/src/evm/deriver.ts",
+        "tests": ["packages/kobe/tests/vectors/evm.test.ts"]
+      },
+      "rust": {
+        "module": "crates/kobe-evm/src/deriver.rs",
+        "tests": ["crates/kobe-vectors/tests/evm.rs"]
+      },
+      "vectors": ["vectors/evm/derive.json"]
+    },
+    {
+      "id": "evm.address",
+      "tier": "A",
+      "status": "stable",
+      "milestone": "KB2",
+      "ts": {
+        "module": "packages/kobe/src/evm/address.ts",
+        "tests": ["packages/kobe/tests/vectors/evm.test.ts"]
+      },
+      "rust": {
+        "module": "crates/kobe-evm/src/address.rs",
+        "tests": ["crates/kobe-vectors/tests/evm.rs"]
+      },
+      "vectors": ["vectors/evm/address.json"]
+    },
+    {
+      "id": "evm.sign",
+      "tier": "A",
+      "status": "stable",
+      "milestone": "KB2",
+      "ts": {
+        "module": "packages/kobe/src/evm/signer.ts",
+        "tests": ["packages/kobe/tests/vectors/evm.test.ts"]
+      },
+      "rust": {
+        "module": "crates/kobe-evm/src/signer.rs",
+        "tests": ["crates/kobe-vectors/tests/evm.rs"]
+      },
+      "vectors": ["vectors/evm/sign.json"]
+    },
+    {
+      "id": "evm.encode",
+      "tier": "A",
+      "status": "stable",
+      "milestone": "KB2",
+      "ts": {
+        "module": "packages/kobe/src/evm/rlp.ts",
+        "tests": ["packages/kobe/tests/vectors/evm.test.ts"]
+      },
+      "rust": {
+        "module": "crates/kobe-evm/src/rlp.rs",
+        "tests": ["crates/kobe-vectors/tests/evm.rs"]
+      },
+      "vectors": ["vectors/evm/encode.json"]
+    },
+    {
+      "id": "evm.eip712",
+      "tier": "A",
+      "status": "stable",
+      "milestone": "KB2",
+      "ts": {
+        "module": "packages/kobe/src/evm/eip712.ts",
+        "tests": ["packages/kobe/tests/vectors/evm.test.ts"]
+      },
+      "rust": {
+        "module": "crates/kobe-evm/src/eip712.rs",
+        "tests": ["crates/kobe-vectors/tests/evm.rs"]
+      },
+      "vectors": ["vectors/evm/eip712.json"]
     }
   ]
 }

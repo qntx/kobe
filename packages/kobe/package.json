@@ -33,6 +33,11 @@
       "import": "./dist/core.mjs",
       "default": "./dist/core.mjs"
     },
+    "./evm": {
+      "types": "./dist/evm.d.mts",
+      "import": "./dist/evm.mjs",
+      "default": "./dist/evm.mjs"
+    },
     "./nostr": {
       "types": "./dist/nostr.d.mts",
       "import": "./dist/nostr.mjs",

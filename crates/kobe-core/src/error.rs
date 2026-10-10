@@ -134,3 +134,11 @@ impl From<bip39::Error> for Error {
         Self::Mnemonic(e)
     }
 }
+
+/// Map a static validation message to [`Error::Input`]; used by internal
+/// decoders (e.g. RLP) that report failures as `&'static str`.
+impl From<&'static str> for Error {
+    fn from(msg: &'static str) -> Self {
+        Self::Input(String::from(msg))
+    }
+}

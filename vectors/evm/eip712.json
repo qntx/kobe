@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "capability": "evm.eip712",
+  "source": {
+    "kind": "reference",
+    "name": "EIP-712 v4 typed-data hashing; the eip712-spec-mail case is the canonical spec example from the EIP text (hash be609aee\u202657bd2), remaining cases generated with viem hashTypedData / signTypedData",
+    "url": "https://eips.ethereum.org/EIPS/eip-712",
+    "reference": "viem 2.55.19"
+  },
+  "cases": [
+    {
+      "name": "eip712-spec-mail",
+      "typedData": "{\"types\":{\"EIP712Domain\":[{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"version\",\"type\":\"string\"},{\"name\":\"chainId\",\"type\":\"uint256\"},{\"name\":\"verifyingContract\",\"type\":\"address\"}],\"Person\":[{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"wallet\",\"type\":\"address\"}],\"Mail\":[{\"name\":\"from\",\"type\":\"Person\"},{\"name\":\"to\",\"type\":\"Person\"},{\"name\":\"contents\",\"type\":\"string\"}]},\"primaryType\":\"Mail\",\"domain\":{\"name\":\"Ether Mail\",\"version\":\"1\",\"chainId\":1,\"verifyingContract\":\"0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC\"},\"message\":{\"from\":{\"name\":\"Cow\",\"wallet\":\"0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826\"},\"to\":{\"name\":\"Bob\",\"wallet\":\"0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB\"},\"contents\":\"Hello, Bob!\"}}",
+      "hash": "be609aee343fb3c4b28e1df9e632fca64fcfaede20f02e86244efddf30957bd2",
+      "secretKey": "c85ef7d79691fe79573b1a7064c19c1a9819ebdbd1faaab1a8ec92344438aaf4",
+      "signature": "4355c47d63924e8a72e509b65029052eb6c299d53a04e167c5775fd466751c9d07299936d304c153f6443dfa05f40ff007d72911b6f72307f996231605b91562",
+      "recovery": 1
+    },
+    {
+      "name": "arrays",
+      "typedData": "{\"types\":{\"EIP712Domain\":[{\"name\":\"name\",\"type\":\"string\"}],\"Batch\":[{\"name\":\"targets\",\"type\":\"address[]\"},{\"name\":\"amounts\",\"type\":\"uint256[]\"}]},\"primaryType\":\"Batch\",\"domain\":{\"name\":\"BatchPay\"},\"message\":{\"targets\":[\"0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826\",\"0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB\"],\"amounts\":[\"1\",\"2000000000000000000\"]}}",
+      "hash": "60ac76da57402d4a277ee72722e563e42c680ce0f8171c823d123977dabfa9b8",
+      "signature": "7fc2909ff2ae8ec1b5d9df987ef55994361e896e58581de16d8a293cea01b4d26563524164c4260c62d01b497c161036ea9088d956d3aa9262029c9882961cc1",
+      "recovery": 0
+    },
+    {
+      "name": "atomic-types",
+      "typedData": "{\"types\":{\"EIP712Domain\":[{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"version\",\"type\":\"string\"},{\"name\":\"chainId\",\"type\":\"uint256\"},{\"name\":\"verifyingContract\",\"type\":\"address\"}],\"Blob\":[{\"name\":\"data\",\"type\":\"bytes\"},{\"name\":\"tag\",\"type\":\"bytes32\"},{\"name\":\"flag\",\"type\":\"bool\"},{\"name\":\"delta\",\"type\":\"int256\"}]},\"primaryType\":\"Blob\",\"domain\":{\"name\":\"Atoms\",\"version\":\"2\",\"chainId\":137,\"verifyingContract\":\"0x0000000000000000000000000000000000000001\"},\"message\":{\"data\":\"0xdeadbeef\",\"tag\":\"0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\",\"flag\":true,\"delta\":\"-42\"}}",
+      "hash": "98540370bf5eab575db288885d8ba12ac7b7bfdf2df2ac99da6c99fb180debb6",
+      "signature": "fbef323c031289a3251480c9f698912127ffbc9670fd4313a24a1f7fbf7869cc1c18bc1f5b7cf1cffb2e272836ac5df91861fa73205819beaf7241b2719a105e",
+      "recovery": 0
+    },
+    {
+      "name": "nested-no-chainid",
+      "typedData": "{\"types\":{\"EIP712Domain\":[{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"version\",\"type\":\"string\"}],\"Inner\":[{\"name\":\"value\",\"type\":\"uint128\"}],\"Outer\":[{\"name\":\"inner\",\"type\":\"Inner\"},{\"name\":\"note\",\"type\":\"string\"}]},\"primaryType\":\"Outer\",\"domain\":{\"name\":\"NoChain\",\"version\":\"0\"},\"message\":{\"inner\":{\"value\":\"65535\"},\"note\":\"nested\"}}",
+      "hash": "a1610f4df5a1f5e3065433810c2366ce720f3e2ef2b359d1dbcd80ab36698f2c",
+      "signature": "0e9a24c804b832a85d32f56e927d6a7b18480b3c3f6f914f2664f6717c9b10f3071a5317ae4ad96f3a3c5fd3ea84548d89e54debe90f463d67b8332576ea68c6",
+      "recovery": 1
+    },
+    {
+      "name": "not-json",
+      "typedData": "{ not json",
+      "error": "input"
+    },
+    {
+      "name": "missing-types",
+      "typedData": "{\"primaryType\":\"X\",\"domain\":{},\"message\":{}}",
+      "error": "input"
+    },
+    {
+      "name": "bad-uint-range",
+      "typedData": "{\"types\":{\"EIP712Domain\":[{\"name\":\"name\",\"type\":\"string\"}],\"V\":[{\"name\":\"x\",\"type\":\"uint8\"}]},\"primaryType\":\"V\",\"domain\":{\"name\":\"x\"},\"message\":{\"x\":\"256\"}}",
+      "error": "input"
+    },
+    {
+      "name": "bad-width-uint7",
+      "typedData": "{\"types\":{\"EIP712Domain\":[{\"name\":\"name\",\"type\":\"string\"}],\"V\":[{\"name\":\"x\",\"type\":\"uint7\"}]},\"primaryType\":\"V\",\"domain\":{\"name\":\"T\"},\"message\":{\"x\":1}}",
+      "error": "input"
+    },
+    {
+      "name": "bad-width-uint257",
+      "typedData": "{\"types\":{\"EIP712Domain\":[{\"name\":\"name\",\"type\":\"string\"}],\"V\":[{\"name\":\"x\",\"type\":\"uint257\"}]},\"primaryType\":\"V\",\"domain\":{\"name\":\"T\"},\"message\":{\"x\":1}}",
+      "error": "input"
+    }
+  ]
+}

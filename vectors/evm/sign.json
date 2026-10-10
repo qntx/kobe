@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "capability": "evm.sign",
+  "source": {
+    "kind": "reference",
+    "name": "EIP-191 personal messages and EIP-7702 authorizations signed by viem privateKeyToAccount (RFC 6979 deterministic; both implementations reproduce the signature byte-for-byte)",
+    "url": "https://eips.ethereum.org/EIPS/eip-191 / https://eips.ethereum.org/EIPS/eip-7702",
+    "reference": "viem 2.55.19"
+  },
+  "secretKey": "4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318",
+  "cases": [
+    {
+      "kind": "personal-message",
+      "message": "7369676e6572206b6174207633",
+      "hash": "56db82ebe75f3f98e4c22251bff0003fb75b5b330b62acb24f0588ed79e45f53",
+      "signature": "bd238f0d6957ec577e5f90d781f63ff97e730ad39007e4bdde7b903af5f448762e2ef82e254d3c17337883c34a74d9fb0399226f818e4d1621377107f465f690",
+      "recovery": 1,
+      "encoded": "bd238f0d6957ec577e5f90d781f63ff97e730ad39007e4bdde7b903af5f448762e2ef82e254d3c17337883c34a74d9fb0399226f818e4d1621377107f465f6901c"
+    },
+    {
+      "kind": "personal-message",
+      "message": "",
+      "hash": "5f35dce98ba4fba25530a026ed80b2cecdaa31091ba4958b99b52ea1d068adad",
+      "signature": "8a68b4e66cd2b575338e16069d7b65f6f67c7ceae8945dccf8cb7bdb06278d933dd9c888f3444ca4698464079a067ad3cfffe96d493b8ecf56885169d0fdfe7d",
+      "recovery": 0,
+      "encoded": "8a68b4e66cd2b575338e16069d7b65f6f67c7ceae8945dccf8cb7bdb06278d933dd9c888f3444ca4698464079a067ad3cfffe96d493b8ecf56885169d0fdfe7d1b"
+    },
+    {
+      "kind": "personal-message",
+      "message": "abababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab",
+      "hash": "bba2e157f5db5c78fc30b6c4d617b4672a700430e60d173c6d0bf9ffdcb19b8a",
+      "signature": "2f427e446ac07febb92a5975bb880932709405e5e415a0d97b4d98f2905356201cb25b8cb8b8648b46fb539235ddba4d1fa398d8957ca4cb4ab0389bb42e6c19",
+      "recovery": 1,
+      "encoded": "2f427e446ac07febb92a5975bb880932709405e5e415a0d97b4d98f2905356201cb25b8cb8b8648b46fb539235ddba4d1fa398d8957ca4cb4ab0389bb42e6c191c"
+    },
+    {
+      "kind": "authorization",
+      "chainId": "1",
+      "address": "0x0000000000000000000000000000000000000001",
+      "nonce": "0",
+      "hash": "2216aea7e61e80bba961c4027590211dc389f03bb7c8af05b1b77b767f7564dd",
+      "signature": "c7c7c504d73d612a97e175e7d0ec7f84472d87025251f75c1aed1587c28bf1b23358485a8a18ca267d1665bd4ab47f8a7f64d3efdbf452c9f903902940f0cfd6",
+      "recovery": 1,
+      "encoded": "c7c7c504d73d612a97e175e7d0ec7f84472d87025251f75c1aed1587c28bf1b23358485a8a18ca267d1665bd4ab47f8a7f64d3efdbf452c9f903902940f0cfd61c"
+    },
+    {
+      "kind": "authorization",
+      "chainId": "11155111",
+      "address": "0x742D35CC6634c0532925A3b844BC9E7595F0BEb0",
+      "nonce": "42",
+      "hash": "cef17b9d40c313c688218c6334207df351167e02962ce0814aa51cf8d47f158e",
+      "signature": "9544c500b0f6f84c8784923b38fa7e6a0ff866a1156f758a172eb14a058320cc138cbfc7d16cfdf2c5d50356315c637172747eb46b1f9da5cf7a6df7047d8037",
+      "recovery": 1,
+      "encoded": "9544c500b0f6f84c8784923b38fa7e6a0ff866a1156f758a172eb14a058320cc138cbfc7d16cfdf2c5d50356315c637172747eb46b1f9da5cf7a6df7047d80371c"
+    },
+    {
+      "kind": "authorization",
+      "chainId": "0",
+      "address": "0x0000000000000000000000000000000000000000",
+      "nonce": "0",
+      "hash": "47a11722d19dd800b7c679d90322b58f77db7465a9e9d3442aadfcade4121b7d",
+      "signature": "5a4cfa8a56965ac6861a7019925c41d7ccbc95860cec6fa959b75d2e71e3329b73dbab304e3e0883ca274e9810c6cb5ea69fc39c095bf76ed5bf770a355290bb",
+      "recovery": 0,
+      "encoded": "5a4cfa8a56965ac6861a7019925c41d7ccbc95860cec6fa959b75d2e71e3329b73dbab304e3e0883ca274e9810c6cb5ea69fc39c095bf76ed5bf770a355290bb1b"
+    }
+  ]
+}
