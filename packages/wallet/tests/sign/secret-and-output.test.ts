@@ -1,5 +1,7 @@
 import { inspect } from "node:util";
-import { expect, test } from "vitest";
+
+import { expect, test } from "vite-plus/test";
+
 import { createDerivedAccount, walletFromMnemonic } from "../../src/hd/index.ts";
 import {
   EIP191_OFFSET,
@@ -33,7 +35,7 @@ test("dispose is independent of signer copy", () => {
   key.dispose();
   const digest = new Uint8Array(32).fill(1);
   const out = signer.signPrehashRecoverable(digest);
-  expect(out.signature.length).toBe(64);
+  expect(out.signature).toHaveLength(64);
   signer.dispose();
   expect(() => signer.signPrehashRecoverable(digest)).toThrow(SignError);
 });
@@ -70,9 +72,11 @@ test("withVOffset adds EIP-191 header", () => {
   };
   const offset = withVOffset(raw, EIP191_OFFSET);
   expect(offset.scheme).toBe("ecdsa_recoverable");
-  if (offset.scheme === "ecdsa_recoverable") expect(offset.v).toBe(28);
+  if (offset.scheme === "ecdsa_recoverable") {
+    expect(offset.v).toBe(28);
+  }
   const wire = signOutputToBytes(offset);
-  expect(wire.length).toBe(65);
+  expect(wire).toHaveLength(65);
   expect(wire[64]).toBe(28);
 });
 

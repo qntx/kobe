@@ -1,10 +1,11 @@
 /**
  * Mnemonic camouflage (`wallet/hd/camouflage`).
  *
- * Entropy-layer XOR with PBKDF2-HMAC-SHA256. Matches kobe `camouflage` v1.
- * Default `wallet/hd` does not export this surface.
+ * Entropy-layer XOR with PBKDF2-HMAC-SHA256. Matches kobe `camouflage` v1. Default `wallet/hd` does
+ * not export this surface.
  */
 import { entropyToMnemonic, mnemonicToEntropy, validateMnemonic } from "@scure/bip39";
+
 import { pbkdf2Sha256 } from "../crypto/index.ts";
 import { DeriveError } from "../errors/derive.ts";
 import { wipeBytes } from "../secret/dispose.ts";
@@ -13,14 +14,14 @@ import { wordlistFor } from "./wordlists.ts";
 
 export type CamouflageVersion = "v1";
 
-/** v1: PBKDF2-HMAC-SHA256, 600_000 iterations, salt `kobe-mnemonic-camouflage-v1`. */
+/** V1: PBKDF2-HMAC-SHA256, 600_000 iterations, salt `kobe-mnemonic-camouflage-v1`. */
 export const CAMOUFLAGE_V1: CamouflageVersion = "v1";
 
 const V1_ITERATIONS = 600_000;
 const V1_SALT = new TextEncoder().encode("kobe-mnemonic-camouflage-v1");
 
 function listFor(language: MnemonicLanguage): string[] {
-  return wordlistFor(language) as string[];
+  return wordlistFor(language);
 }
 
 function transform(

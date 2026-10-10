@@ -1,19 +1,27 @@
 import { secp256k1 } from "@noble/curves/secp256k1.js";
+
 import { SignError } from "../errors/sign.ts";
 
-const ORDER = secp256k1.Point.Fn.ORDER;
+const { ORDER } = secp256k1.Point.Fn;
 
 /** True if `sk` is a valid secp256k1 scalar (not zero, < n). */
 export function isValidSecp256k1Secret(sk: Uint8Array): boolean {
-  if (sk.length !== 32) return false;
-  if (!secp256k1.utils.isValidSecretKey(sk)) return false;
+  if (sk.length !== 32) {
+    return false;
+  }
+  if (!secp256k1.utils.isValidSecretKey(sk)) {
+    return false;
+  }
   let n = 0n;
-  for (const b of sk) n = (n << 8n) | BigInt(b);
+  for (const b of sk) {
+    n = (n << 8n) | BigInt(b);
+  }
   return n !== 0n && n < ORDER;
 }
 
 /**
  * Compressed (33) or uncompressed (65) public key from a 32-byte secret.
+ *
  * @throws SignError invalid_key
  */
 export function secp256k1PublicKey(secret: Uint8Array, compressed = true): Uint8Array {
@@ -25,6 +33,7 @@ export function secp256k1PublicKey(secret: Uint8Array, compressed = true): Uint8
 
 /**
  * ECDSA sign prehash (RFC 6979 via noble). Returns compact 64-byte r||s and recovery 0|1.
+ *
  * @throws SignError invalid_key | invalid_message | signing_failed
  */
 export function secp256k1SignPrehash(
@@ -45,27 +54,34 @@ export function secp256k1SignPrehash(
     if (!(recovered instanceof Uint8Array) || recovered.length !== 65) {
       throw new Error("unexpected recovered signature encoding");
     }
-    const recovery = recovered[0]!;
+    const [recovery] = recovered;
+    if (recovery === undefined) {
+      throw new Error("unexpected recovered signature encoding");
+    }
     if (recovery !== 0 && recovery !== 1) {
       throw new Error(`unexpected recovery id ${recovery}`);
     }
     return { signature: recovered.subarray(1), recovery };
-  } catch (e) {
-    if (e instanceof SignError) throw e;
+  } catch (error) {
+    if (error instanceof SignError) {
+      throw error;
+    }
     throw new SignError(
       "signing_failed",
-      e instanceof Error ? e.message : "secp256k1 sign failed",
-      { cause: e },
+      error instanceof Error ? error.message : "secp256k1 sign failed",
+      { cause: error },
     );
   }
 }
 
 /**
  * Verify ECDSA prehash. Malformed signature → throw; crypto reject → false.
+ *
  * @throws SignError invalid_signature | invalid_message | invalid_key
  */
 /**
  * ECDSA sign prehash, ASN.1 DER (typically 70–72 bytes). No recovery id.
+ *
  * @throws SignError invalid_key | invalid_message | signing_failed
  */
 export function secp256k1SignPrehashDer(secret: Uint8Array, digest32: Uint8Array): Uint8Array {
@@ -81,18 +97,21 @@ export function secp256k1SignPrehashDer(secret: Uint8Array, digest32: Uint8Array
       throw new Error("unexpected DER signature encoding");
     }
     return der;
-  } catch (e) {
-    if (e instanceof SignError) throw e;
+  } catch (error) {
+    if (error instanceof SignError) {
+      throw error;
+    }
     throw new SignError(
       "signing_failed",
-      e instanceof Error ? e.message : "secp256k1 DER sign failed",
-      { cause: e },
+      error instanceof Error ? error.message : "secp256k1 DER sign failed",
+      { cause: error },
     );
   }
 }
 
 /**
  * Verify DER ECDSA prehash. Malformed DER → throw; crypto reject → false.
+ *
  * @throws SignError invalid_signature | invalid_message | invalid_key
  */
 export function secp256k1VerifyPrehashDer(
@@ -109,11 +128,11 @@ export function secp256k1VerifyPrehashDer(
   let compact: Uint8Array;
   try {
     compact = secp256k1.Signature.fromBytes(signatureDer, "der").toBytes("compact");
-  } catch (e) {
+  } catch (error) {
     throw new SignError(
       "invalid_signature",
-      e instanceof Error ? e.message : "malformed DER signature",
-      { cause: e },
+      error instanceof Error ? error.message : "malformed DER signature",
+      { cause: error },
     );
   }
   return secp256k1VerifyPrehash(publicKey, digest32, compact);
@@ -137,11 +156,11 @@ export function secp256k1VerifyPrehash(
     return secp256k1.verify(signature64, digest32, publicKey, {
       prehash: false,
     });
-  } catch (e) {
+  } catch (error) {
     throw new SignError(
       "invalid_signature",
-      e instanceof Error ? e.message : "malformed signature",
-      { cause: e },
+      error instanceof Error ? error.message : "malformed signature",
+      { cause: error },
     );
   }
 }

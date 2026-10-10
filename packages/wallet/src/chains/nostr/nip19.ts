@@ -1,4 +1,5 @@
 import { bech32 } from "@scure/base";
+
 import { DeriveError } from "../../errors/derive.ts";
 import { SignError } from "../../errors/sign.ts";
 
@@ -13,11 +14,11 @@ export function decodeNip19(encoded: string, expectedHrp: string): Uint8Array {
   let decoded: { prefix: string; bytes: Uint8Array };
   try {
     decoded = bech32.decodeToBytes(encoded);
-  } catch (e) {
+  } catch (error) {
     throw new SignError(
       "invalid_key",
-      e instanceof Error ? `nip-19 bech32: ${e.message}` : "nip-19 bech32",
-      { cause: e },
+      error instanceof Error ? `nip-19 bech32: ${error.message}` : "nip-19 bech32",
+      { cause: error },
     );
   }
   if (decoded.prefix !== expectedHrp) {
@@ -41,11 +42,11 @@ export function encodeNpub(xonly: Uint8Array): string {
   }
   try {
     return encodeNip19(NPUB_HRP, xonly);
-  } catch (e) {
+  } catch (error) {
     throw new DeriveError(
       "address_encoding",
-      e instanceof Error ? `nostr npub: ${e.message}` : "nostr npub encoding",
-      { cause: e },
+      error instanceof Error ? `nostr npub: ${error.message}` : "nostr npub encoding",
+      { cause: error },
     );
   }
 }
@@ -56,11 +57,11 @@ export function encodeNsec(secret: Uint8Array): string {
   }
   try {
     return encodeNip19(NSEC_HRP, secret);
-  } catch (e) {
+  } catch (error) {
     throw new DeriveError(
       "address_encoding",
-      e instanceof Error ? `nostr nsec: ${e.message}` : "nostr nsec encoding",
-      { cause: e },
+      error instanceof Error ? `nostr nsec: ${error.message}` : "nostr nsec encoding",
+      { cause: error },
     );
   }
 }

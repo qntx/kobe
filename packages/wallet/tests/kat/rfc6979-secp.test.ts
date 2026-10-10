@@ -1,4 +1,5 @@
-import { expect, test } from "vitest";
+import { expect, test } from "vite-plus/test";
+
 import { hexToBytes } from "../../src/crypto/hex.ts";
 import {
   secp256k1SignerFromSecret,

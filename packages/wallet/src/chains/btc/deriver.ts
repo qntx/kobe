@@ -1,21 +1,24 @@
 import { DeriveError } from "../../errors/derive.ts";
-import { assertU32Index, deriveRange, type ChainDeriver } from "../../hd/derive.ts";
+import { assertU32Index, deriveRange } from "../../hd/derive.ts";
+import type { ChainDeriver } from "../../hd/derive.ts";
 import type { Wallet } from "../../hd/wallet.ts";
 import { wipeBytes } from "../../secret/dispose.ts";
+import { createBtcAccount } from "./account.ts";
+import type { BtcAccount } from "./account.ts";
 import { btcAddressFromCompressed, encodeWif } from "./address.ts";
-import { createBtcAccount, type BtcAccount } from "./account.ts";
-import { addressTypeFromPurpose, btcPath, type BtcAddressType, type BtcNetwork } from "./types.ts";
+import { addressTypeFromPurpose, btcPath } from "./types.ts";
+import type { BtcAddressType, BtcNetwork } from "./types.ts";
 
-export interface BtcDeriver extends ChainDeriver<BtcAccount> {
+export type BtcDeriver = {
   readonly network: BtcNetwork;
   deriveWith(addressType: BtcAddressType, index: number): BtcAccount;
   deriveManyWith(addressType: BtcAddressType, start: number, count: number): BtcAccount[];
   deriveAtWith(path: string, addressType: BtcAddressType): BtcAccount;
-}
+} & ChainDeriver<BtcAccount>;
 
 function inferType(path: string): BtcAddressType {
-  const first = path.trim().split("/")[1];
-  if (!first) {
+  const [, first] = path.trim().split("/");
+  if (first === undefined || first === "") {
     throw new DeriveError("path", `btc: cannot infer address type from path '${path}'`);
   }
   const hardened = first.endsWith("'") || first.endsWith("h") || first.endsWith("H");

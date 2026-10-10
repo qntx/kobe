@@ -23,61 +23,52 @@ const PARSED = {
   },
 };
 
-const KOBE = {
-  path: "packages/kobe/package.json",
-  pkg: { name: "@qntx/kobe", version: "3.4.0" },
+const WALLET = {
+  path: "packages/wallet/package.json",
+  pkg: { name: "@qntx/wallet", version: "0.4.0" },
 };
 
-const KOBE_NATIVE = {
-  path: "packages/kobe-native/package.json",
+const WALLET_CONSUMER = {
+  path: "packages/wallet-consumer/package.json",
   pkg: {
-    name: "@qntx/kobe-native",
-    version: "3.4.0",
-    peerDependencies: { "@qntx/kobe": "^3.4.0" } as Record<string, string>,
-    devDependencies: { "@qntx/kobe": "3.4.0" } as Record<string, string>,
+    name: "@qntx/wallet-consumer",
+    version: "0.1.0",
+    peerDependencies: { "@qntx/wallet": "^0.4.0" } as Record<string, string>,
+    devDependencies: { "@qntx/wallet": "0.4.0" } as Record<string, string>,
   },
 };
 
-const PACKAGES = [KOBE, KOBE_NATIVE];
+const PACKAGES = [WALLET, WALLET_CONSUMER];
 
 describe("check-version", () => {
-  test("accepts synced versions", () => {
+  test("accepts npm versions that differ from the Cargo workspace version", () => {
     expect(checkVersion(PACKAGES, PARSED, CARGO_TOML)).toStrictEqual([]);
   });
 
-  test("rejects a package.json mismatch", () => {
-    const errors = checkVersion(
-      [KOBE, { ...KOBE_NATIVE, pkg: { ...KOBE_NATIVE.pkg, version: "3.4.1" } }],
-      PARSED,
-      CARGO_TOML,
-    );
-    expect(errors).toStrictEqual([
-      "version mismatch: packages/kobe-native/package.json has 3.4.1, Cargo.toml has 3.4.0",
-    ]);
-  });
-
   test("rejects a peer range without a caret", () => {
-    const pkg = structuredClone(KOBE_NATIVE.pkg);
-    pkg.peerDependencies["@qntx/kobe"] = "3.4.0";
-    const errors = checkVersion([KOBE, { ...KOBE_NATIVE, pkg }], PARSED, CARGO_TOML);
+    const pkg = structuredClone(WALLET_CONSUMER.pkg);
+    pkg.peerDependencies["@qntx/wallet"] = "0.4.0";
+    const errors = checkVersion([WALLET, { ...WALLET_CONSUMER, pkg }], PARSED, CARGO_TOML);
     expect(errors).toStrictEqual([
-      'packages/kobe-native/package.json: peerDependencies["@qntx/kobe"] must be "^3.4.0", got "3.4.0"',
+      'packages/wallet-consumer/package.json: peerDependencies["@qntx/wallet"] must be "^0.4.0", got "0.4.0"',
     ]);
   });
 
   test("rejects a dev range with a caret", () => {
-    const pkg = structuredClone(KOBE_NATIVE.pkg);
-    pkg.devDependencies["@qntx/kobe"] = "^3.4.0";
-    const errors = checkVersion([KOBE, { ...KOBE_NATIVE, pkg }], PARSED, CARGO_TOML);
+    const pkg = structuredClone(WALLET_CONSUMER.pkg);
+    pkg.devDependencies["@qntx/wallet"] = "^0.4.0";
+    const errors = checkVersion([WALLET, { ...WALLET_CONSUMER, pkg }], PARSED, CARGO_TOML);
     expect(errors).toStrictEqual([
-      'packages/kobe-native/package.json: devDependencies["@qntx/kobe"] must be "3.4.0", got "^3.4.0"',
+      'packages/wallet-consumer/package.json: devDependencies["@qntx/wallet"] must be "0.4.0", got "^0.4.0"',
     ]);
   });
 
   test("ignores ranges on external packages", () => {
-    const pkg = structuredClone(KOBE_NATIVE.pkg);
+    const pkg = structuredClone(WALLET_CONSUMER.pkg);
     pkg.devDependencies["typescript"] = "^7.0.2";
-    expect(checkVersion([KOBE, { ...KOBE_NATIVE, pkg }], PARSED, CARGO_TOML)).toStrictEqual([]);
+    expect(checkVersion([WALLET, { ...WALLET_CONSUMER, pkg }], PARSED, CARGO_TOML)).toStrictEqual(
+      [],
+    );
   });
 
   test("rejects an internal dep not pinned to the workspace version", () => {

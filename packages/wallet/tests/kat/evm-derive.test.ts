@@ -1,4 +1,5 @@
-import { expect, test } from "vitest";
+import { expect, test } from "vite-plus/test";
+
 import { createEvmDeriver, evmPath, parseEvmStyle } from "../../src/chains/evm/index.ts";
 import { DeriveError, walletFromMnemonic } from "../../src/hd/index.ts";
 
@@ -16,7 +17,7 @@ test("gold: Hardhat default index 0", () => {
     "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
   );
   expect(a.publicKey.kind).toBe("secp256k1-uncompressed");
-  expect(a.publicKey.bytes.length).toBe(65);
+  expect(a.publicKey.bytes).toHaveLength(65);
   w.dispose();
 });
 
@@ -85,7 +86,9 @@ test("deriveMany matches scalar derive", () => {
     expect(batch[i]!.address).toBe(single.address);
     expect(batch[i]!.path).toBe(single.path);
   }
-  for (const a of batch) a.dispose();
+  for (const a of batch) {
+    a.dispose();
+  }
   w.dispose();
 });
 

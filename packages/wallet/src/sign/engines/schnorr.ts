@@ -1,4 +1,5 @@
 import { schnorr } from "@noble/curves/secp256k1.js";
+
 import { isValidSecp256k1Secret } from "../../ecc/secp256k1.ts";
 import { SignError } from "../../errors/sign.ts";
 import { wipeBytes } from "../../secret/dispose.ts";
@@ -8,20 +9,21 @@ import type { SignDigest, SignMessage } from "../traits.ts";
 
 export type SchnorrOutput = Extract<SignOutput, { scheme: "schnorr" }>;
 
-export interface SchnorrSigner extends SignDigest, SignMessage {
+export type SchnorrSigner = {
   sign(message: Uint8Array): SchnorrOutput;
   signPrehash(digest: Uint8Array): SchnorrOutput;
   verify(message: Uint8Array, signature: Uint8Array): boolean;
   xonlyPublicKey(): Uint8Array;
   dispose(): void;
   [Symbol.dispose](): void;
-}
+} & SignDigest &
+  SignMessage;
 
 const ZERO_AUX = new Uint8Array(32);
 
 class SchnorrSignerImpl implements SchnorrSigner {
   #sk: Uint8Array | undefined;
-  #xonly: Uint8Array;
+  readonly #xonly: Uint8Array;
   #disposed = false;
 
   constructor(sk: Uint8Array) {
@@ -30,7 +32,9 @@ class SchnorrSignerImpl implements SchnorrSigner {
   }
 
   #assertLive(): Uint8Array {
-    if (this.#disposed || !this.#sk) throw new SignError("invalid_key", "disposed");
+    if (this.#disposed || !this.#sk) {
+      throw new SignError("invalid_key", "disposed");
+    }
     return this.#sk;
   }
 
@@ -42,12 +46,14 @@ class SchnorrSignerImpl implements SchnorrSigner {
         signature,
         xonlyPublicKey: new Uint8Array(this.#xonly),
       };
-    } catch (e) {
-      if (e instanceof SignError) throw e;
+    } catch (error) {
+      if (error instanceof SignError) {
+        throw error;
+      }
       throw new SignError(
         "signing_failed",
-        e instanceof Error ? e.message : "schnorr sign failed",
-        { cause: e },
+        error instanceof Error ? error.message : "schnorr sign failed",
+        { cause: error },
       );
     }
   }
@@ -73,11 +79,11 @@ class SchnorrSignerImpl implements SchnorrSigner {
     }
     try {
       return schnorr.verify(signature, message, this.#xonly);
-    } catch (e) {
+    } catch (error) {
       throw new SignError(
         "invalid_signature",
-        e instanceof Error ? e.message : "malformed signature",
-        { cause: e },
+        error instanceof Error ? error.message : "malformed signature",
+        { cause: error },
       );
     }
   }
@@ -87,7 +93,9 @@ class SchnorrSignerImpl implements SchnorrSigner {
   }
 
   dispose(): void {
-    if (this.#disposed) return;
+    if (this.#disposed) {
+      return;
+    }
     wipeBytes(this.#sk);
     this.#sk = undefined;
     this.#disposed = true;
@@ -105,8 +113,8 @@ export function schnorrSignerFromSecret(key: SecretKey32): SchnorrSigner {
       throw new SignError("invalid_key", "secp256k1 scalar out of range or wrong length");
     }
     return new SchnorrSignerImpl(bytes);
-  } catch (e) {
+  } catch (error) {
     wipeBytes(bytes);
-    throw e;
+    throw error;
   }
 }

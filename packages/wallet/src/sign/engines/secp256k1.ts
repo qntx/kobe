@@ -15,7 +15,7 @@ import type { SignDigest } from "../traits.ts";
 export type EcdsaRecoverableOutput = Extract<SignOutput, { scheme: "ecdsa_recoverable" }>;
 export type EcdsaDerOutput = Extract<SignOutput, { scheme: "ecdsa_der" }>;
 
-export interface Secp256k1Signer extends SignDigest {
+export type Secp256k1Signer = {
   signPrehashRecoverable(digest: Uint8Array): EcdsaRecoverableOutput;
   signPrehashDer(digest: Uint8Array): EcdsaDerOutput;
   verifyPrehash(digest: Uint8Array, signature: Uint8Array): boolean;
@@ -24,12 +24,12 @@ export interface Secp256k1Signer extends SignDigest {
   uncompressedPublicKey(): Uint8Array;
   dispose(): void;
   [Symbol.dispose](): void;
-}
+} & SignDigest;
 
 class Secp256k1SignerImpl implements Secp256k1Signer {
   #sk: Uint8Array | undefined;
-  #compressed: Uint8Array;
-  #uncompressed: Uint8Array;
+  readonly #compressed: Uint8Array;
+  readonly #uncompressed: Uint8Array;
   #disposed = false;
 
   constructor(sk: Uint8Array) {
@@ -75,7 +75,9 @@ class Secp256k1SignerImpl implements Secp256k1Signer {
   }
 
   dispose(): void {
-    if (this.#disposed) return;
+    if (this.#disposed) {
+      return;
+    }
     wipeBytes(this.#sk);
     this.#sk = undefined;
     this.#disposed = true;
@@ -87,8 +89,8 @@ class Secp256k1SignerImpl implements Secp256k1Signer {
 }
 
 /**
- * @throws SignError invalid_key if scalar is 0 or ≥ curve order, or key disposed.
- * Copies key material into signer-owned storage.
+ * @throws SignError invalid_key if scalar is 0 or ≥ curve order, or key disposed. Copies key
+ *   material into signer-owned storage.
  */
 export function secp256k1SignerFromSecret(key: SecretKey32): Secp256k1Signer {
   const bytes = key.toBytes();
@@ -97,8 +99,8 @@ export function secp256k1SignerFromSecret(key: SecretKey32): Secp256k1Signer {
       throw new SignError("invalid_key", "secp256k1 scalar out of range or wrong length");
     }
     return new Secp256k1SignerImpl(bytes);
-  } catch (e) {
+  } catch (error) {
     wipeBytes(bytes);
-    throw e;
+    throw error;
   }
 }

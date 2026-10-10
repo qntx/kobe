@@ -1,4 +1,5 @@
-import { expect, test } from "vitest";
+import { expect, test } from "vite-plus/test";
+
 import { assertU32Index, DeriveError, deriveRange, U32_MAX } from "../../src/hd/index.ts";
 
 test("deriveRange maps inclusive start exclusive end", () => {
@@ -15,8 +16,8 @@ test("reject non-integers, negatives, NaN, out of range", () => {
     expect(() => assertU32Index(bad, "index")).toThrow(DeriveError);
     try {
       assertU32Index(bad, "index");
-    } catch (e) {
-      expect((e as DeriveError).code).toBe("input");
+    } catch (error) {
+      expect((error as DeriveError).code).toBe("input");
     }
   }
 });
@@ -25,8 +26,8 @@ test("start + count overflow u32 throws input", () => {
   expect(() => deriveRange(U32_MAX, 1, (i) => i)).toThrow(DeriveError);
   try {
     deriveRange(U32_MAX - 1, 2, (i) => i);
-  } catch (e) {
-    expect((e as DeriveError).code).toBe("input");
+  } catch (error) {
+    expect((error as DeriveError).code).toBe("input");
   }
   expect(deriveRange(U32_MAX - 1, 1, (i) => i)).toEqual([U32_MAX - 1]);
 });
@@ -34,7 +35,9 @@ test("start + count overflow u32 throws input", () => {
 test("deriveRange propagates callback errors", () => {
   expect(() =>
     deriveRange(0, 2, (i) => {
-      if (i === 1) throw new DeriveError("path", "boom");
+      if (i === 1) {
+        throw new DeriveError("path", "boom");
+      }
       return i;
     }),
   ).toThrow(DeriveError);

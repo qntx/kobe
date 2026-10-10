@@ -1,0 +1,126 @@
+{
+  "name": "@qntx/wallet",
+  "version": "0.4.0",
+  "description": "Multi-chain HD wallet kernel in TypeScript",
+  "keywords": [
+    "bip39",
+    "crypto",
+    "hd-wallet",
+    "typescript",
+    "wallet"
+  ],
+  "homepage": "https://github.com/qntx/kobe#readme",
+  "bugs": {
+    "url": "https://github.com/qntx/kobe/issues"
+  },
+  "license": "MIT OR Apache-2.0",
+  "author": "QuantX <x@qntx.org>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qntx/kobe.git",
+    "directory": "packages/wallet"
+  },
+  "files": [
+    "dist",
+    "LICENSE-MIT",
+    "LICENSE-APACHE"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./btc": {
+      "types": "./dist/btc.d.mts",
+      "import": "./dist/btc.mjs",
+      "default": "./dist/btc.mjs"
+    },
+    "./evm": {
+      "types": "./dist/evm.d.mts",
+      "import": "./dist/evm.mjs",
+      "default": "./dist/evm.mjs"
+    },
+    "./evm/rlp": {
+      "types": "./dist/evm/rlp.d.mts",
+      "import": "./dist/evm/rlp.mjs",
+      "default": "./dist/evm/rlp.mjs"
+    },
+    "./hd": {
+      "types": "./dist/hd.d.mts",
+      "import": "./dist/hd.mjs",
+      "default": "./dist/hd.mjs"
+    },
+    "./hd/camouflage": {
+      "types": "./dist/hd/camouflage.d.mts",
+      "import": "./dist/hd/camouflage.mjs",
+      "default": "./dist/hd/camouflage.mjs"
+    },
+    "./hd/raw-seed": {
+      "types": "./dist/hd/raw-seed.d.mts",
+      "import": "./dist/hd/raw-seed.mjs",
+      "default": "./dist/hd/raw-seed.mjs"
+    },
+    "./hd/wordlists": {
+      "types": "./dist/hd/wordlists.d.mts",
+      "import": "./dist/hd/wordlists.mjs",
+      "default": "./dist/hd/wordlists.mjs"
+    },
+    "./nostr": {
+      "types": "./dist/nostr.d.mts",
+      "import": "./dist/nostr.mjs",
+      "default": "./dist/nostr.mjs"
+    },
+    "./sign": {
+      "types": "./dist/sign.d.mts",
+      "import": "./dist/sign.mjs",
+      "default": "./dist/sign.mjs"
+    },
+    "./svm": {
+      "types": "./dist/svm.d.mts",
+      "import": "./dist/svm.mjs",
+      "default": "./dist/svm.mjs"
+    },
+    "./vault": {
+      "types": "./dist/vault.d.mts",
+      "import": "./dist/vault.mjs",
+      "default": "./dist/vault.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "vp test",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.src.json",
+    "smoke:hermes": "bun scripts/hermes-smoke.ts",
+    "check:pkg": "vp pack && publint && attw --pack . --profile esm-only",
+    "pack:local": "vp pack && bun pm pack"
+  },
+  "dependencies": {
+    "@noble/ciphers": "^2.4.0",
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
+    "@scure/base": "^2.4.0",
+    "@scure/bip32": "^2.4.0",
+    "@scure/bip39": "^2.4.0"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "0.18.5",
+    "@qntx/tsconfig": "1.0.1",
+    "@types/node": "26.6.3",
+    "publint": "0.3.24",
+    "typescript": "7.0.2",
+    "vite-plus": "1.0.0"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "bun",
+      "version": "1.4.0",
+      "onFail": "ignore"
+    }
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  }
+}

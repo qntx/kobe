@@ -24,11 +24,11 @@ function escapeRegExp(text: string): string {
 export type PackageEntry = { path: string; pkg: unknown };
 
 /**
- * Lockstep check: every workspace package manifest's `version` must equal
- * `[workspace.package].version`, every internal `crates/` path dependency must pin `=<version>`,
- * the version string may appear nowhere else in Cargo.toml (bumpp rewrites every occurrence), and
- * internal `@qntx/*` dependencies must use `^<version>` in peerDependencies and `<version>` in
- * devDependencies. The private workspace root is not passed in and takes no part.
+ * Version consistency: Rust crates are versioned together (bumpp rewrites every `x.y.z` occurrence
+ * of `[workspace.package].version` in Cargo.toml — internal `crates/` path dependencies must pin
+ * `=<version>` and the version string may appear nowhere else), while npm packages are versioned
+ * independently. Internal `@qntx/*` dependencies must use `^<version>` in peerDependencies and
+ * `<version>` in devDependencies. The private workspace root is not passed in and takes no part.
  */
 export function checkVersion(
   packages: PackageEntry[],
@@ -57,9 +57,6 @@ export function checkVersion(
     if (typeof version !== "string") {
       errors.push(`${path}: missing string "version"`);
       continue;
-    }
-    if (typeof cargoVersion === "string" && version !== cargoVersion) {
-      errors.push(`version mismatch: ${path} has ${version}, Cargo.toml has ${cargoVersion}`);
     }
     for (const [section, prefix] of [
       ["peerDependencies", "^"],

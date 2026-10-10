@@ -1,7 +1,13 @@
-import { assertU32Index } from "../../hd/derive.ts";
 import { DeriveError } from "../../errors/derive.ts";
+import { assertU32Index } from "../../hd/derive.ts";
 
 export type EvmDerivationStyle = "standard" | "ledger-live" | "ledger-legacy";
+
+const EVM_PATHS: Record<EvmDerivationStyle, (i: number) => string> = {
+  standard: (i) => `m/44'/60'/0'/0/${i}`,
+  "ledger-live": (i) => `m/44'/60'/${i}'/0/0`,
+  "ledger-legacy": (i) => `m/44'/60'/0'/${i}`,
+};
 
 const ACCEPTED = [
   "standard",
@@ -19,20 +25,10 @@ const ACCEPTED = [
 
 /** Canonical path for style + index. @throws DeriveError input on bad index */
 export function evmPath(style: EvmDerivationStyle, index: number): string {
-  const i = assertU32Index(index, "index");
-  switch (style) {
-    case "standard":
-      return `m/44'/60'/0'/0/${i}`;
-    case "ledger-live":
-      return `m/44'/60'/${i}'/0/0`;
-    case "ledger-legacy":
-      return `m/44'/60'/0'/${i}`;
-  }
+  return EVM_PATHS[style](assertU32Index(index, "index"));
 }
 
-/**
- * Case-insensitive alias parse. Unknown token → DeriveError input.
- */
+/** Case-insensitive alias parse. Unknown token → DeriveError input. */
 export function parseEvmStyle(token: string): EvmDerivationStyle {
   switch (token.trim().toLowerCase()) {
     case "standard":

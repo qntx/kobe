@@ -1,6 +1,6 @@
 /**
- * Unified HD / mnemonic / path / address-encoding failures.
- * Domain codes mirror kobe `DeriveError` partitions.
+ * Unified HD / mnemonic / path / address-encoding failures. Domain codes mirror kobe `DeriveError`
+ * partitions.
  */
 export type DeriveErrorCode = "mnemonic" | "path" | "crypto" | "input" | "address_encoding";
 

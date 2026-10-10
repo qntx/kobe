@@ -1,6 +1,4 @@
-/**
- * Bitcoin public surface (`wallet/btc`).
- */
+/** Bitcoin public surface (`wallet/btc`). */
 export { type BtcAccount, createBtcAccount } from "./account.ts";
 export { btcAddressFromCompressed, encodeWif } from "./address.ts";
 export { createBtcDeriver, type BtcDeriver } from "./deriver.ts";
@@ -11,15 +9,9 @@ export {
   BIP137_SEGWIT_P2SH,
   bitcoinMessageDigest,
   BtcSigner,
-  taprootTweakSecret,
-  btcSignerFromBytes,
-  btcSignerFromDerived,
-  btcSignerFromHex,
-  btcSignerFromSecretKey,
   type BtcMessageAddressType,
-  type BtcSigner as BtcSignerApi,
   type BtcSignerAddressSpec,
-  createBtcSigner,
+  taprootTweakSecret,
 } from "./signer.ts";
 export {
   btcPath,

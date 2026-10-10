@@ -20,7 +20,7 @@
 //! # Error codes
 //!
 //! All failures surface as [`kobe_core::Error`], sharing the machine-readable
-//! `code` vocabulary with the TypeScript `@qntx/kobe/vault` implementation:
+//! `code` vocabulary with the TypeScript `@qntx/wallet/vault` implementation:
 //! `input` for caller-supplied validation failures, `version` for a sealed
 //! blob with an unsupported version byte, `decrypt` for AEAD open failure.
 //! Error messages never contain key, plaintext, or password material.

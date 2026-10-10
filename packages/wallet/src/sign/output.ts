@@ -25,23 +25,20 @@ export type SignOutput =
 
 /** Flatten to wire bytes. ECDSA recoverable → 65B signature||v. */
 export function signOutputToBytes(out: SignOutput): Uint8Array {
-  switch (out.scheme) {
-    case "ecdsa_recoverable": {
-      if (out.signature.length !== 64) {
-        throw new SignError("invalid_signature", "ecdsa signature must be 64 bytes");
-      }
-      const wire = new Uint8Array(65);
-      wire.set(out.signature, 0);
-      wire[64] = out.v & 0xff;
-      return wire;
+  if (out.scheme === "ecdsa_recoverable") {
+    if (out.signature.length !== 64) {
+      throw new SignError("invalid_signature", "ecdsa signature must be 64 bytes");
     }
-    case "ecdsa_der":
-      return new Uint8Array(out.der);
-    case "ed25519":
-    case "ed25519_with_pubkey":
-    case "schnorr":
-      return new Uint8Array(out.signature);
+    const wire = new Uint8Array(65);
+    wire.set(out.signature, 0);
+    wire[64] = out.v & 0xff;
+    return wire;
   }
+  if (out.scheme === "ecdsa_der") {
+    return new Uint8Array(out.der);
+  }
+  // ed25519, ed25519_with_pubkey and schnorr all serialize to raw signature bytes.
+  return new Uint8Array(out.signature);
 }
 
 export function signOutputToHex(out: SignOutput): string {
@@ -53,14 +50,20 @@ export function signOutputV(out: SignOutput): number | undefined {
 }
 
 export function signOutputPublicKey(out: SignOutput): Uint8Array | undefined {
-  if (out.scheme === "ed25519_with_pubkey") return new Uint8Array(out.publicKey);
-  if (out.scheme === "schnorr") return new Uint8Array(out.xonlyPublicKey);
+  if (out.scheme === "ed25519_with_pubkey") {
+    return new Uint8Array(out.publicKey);
+  }
+  if (out.scheme === "schnorr") {
+    return new Uint8Array(out.xonlyPublicKey);
+  }
   return undefined;
 }
 
 /** ECDSA only: new output with `v' = (v + offset) & 0xff`. Others: identity. */
 export function withVOffset(out: SignOutput, offset: number): SignOutput {
-  if (out.scheme !== "ecdsa_recoverable") return out;
+  if (out.scheme !== "ecdsa_recoverable") {
+    return out;
+  }
   return {
     scheme: "ecdsa_recoverable",
     signature: out.signature,

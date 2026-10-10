@@ -1,5 +1,6 @@
 import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { sha256 } from "@noble/hashes/sha2.js";
+
 import { bytesToHex } from "../../crypto/hex.ts";
 import { hash256 } from "../../crypto/index.ts";
 import { SignError } from "../../errors/sign.ts";
@@ -9,11 +10,9 @@ import {
   secp256k1SignerFromSecret,
   secretKeyFromBytes,
   signerFromSecret,
-  type SecretKey32,
-  type Secp256k1Signer,
-  type SignOutput,
   withVOffset,
 } from "../../sign/index.ts";
+import type { SecretKey32, Secp256k1Signer, SignerKit, SignOutput } from "../../sign/index.ts";
 import type { BtcAccount } from "./account.ts";
 import { btcAddressFromCompressed } from "./address.ts";
 import type { BtcAddressType, BtcNetwork } from "./types.ts";
@@ -29,30 +28,30 @@ export type BtcMessageAddressType =
   | "segwit-p2sh"
   | "segwit-bech32";
 
+const BIP137_OFFSETS: Record<BtcMessageAddressType, number> = {
+  "p2pkh-uncompressed": BIP137_P2PKH_UNCOMPRESSED,
+  "p2pkh-compressed": BIP137_P2PKH_COMPRESSED,
+  "segwit-p2sh": BIP137_SEGWIT_P2SH,
+  "segwit-bech32": BIP137_SEGWIT_BECH32,
+};
+
 export function bip137Offset(type: BtcMessageAddressType): number {
-  switch (type) {
-    case "p2pkh-uncompressed":
-      return BIP137_P2PKH_UNCOMPRESSED;
-    case "p2pkh-compressed":
-      return BIP137_P2PKH_COMPRESSED;
-    case "segwit-p2sh":
-      return BIP137_SEGWIT_P2SH;
-    case "segwit-bech32":
-      return BIP137_SEGWIT_BECH32;
-  }
+  return BIP137_OFFSETS[type];
 }
 
 function compactSize(len: number): Uint8Array {
-  if (len < 253) return Uint8Array.of(len);
+  if (len < 253) {
+    return Uint8Array.of(len);
+  }
   if (len <= 0xffff) {
     return Uint8Array.of(0xfd, len & 0xff, (len >> 8) & 0xff);
   }
   return Uint8Array.of(0xfe, len & 0xff, (len >> 8) & 0xff, (len >> 16) & 0xff, (len >> 24) & 0xff);
 }
 
-/** double_SHA256("\x18Bitcoin Signed Message:\n" || CompactSize(len) || message) */
+/** Double_SHA256("\x18Bitcoin Signed Message:\n" || CompactSize(len) || message) */
 export function bitcoinMessageDigest(message: Uint8Array): Uint8Array {
-  const prefix = new TextEncoder().encode("\x18Bitcoin Signed Message:\n");
+  const prefix = new TextEncoder().encode("\u0018Bitcoin Signed Message:\n");
   const len = compactSize(message.length);
   const data = new Uint8Array(prefix.length + len.length + message.length);
   data.set(prefix, 0);
@@ -75,11 +74,11 @@ export function taprootTweakSecret(secret: Uint8Array): Uint8Array {
   if (secret.length !== 32) {
     throw new SignError("invalid_key", "taproot tweak requires 32-byte secret");
   }
-  const Fn = secp256k1.Point.Fn;
+  const { Fn } = secp256k1.Point;
   const d0 = Fn.fromBytes(secret);
   const P = secp256k1.Point.BASE.multiply(d0);
   const compressed = P.toBytes(true);
-  const prefix = compressed[0];
+  const [prefix] = compressed;
   if (prefix !== 0x02 && prefix !== 0x03) {
     throw new SignError("invalid_key", "taproot tweak failed");
   }
@@ -88,13 +87,13 @@ export function taprootTweakSecret(secret: Uint8Array): Uint8Array {
   let t: ReturnType<typeof Fn.fromBytes>;
   try {
     t = Fn.fromBytes(tweakBytes);
-  } catch (e) {
-    throw new SignError("invalid_key", "taproot tweak out of range", { cause: e });
+  } catch (error) {
+    throw new SignError("invalid_key", "taproot tweak out of range", { cause: error });
   }
   return Fn.toBytes(Fn.add(d, t));
 }
 
-export interface BtcSigner {
+export type BtcSigner = {
   /** @throws SignError invalid_key unless constructed from a derived account or `{ network, type }`. */
   address(): string;
   publicKeyBytes(): Uint8Array;
@@ -102,10 +101,7 @@ export interface BtcSigner {
   signDigest(digest: Uint8Array): SignOutput;
   /** ECDSA over an already-hashed 32-byte digest. DER. Does not hash256. */
   signDigestDer(digest: Uint8Array): SignOutput;
-  /**
-   * BIP-86 key-path Schnorr over a 32-byte TapSighash.
-   * Tweaks the secret; does not hash256.
-   */
+  /** BIP-86 key-path Schnorr over a 32-byte TapSighash. Tweaks the secret; does not hash256. */
   signTaprootKeyPath(digest: Uint8Array): SignOutput;
   signMessage(message: Uint8Array): SignOutput;
   signMessageWith(type: BtcMessageAddressType, message: Uint8Array): SignOutput;
@@ -113,7 +109,7 @@ export interface BtcSigner {
   verifyHash(hash: Uint8Array, signature: Uint8Array): boolean;
   dispose(): void;
   [Symbol.dispose](): void;
-}
+};
 
 class BtcSignerImpl implements BtcSigner {
   readonly #inner: Secp256k1Signer;
@@ -127,7 +123,9 @@ class BtcSignerImpl implements BtcSigner {
   }
 
   #assertSk(): Uint8Array {
-    if (this.#sk === undefined) throw new SignError("invalid_key", "disposed");
+    if (this.#sk === undefined) {
+      throw new SignError("invalid_key", "disposed");
+    }
     return this.#sk;
   }
 
@@ -182,7 +180,9 @@ class BtcSignerImpl implements BtcSigner {
   }
 
   verifyHash(hash: Uint8Array, signature: Uint8Array): boolean {
-    if (signature[0] === 0x30) return this.#inner.verifyPrehashDer(hash, signature);
+    if (signature[0] === 0x30) {
+      return this.#inner.verifyPrehashDer(hash, signature);
+    }
     const compact = signature.length === 65 ? signature.subarray(0, 64) : signature;
     return this.#inner.verifyPrehash(hash, compact);
   }
@@ -207,7 +207,7 @@ function btcSignerWithAddress(key: SecretKey32, address: string | undefined): Bt
   return new BtcSignerImpl(secp256k1SignerFromSecret(key), key.toBytes(), address);
 }
 
-export function btcSignerFromSecretKey(key: SecretKey32, spec?: BtcSignerAddressSpec): BtcSigner {
+function btcSignerFromSecretKey(key: SecretKey32, spec?: BtcSignerAddressSpec): BtcSigner {
   const inner = secp256k1SignerFromSecret(key);
   const address =
     spec === undefined
@@ -216,22 +216,17 @@ export function btcSignerFromSecretKey(key: SecretKey32, spec?: BtcSignerAddress
   return new BtcSignerImpl(inner, key.toBytes(), address);
 }
 
-export const { fromBytes: btcSignerFromBytes, fromHex: btcSignerFromHex } =
-  signerFromSecret(btcSignerFromSecretKey);
+const btcSignerKit = signerFromSecret(btcSignerFromSecretKey);
 
 const btcFromCaptured = signerFromSecret(btcSignerWithAddress);
 
-export function btcSignerFromDerived(account: BtcAccount): BtcSigner {
+function btcSignerFromDerived(account: BtcAccount): BtcSigner {
   return btcFromCaptured.fromDerived(account, account.address);
 }
 
-export function createBtcSigner(account: BtcAccount): BtcSigner {
-  return btcSignerFromDerived(account);
-}
-
-export const BtcSigner = {
-  fromSecretKey: btcSignerFromSecretKey,
-  fromBytes: btcSignerFromBytes,
-  fromHex: btcSignerFromHex,
+export const BtcSigner: Omit<SignerKit<BtcSigner, [BtcSignerAddressSpec?]>, "fromDerived"> & {
+  fromDerived: (account: BtcAccount) => BtcSigner;
+} = {
+  ...btcSignerKit,
   fromDerived: btcSignerFromDerived,
 };

@@ -22,5 +22,5 @@ workspace. `no_std` + `alloc`; `std` (default) is additive.
 | `passkey_wallet` | `Wallet::from_entropy(prf[0..16])` for passkey-derived wallets |
 
 `PASSWORD_ITERATIONS` (`600_000`) is the recommended PBKDF2 iteration count.
-Error codes are shared with the TypeScript `@qntx/kobe/vault`
+Error codes are shared with the TypeScript `@qntx/wallet/vault`
 implementation: `input`, `decrypt`, `version`, `crypto`, `mnemonic`.

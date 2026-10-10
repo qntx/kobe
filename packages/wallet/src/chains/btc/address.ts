@@ -1,6 +1,7 @@
 import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bech32, bech32m } from "@scure/base";
+
 import { hash160 } from "../../crypto/index.ts";
 import { DeriveError } from "../../errors/derive.ts";
 import { base58check, base58checkEncode } from "./encoding.ts";
@@ -25,35 +26,40 @@ function taggedHash(tag: string, data: Uint8Array): Uint8Array {
   return h.digest();
 }
 
+const BTC_ADDRESS_ENCODERS: Record<
+  BtcAddressType,
+  (publicKey: Uint8Array, network: BtcNetwork) => string
+> = {
+  p2pkh: (publicKey, network) =>
+    base58check(network === "mainnet" ? 0x00 : 0x6f, hash160(publicKey)),
+  "p2sh-p2wpkh": (publicKey, network) => {
+    const redeem = new Uint8Array(22);
+    redeem[0] = 0x00;
+    redeem[1] = 0x14;
+    redeem.set(hash160(publicKey), 2);
+    return base58check(network === "mainnet" ? 0x05 : 0xc4, hash160(redeem));
+  },
+  p2wpkh: (publicKey, network) =>
+    bech32.encode(hrp(network), [0, ...bech32.toWords(hash160(publicKey))]),
+  p2tr: (publicKey, network) => {
+    const even = new Uint8Array(publicKey);
+    even[0] = 0x02;
+    const P = secp256k1.Point.fromBytes(even);
+    const tweakBytes = taggedHash("TapTweak", even.subarray(1));
+    const t = secp256k1.Point.Fn.fromBytes(tweakBytes);
+    const Q = P.add(secp256k1.Point.BASE.multiply(t));
+    const outputX = Q.toBytes(true).subarray(1);
+    return bech32m.encode(hrp(network), [1, ...bech32m.toWords(outputX)]);
+  },
+};
+
 export function btcAddressFromCompressed(
   publicKey: Uint8Array,
   network: BtcNetwork,
   addressType: BtcAddressType,
 ): string {
   requireCompressed(publicKey);
-  switch (addressType) {
-    case "p2pkh":
-      return base58check(network === "mainnet" ? 0x00 : 0x6f, hash160(publicKey));
-    case "p2sh-p2wpkh": {
-      const redeem = new Uint8Array(22);
-      redeem[0] = 0x00;
-      redeem[1] = 0x14;
-      redeem.set(hash160(publicKey), 2);
-      return base58check(network === "mainnet" ? 0x05 : 0xc4, hash160(redeem));
-    }
-    case "p2wpkh":
-      return bech32.encode(hrp(network), [0, ...bech32.toWords(hash160(publicKey))]);
-    case "p2tr": {
-      const even = new Uint8Array(publicKey);
-      even[0] = 0x02;
-      const P = secp256k1.Point.fromBytes(even);
-      const tweakBytes = taggedHash("TapTweak", even.subarray(1));
-      const t = secp256k1.Point.Fn.fromBytes(tweakBytes);
-      const Q = P.add(secp256k1.Point.BASE.multiply(t));
-      const outputX = Q.toBytes(true).subarray(1);
-      return bech32m.encode(hrp(network), [1, ...bech32m.toWords(outputX)]);
-    }
-  }
+  return BTC_ADDRESS_ENCODERS[addressType](publicKey, network);
 }
 
 export function encodeWif(privateKey: Uint8Array, network: BtcNetwork): string {

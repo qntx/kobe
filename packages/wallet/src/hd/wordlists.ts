@@ -1,6 +1,6 @@
 /**
- * Multilingual BIP-39 surface (`wallet/hd/wordlists`).
- * Default `wallet/hd` stays English-only so unused lists tree-shake.
+ * Multilingual BIP-39 surface (`wallet/hd/wordlists`). Default `wallet/hd` stays English-only so
+ * unused lists tree-shake.
  */
 import {
   entropyToMnemonic,
@@ -18,18 +18,15 @@ import { wordlist as portuguese } from "@scure/bip39/wordlists/portuguese.js";
 import { wordlist as simplifiedChinese } from "@scure/bip39/wordlists/simplified-chinese.js";
 import { wordlist as spanish } from "@scure/bip39/wordlists/spanish.js";
 import { wordlist as traditionalChinese } from "@scure/bip39/wordlists/traditional-chinese.js";
+
 import { DeriveError } from "../errors/derive.ts";
 import { wipeBytes } from "../secret/dispose.ts";
 import { expandMnemonicWith } from "./expand.ts";
-import { MNEMONIC_LANGUAGES, type MnemonicLanguage, parseMnemonicLanguage } from "./language.ts";
-import {
-  buildWalletWith,
-  type GenerateWalletOptions,
-  type Wallet,
-  type WordCount,
-} from "./wallet.ts";
+import type { MnemonicLanguage } from "./language.ts";
+import { buildWalletWith } from "./wallet.ts";
+import type { GenerateWalletOptions, Wallet, WordCount } from "./wallet.ts";
 
-const LISTS: Record<MnemonicLanguage, readonly string[]> = {
+const LISTS: Record<MnemonicLanguage, string[]> = {
   english,
   japanese,
   korean,
@@ -52,9 +49,9 @@ const WORD_COUNT_TO_STRENGTH: Record<WordCount, number> = {
 
 const ENTROPY_LENS = new Set([16, 20, 24, 28, 32]);
 
-export { MNEMONIC_LANGUAGES, parseMnemonicLanguage, type MnemonicLanguage };
+export { MNEMONIC_LANGUAGES, parseMnemonicLanguage, type MnemonicLanguage } from "./language.ts";
 
-export function wordlistFor(language: MnemonicLanguage): readonly string[] {
+export function wordlistFor(language: MnemonicLanguage): string[] {
   return LISTS[language];
 }
 
@@ -64,7 +61,7 @@ export function expandMnemonicIn(language: MnemonicLanguage, phrase: string): st
 
 export function isValidMnemonicIn(language: MnemonicLanguage, phrase: string): boolean {
   const normalized = phrase.trim().split(/\s+/).filter(Boolean).join(" ");
-  return validateMnemonic(normalized, wordlistFor(language) as string[]);
+  return validateMnemonic(normalized, wordlistFor(language));
 }
 
 export function generateWalletIn(
@@ -76,7 +73,7 @@ export function generateWalletIn(
   if (strength === undefined) {
     throw new DeriveError("input", `invalid wordCount ${String(opts.wordCount)}`);
   }
-  const list = wordlistFor(language) as string[];
+  const list = wordlistFor(language);
   const passphrase = opts.passphrase ?? "";
   let phrase: string;
   if (opts.rng) {
@@ -97,10 +94,12 @@ export function walletFromMnemonicIn(
 ): Wallet {
   try {
     return buildWalletWith(phrase, passphrase, wordlistFor(language), language);
-  } catch (e) {
-    if (e instanceof DeriveError) throw e;
-    throw new DeriveError("mnemonic", e instanceof Error ? e.message : "invalid mnemonic", {
-      cause: e,
+  } catch (error) {
+    if (error instanceof DeriveError) {
+      throw error;
+    }
+    throw new DeriveError("mnemonic", error instanceof Error ? error.message : "invalid mnemonic", {
+      cause: error,
     });
   }
 }
@@ -122,20 +121,22 @@ export function walletFromEntropyIn(
     throw new DeriveError("input", `entropy length must be 16|20|24|28|32, got ${entropy.length}`);
   }
   try {
-    const list = wordlistFor(language) as string[];
+    const list = wordlistFor(language);
     const phrase = entropyToMnemonic(entropy, list);
     return buildWalletWith(phrase, passphrase, list, language);
-  } catch (e) {
-    if (e instanceof DeriveError) throw e;
-    throw new DeriveError("mnemonic", e instanceof Error ? e.message : "invalid entropy", {
-      cause: e,
+  } catch (error) {
+    if (error instanceof DeriveError) {
+      throw error;
+    }
+    throw new DeriveError("mnemonic", error instanceof Error ? error.message : "invalid entropy", {
+      cause: error,
     });
   }
 }
 
 export function mnemonicToEntropyBytesIn(language: MnemonicLanguage, phrase: string): Uint8Array {
   const normalized = phrase.trim().split(/\s+/).filter(Boolean).join(" ");
-  const list = wordlistFor(language) as string[];
+  const list = wordlistFor(language);
   if (!validateMnemonic(normalized, list)) {
     throw new DeriveError("mnemonic", "invalid mnemonic checksum or words");
   }

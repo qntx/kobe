@@ -7,8 +7,8 @@
       "status": "stable",
       "milestone": "S1",
       "ts": {
-        "module": "packages/kobe/src/core/wallet.ts",
-        "tests": ["packages/kobe/tests/vectors/core.test.ts"]
+        "module": "packages/wallet/src/hd/wallet.ts",
+        "tests": ["packages/wallet/tests/vectors/core.test.ts"]
       },
       "rust": {
         "module": "crates/kobe-core/src/wallet.rs",
@@ -22,8 +22,8 @@
       "status": "stable",
       "milestone": "S1",
       "ts": {
-        "module": "packages/kobe/src/core/bip32.ts",
-        "tests": ["packages/kobe/tests/vectors/core.test.ts"]
+        "module": "packages/wallet/src/bip32/index.ts",
+        "tests": ["packages/wallet/tests/vectors/core.test.ts"]
       },
       "rust": {
         "module": "crates/kobe-core/src/bip32.rs",
@@ -37,8 +37,8 @@
       "status": "stable",
       "milestone": "S1",
       "ts": {
-        "module": "packages/kobe/src/core/expand.ts",
-        "tests": ["packages/kobe/tests/vectors/core.test.ts"]
+        "module": "packages/wallet/src/hd/expand.ts",
+        "tests": ["packages/wallet/tests/vectors/core.test.ts"]
       },
       "rust": {
         "module": "crates/kobe-core/src/mnemonic.rs",
@@ -52,8 +52,8 @@
       "status": "stable",
       "milestone": "KB1",
       "ts": {
-        "module": "packages/kobe/src/core/wallet.ts",
-        "tests": ["packages/kobe/tests/vectors/core.test.ts"]
+        "module": "packages/wallet/src/hd/wallet.ts",
+        "tests": ["packages/wallet/tests/vectors/core.test.ts"]
       },
       "rust": {
         "module": "crates/kobe-core/src/wallet.rs",
@@ -67,8 +67,8 @@
       "status": "stable",
       "milestone": "S1",
       "ts": {
-        "module": "packages/kobe/src/nostr/deriver.ts",
-        "tests": ["packages/kobe/tests/vectors/nostr.test.ts"]
+        "module": "packages/wallet/src/chains/nostr/deriver.ts",
+        "tests": ["packages/wallet/tests/vectors/nostr.test.ts"]
       },
       "rust": {
         "module": "crates/kobe-nostr/src/deriver.rs",
@@ -82,8 +82,8 @@
       "status": "stable",
       "milestone": "S3",
       "ts": {
-        "module": "packages/kobe/src/vault/envelope.ts",
-        "tests": ["packages/kobe/tests/vectors/vault.test.ts"]
+        "module": "packages/wallet/src/vault/envelope.ts",
+        "tests": ["packages/wallet/tests/vectors/vault.test.ts"]
       },
       "rust": {
         "module": "crates/kobe-vault/src/lib.rs",
@@ -97,8 +97,8 @@
       "status": "stable",
       "milestone": "S3",
       "ts": {
-        "module": "packages/kobe/src/vault/kdf.ts",
-        "tests": ["packages/kobe/tests/vectors/vault.test.ts"]
+        "module": "packages/wallet/src/vault/kdf.ts",
+        "tests": ["packages/wallet/tests/vectors/vault.test.ts"]
       },
       "rust": {
         "module": "crates/kobe-vault/src/lib.rs",
@@ -112,8 +112,8 @@
       "status": "stable",
       "milestone": "S3",
       "ts": {
-        "module": "packages/kobe/src/vault/kdf.ts",
-        "tests": ["packages/kobe/tests/vectors/vault.test.ts"]
+        "module": "packages/wallet/src/vault/kdf.ts",
+        "tests": ["packages/wallet/tests/vectors/vault.test.ts"]
       },
       "rust": {
         "module": "crates/kobe-vault/src/lib.rs",
@@ -127,8 +127,8 @@
       "status": "stable",
       "milestone": "S3",
       "ts": {
-        "module": "packages/kobe/src/vault/passkey.ts",
-        "tests": ["packages/kobe/tests/vectors/vault.test.ts"]
+        "module": "packages/wallet/src/vault/passkey.ts",
+        "tests": ["packages/wallet/tests/vectors/vault.test.ts"]
       },
       "rust": {
         "module": "crates/kobe-vault/src/lib.rs",
@@ -142,8 +142,8 @@
       "status": "stable",
       "milestone": "KB2",
       "ts": {
-        "module": "packages/kobe/src/core/secret.ts",
-        "tests": ["packages/kobe/tests/vectors/core.test.ts"]
+        "module": "packages/wallet/src/secret/secret-key32.ts",
+        "tests": ["packages/wallet/tests/vectors/core.test.ts"]
       },
       "rust": {
         "module": "crates/kobe-core/src/secret.rs",
@@ -157,8 +157,8 @@
       "status": "stable",
       "milestone": "KB2",
       "ts": {
-        "module": "packages/kobe/src/core/secp256k1.ts",
-        "tests": ["packages/kobe/tests/vectors/core.test.ts"]
+        "module": "packages/wallet/src/sign/engines/secp256k1.ts",
+        "tests": ["packages/wallet/tests/vectors/core.test.ts"]
       },
       "rust": {
         "module": "crates/kobe-core/src/secp256k1.rs",
@@ -172,8 +172,8 @@
       "status": "stable",
       "milestone": "KB2",
       "ts": {
-        "module": "packages/kobe/src/core/schnorr.ts",
-        "tests": ["packages/kobe/tests/vectors/core.test.ts"]
+        "module": "packages/wallet/src/sign/engines/schnorr.ts",
+        "tests": ["packages/wallet/tests/vectors/core.test.ts"]
       },
       "rust": {
         "module": "crates/kobe-core/src/schnorr.rs",
@@ -187,8 +187,8 @@
       "status": "stable",
       "milestone": "KB2",
       "ts": {
-        "module": "packages/kobe/src/core/ed25519.ts",
-        "tests": ["packages/kobe/tests/vectors/core.test.ts"]
+        "module": "packages/wallet/src/sign/engines/ed25519.ts",
+        "tests": ["packages/wallet/tests/vectors/core.test.ts"]
       },
       "rust": {
         "module": "crates/kobe-core/src/ed25519.rs",
@@ -202,8 +202,8 @@
       "status": "stable",
       "milestone": "KB2",
       "ts": {
-        "module": "packages/kobe/src/core/slip10.ts",
-        "tests": ["packages/kobe/tests/vectors/core.test.ts"]
+        "module": "packages/wallet/src/slip10/index.ts",
+        "tests": ["packages/wallet/tests/vectors/core.test.ts"]
       },
       "rust": {
         "module": "crates/kobe-core/src/slip10.rs",
@@ -217,8 +217,8 @@
       "status": "stable",
       "milestone": "KB2",
       "ts": {
-        "module": "packages/kobe/src/evm/deriver.ts",
-        "tests": ["packages/kobe/tests/vectors/evm.test.ts"]
+        "module": "packages/wallet/src/chains/evm/deriver.ts",
+        "tests": ["packages/wallet/tests/vectors/evm.test.ts"]
       },
       "rust": {
         "module": "crates/kobe-evm/src/deriver.rs",
@@ -232,8 +232,8 @@
       "status": "stable",
       "milestone": "KB2",
       "ts": {
-        "module": "packages/kobe/src/evm/address.ts",
-        "tests": ["packages/kobe/tests/vectors/evm.test.ts"]
+        "module": "packages/wallet/src/chains/evm/address.ts",
+        "tests": ["packages/wallet/tests/vectors/evm.test.ts"]
       },
       "rust": {
         "module": "crates/kobe-evm/src/address.rs",
@@ -247,8 +247,8 @@
       "status": "stable",
       "milestone": "KB2",
       "ts": {
-        "module": "packages/kobe/src/evm/signer.ts",
-        "tests": ["packages/kobe/tests/vectors/evm.test.ts"]
+        "module": "packages/wallet/src/chains/evm/signer.ts",
+        "tests": ["packages/wallet/tests/vectors/evm.test.ts"]
       },
       "rust": {
         "module": "crates/kobe-evm/src/signer.rs",
@@ -262,8 +262,8 @@
       "status": "stable",
       "milestone": "KB2",
       "ts": {
-        "module": "packages/kobe/src/evm/rlp.ts",
-        "tests": ["packages/kobe/tests/vectors/evm.test.ts"]
+        "module": "packages/wallet/src/chains/evm/rlp.ts",
+        "tests": ["packages/wallet/tests/vectors/evm.test.ts"]
       },
       "rust": {
         "module": "crates/kobe-evm/src/rlp.rs",
@@ -277,8 +277,8 @@
       "status": "stable",
       "milestone": "KB2",
       "ts": {
-        "module": "packages/kobe/src/evm/eip712.ts",
-        "tests": ["packages/kobe/tests/vectors/evm.test.ts"]
+        "module": "packages/wallet/src/chains/evm/eip712.ts",
+        "tests": ["packages/wallet/tests/vectors/evm.test.ts"]
       },
       "rust": {
         "module": "crates/kobe-evm/src/eip712.rs",

@@ -5,34 +5,41 @@ import { SignError } from "../../errors/sign.ts";
 type TypeField = { name: string; type: string };
 type TypeDefs = Map<string, TypeField[]>;
 
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return v !== null && typeof v === "object";
+}
+
 export function hashTypedDataJson(json: string): Uint8Array {
   let v: unknown;
   try {
     v = JSON.parse(json) as unknown;
-  } catch (e) {
-    throw new SignError("invalid_message", e instanceof Error ? e.message : "invalid JSON", {
-      cause: e,
-    });
+  } catch (error) {
+    throw new SignError(
+      "invalid_message",
+      error instanceof Error ? error.message : "invalid JSON",
+      {
+        cause: error,
+      },
+    );
   }
-  if (v === null || typeof v !== "object") {
+  if (!isRecord(v)) {
     throw new SignError("invalid_message", "typed data must be an object");
   }
-  const rec = v as Record<string, unknown>;
-  if (!rec.types || typeof rec.types !== "object") {
+  if (!isRecord(v["types"])) {
     throw new SignError("invalid_message", "missing 'types'");
   }
-  if (typeof rec.primaryType !== "string") {
+  if (typeof v["primaryType"] !== "string") {
     throw new SignError("invalid_message", "missing 'primaryType'");
   }
-  if (!rec.domain || typeof rec.domain !== "object") {
+  if (!isRecord(v["domain"])) {
     throw new SignError("invalid_message", "missing 'domain'");
   }
-  if (!rec.message || typeof rec.message !== "object") {
+  if (!isRecord(v["message"])) {
     throw new SignError("invalid_message", "missing 'message'");
   }
-  const types = parseTypes(rec.types);
-  const domainHash = hashStruct("EIP712Domain", rec.domain, types);
-  const messageHash = hashStruct(rec.primaryType, rec.message, types);
+  const types = parseTypes(v["types"]);
+  const domainHash = hashStruct("EIP712Domain", v["domain"], types);
+  const messageHash = hashStruct(v["primaryType"], v["message"], types);
   const buf = new Uint8Array(2 + 32 + 32);
   buf[0] = 0x19;
   buf[1] = 0x01;
@@ -42,24 +49,23 @@ export function hashTypedDataJson(json: string): Uint8Array {
 }
 
 function parseTypes(val: unknown): TypeDefs {
-  if (val === null || typeof val !== "object") {
+  if (!isRecord(val)) {
     throw new SignError("invalid_message", "'types' must be object");
   }
   const types: TypeDefs = new Map();
-  for (const [name, fields] of Object.entries(val as Record<string, unknown>)) {
+  for (const [name, fields] of Object.entries(val)) {
     if (!Array.isArray(fields)) {
       throw new SignError("invalid_message", `${name}: expected array`);
     }
     const parsed: TypeField[] = [];
     for (const f of fields) {
-      if (f === null || typeof f !== "object") {
+      if (!isRecord(f)) {
         throw new SignError("invalid_message", "field missing 'name'");
       }
-      const o = f as Record<string, unknown>;
-      if (typeof o.name !== "string" || typeof o.type !== "string") {
+      if (typeof f["name"] !== "string" || typeof f["type"] !== "string") {
         throw new SignError("invalid_message", "field missing 'name' or 'type'");
       }
-      parsed.push({ name: o.name, type: o.type });
+      parsed.push({ name: f["name"], type: f["type"] });
     }
     types.set(name, parsed);
   }
@@ -81,14 +87,18 @@ function typeHash(typeName: string, types: TypeDefs): Uint8Array {
 
 function encodeType(typeName: string, types: TypeDefs): string {
   const fields = types.get(typeName);
-  if (!fields) throw new SignError("invalid_message", `unknown type: ${typeName}`);
+  if (!fields) {
+    throw new SignError("invalid_message", `unknown type: ${typeName}`);
+  }
   const deps = new Set<string>();
   collectDeps(typeName, types, deps);
   deps.delete(typeName);
   let result = formatStruct(typeName, fields);
-  for (const dep of [...deps].toSorted()) {
+  for (const dep of [...deps].sort()) {
     const f = types.get(dep);
-    if (f) result += formatStruct(dep, f);
+    if (f) {
+      result += formatStruct(dep, f);
+    }
   }
   return result;
 }
@@ -99,7 +109,9 @@ function formatStruct(name: string, fields: TypeField[]): string {
 
 function collectDeps(typeName: string, types: TypeDefs, out: Set<string>): void {
   const fields = types.get(typeName);
-  if (!fields) return;
+  if (!fields) {
+    return;
+  }
   for (const f of fields) {
     const base = baseType(f.type);
     if (types.has(base) && !out.has(base)) {
@@ -116,11 +128,13 @@ function baseType(t: string): string {
 
 function encodeData(typeName: string, data: unknown, types: TypeDefs): Uint8Array {
   const fields = types.get(typeName);
-  if (!fields) throw new SignError("invalid_message", `unknown type: ${typeName}`);
-  if (data === null || typeof data !== "object") {
+  if (!fields) {
+    throw new SignError("invalid_message", `unknown type: ${typeName}`);
+  }
+  if (!isRecord(data)) {
     throw new SignError("invalid_message", `expected object for ${typeName}`);
   }
-  const obj = data as Record<string, unknown>;
+  const obj = data;
   const out = new Uint8Array(fields.length * 32);
   let o = 0;
   for (const f of fields) {
@@ -144,7 +158,9 @@ function encodeValue(typeName: string, value: unknown, types: TypeDefs): Uint8Ar
     }
     return keccak256(inner);
   }
-  if (types.has(typeName)) return hashStruct(typeName, value, types);
+  if (types.has(typeName)) {
+    return hashStruct(typeName, value, types);
+  }
   return encodeAtomic(typeName, value);
 }
 
@@ -192,8 +208,12 @@ function encodeAtomic(ty: string, value: unknown): Uint8Array {
     w.set(b, 0);
     return w;
   }
-  if (ty.startsWith("uint")) return encodeUint(ty, ty.slice(4), value);
-  if (ty.startsWith("int")) return encodeInt(ty, ty.slice(3), value);
+  if (ty.startsWith("uint")) {
+    return encodeUint(ty, ty.slice(4), value);
+  }
+  if (ty.startsWith("int")) {
+    return encodeInt(ty, ty.slice(3), value);
+  }
   throw new SignError("invalid_message", `unsupported EIP-712 type: ${ty}`);
 }
 
@@ -220,7 +240,9 @@ function encodeInt(ty: string, bitsStr: string, value: unknown): Uint8Array {
     magnitude.subarray(Math.max(0, magnitude.length - 32)),
     32 - Math.min(32, magnitude.length),
   );
-  if (negative) negateTwos(w);
+  if (negative) {
+    negateTwos(w);
+  }
   return w;
 }
 
@@ -240,7 +262,9 @@ function parseUintBe(value: unknown): Uint8Array {
     return hexToBytes(value.toString(16).padStart(16, "0"));
   }
   if (typeof value === "string") {
-    if (value.startsWith("0x") || value.startsWith("0X")) return hexToBytes(value);
+    if (value.startsWith("0x") || value.startsWith("0X")) {
+      return hexToBytes(value);
+    }
     return parseDecimalBe(value);
   }
   throw new SignError("invalid_message", "uint must be number or string");
@@ -257,9 +281,12 @@ function parseIntMagnitude(value: unknown): { negative: boolean; magnitude: Uint
     if (value.startsWith("0x") || value.startsWith("0X")) {
       return { negative: false, magnitude: hexToBytes(value) };
     }
-    if (value.startsWith("-")) return { negative: true, magnitude: parseDecimalBe(value.slice(1)) };
-    if (value.startsWith("+"))
+    if (value.startsWith("-")) {
+      return { negative: true, magnitude: parseDecimalBe(value.slice(1)) };
+    }
+    if (value.startsWith("+")) {
       return { negative: false, magnitude: parseDecimalBe(value.slice(1)) };
+    }
     return { negative: false, magnitude: parseDecimalBe(value) };
   }
   throw new SignError("invalid_message", "int must be number or string");
@@ -271,9 +298,9 @@ function parseDecimalBe(s: string): Uint8Array {
   }
   const limbs = [0];
   for (const ch of s) {
-    let carry = ch.charCodeAt(0) - 48;
-    for (let i = 0; i < limbs.length; i++) {
-      const v = limbs[i]! * 10 + carry;
+    let carry = (ch.codePointAt(0) ?? 0) - 48;
+    for (const [i, limb] of limbs.entries()) {
+      const v = limb * 10 + carry;
       limbs[i] = v & 0xff;
       carry = v >> 8;
     }
@@ -298,9 +325,10 @@ function checkIntRange(ty: string, bits: number, negative: boolean, magnitude: U
   const hiBit = bits - 1;
   threshold[bufLen - 1 - Math.floor(hiBit / 8)] = 1 << (hiBit % 8);
   let cmp = 0;
-  for (let i = 0; i < bufLen; i++) {
-    if (mag[i]! !== threshold[i]!) {
-      cmp = mag[i]! < threshold[i]! ? -1 : 1;
+  for (const [i, m] of mag.entries()) {
+    const t = threshold[i] ?? 0;
+    if (m !== t) {
+      cmp = m < t ? -1 : 1;
       break;
     }
   }
@@ -311,10 +339,12 @@ function checkIntRange(ty: string, bits: number, negative: boolean, magnitude: U
 }
 
 function negateTwos(bytes: Uint8Array): void {
-  for (let i = 0; i < bytes.length; i++) bytes[i] = ~bytes[i]! & 0xff;
+  for (const [i, b] of bytes.entries()) {
+    bytes[i] = ~b & 0xff;
+  }
   let carry = 1;
   for (let i = bytes.length - 1; i >= 0; i--) {
-    const sum = bytes[i]! + carry;
+    const sum = (bytes[i] ?? 0) + carry;
     bytes[i] = sum & 0xff;
     carry = sum >> 8;
   }

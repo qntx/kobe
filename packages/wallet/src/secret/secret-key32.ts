@@ -3,22 +3,19 @@ import { SignError } from "../errors/sign.ts";
 import { copyBytes, wipeBytes } from "./dispose.ts";
 
 /** Structural account view — avoids a runtime HD import. */
-export interface DerivedSecretSource {
+export type DerivedSecretSource = {
   privateKeyBytes(): Uint8Array;
-}
+};
 
-/**
- * Opaque 32-byte secret. No public `bytes` field.
- * inspect / toJSON → `SecretKey32([REDACTED])`.
- */
-export interface SecretKey32 {
+/** Opaque 32-byte secret. No public `bytes` field. inspect / toJSON → `SecretKey32([REDACTED])`. */
+export type SecretKey32 = {
   /** Fresh 32-byte copy. Caller owns and should wipe if retained. */
   toBytes(): Uint8Array;
   clone(): SecretKey32;
   dispose(): void;
   [Symbol.dispose](): void;
   toString(): string;
-}
+};
 
 class SecretKey32Impl implements SecretKey32 {
   #bytes: Uint8Array | undefined;
@@ -28,15 +25,16 @@ class SecretKey32Impl implements SecretKey32 {
     this.#bytes = bytes;
   }
 
-  #assertLive(): void {
-    if (this.#disposed || !this.#bytes) {
+  #live(): Uint8Array {
+    const bytes = this.#bytes;
+    if (this.#disposed || bytes === undefined) {
       throw new SignError("invalid_key", "disposed");
     }
+    return bytes;
   }
 
   toBytes(): Uint8Array {
-    this.#assertLive();
-    return copyBytes(this.#bytes!);
+    return copyBytes(this.#live());
   }
 
   clone(): SecretKey32 {
@@ -44,7 +42,9 @@ class SecretKey32Impl implements SecretKey32 {
   }
 
   dispose(): void {
-    if (this.#disposed) return;
+    if (this.#disposed) {
+      return;
+    }
     wipeBytes(this.#bytes);
     this.#bytes = undefined;
     this.#disposed = true;
@@ -80,9 +80,9 @@ export function secretKeyFromHex(hex: string): SecretKey32 {
   let bytes: Uint8Array;
   try {
     bytes = hexToBytes(hex);
-  } catch (e) {
-    throw new SignError("invalid_key", e instanceof Error ? e.message : "invalid hex", {
-      cause: e,
+  } catch (error) {
+    throw new SignError("invalid_key", error instanceof Error ? error.message : "invalid hex", {
+      cause: error,
     });
   }
   return secretKeyFromBytes(bytes);

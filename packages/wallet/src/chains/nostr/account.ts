@@ -1,28 +1,24 @@
-import { DeriveError } from "../../errors/derive.ts";
-import {
-  createDerivedAccount,
-  type DerivedAccount,
-  type DerivedPublicKey,
-} from "../../hd/account.ts";
+import { createDerivedAccount } from "../../hd/account.ts";
+import type { DerivedAccount, DerivedPublicKey } from "../../hd/account.ts";
+import { wipeBytes } from "../../secret/dispose.ts";
+import { encodeNsec } from "./nip19.ts";
 
-export interface NostrAccount extends DerivedAccount {
+export type NostrAccount = {
   nsec(): string;
   npub(): string;
-}
+} & DerivedAccount;
 
 class NostrAccountImpl implements NostrAccount {
   readonly path: string;
   readonly publicKey: DerivedPublicKey;
   readonly address: string;
   readonly #inner: DerivedAccount;
-  #nsec: string | undefined;
 
-  constructor(inner: DerivedAccount, nsec: string) {
+  constructor(inner: DerivedAccount) {
     this.#inner = inner;
     this.path = inner.path;
     this.publicKey = inner.publicKey;
     this.address = inner.address;
-    this.#nsec = nsec;
   }
 
   privateKeyBytes(): Uint8Array {
@@ -41,9 +37,14 @@ class NostrAccountImpl implements NostrAccount {
     return this.#inner.publicKeyHex();
   }
 
+  /** Bech32 `nsec` computed on demand from the private key; the account stores no copy. */
   nsec(): string {
-    if (this.#nsec === undefined) throw new DeriveError("input", "disposed");
-    return this.#nsec;
+    const sk = this.#inner.privateKeyBytes();
+    try {
+      return encodeNsec(sk);
+    } finally {
+      wipeBytes(sk);
+    }
   }
 
   npub(): string {
@@ -52,7 +53,6 @@ class NostrAccountImpl implements NostrAccount {
 
   dispose(): void {
     this.#inner.dispose();
-    this.#nsec = undefined;
   }
 
   [Symbol.dispose](): void {
@@ -77,7 +77,6 @@ export function createNostrAccount(input: {
   privateKey: Uint8Array;
   xonlyPublicKey: Uint8Array;
   npub: string;
-  nsec: string;
 }): NostrAccount {
   const inner = createDerivedAccount({
     path: input.path,
@@ -85,5 +84,5 @@ export function createNostrAccount(input: {
     publicKey: { kind: "secp256k1-xonly", bytes: input.xonlyPublicKey },
     address: input.npub,
   });
-  return new NostrAccountImpl(inner, input.nsec);
+  return new NostrAccountImpl(inner);
 }

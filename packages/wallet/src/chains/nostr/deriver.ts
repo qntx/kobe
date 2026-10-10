@@ -1,10 +1,12 @@
-import { assertU32Index, deriveRange, type ChainDeriver } from "../../hd/derive.ts";
+import { assertU32Index, deriveRange } from "../../hd/derive.ts";
+import type { ChainDeriver } from "../../hd/derive.ts";
 import type { Wallet } from "../../hd/wallet.ts";
 import { wipeBytes } from "../../secret/dispose.ts";
-import { createNostrAccount, type NostrAccount } from "./account.ts";
-import { encodeNpub, encodeNsec, nostrPath, xonlyFromCompressed } from "./nip19.ts";
+import { createNostrAccount } from "./account.ts";
+import type { NostrAccount } from "./account.ts";
+import { encodeNpub, nostrPath, xonlyFromCompressed } from "./nip19.ts";
 
-export interface NostrDeriver extends ChainDeriver<NostrAccount> {}
+export type NostrDeriver = ChainDeriver<NostrAccount>;
 
 class NostrDeriverImpl implements NostrDeriver {
   readonly #wallet: Wallet;
@@ -28,7 +30,6 @@ class NostrDeriverImpl implements NostrDeriver {
         privateKey: sk,
         xonlyPublicKey: xonly,
         npub: encodeNpub(xonly),
-        nsec: encodeNsec(sk),
       });
     } finally {
       wipeBytes(sk);

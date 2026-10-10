@@ -1,7 +1,4 @@
-/**
- * Unified signing / key-parse / wire failures.
- * Domain codes mirror signer `SignError` partitions.
- */
+/** Unified signing / key-parse / wire failures. Domain codes mirror signer `SignError` partitions. */
 export type SignErrorCode =
   | "invalid_key"
   | "invalid_message"

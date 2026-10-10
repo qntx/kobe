@@ -1,5 +1,7 @@
 import { inspect } from "node:util";
-import { expect, test } from "vitest";
+
+import { expect, test } from "vite-plus/test";
+
 import { createNostrDeriver } from "../../src/chains/nostr/index.ts";
 import { walletFromMnemonic } from "../../src/hd/index.ts";
 

@@ -45,17 +45,15 @@ export function parseBtcAddressType(token: string): BtcAddressType {
   }
 }
 
+const BTC_PURPOSES: Record<BtcAddressType, number> = {
+  p2pkh: 44,
+  "p2sh-p2wpkh": 49,
+  p2wpkh: 84,
+  p2tr: 86,
+};
+
 export function btcPurpose(type: BtcAddressType): number {
-  switch (type) {
-    case "p2pkh":
-      return 44;
-    case "p2sh-p2wpkh":
-      return 49;
-    case "p2wpkh":
-      return 84;
-    case "p2tr":
-      return 86;
-  }
+  return BTC_PURPOSES[type];
 }
 
 export function btcCoinType(network: BtcNetwork): number {

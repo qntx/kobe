@@ -1,8 +1,9 @@
-import { expect, test } from "vitest";
-import { walletSeedBytes } from "../../src/hd/raw-seed.ts";
-import { DeriveError, walletFromMnemonic } from "../../src/hd/index.ts";
+import { expect, test } from "vite-plus/test";
+
 import { bytesToHex } from "../../src/crypto/hex.ts";
+import { DeriveError, walletFromMnemonic } from "../../src/hd/index.ts";
 import * as hd from "../../src/hd/index.ts";
+import { walletSeedBytes } from "../../src/hd/raw-seed.ts";
 
 const ABANDON =
   "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -12,7 +13,7 @@ const SEED_HEX_ABANDON =
 test("gold: walletSeedBytes abandon empty passphrase (BIP-39 / kobe)", () => {
   const w = walletFromMnemonic(ABANDON);
   expect(bytesToHex(walletSeedBytes(w))).toBe(SEED_HEX_ABANDON);
-  expect(walletSeedBytes(w).length).toBe(64);
+  expect(walletSeedBytes(w)).toHaveLength(64);
   w.dispose();
 });
 
@@ -22,7 +23,7 @@ test("walletSeedBytes copy is independent; dispose throws", () => {
   const b = walletSeedBytes(w);
   expect(a).toEqual(b);
   expect(a).not.toBe(b);
-  a[0] = (a[0] ?? 0) ^ 0xff;
+  a[0] = 255 - (a[0] ?? 0);
   expect(walletSeedBytes(w)[0]).not.toBe(a[0]);
   w.dispose();
   expect(() => walletSeedBytes(w)).toThrow(DeriveError);

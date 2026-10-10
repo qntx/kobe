@@ -36,10 +36,11 @@ export function hmacSha256(key: Uint8Array, data: Uint8Array): Uint8Array {
 
 /**
  * PBKDF2-HMAC-SHA-512 (BIP-39 seed).
+ *
  * @param password UTF-8 password bytes
  * @param salt UTF-8 salt bytes
- * @param iterations default 2048 for BIP-39
- * @param dkLen default 64 for BIP-39 seed
+ * @param iterations Default 2048 for BIP-39
+ * @param dkLen Default 64 for BIP-39 seed
  */
 export function pbkdf2Sha512(
   password: Uint8Array,

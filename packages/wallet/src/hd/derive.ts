@@ -1,16 +1,17 @@
 import { DeriveError } from "../errors/derive.ts";
 import type { DerivedAccount } from "./account.ts";
 
-export const U32_MAX = 0xffff_ffff;
+export const U32_MAX = 0xff_ff_ff_ff;
 
-export interface ChainDeriver<A extends DerivedAccount = DerivedAccount> {
+export type ChainDeriver<A extends DerivedAccount = DerivedAccount> = {
   derive(index: number): A;
   deriveAt(path: string): A;
   deriveMany(start: number, count: number): A[];
-}
+};
 
 /**
  * Accept only a JS number that is an integer in `[0, 0xffffffff]`.
+ *
  * @throws DeriveError input
  */
 export function assertU32Index(value: number, label: string): number {
@@ -21,8 +22,9 @@ export function assertU32Index(value: number, label: string): number {
 }
 
 /**
- * Batch helper: invoke `f` for each index in `[start, start + count)`.
- * Overflow of `start + count` as u32 → `DeriveError` `input`.
+ * Batch helper: invoke `f` for each index in `[start, start + count)`. Overflow of `start + count`
+ * as u32 → `DeriveError` `input`.
+ *
  * @throws DeriveError input
  */
 export function deriveRange<T>(start: number, count: number, f: (index: number) => T): T[] {
@@ -33,6 +35,8 @@ export function deriveRange<T>(start: number, count: number, f: (index: number) 
   }
   const out: T[] = [];
   const end = s + c;
-  for (let i = s; i < end; i++) out.push(f(i));
+  for (let i = s; i < end; i++) {
+    out.push(f(i));
+  }
   return out;
 }

@@ -1,6 +1,4 @@
-/**
- * HD public surface (`wallet/hd`).
- */
+/** HD public surface (`wallet/hd`). */
 export type { DerivedSecp256k1Key } from "../bip32/index.ts";
 export { DeriveError, type DeriveErrorCode, isDeriveError } from "../errors/derive.ts";
 export type { DerivedEd25519Key } from "../slip10/index.ts";

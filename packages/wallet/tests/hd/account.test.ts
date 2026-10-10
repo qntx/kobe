@@ -1,11 +1,9 @@
 import { inspect } from "node:util";
-import { expect, test } from "vitest";
-import {
-  createDerivedAccount,
-  DeriveError,
-  type DerivedAccount,
-  walletFromMnemonic,
-} from "../../src/hd/index.ts";
+
+import { expect, test } from "vite-plus/test";
+
+import { createDerivedAccount, DeriveError, walletFromMnemonic } from "../../src/hd/index.ts";
+import type { DerivedAccount } from "../../src/hd/index.ts";
 
 const ABANDON =
   "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -36,7 +34,7 @@ test("account snapshots pubkey and copies secret", () => {
   expect(acct.privateKeyHex()).toBe(SK_HEX);
   expect(acct.publicKey.kind).toBe("secp256k1-compressed");
   expect(acct.publicKeyHex()).toBe(PK_HEX);
-  expect(acct.publicKey.bytes.length).toBe(33);
+  expect(acct.publicKey.bytes).toHaveLength(33);
 
   const a = acct.privateKeyBytes();
   const b = acct.privateKeyBytes();
@@ -51,7 +49,7 @@ test("dispose zeros secret; path/address/pubkey remain", () => {
   acct.dispose();
   expect(acct.path).toBe("m/44'/60'/0'/0/0");
   expect(acct.address).toContain("0x");
-  expect(acct.publicKey.bytes.length).toBe(33);
+  expect(acct.publicKey.bytes).toHaveLength(33);
   expect(() => acct.privateKeyBytes()).toThrow(DeriveError);
   expect(() => acct.privateKeyHex()).toThrow(DeriveError);
 });

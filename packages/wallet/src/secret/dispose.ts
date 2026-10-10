@@ -1,6 +1,8 @@
 /** Best-effort overwrite of a secret buffer (JS GC may retain copies). */
-export function wipeBytes(buf: Uint8Array | undefined | null): void {
-  if (buf) buf.fill(0);
+export function wipeBytes(buf: Uint8Array | undefined): void {
+  if (buf) {
+    buf.fill(0);
+  }
 }
 
 /** Copy bytes into a new Uint8Array. */

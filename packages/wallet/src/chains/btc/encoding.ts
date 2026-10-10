@@ -1,4 +1,5 @@
 import { base58 } from "@scure/base";
+
 import { hash256 } from "../../crypto/index.ts";
 
 /** Base58Check(version || payload). */

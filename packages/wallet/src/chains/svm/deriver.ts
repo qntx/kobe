@@ -1,14 +1,16 @@
-import { type ChainDeriver, assertU32Index, deriveRange } from "../../hd/derive.ts";
+import type { SvmAccount } from "../../hd/account.ts";
+import { assertU32Index, deriveRange } from "../../hd/derive.ts";
+import type { ChainDeriver } from "../../hd/derive.ts";
 import type { Wallet } from "../../hd/wallet.ts";
 import { wipeBytes } from "../../secret/dispose.ts";
 import { createSvmAccount } from "./account.ts";
-import type { SvmAccount } from "../../hd/account.ts";
-import { svmPath, type SvmDerivationStyle } from "./style.ts";
+import { svmPath } from "./style.ts";
+import type { SvmDerivationStyle } from "./style.ts";
 
-export interface SvmDeriver extends ChainDeriver<SvmAccount> {
+export type SvmDeriver = {
   deriveWith(style: SvmDerivationStyle, index: number): SvmAccount;
   deriveManyWith(style: SvmDerivationStyle, start: number, count: number): SvmAccount[];
-}
+} & ChainDeriver<SvmAccount>;
 
 class SvmDeriverImpl implements SvmDeriver {
   readonly #wallet: Wallet;
@@ -18,7 +20,7 @@ class SvmDeriverImpl implements SvmDeriver {
   }
 
   derive(index: number): SvmAccount {
-    return this.deriveWith("standard", index);
+    return this.deriveWith("bip44-change", index);
   }
 
   deriveAt(path: string): SvmAccount {

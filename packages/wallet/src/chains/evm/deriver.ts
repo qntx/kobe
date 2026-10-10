@@ -1,14 +1,17 @@
-import { createDerivedAccount, type DerivedAccount } from "../../hd/account.ts";
-import { assertU32Index, deriveRange, type ChainDeriver } from "../../hd/derive.ts";
+import { createDerivedAccount } from "../../hd/account.ts";
+import type { DerivedAccount } from "../../hd/account.ts";
+import { assertU32Index, deriveRange } from "../../hd/derive.ts";
+import type { ChainDeriver } from "../../hd/derive.ts";
 import type { Wallet } from "../../hd/wallet.ts";
 import { wipeBytes } from "../../secret/dispose.ts";
 import { evmAddressFromUncompressed } from "./address.ts";
-import { evmPath, type EvmDerivationStyle } from "./style.ts";
+import { evmPath } from "./style.ts";
+import type { EvmDerivationStyle } from "./style.ts";
 
-export interface EvmDeriver extends ChainDeriver<DerivedAccount> {
+export type EvmDeriver = {
   deriveWith(style: EvmDerivationStyle, index: number): DerivedAccount;
   deriveManyWith(style: EvmDerivationStyle, start: number, count: number): DerivedAccount[];
-}
+} & ChainDeriver;
 
 class EvmDeriverImpl implements EvmDeriver {
   readonly #wallet: Wallet;

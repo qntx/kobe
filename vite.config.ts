@@ -30,16 +30,35 @@ const config: UserConfig = defineConfig({
   },
   lint: merge(lintConfig, {
     // merge() concatenates arrays onto the preset's own ignorePatterns.
-    // packages/wallet is excluded while it holds the verbatim @qntx/wallet
-    // kernel copy; the ignore is lifted in the adaptation commit.
-    ignorePatterns: ["target/**", "packages/kobe/.hermes-smoke.iife.js", "packages/wallet/**"],
+    ignorePatterns: ["target/**", "packages/wallet/.hermes-smoke.iife.js"],
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
     rules: {
       "vite-plus/prefer-vite-plus-imports": "error",
     },
     overrides: [
       {
-        files: ["packages/kobe/scripts/**", "scripts/**"],
+        // Kernel src keeps its upstream interface style; bitwise ops are
+        // inherent to BIP-39/ECC/RLP byte code.
+        files: ["packages/wallet/src/**"],
+        rules: {
+          "typescript/method-signature-style": "off",
+          "eslint/no-bitwise": "off",
+        },
+      },
+      {
+        // Table-driven KATs and JSON fixtures.
+        files: ["packages/wallet/tests/**"],
+        rules: {
+          "vitest/no-conditional-expect": "off",
+          "vitest/no-conditional-in-test": "off",
+          "vitest/prefer-strict-equal": "off",
+          "vitest/require-to-throw-message": "off",
+          "typescript/no-non-null-assertion": "off",
+          "typescript/no-unsafe-type-assertion": "off",
+        },
+      },
+      {
+        files: ["packages/wallet/scripts/**", "scripts/**"],
         rules: {
           // Maintenance scripts print their results.
           "eslint/no-console": "off",
@@ -78,10 +97,20 @@ const config: UserConfig = defineConfig({
         },
       },
       {
-        // src/core is the leaf layer: it must not reach ../nostr or the
-        // package root. Overrides replace the rule config, so the
-        // platform-neutral restrictions are re-added explicitly.
-        files: ["packages/kobe/src/core/**"],
+        // The wallet foundation modules (hd/bip32/slip10/ecc/crypto/errors/
+        // secret/sign) must not reach chains or vault — chains/vault build on
+        // the foundation, never the reverse. Overrides replace the rule
+        // config, so the platform-neutral restrictions are re-added explicitly.
+        files: [
+          "packages/wallet/src/hd/**",
+          "packages/wallet/src/bip32/**",
+          "packages/wallet/src/slip10/**",
+          "packages/wallet/src/ecc/**",
+          "packages/wallet/src/crypto/**",
+          "packages/wallet/src/errors/**",
+          "packages/wallet/src/secret/**",
+          "packages/wallet/src/sign/**",
+        ],
         rules: {
           "eslint/no-restricted-imports": [
             "error",
@@ -90,27 +119,18 @@ const config: UserConfig = defineConfig({
               patterns: [
                 ...platformNeutralImports.patterns,
                 {
-                  group: ["..", "../", "../index", "../index.ts", "../nostr", "../nostr/**"],
-                  message: "core is the leaf layer (AGENTS.md layering)",
-                },
-              ],
-            },
-          ],
-        },
-      },
-      {
-        // src/vault may import only src/core (AGENTS.md layering).
-        files: ["packages/kobe/src/vault/**"],
-        rules: {
-          "eslint/no-restricted-imports": [
-            "error",
-            {
-              paths: platformNeutralImports.paths,
-              patterns: [
-                ...platformNeutralImports.patterns,
-                {
-                  group: ["..", "../", "../index", "../index.ts", "../nostr", "../nostr/**"],
-                  message: "vault may only reach ../core (AGENTS.md layering)",
+                  group: [
+                    "../chains",
+                    "../chains/**",
+                    "../../chains",
+                    "../../chains/**",
+                    "../vault",
+                    "../vault/**",
+                    "../../vault",
+                    "../../vault/**",
+                  ],
+                  message:
+                    "foundation modules must not import chains or vault (AGENTS.md layering)",
                 },
               ],
             },
@@ -129,8 +149,6 @@ const config: UserConfig = defineConfig({
       // stay byte-frozen.
       "**/*.toml",
       "vectors/**",
-      // Verbatim @qntx/wallet kernel copy — lifted in the adaptation commit.
-      "packages/wallet/**",
     ],
   },
   run: { cache: process.env["CI"] === undefined || process.env["CI"] === "" },

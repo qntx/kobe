@@ -1,4 +1,5 @@
 import { ed25519 } from "@noble/curves/ed25519.js";
+
 import { SignError } from "../errors/sign.ts";
 
 /** Ed25519 accepts any 32-byte seed. */
@@ -8,6 +9,7 @@ export function isValidEd25519Secret(sk: Uint8Array): boolean {
 
 /**
  * 32-byte public key from 32-byte secret seed.
+ *
  * @throws SignError invalid_key
  */
 export function ed25519PublicKey(secret: Uint8Array): Uint8Array {
@@ -19,6 +21,7 @@ export function ed25519PublicKey(secret: Uint8Array): Uint8Array {
 
 /**
  * Sign arbitrary message bytes (RFC 8032). Returns 64-byte signature.
+ *
  * @throws SignError invalid_key | signing_failed
  */
 export function ed25519Sign(secret: Uint8Array, message: Uint8Array): Uint8Array {
@@ -27,15 +30,20 @@ export function ed25519Sign(secret: Uint8Array, message: Uint8Array): Uint8Array
   }
   try {
     return ed25519.sign(message, secret);
-  } catch (e) {
-    throw new SignError("signing_failed", e instanceof Error ? e.message : "ed25519 sign failed", {
-      cause: e,
-    });
+  } catch (error) {
+    throw new SignError(
+      "signing_failed",
+      error instanceof Error ? error.message : "ed25519 sign failed",
+      {
+        cause: error,
+      },
+    );
   }
 }
 
 /**
  * Verify Ed25519 signature. Malformed → throw; reject → false.
+ *
  * @throws SignError invalid_signature | invalid_key
  */
 export function ed25519Verify(
@@ -51,11 +59,11 @@ export function ed25519Verify(
   }
   try {
     return ed25519.verify(signature, message, publicKey);
-  } catch (e) {
+  } catch (error) {
     throw new SignError(
       "invalid_signature",
-      e instanceof Error ? e.message : "malformed signature",
-      { cause: e },
+      error instanceof Error ? error.message : "malformed signature",
+      { cause: error },
     );
   }
 }

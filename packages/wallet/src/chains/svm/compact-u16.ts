@@ -4,13 +4,14 @@ import { SignError } from "../../errors/sign.ts";
 export function decodeCompactU16(data: Uint8Array): { value: number; headerLen: number } {
   let value = 0;
   let shift = 0;
-  for (let i = 0; i < data.length; i++) {
+  for (const [i, byte] of data.entries()) {
     if (i >= 3) {
       throw new SignError("invalid_transaction", "compact-u16 exceeds 3 bytes");
     }
-    const byte = data[i]!;
     value |= (byte & 0x7f) << shift;
-    if ((byte & 0x80) === 0) return { value, headerLen: i + 1 };
+    if ((byte & 0x80) === 0) {
+      return { value, headerLen: i + 1 };
+    }
     shift += 7;
   }
   throw new SignError("invalid_transaction", "truncated compact-u16");

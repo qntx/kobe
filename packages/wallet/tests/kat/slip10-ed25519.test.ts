@@ -1,4 +1,5 @@
-import { expect, test } from "vitest";
+import { expect, test } from "vite-plus/test";
+
 import { hexToBytes } from "../../src/crypto/hex.ts";
 import { DeriveError, walletFromMnemonic } from "../../src/hd/index.ts";
 import { deriveEd25519FromSeed } from "../../src/slip10/index.ts";
@@ -29,7 +30,7 @@ test("gold: Solana standard path index 0 from abandon (kobe-svm)", () => {
   expect(key.privateKeyHex()).toBe(
     "37df573b3ac4ad5b522e064e25b63ea16bcbe79d449e81a0268d1047948bb445",
   );
-  expect(key.publicKeyBytes().length).toBe(32);
+  expect(key.publicKeyBytes()).toHaveLength(32);
   w.dispose();
 });
 
@@ -47,8 +48,8 @@ test("rejects non-hardened path segments", () => {
   expect(() => w.deriveEd25519("m/44'/501'/0'/0")).toThrow(DeriveError);
   try {
     w.deriveEd25519("m/44'/501'/0'/0");
-  } catch (e) {
-    expect((e as DeriveError).code).toBe("path");
+  } catch (error) {
+    expect((error as DeriveError).code).toBe("path");
   }
   w.dispose();
 });

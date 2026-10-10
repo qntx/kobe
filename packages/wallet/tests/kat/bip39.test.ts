@@ -1,5 +1,7 @@
 import { inspect } from "node:util";
-import { expect, test } from "vitest";
+
+import { expect, test } from "vite-plus/test";
+
 import { bytesToHex } from "../../src/crypto/hex.ts";
 import {
   DeriveError,
@@ -37,9 +39,9 @@ test("invalid mnemonic throws DeriveError mnemonic", () => {
   expect(() => walletFromMnemonic("not a valid mnemonic phrase at all")).toThrow(DeriveError);
   try {
     walletFromMnemonic("not a valid mnemonic phrase at all junk words here");
-  } catch (e) {
-    expect(e).toBeInstanceOf(DeriveError);
-    expect((e as DeriveError).code).toBe("mnemonic");
+  } catch (error) {
+    expect(error).toBeInstanceOf(DeriveError);
+    expect((error as DeriveError).code).toBe("mnemonic");
   }
 });
 
@@ -47,8 +49,8 @@ test("bad entropy length throws input", () => {
   expect(() => walletFromEntropy(new Uint8Array(15))).toThrow(DeriveError);
   try {
     walletFromEntropy(new Uint8Array(15));
-  } catch (e) {
-    expect((e as DeriveError).code).toBe("input");
+  } catch (error) {
+    expect((error as DeriveError).code).toBe("input");
   }
 });
 

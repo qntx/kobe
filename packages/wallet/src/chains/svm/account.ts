@@ -1,11 +1,8 @@
 import { base58 } from "@scure/base";
+
 import { DeriveError } from "../../errors/derive.ts";
-import {
-  createDerivedAccount,
-  type DerivedAccount,
-  type DerivedPublicKey,
-  type SvmAccount,
-} from "../../hd/account.ts";
+import { createDerivedAccount } from "../../hd/account.ts";
+import type { DerivedAccount, DerivedPublicKey, SvmAccount } from "../../hd/account.ts";
 import { wipeBytes } from "../../secret/dispose.ts";
 
 class SvmAccountImpl implements SvmAccount {
@@ -93,4 +90,4 @@ export function createSvmAccount(input: {
   return new SvmAccountImpl(inner, keypair);
 }
 
-export type { SvmAccount };
+export type { SvmAccount } from "../../hd/account.ts";

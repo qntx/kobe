@@ -1,18 +1,13 @@
 import { base58 } from "@scure/base";
+
 import { bytesToHex } from "../../crypto/hex.ts";
 import { SignError } from "../../errors/sign.ts";
-import type { DerivedAccount } from "../../hd/account.ts";
 import { wipeBytes } from "../../secret/dispose.ts";
-import {
-  ed25519SignerFromSecret,
-  type Ed25519Signer,
-  signerFromSecret,
-  type SecretKey32,
-  type SignOutput,
-} from "../../sign/index.ts";
+import { ed25519SignerFromSecret, signerFromSecret } from "../../sign/index.ts";
+import type { Ed25519Signer, SecretKey32, SignerKit, SignOutput } from "../../sign/index.ts";
 import { extractSignableBytes, spliceSignature } from "./compact-u16.ts";
 
-export interface SvmSigner {
+export type SvmSigner = {
   address(): string;
   publicKeyBytes(): Uint8Array;
   publicKeyHex(): string;
@@ -26,7 +21,7 @@ export interface SvmSigner {
   verify(message: Uint8Array, signature: Uint8Array): boolean;
   dispose(): void;
   [Symbol.dispose](): void;
-}
+};
 
 class SvmSignerImpl implements SvmSigner {
   readonly #inner: Ed25519Signer;
@@ -39,7 +34,9 @@ class SvmSignerImpl implements SvmSigner {
   }
 
   #assertLive(): void {
-    if (this.#disposed) throw new SignError("invalid_key", "disposed");
+    if (this.#disposed) {
+      throw new SignError("invalid_key", "disposed");
+    }
   }
 
   address(): string {
@@ -104,7 +101,9 @@ class SvmSignerImpl implements SvmSigner {
   }
 
   dispose(): void {
-    if (this.#disposed) return;
+    if (this.#disposed) {
+      return;
+    }
     wipeBytes(this.#sk);
     this.#inner.dispose();
     this.#disposed = true;
@@ -115,26 +114,22 @@ class SvmSignerImpl implements SvmSigner {
   }
 }
 
-export function svmSignerFromSecretKey(key: SecretKey32): SvmSigner {
+function svmSignerFromSecretKey(key: SecretKey32): SvmSigner {
   const sk = key.toBytes();
   return new SvmSignerImpl(ed25519SignerFromSecret(key), sk);
 }
 
-export const {
-  fromBytes: svmSignerFromBytes,
-  fromHex: svmSignerFromHex,
-  fromDerived: svmSignerFromDerived,
-} = signerFromSecret(svmSignerFromSecretKey);
+const svmSignerKit = signerFromSecret(svmSignerFromSecretKey);
 
-export function svmSignerFromKeypairBase58(b58: string): SvmSigner {
+function svmSignerFromKeypairBase58(b58: string): SvmSigner {
   let decoded: Uint8Array;
   try {
     decoded = base58.decode(b58);
-  } catch (e) {
+  } catch (error) {
     throw new SignError(
       "invalid_key",
-      e instanceof Error ? `keypair base58: ${e.message}` : "keypair base58",
-      { cause: e },
+      error instanceof Error ? `keypair base58: ${error.message}` : "keypair base58",
+      { cause: error },
     );
   }
   if (decoded.length !== 64) {
@@ -142,20 +137,15 @@ export function svmSignerFromKeypairBase58(b58: string): SvmSigner {
   }
   const secret = decoded.subarray(0, 32);
   try {
-    return svmSignerFromBytes(secret);
+    return svmSignerKit.fromBytes(secret);
   } finally {
     wipeBytes(decoded);
   }
 }
 
-export function createSvmSigner(account: DerivedAccount): SvmSigner {
-  return svmSignerFromDerived(account);
-}
-
-export const SvmSigner = {
-  fromSecretKey: svmSignerFromSecretKey,
-  fromBytes: svmSignerFromBytes,
-  fromHex: svmSignerFromHex,
-  fromDerived: svmSignerFromDerived,
+export const SvmSigner: SignerKit<SvmSigner> & {
+  fromKeypairBase58: (b58: string) => SvmSigner;
+} = {
+  ...svmSignerKit,
   fromKeypairBase58: svmSignerFromKeypairBase58,
 };

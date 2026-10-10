@@ -1,34 +1,35 @@
-# wallet.js
+# @qntx/wallet
 
 Software wallet kernel in TypeScript: HD derivation, protocol-framed
-signing, and AES-GCM credential blobs. Pure TypeScript (`@noble` / `@scure`).
-No RPC, hardware, or UI.
-
-Package: `@qntx/wallet`.
+signing, and versioned key-store envelopes. Pure TypeScript (`@noble` /
+`@scure`). No RPC, hardware, or UI.
 
 ```ts
 import { walletFromMnemonic } from "@qntx/wallet/hd";
-import { createEvmDeriver, createEvmSigner } from "@qntx/wallet/evm";
-import { encryptMnemonic, decryptMnemonic } from "@qntx/wallet/secret";
+import { createEvmDeriver, EvmSigner } from "@qntx/wallet/evm";
 
 const wallet = walletFromMnemonic("test test test test test test test test test test test junk");
 const evm = createEvmDeriver(wallet).derive(0);
-createEvmSigner(evm).signMessage(new TextEncoder().encode("hello"));
-
-const blob = encryptMnemonic(wallet.mnemonic(), "host-password");
-decryptMnemonic(blob, "host-password");
+EvmSigner.fromDerived(evm).signMessage(new TextEncoder().encode("hello"));
 ```
 
-Chain modules: `@qntx/wallet/evm`, `svm`, `btc`, `tron`, `cosmos`, `sui`, `aptos`, `nostr`, `ton`, `fil`, `spark`, `xrpl`, `casper`, `arweave`.  
-HD extras: `@qntx/wallet/hd/raw-seed`, `hd/wordlists`, `hd/camouflage`. Signing engines: `@qntx/wallet/sign`.
+Subpath-only package (no root entry): `@qntx/wallet/hd` (BIP-39/44 wallets,
+`hd/raw-seed`, `hd/wordlists`, `hd/camouflage`), `@qntx/wallet/sign`
+(secret keys and curve signers), chain modules `@qntx/wallet/evm` (plus
+`evm/rlp`), `svm`, `btc`, `nostr`, and `@qntx/wallet/vault` (AES-GCM
+envelope, PBKDF2/HKDF KDFs, `passkeyWallet`).
 
-Security: [`SECURITY.md`](../../SECURITY.md).
+Cross-language parity with the `kobe-*` Rust crates in this repository is
+checked against the shared `vectors/` corpus.
 
 ## License
 
-Licensed under the MIT License ([LICENSE](LICENSE) or <https://opensource.org/licenses/MIT>).
+Licensed under either of the MIT License ([LICENSE-MIT](LICENSE-MIT)) or the
+Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE)) at your option.
 
-Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in this project shall be licensed as above, without any additional terms or conditions.
+Unless you explicitly state otherwise, any contribution intentionally
+submitted for inclusion in this project shall be dual-licensed as above,
+without any additional terms or conditions.
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Install
-description: Install the kobe CLI, the kobe crate, and the @qntx/kobe package.
+description: Install the kobe CLI, the kobe crate, and the @qntx/wallet package.
 ---
 
 CLI:
@@ -26,9 +26,10 @@ kobe = { version = "4", features = ["std", "evm", "btc", "svm"] }
 TypeScript:
 
 ```bash
-bun add @qntx/kobe
+bun add @qntx/wallet
 ```
 
-(or `npm install @qntx/kobe`). The package is subpath-only — there is no root
-entry; import from `@qntx/kobe/core`, `@qntx/kobe/nostr`, or
-`@qntx/kobe/vault`.
+(or `npm install @qntx/wallet`). The package is subpath-only — there is no root
+entry; import from `@qntx/wallet/hd`, `@qntx/wallet/evm`, `@qntx/wallet/svm`,
+`@qntx/wallet/btc`, `@qntx/wallet/nostr`, `@qntx/wallet/sign`, or
+`@qntx/wallet/vault`.

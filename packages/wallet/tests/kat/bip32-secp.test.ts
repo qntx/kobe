@@ -1,4 +1,5 @@
-import { expect, test } from "vitest";
+import { expect, test } from "vite-plus/test";
+
 import { DeriveError, walletFromMnemonic } from "../../src/hd/index.ts";
 
 const ABANDON =
@@ -14,7 +15,7 @@ test("gold: ethereum path m/44'/60'/0'/0/0 private key (kobe/BIP-32)", () => {
     "0237b0bb7a8288d38ed49a524b5dc98cff3eb5ca824c9f9dc0dfdb3d9cd600f299",
   );
   expect(key.uncompressedPublicKey()[0]).toBe(0x04);
-  expect(key.uncompressedPublicKey().length).toBe(65);
+  expect(key.uncompressedPublicKey()).toHaveLength(65);
   w.dispose();
 });
 

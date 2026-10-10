@@ -1,4 +1,5 @@
-import { expect, test } from "vitest";
+import { expect, test } from "vite-plus/test";
+
 import { DeriveError, isDeriveError } from "../src/hd/index.ts";
 import { isSignError, SignError } from "../src/sign/index.ts";
 

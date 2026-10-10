@@ -7,17 +7,18 @@ import type { SignDigest, SignMessage } from "../traits.ts";
 
 export type Ed25519Output = Extract<SignOutput, { scheme: "ed25519" }>;
 
-export interface Ed25519Signer extends SignDigest, SignMessage {
+export type Ed25519Signer = {
   sign(message: Uint8Array): Ed25519Output;
   verify(message: Uint8Array, signature: Uint8Array): boolean;
   publicKey(): Uint8Array;
   dispose(): void;
   [Symbol.dispose](): void;
-}
+} & SignDigest &
+  SignMessage;
 
 class Ed25519SignerImpl implements Ed25519Signer {
   #sk: Uint8Array | undefined;
-  #pk: Uint8Array;
+  readonly #pk: Uint8Array;
   #disposed = false;
 
   constructor(sk: Uint8Array) {
@@ -57,7 +58,9 @@ class Ed25519SignerImpl implements Ed25519Signer {
   }
 
   dispose(): void {
-    if (this.#disposed) return;
+    if (this.#disposed) {
+      return;
+    }
     wipeBytes(this.#sk);
     this.#sk = undefined;
     this.#disposed = true;
@@ -70,14 +73,15 @@ class Ed25519SignerImpl implements Ed25519Signer {
 
 /**
  * Ed25519: every 32-byte seed is valid. Copies into signer-owned storage.
+ *
  * @throws SignError invalid_key if SecretKey32 is disposed
  */
 export function ed25519SignerFromSecret(key: SecretKey32): Ed25519Signer {
   const bytes = key.toBytes();
   try {
     return new Ed25519SignerImpl(bytes);
-  } catch (e) {
+  } catch (error) {
     wipeBytes(bytes);
-    throw e;
+    throw error;
   }
 }

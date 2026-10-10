@@ -1,4 +1,6 @@
-import { expect, test } from "vitest";
+import { expect, test } from "vite-plus/test";
+
+import { bytesToHex } from "../src/crypto/hex.ts";
 import {
   hash160,
   hash256,
@@ -8,7 +10,6 @@ import {
   pbkdf2Sha512,
   sha256Bytes,
 } from "../src/crypto/index.ts";
-import { bytesToHex } from "../src/crypto/hex.ts";
 
 const empty = new Uint8Array(0);
 const abc = new TextEncoder().encode("abc");
@@ -36,7 +37,7 @@ test("keccak256 empty (Ethereum)", () => {
 
 test("hmacSha512 produces 64 bytes", () => {
   const out = hmacSha512(new TextEncoder().encode("key"), abc);
-  expect(out.length).toBe(64);
+  expect(out).toHaveLength(64);
 });
 
 test("pbkdf2Sha512 bip39-shaped output length", () => {
@@ -46,7 +47,7 @@ test("pbkdf2Sha512 bip39-shaped output length", () => {
     1,
     64,
   );
-  expect(out.length).toBe(64);
+  expect(out).toHaveLength(64);
 });
 
 test("gold: PBKDF2-HMAC-SHA256 RFC 7914 §11 first block", () => {
@@ -60,6 +61,6 @@ test("gold: PBKDF2-HMAC-SHA256 RFC 7914 §11 first block", () => {
 });
 
 test("hash256 and hash160 lengths", () => {
-  expect(hash256(abc).length).toBe(32);
-  expect(hash160(abc).length).toBe(20);
+  expect(hash256(abc)).toHaveLength(32);
+  expect(hash160(abc)).toHaveLength(20);
 });

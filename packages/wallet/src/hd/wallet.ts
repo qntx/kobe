@@ -6,10 +6,15 @@ import {
   validateMnemonic,
 } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
-import { deriveSecp256k1FromSeed, type DerivedSecp256k1Key } from "../bip32/index.ts";
+
+import { deriveSecp256k1FromSeed } from "../bip32/index.ts";
+import type { DerivedSecp256k1Key } from "../bip32/index.ts";
+import { bytesToHex } from "../crypto/hex.ts";
+import { sha256Bytes } from "../crypto/index.ts";
 import { DeriveError } from "../errors/derive.ts";
 import { copyBytes, wipeBytes } from "../secret/dispose.ts";
-import { deriveEd25519FromSeed, type DerivedEd25519Key } from "../slip10/index.ts";
+import { deriveEd25519FromSeed } from "../slip10/index.ts";
+import type { DerivedEd25519Key } from "../slip10/index.ts";
 import { expandMnemonic } from "./expand.ts";
 import type { MnemonicLanguage } from "./language.ts";
 
@@ -26,10 +31,22 @@ const WORD_COUNT_TO_STRENGTH: Record<WordCount, number> = {
 
 const ENTROPY_LENS = new Set([16, 20, 24, 28, 32]);
 
-export interface Wallet {
+/** Domain separation tag for {@link Wallet.id} — ASCII bytes, no length prefix. */
+const WALLET_ID_DOMAIN = new TextEncoder().encode("kobe/wallet-id/v1");
+
+export type Wallet = {
   readonly hasPassphrase: boolean;
   readonly language: MnemonicLanguage;
   readonly wordCount: WordCount;
+
+  /**
+   * Stable 16-hex-char identifier: `SHA-256("kobe/wallet-id/v1" ‖ master_pubkey)[..8]` hex, where
+   * `master_pubkey` is the 33-byte compressed secp256k1 public key at path `m`. Not secret; safe to
+   * persist/log.
+   *
+   * @throws DeriveError input if disposed
+   */
+  id(): string;
 
   /** Fresh UTF-8 mnemonic bytes. Caller owns the copy. @throws if disposed */
   mnemonicBytes(): Uint8Array;
@@ -41,6 +58,7 @@ export interface Wallet {
 
   /**
    * SLIP-10 Ed25519. Every path segment after `m` must be hardened (`'`/`h`).
+   *
    * @throws DeriveError path | crypto | input if disposed
    */
   deriveEd25519(path: string): DerivedEd25519Key;
@@ -48,7 +66,7 @@ export interface Wallet {
   dispose(): void;
   [Symbol.dispose](): void;
   toString(): string;
-}
+};
 
 class WalletImpl implements Wallet {
   readonly hasPassphrase: boolean;
@@ -73,39 +91,51 @@ class WalletImpl implements Wallet {
     this.language = language;
   }
 
-  #assertLive(): void {
-    if (this.#disposed || !this.#mnemonicUtf8 || !this.#seed) {
+  #live(): { mnemonic: Uint8Array; seed: Uint8Array } {
+    const mnemonic = this.#mnemonicUtf8;
+    const seed = this.#seed;
+    if (this.#disposed || mnemonic === undefined || seed === undefined) {
       throw new DeriveError("input", "disposed");
     }
+    return { mnemonic, seed };
   }
 
   mnemonicBytes(): Uint8Array {
-    this.#assertLive();
-    return copyBytes(this.#mnemonicUtf8!);
+    return copyBytes(this.#live().mnemonic);
   }
 
   mnemonic(): string {
-    this.#assertLive();
-    return new TextDecoder().decode(this.#mnemonicUtf8!);
+    return new TextDecoder().decode(this.#live().mnemonic);
+  }
+
+  id(): string {
+    const master = deriveSecp256k1FromSeed(this.#live().seed, "m");
+    try {
+      const payload = new Uint8Array(WALLET_ID_DOMAIN.length + 33);
+      payload.set(WALLET_ID_DOMAIN);
+      payload.set(master.compressedPublicKey(), WALLET_ID_DOMAIN.length);
+      return bytesToHex(sha256Bytes(payload)).slice(0, 16);
+    } finally {
+      master.dispose();
+    }
   }
 
   seedBytes(): Uint8Array {
-    this.#assertLive();
-    return copyBytes(this.#seed!);
+    return copyBytes(this.#live().seed);
   }
 
   deriveSecp256k1(path: string): DerivedSecp256k1Key {
-    this.#assertLive();
-    return deriveSecp256k1FromSeed(this.#seed!, path);
+    return deriveSecp256k1FromSeed(this.#live().seed, path);
   }
 
   deriveEd25519(path: string): DerivedEd25519Key {
-    this.#assertLive();
-    return deriveEd25519FromSeed(this.#seed!, path);
+    return deriveEd25519FromSeed(this.#live().seed, path);
   }
 
   dispose(): void {
-    if (this.#disposed) return;
+    if (this.#disposed) {
+      return;
+    }
     wipeBytes(this.#mnemonicUtf8);
     wipeBytes(this.#seed);
     this.#mnemonicUtf8 = undefined;
@@ -132,18 +162,20 @@ class WalletImpl implements Wallet {
 
 function wordCountFromMnemonic(phrase: string): WordCount {
   const n = phrase.trim().split(/\s+/).length;
-  if (n === 12 || n === 15 || n === 18 || n === 21 || n === 24) return n;
+  if (n === 12 || n === 15 || n === 18 || n === 21 || n === 24) {
+    return n;
+  }
   throw new DeriveError("mnemonic", `unsupported word count ${n}`);
 }
 
 export function buildWalletWith(
   phrase: string,
   passphrase: string,
-  list: readonly string[],
+  list: string[],
   language: MnemonicLanguage,
 ): Wallet {
   const normalized = phrase.trim().split(/\s+/).filter(Boolean).join(" ");
-  if (!validateMnemonic(normalized, list as string[])) {
+  if (!validateMnemonic(normalized, list)) {
     throw new DeriveError("mnemonic", "invalid mnemonic checksum or words");
   }
   const seed = mnemonicToSeedSync(normalized, passphrase);
@@ -164,12 +196,12 @@ function buildWallet(phrase: string, passphrase: string): Wallet {
   return buildWalletWith(phrase, passphrase, wordlist, "english");
 }
 
-export interface GenerateWalletOptions {
+export type GenerateWalletOptions = {
   wordCount?: WordCount;
   passphrase?: string;
   /** Fill the provided buffer with CSPRNG bytes. Defaults to crypto.getRandomValues. */
   rng?: (bytes: Uint8Array) => void;
-}
+};
 
 /** @throws DeriveError input (word count) */
 export function generateWallet(opts: GenerateWalletOptions = {}): Wallet {
@@ -195,10 +227,12 @@ export function generateWallet(opts: GenerateWalletOptions = {}): Wallet {
 export function walletFromMnemonic(phrase: string, passphrase = ""): Wallet {
   try {
     return buildWallet(phrase, passphrase);
-  } catch (e) {
-    if (e instanceof DeriveError) throw e;
-    throw new DeriveError("mnemonic", e instanceof Error ? e.message : "invalid mnemonic", {
-      cause: e,
+  } catch (error) {
+    if (error instanceof DeriveError) {
+      throw error;
+    }
+    throw new DeriveError("mnemonic", error instanceof Error ? error.message : "invalid mnemonic", {
+      cause: error,
     });
   }
 }
@@ -216,34 +250,37 @@ export function walletFromEntropy(entropy: Uint8Array, passphrase = ""): Wallet 
   try {
     const phrase = entropyToMnemonic(entropy, wordlist);
     return buildWallet(phrase, passphrase);
-  } catch (e) {
-    if (e instanceof DeriveError) throw e;
-    throw new DeriveError("mnemonic", e instanceof Error ? e.message : "invalid entropy", {
-      cause: e,
+  } catch (error) {
+    if (error instanceof DeriveError) {
+      throw error;
+    }
+    throw new DeriveError("mnemonic", error instanceof Error ? error.message : "invalid entropy", {
+      cause: error,
     });
   }
 }
 
 /**
- * Fresh 64-byte BIP-39 seed copy. Caller owns it.
- * Public only via `wallet/hd/raw-seed` (kobe `raw-seed` analog).
- * @throws DeriveError input if disposed or not a wallet.js Wallet
+ * Fresh 64-byte BIP-39 seed copy. Caller owns it. Public only via `wallet/hd/raw-seed` (kobe
+ * `raw-seed` analog).
+ *
+ * @throws DeriveError input if disposed or not an @qntx/wallet Wallet
  */
 export function walletSeedBytes(wallet: Wallet): Uint8Array {
   if (!(wallet instanceof WalletImpl)) {
-    throw new DeriveError("input", "wallet seed: not a wallet.js Wallet");
+    throw new DeriveError("input", "wallet seed: not an @qntx/wallet Wallet");
   }
   return wallet.seedBytes();
 }
 
 /** Validate BIP-39 English mnemonic without constructing a wallet. */
 export function isValidMnemonic(phrase: string): boolean {
-  return validateMnemonic(phrase.trim().replace(/\s+/g, " "), wordlist);
+  return validateMnemonic(phrase.trim().replaceAll(/\s+/g, " "), wordlist);
 }
 
 /** Entropy bytes from a valid mnemonic (for tests / advanced). @throws DeriveError */
 export function mnemonicToEntropyBytes(phrase: string): Uint8Array {
-  const normalized = phrase.trim().replace(/\s+/g, " ");
+  const normalized = phrase.trim().replaceAll(/\s+/g, " ");
   if (!validateMnemonic(normalized, wordlist)) {
     throw new DeriveError("mnemonic", "invalid mnemonic checksum or words");
   }

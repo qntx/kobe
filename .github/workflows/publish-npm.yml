@@ -1,22 +1,22 @@
 # Caller owns on:. Pin at @v2.
 # OIDC. Do not pass NPM_TOKEN. Do not set environment, runs-on, or steps.
-# Required check-run on a tag: kobe / publish.
+# Required check-run on a tag: wallet / publish.
 name: Publish npm
 
 on:
   push:
-    tags: ["v*.*.*"]
+    tags: ["wallet-v*.*.*"]
 
 permissions:
   contents: read
   id-token: write
 
 jobs:
-  kobe:
+  wallet:
     uses: qntx/workflows/.github/workflows/publish-npm.yml@v2
     permissions:
       contents: read
       id-token: write
     with:
       package-manager: bun
-      working-directory: packages/kobe
+      working-directory: packages/wallet

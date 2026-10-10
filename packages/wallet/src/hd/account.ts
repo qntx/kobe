@@ -3,9 +3,9 @@ import { DeriveError } from "../errors/derive.ts";
 import { copyBytes, wipeBytes } from "../secret/dispose.ts";
 
 /**
- * Public-key payload. `bytes` is an owned snapshot captured at construction.
- * Survives `dispose()` of the parent account. Mutating `bytes` does not
- * affect the account; the library never mutates it after handoff.
+ * Public-key payload. `bytes` is an owned snapshot captured at construction. Survives `dispose()`
+ * of the parent account. Mutating `bytes` does not affect the account; the library never mutates it
+ * after handoff.
  */
 export type DerivedPublicKey =
   | { readonly kind: "secp256k1-compressed"; readonly bytes: Uint8Array }
@@ -32,7 +32,7 @@ export function snapshotPublicKey(pk: DerivedPublicKey): DerivedPublicKey {
   return { kind: pk.kind, bytes: copyBytes(pk.bytes) };
 }
 
-export interface DerivedAccount {
+export type DerivedAccount = {
   readonly path: string;
   readonly publicKey: DerivedPublicKey;
   readonly address: string;
@@ -46,23 +46,24 @@ export interface DerivedAccount {
   dispose(): void;
   [Symbol.dispose](): void;
   toString(): string;
-}
+};
 
 /** SVM wrapper type (construction in PR9). */
-export interface SvmAccount extends DerivedAccount {
+export type SvmAccount = {
   /** Base58(secret‖public) Phantom format. @throws if disposed */
   keypairBase58(): string;
-}
+} & DerivedAccount;
 
-export interface CreateDerivedAccountInput {
+export type CreateDerivedAccountInput = {
   path: string;
   privateKey: Uint8Array;
   publicKey: DerivedPublicKey;
   address: string;
-}
+};
 
 /**
  * Build a `DerivedAccount`. Copies the 32-byte secret; snapshots pubkey bytes.
+ *
  * @throws DeriveError crypto if secret is not 32 bytes or pubkey length mismatches
  */
 export function createDerivedAccount(input: CreateDerivedAccountInput): DerivedAccount {
@@ -95,15 +96,16 @@ class DerivedAccountImpl implements DerivedAccount {
     this.address = address;
   }
 
-  #assertLive(): void {
-    if (this.#disposed || !this.#sk) {
+  #live(): Uint8Array {
+    const sk = this.#sk;
+    if (this.#disposed || sk === undefined) {
       throw new DeriveError("input", "disposed");
     }
+    return sk;
   }
 
   privateKeyBytes(): Uint8Array {
-    this.#assertLive();
-    return copyBytes(this.#sk!);
+    return copyBytes(this.#live());
   }
 
   privateKeyHex(): string {
@@ -119,7 +121,9 @@ class DerivedAccountImpl implements DerivedAccount {
   }
 
   dispose(): void {
-    if (this.#disposed) return;
+    if (this.#disposed) {
+      return;
+    }
     wipeBytes(this.#sk);
     this.#sk = undefined;
     this.#disposed = true;

@@ -1,15 +1,12 @@
 import { DeriveError } from "../../errors/derive.ts";
-import {
-  createDerivedAccount,
-  type DerivedAccount,
-  type DerivedPublicKey,
-} from "../../hd/account.ts";
+import { createDerivedAccount } from "../../hd/account.ts";
+import type { DerivedAccount, DerivedPublicKey } from "../../hd/account.ts";
 import type { BtcAddressType } from "./types.ts";
 
-export interface BtcAccount extends DerivedAccount {
+export type BtcAccount = {
   privateKeyWif(): string;
   addressType(): BtcAddressType;
-}
+} & DerivedAccount;
 
 class BtcAccountImpl implements BtcAccount {
   readonly path: string;
@@ -45,7 +42,9 @@ class BtcAccountImpl implements BtcAccount {
   }
 
   privateKeyWif(): string {
-    if (this.#wif === undefined) throw new DeriveError("input", "disposed");
+    if (this.#wif === undefined) {
+      throw new DeriveError("input", "disposed");
+    }
     return this.#wif;
   }
 

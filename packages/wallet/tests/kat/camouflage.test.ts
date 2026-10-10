@@ -1,4 +1,5 @@
-import { expect, test } from "vitest";
+import { expect, test } from "vite-plus/test";
+
 import { DeriveError } from "../../src/errors/derive.ts";
 import { decrypt, encrypt } from "../../src/hd/camouflage.ts";
 import { isValidMnemonic, walletFromMnemonic } from "../../src/hd/index.ts";
@@ -9,7 +10,7 @@ const TEST_12 =
 const TEST_24 =
   "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art";
 const PASSWORD = "my-secret-password-2024";
-/** python hashlib PBKDF2-HMAC-SHA256 + @scure entropyToMnemonic (zero entropy XOR key). */
+/** Python hashlib PBKDF2-HMAC-SHA256 + @scure entropyToMnemonic (zero entropy XOR key). */
 const GOLD_12 = "weasel chase romance unfold member patrol tip short defy remove glide creek";
 
 test("gold: v1 camouflage of abandon 12-word (kobe salt/iter + hashlib)", () => {

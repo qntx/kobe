@@ -13,7 +13,7 @@ export type MnemonicLanguage =
   | "simplified-chinese"
   | "traditional-chinese";
 
-export const MNEMONIC_LANGUAGES: readonly MnemonicLanguage[] = [
+export const MNEMONIC_LANGUAGES: ReadonlyArray<MnemonicLanguage> = [
   "english",
   "japanese",
   "korean",

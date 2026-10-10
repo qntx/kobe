@@ -1,4 +1,5 @@
-import { expect, test } from "vitest";
+import { expect, test } from "vite-plus/test";
+
 import { bytesToHex } from "../../src/crypto/hex.ts";
 import { DeriveError } from "../../src/errors/derive.ts";
 import {
@@ -8,6 +9,7 @@ import {
   walletFromMnemonic,
   walletFromMnemonicExpanded,
 } from "../../src/hd/index.ts";
+import * as hd from "../../src/hd/index.ts";
 import { walletSeedBytes } from "../../src/hd/raw-seed.ts";
 import {
   generateWalletIn,
@@ -16,7 +18,6 @@ import {
   walletFromMnemonicIn,
   wordlistFor,
 } from "../../src/hd/wordlists.ts";
-import * as hd from "../../src/hd/index.ts";
 
 const ABANDON =
   "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -37,18 +38,18 @@ test("expand rejects short/unknown prefixes without echoing the token", () => {
   try {
     expandMnemonic("aba aba aba aba aba aba aba aba aba aba aba aba");
     throw new Error("expected throw");
-  } catch (e) {
-    expect(e).toBeInstanceOf(DeriveError);
-    expect((e as DeriveError).code).toBe("input");
-    expect((e as DeriveError).message).toContain("too short");
-    expect((e as DeriveError).message).not.toContain("aba");
+  } catch (error) {
+    expect(error).toBeInstanceOf(DeriveError);
+    expect((error as DeriveError).code).toBe("input");
+    expect((error as DeriveError).message).toContain("too short");
+    expect((error as DeriveError).message).not.toContain("aba");
   }
   try {
     expandMnemonic("aban aban aban aban aban aban aban aban aban aban aban zzzz");
     throw new Error("expected throw");
-  } catch (e) {
-    expect((e as DeriveError).message).toContain("does not match");
-    expect((e as DeriveError).message).not.toContain("zzzz");
+  } catch (error) {
+    expect((error as DeriveError).message).toContain("does not match");
+    expect((error as DeriveError).message).not.toContain("zzzz");
   }
 });
 
@@ -86,9 +87,9 @@ test("walletFromMnemonicIn rejects the English phrase as Japanese", () => {
 test("generateWalletIn japanese is 12 valid words", () => {
   using w = generateWalletIn("japanese", { wordCount: 12 });
   expect(w.language).toBe("japanese");
-  expect(w.mnemonic().split(/\s+/).length).toBe(12);
+  expect(w.mnemonic().split(/\s+/)).toHaveLength(12);
   expect(isValidMnemonicIn("japanese", w.mnemonic())).toBe(true);
-  expect(wordlistFor("japanese").length).toBe(2048);
+  expect(wordlistFor("japanese")).toHaveLength(2048);
 });
 
 test("parseMnemonicLanguage aliases; unknown throws", () => {
