@@ -42,6 +42,9 @@ const config: UserConfig = defineConfig({
   },
   test: {
     include: ["tests/**/*.test.ts"],
+    // KDF vectors (BIP-39 PBKDF2, vault PBKDF2, camouflage) run real
+    // iteration counts in pure JS and exceed the 5 s default under load.
+    testTimeout: 30_000,
   },
 });
 

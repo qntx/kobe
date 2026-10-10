@@ -92,6 +92,10 @@ const config: UserConfig = defineConfig({
             { name: "location", message: "browser-only global — use globalThis" },
             { name: "localStorage", message: "browser-only global — inject a store" },
             { name: "sessionStorage", message: "browser-only global — inject a store" },
+            {
+              name: "TextDecoder",
+              message: "absent on Hermes — use utf8.encode from @scure/base",
+            },
           ],
           "eslint/no-restricted-imports": ["error", platformNeutralImports],
         },

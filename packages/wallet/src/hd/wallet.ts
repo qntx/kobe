@@ -1,3 +1,4 @@
+import { utf8 } from "@scure/base";
 import {
   entropyToMnemonic,
   generateMnemonic,
@@ -105,7 +106,7 @@ class WalletImpl implements Wallet {
   }
 
   mnemonic(): string {
-    return new TextDecoder().decode(this.#live().mnemonic);
+    return utf8.encode(this.#live().mnemonic);
   }
 
   id(): string {
