@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "capability": "evm.address",
+  "source": {
+    "kind": "reference",
+    "name": "EIP-55 spec checksum vectors plus recoverAddress cases reusing the evm.sign personal-message signatures",
+    "url": "https://eips.ethereum.org/EIPS/eip-55",
+    "reference": "viem 2.55.19"
+  },
+  "cases": [
+    {
+      "kind": "parse",
+      "address": "0x52908400098527886E0F7030069857D2E4169EE7"
+    },
+    {
+      "kind": "parse",
+      "address": "0x8617E340B3D01FA5F11F306F4090FD50E238070D"
+    },
+    {
+      "kind": "parse",
+      "address": "0xde709f2102306220921060314715629080e2fb77"
+    },
+    {
+      "kind": "parse",
+      "address": "0x27b1fdb04752bbc536007a920d24acb045561c26"
+    },
+    {
+      "kind": "parse",
+      "address": "0x5AEDA56215B167893E80B4FE645BA6D5BAB767DE"
+    },
+    {
+      "kind": "parse",
+      "address": "0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359"
+    },
+    {
+      "kind": "parse",
+      "address": "0xdbF03B407c01E7cD3CBea99509d93f8DDDC8C6FB"
+    },
+    {
+      "kind": "parse",
+      "address": "0xD1220A0cf47c7B9Be7A2E6BA89F429762e7b9aDb"
+    },
+    {
+      "kind": "parse",
+      "address": "0xFB6916095CA1DF60BB79CE92CE3EA74C37C5D359"
+    },
+    {
+      "kind": "parse",
+      "address": "0x52908400098527886E0F7030069857d2E4169EE7",
+      "error": "input"
+    },
+    {
+      "kind": "parse",
+      "address": "0x52908400098527886E0F7030069857D2E4169EE",
+      "error": "input"
+    },
+    {
+      "kind": "parse",
+      "address": "0x52908400098527886E0F7030069857D2E4169EE77",
+      "error": "input"
+    },
+    {
+      "kind": "parse",
+      "address": "52908400098527886E0F7030069857D2E4169EE7",
+      "error": "input"
+    },
+    {
+      "kind": "parse",
+      "address": "0xZZ908400098527886E0F7030069857D2E4169EE7",
+      "error": "input"
+    },
+    {
+      "kind": "recover",
+      "digest": "56db82ebe75f3f98e4c22251bff0003fb75b5b330b62acb24f0588ed79e45f53",
+      "signature": "bd238f0d6957ec577e5f90d781f63ff97e730ad39007e4bdde7b903af5f448762e2ef82e254d3c17337883c34a74d9fb0399226f818e4d1621377107f465f690",
+      "recovery": 1,
+      "address": "0x2c7536E3605D9C16a7a3D7b1898e529396a65c23"
+    },
+    {
+      "kind": "recover",
+      "digest": "5f35dce98ba4fba25530a026ed80b2cecdaa31091ba4958b99b52ea1d068adad",
+      "signature": "8a68b4e66cd2b575338e16069d7b65f6f67c7ceae8945dccf8cb7bdb06278d933dd9c888f3444ca4698464079a067ad3cfffe96d493b8ecf56885169d0fdfe7d",
+      "recovery": 0,
+      "address": "0x2c7536E3605D9C16a7a3D7b1898e529396a65c23"
+    },
+    {
+      "kind": "recover",
+      "digest": "bba2e157f5db5c78fc30b6c4d617b4672a700430e60d173c6d0bf9ffdcb19b8a",
+      "signature": "2f427e446ac07febb92a5975bb880932709405e5e415a0d97b4d98f2905356201cb25b8cb8b8648b46fb539235ddba4d1fa398d8957ca4cb4ab0389bb42e6c19",
+      "recovery": 1,
+      "address": "0x2c7536E3605D9C16a7a3D7b1898e529396a65c23"
+    }
+  ]
+}

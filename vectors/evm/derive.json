@@ -1,0 +1,165 @@
+{
+  "schema": 1,
+  "capability": "evm.derive",
+  "source": {
+    "kind": "reference",
+    "name": "viem mnemonicToAccount / HDKey derivation; BIP-39 seeds via @scure/bip39, BIP-32 via @scure/bip32",
+    "url": "https://github.com/wevm/viem",
+    "reference": "viem 2.55.19"
+  },
+  "cases": [
+    {
+      "style": "standard",
+      "index": 0,
+      "path": "m/44'/60'/0'/0/0",
+      "publicKey": "0437b0bb7a8288d38ed49a524b5dc98cff3eb5ca824c9f9dc0dfdb3d9cd600f299a6179912b7451c09896c4098eca7ce6b2e58330672795e847c4d6af44e024230",
+      "address": "0x9858EfFD232B4033E47d90003D41EC34EcaEda94",
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+    },
+    {
+      "style": "standard",
+      "index": 1,
+      "path": "m/44'/60'/0'/0/1",
+      "publicKey": "049fd0991d0222b4e1339c1a1a5b5f6d9f6a96672a3247b638ee6156d9ea877a2f1735e3a9260940e4c2225c344a8cea6c7b6a6057d0eb90a9a875f446c131031d",
+      "address": "0x6Fac4D18c912343BF86fa7049364Dd4E424Ab9C0",
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+    },
+    {
+      "style": "standard",
+      "index": 2,
+      "path": "m/44'/60'/0'/0/2",
+      "publicKey": "04880bcb4bf46b49bdb071e307e282b11b9166907d9708f8c706092c44743f3e67cf16b2c08d5424a0c8b210b0d8df671a4f455adc49349ca06a1476c029b73847",
+      "address": "0xb6716976A3ebe8D39aCEB04372f22Ff8e6802D7A",
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+    },
+    {
+      "style": "ledger-live",
+      "index": 0,
+      "path": "m/44'/60'/0'/0/0",
+      "publicKey": "0437b0bb7a8288d38ed49a524b5dc98cff3eb5ca824c9f9dc0dfdb3d9cd600f299a6179912b7451c09896c4098eca7ce6b2e58330672795e847c4d6af44e024230",
+      "address": "0x9858EfFD232B4033E47d90003D41EC34EcaEda94",
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+    },
+    {
+      "style": "ledger-live",
+      "index": 1,
+      "path": "m/44'/60'/1'/0/0",
+      "publicKey": "048ccc8186e5933e845afd096cc6d3f2fdb25fbe4db4864b944619afa8e4e8bd5eaf3729f0c745606b41ed7a542d37469acd4f52db2b0e5a4ca23544c886c2a479",
+      "address": "0x78839F6054d7ed13918bAe0473BA31b1Ca9D7265",
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+    },
+    {
+      "style": "ledger-live",
+      "index": 2,
+      "path": "m/44'/60'/2'/0/0",
+      "publicKey": "04b6d02fac880da63c44e13605e1ba8413e0e7eb93b5bc164af4f7798c775550faec6bd956d4f37c09b27965d0897c7508654df6082ce95d1b360bdba7b283d2df",
+      "address": "0x07B5FdfEB4E11826D233403Fe8Db0611CCF4c231",
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+    },
+    {
+      "style": "ledger-legacy",
+      "index": 0,
+      "path": "m/44'/60'/0'/0",
+      "publicKey": "04ccf96184b4d342c523936910e0222be7131654842db75bb1a5cbc772fe21b2d6285b9ba76d05471e771e3a3be18a313a6ce7a1d3b6a2d21f5b60ba8c03097338",
+      "address": "0xB8Fd42000d00202DCbCF5e18d6640d656345FD6A",
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+    },
+    {
+      "style": "ledger-legacy",
+      "index": 1,
+      "path": "m/44'/60'/0'/1",
+      "publicKey": "04384168d50be3042f533adf58e9080b544671de3d57eb2438284eea1ae2a5cfc6ddd2df26d50a6847df3c942f0681c615db592c44220250d39bc15611a6840208",
+      "address": "0x94381955F4028159A477a107510618aDb6B79Eb7",
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+    },
+    {
+      "style": "ledger-legacy",
+      "index": 2,
+      "path": "m/44'/60'/0'/2",
+      "publicKey": "046d75811e8e933acbffb83e5f7a4f04f5c1dea71e941879ae2298c006134708974cf3aee160b68a9767c3e43caf814232858a3964ca031f9fa66f86dab2c157c0",
+      "address": "0xf1e6B562fCb2BdF5579D3A2Fe7069E26A7831053",
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+    },
+    {
+      "style": "standard",
+      "index": 0,
+      "path": "m/44'/60'/0'/0/0",
+      "publicKey": "04d57b445113db2359bf6dd1b25476c5b0f9e843d96f99d355d4c667ef70956a301bcb989c6c0b8892378e76e466043c6023a402613d527bba2052495baa8d01e1",
+      "address": "0x7e478Dc47D5A21C3dbd52c142EF0d255E7EB562F",
+      "mnemonic": "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo vote",
+      "passphrase": "TREZOR"
+    },
+    {
+      "style": "standard",
+      "index": 1,
+      "path": "m/44'/60'/0'/0/1",
+      "publicKey": "04ce6b20481df04e96412273f83722aa6f0e04c17a71bb6a210dc9d4b203120bc6f04c2d43756cae1672c2c14f024c891ea4136f0a6fd9b264db43734c23bcd565",
+      "address": "0x555133f07ec0b74A5f1A788954cADC2586a07A12",
+      "mnemonic": "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo vote",
+      "passphrase": "TREZOR"
+    },
+    {
+      "style": "standard",
+      "index": 2,
+      "path": "m/44'/60'/0'/0/2",
+      "publicKey": "04b47bf0bce762b6e6585b67d337c8a55d8224f65c1beed833d593e11d0692ca674a90ae2b415367e30c9686ee09a9dc2248c4dcc6a28324aaf3c7358e1f9b78af",
+      "address": "0xF4A0FdCf1FB0229D02eC15B2Db936f313aF5EbD9",
+      "mnemonic": "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo vote",
+      "passphrase": "TREZOR"
+    },
+    {
+      "style": "ledger-live",
+      "index": 0,
+      "path": "m/44'/60'/0'/0/0",
+      "publicKey": "04d57b445113db2359bf6dd1b25476c5b0f9e843d96f99d355d4c667ef70956a301bcb989c6c0b8892378e76e466043c6023a402613d527bba2052495baa8d01e1",
+      "address": "0x7e478Dc47D5A21C3dbd52c142EF0d255E7EB562F",
+      "mnemonic": "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo vote",
+      "passphrase": "TREZOR"
+    },
+    {
+      "style": "ledger-live",
+      "index": 1,
+      "path": "m/44'/60'/1'/0/0",
+      "publicKey": "049d7d177d0e1052a89bf1b3fbb9532cd2eb0ecf9442f54fde84cacf613bd0d6361ec699cff9e04b6b896b2fb6e4ef8c1b7d8fcd7d5b2f6d122e6e665db6191236",
+      "address": "0xb3858724AD9140be8fEd2aB1c5AAc5f8Ee829fD2",
+      "mnemonic": "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo vote",
+      "passphrase": "TREZOR"
+    },
+    {
+      "style": "ledger-live",
+      "index": 2,
+      "path": "m/44'/60'/2'/0/0",
+      "publicKey": "04f94411fdc341ca853c73b8db0ecaf8a18d39ea389da8b3766b58ee05efbc0086a9f573409d1d4a67db33a9fbb87663b1254d6d18b9b6d794d2e90bf09275bcd9",
+      "address": "0xd980Da56b42166738f90500CD81d15F94Cc80CeB",
+      "mnemonic": "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo vote",
+      "passphrase": "TREZOR"
+    },
+    {
+      "style": "ledger-legacy",
+      "index": 0,
+      "path": "m/44'/60'/0'/0",
+      "publicKey": "0470789b156fea9f86128e53f838210f2aaa293bbe6646b8f8b9679bc1a9fec2c7ff0b85a096a0b22f5cf6675423b0dd1cb3c18bfe4d499152be2db34574f3fd50",
+      "address": "0x753B19338b4e68E2dcD6DB8bdAA968CEd47ec59E",
+      "mnemonic": "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo vote",
+      "passphrase": "TREZOR"
+    },
+    {
+      "style": "ledger-legacy",
+      "index": 1,
+      "path": "m/44'/60'/0'/1",
+      "publicKey": "0432d1f8bdacf2013fc3e15d3329cfb6a7e37b140637ceb384ce079de6517165ee52801179c20c25ba99609f7619d901e8142da4230b4a1c404ce8f671271b5d97",
+      "address": "0x7c7e83d936dc7172a269aC38180F42B108b29cDC",
+      "mnemonic": "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo vote",
+      "passphrase": "TREZOR"
+    },
+    {
+      "style": "ledger-legacy",
+      "index": 2,
+      "path": "m/44'/60'/0'/2",
+      "publicKey": "04cfc28b88589b7c2c7c06bd3d05049eebcc82a66244aec61215653db669cd4e56090702457ad049528a1107724f6133c83d6c8de716e4a9bd482ae73a4d2019ed",
+      "address": "0x282E35F15f6C97BEC74c8bd2E23e5699cFB34415",
+      "mnemonic": "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo vote",
+      "passphrase": "TREZOR"
+    }
+  ]
+}

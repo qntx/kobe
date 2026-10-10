@@ -12,6 +12,7 @@ authors.workspace      = true
 
 [dev-dependencies]
 kobe-core  = { workspace = true, features = ["bip32", "raw-seed", "secp256k1", "schnorr", "slip10"] }
+kobe-evm   = { workspace = true }
 kobe-nostr = { workspace = true }
 kobe-vault = { workspace = true }
 serde      = { workspace = true }

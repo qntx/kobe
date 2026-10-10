@@ -21,6 +21,7 @@ const config: UserConfig = defineConfig({
     deps: { resolveDepSubpath: true },
     entry: {
       core: "src/core/index.ts",
+      evm: "src/evm/index.ts",
       nostr: "src/nostr/index.ts",
       vault: "src/vault/index.ts",
     },

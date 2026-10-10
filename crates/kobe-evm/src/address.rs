@@ -31,6 +31,15 @@ pub fn to_checksum(address: &[u8; 20]) -> String {
     out
 }
 
+/// EIP-55 checksummed address of a 65-byte SEC1 uncompressed public key:
+/// `keccak256(key[1..])[12..]`.
+pub(crate) fn address_from_uncompressed(key: &[u8; 65]) -> String {
+    let &[_, public_key @ ..] = key;
+    let hash: [u8; 32] = Keccak256::digest(public_key).into();
+    let [_, _, _, _, _, _, _, _, _, _, _, _, tail @ ..] = hash;
+    to_checksum(&tail)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

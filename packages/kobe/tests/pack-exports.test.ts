@@ -35,10 +35,10 @@ describe("applyPackExports", () => {
 });
 
 describe("package.json publish shape", () => {
-  test("is subpath-only: ./core and ./nostr, no package root", () => {
+  test("is subpath-only: ./core, ./evm, ./nostr, ./vault, no package root", () => {
     const pkg = readPkg();
     expect(pkg.exports["."]).toBeUndefined();
-    for (const subpath of ["./core", "./nostr"] as const) {
+    for (const subpath of ["./core", "./evm", "./nostr", "./vault"] as const) {
       const name = subpath.slice(2);
       expect(pkg.exports[subpath]).toStrictEqual({
         types: `./dist/${name}.d.mts`,
@@ -52,9 +52,10 @@ describe("package.json publish shape", () => {
     expect(readPkg().exports["./package.json"]).toBe("./package.json");
   });
 
-  test("vite pack entries include the core and nostr indexes", () => {
+  test("vite pack entries include the core, evm and nostr indexes", () => {
     const src = readFileSync(join(root, "vite.config.ts"), "utf8");
     expect(src).toContain('core: "src/core/index.ts"');
+    expect(src).toContain('evm: "src/evm/index.ts"');
     expect(src).toContain('nostr: "src/nostr/index.ts"');
   });
 });
