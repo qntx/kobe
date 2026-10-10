@@ -8,5 +8,7 @@
 export type { DerivedAccount, DerivedPublicKey } from "./account.ts";
 export type { DerivedSecp256k1Key } from "./bip32.ts";
 export { KobeError, type KobeErrorCode } from "./error.ts";
+export { SecretKey } from "./secret.ts";
+export type { RecoverableSignature } from "./signature.ts";
 export { expandMnemonic } from "./expand.ts";
 export { type GenerateWalletOptions, isValidMnemonic, Wallet, type WordCount } from "./wallet.ts";

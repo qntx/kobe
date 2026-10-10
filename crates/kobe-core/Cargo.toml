@@ -19,8 +19,12 @@ std     = ["bip39/std", "zeroize/std"]
 # `--no-default-features` builds carry no `getrandom`.
 os-rng     = ["dep:getrandom"]
 camouflage = ["dep:hmac", "dep:sha2"]
-slip10     = ["dep:ed25519-dalek", "dep:hmac", "dep:sha2"]
-bip32      = ["dep:bip32-crate", "dep:k256", "dep:sha2"]
+# Curve signing primitives; every engine zeroizes its inner key on drop.
+secp256k1 = ["dep:k256"]
+schnorr   = ["secp256k1", "k256/schnorr"]
+ed25519   = ["dep:ed25519-dalek"]
+slip10    = ["ed25519", "dep:hmac", "dep:sha2"]
+bip32     = ["dep:bip32-crate", "secp256k1", "dep:sha2"]
 # Shared hash160 / Base58Check helpers for chain address encoding.
 encoding = ["dep:sha2", "dep:ripemd", "dep:bs58"]
 # Escape hatch: expose [`Wallet::seed`]. Prefer `derive_secp256k1` /
