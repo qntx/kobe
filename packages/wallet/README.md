@@ -22,6 +22,16 @@ envelope, PBKDF2/HKDF KDFs, `passkeyWallet`).
 Cross-language parity with the `kobe-*` Rust crates in this repository is
 checked against the shared `vectors/` corpus.
 
+Secret-bearing objects implement `Symbol.dispose`, and the library uses
+`using` internally. React Native (Hermes) has no `Symbol.dispose`, so install
+this before the first import of `@qntx/wallet`:
+
+```ts
+const symbols = Symbol as { dispose?: symbol; asyncDispose?: symbol };
+symbols.dispose ??= Symbol.for("Symbol.dispose");
+symbols.asyncDispose ??= Symbol.for("Symbol.asyncDispose");
+```
+
 ## License
 
 Licensed under either of the MIT License ([LICENSE-MIT](LICENSE-MIT)) or the

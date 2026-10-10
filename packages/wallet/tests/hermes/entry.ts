@@ -1,13 +1,14 @@
 import { EvmSigner } from "../../src/chains/evm/index.ts";
 import { createNostrDeriver } from "../../src/chains/nostr/index.ts";
-/**
- * Bundle entry for the Hermes smoke test: import the package entries and run BIP-39 / NIP-06 /
- * vault known-answer checks on Hermes.
- */
 import { hexToBytes } from "../../src/crypto/hex.ts";
 import { walletFromEntropy, walletFromMnemonic } from "../../src/hd/index.ts";
 import { secp256k1SignerFromSecret, secretKeyFromBytes } from "../../src/sign/index.ts";
 import { derivePrfKey, open, passkeyWallet, seal } from "../../src/vault/index.ts";
+
+/*
+ * Bundle entry for the Hermes smoke test: run BIP-39 / NIP-06 / vault / EVM known-answer checks on
+ * Hermes. scripts/hermes-smoke.ts runs tests/hermes/polyfill.ts as a separate script first.
+ */
 
 declare function print(msg: string): void;
 declare function quit(code: number): void;
@@ -51,6 +52,9 @@ function hex(b: Uint8Array): string {
 }
 
 try {
+  if (typeof Symbol.dispose !== "symbol") {
+    throw new TypeError("Symbol.dispose polyfill not installed");
+  }
   const wallet = walletFromEntropy(new Uint8Array(16));
   if (wallet.mnemonic() !== ABANDON) {
     throw new Error("fromEntropy mnemonic mismatch");

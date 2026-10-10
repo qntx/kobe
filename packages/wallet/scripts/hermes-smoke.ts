@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 type BunBuildOutput = {
   success: boolean;
   logs: ReadonlyArray<{ toString: () => string }>;
-  outputs: ReadonlyArray<{ kind: string }>;
+  outputs: ReadonlyArray<{ kind: string; text: () => Promise<string> }>;
 };
 declare const Bun: {
   build: (options: {
@@ -33,15 +33,10 @@ declare const Bun: {
 const root = fileURLToPath(new URL("..", import.meta.url));
 const outfile = resolve(root, ".hermes-smoke.iife.js");
 
-async function main(): Promise<number> {
-  const hermes = process.env["HERMES"];
-  if (hermes === undefined || hermes === "") {
-    console.error("set HERMES to the hermes binary");
-    return 1;
-  }
-
+/** Bundle one entry into a classic IIFE script; logs and returns `undefined` on failure. */
+async function bundle(entry: string): Promise<string | undefined> {
   const result = await Bun.build({
-    entrypoints: [resolve(root, "tests/hermes/entry.ts")],
+    entrypoints: [resolve(root, entry)],
     target: "browser",
     format: "iife",
   });
@@ -49,14 +44,31 @@ async function main(): Promise<number> {
     for (const log of result.logs) {
       console.error(String(log));
     }
+    return undefined;
+  }
+  const output = result.outputs.find((o) => o.kind === "entry-point");
+  if (!output) {
+    console.error(`bun build produced no entry-point output for ${entry}`);
+    return undefined;
+  }
+  return output.text();
+}
+
+async function main(): Promise<number> {
+  const hermes = process.env["HERMES"];
+  if (hermes === undefined || hermes === "") {
+    console.error("set HERMES to the hermes binary");
     return 1;
   }
-  const bundle = result.outputs.find((o: { kind: string }) => o.kind === "entry-point");
-  if (!bundle) {
-    console.error("bun build produced no entry-point output");
+
+  // Like Metro, run the polyfill as its own script before any module evaluates; bundling it as an
+  // import would let the bundler reorder it after the library.
+  const polyfill = await bundle("tests/hermes/polyfill.ts");
+  const entry = await bundle("tests/hermes/entry.ts");
+  if (polyfill === undefined || entry === undefined) {
     return 1;
   }
-  await Bun.write(outfile, bundle);
+  await Bun.write(outfile, `${polyfill}\n${entry}`);
 
   const proc = Bun.spawnSync([hermes, outfile], { stdout: "pipe", stderr: "pipe" });
   const out = proc.stdout.toString() + proc.stderr.toString();
