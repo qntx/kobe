@@ -30,7 +30,9 @@ const config: UserConfig = defineConfig({
   },
   lint: merge(lintConfig, {
     // merge() concatenates arrays onto the preset's own ignorePatterns.
-    ignorePatterns: ["target/**", "packages/kobe/.hermes-smoke.iife.js"],
+    // packages/wallet is excluded while it holds the verbatim @qntx/wallet
+    // kernel copy; the ignore is lifted in the adaptation commit.
+    ignorePatterns: ["target/**", "packages/kobe/.hermes-smoke.iife.js", "packages/wallet/**"],
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
     rules: {
       "vite-plus/prefer-vite-plus-imports": "error",
@@ -127,6 +129,8 @@ const config: UserConfig = defineConfig({
       // stay byte-frozen.
       "**/*.toml",
       "vectors/**",
+      // Verbatim @qntx/wallet kernel copy — lifted in the adaptation commit.
+      "packages/wallet/**",
     ],
   },
   run: { cache: process.env["CI"] === undefined || process.env["CI"] === "" },
