@@ -1,0 +1,143 @@
+{
+  "schema": 1,
+  "capability": "core.secp256k1-ecdsa",
+  "source": {
+    "kind": "reference",
+    "name": "qntx/signer 3.2.0 KAT (signer-primitives/src/tests.rs @ 05f2d86) and bitcoinjs-lib ecdsa fixtures",
+    "reference": "k256 0.14 (Rust) and @noble/curves 2.4 (TS) agree on every case. Bitcoinjs messages are SHA-256 hashed before RFC 6979 signing; signature/recovery/DER fields are the shared deterministic output (low-S).",
+    "url": "https://raw.githubusercontent.com/bitcoinjs/bitcoinjs-lib/master/test/fixtures/ecdsa.json"
+  },
+  "cases": [
+    {
+      "privateKey": "4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318",
+      "digest": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "compressedPublicKey": "024e3b81af9c2234cad09d679ce6035ed1392347ce64ce405f5dcd36228a25de6e",
+      "uncompressedPublicKey": "044e3b81af9c2234cad09d679ce6035ed1392347ce64ce405f5dcd36228a25de6e47fd35c4215d1edf53e6f83de344615ce719bdb0fd878f6ed76f06dd277956de",
+      "signature": "68597f9553ac0acc453b5a75af2c731e3ca14dbfeae2231123fd202765b12738247bc920ef3e3ceebbc865651f98dc26a25a0d63240c5da091863fe0296e389b",
+      "recovery": 0,
+      "signatureDer": "3044022068597f9553ac0acc453b5a75af2c731e3ca14dbfeae2231123fd202765b127380220247bc920ef3e3ceebbc865651f98dc26a25a0d63240c5da091863fe0296e389b",
+      "valid": true,
+      "comment": "signer/wallet KAT: RFC 6979 digest 0x01..0x20"
+    },
+    {
+      "privateKey": "0000000000000000000000000000000000000000000000000000000000000001",
+      "digest": "06ef2b193b83b3d701f765f1db34672ab84897e1252343cc2197829af3a30456",
+      "compressedPublicKey": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+      "uncompressedPublicKey": "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8",
+      "signature": "33a69cd2065432a30f3d1ce4eb0d59b8ab58c74f27c41a7fdb5696ad4e6108c96f807982866f785d3f6418d24163ddae117b7db4d5fdf0071de069fa54342262",
+      "recovery": 0,
+      "signatureDer": "3044022033a69cd2065432a30f3d1ce4eb0d59b8ab58c74f27c41a7fdb5696ad4e6108c902206f807982866f785d3f6418d24163ddae117b7db4d5fdf0071de069fa54342262",
+      "valid": true,
+      "comment": "bitcoinjs-lib fixture (sha256 message); expected r=33a69cd2065432a30f3d1ce4eb0d59b8ab58c74f27c41a7fdb5696ad4e6108c9"
+    },
+    {
+      "privateKey": "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364140",
+      "digest": "5e9f0a0d593efdcf78ac923bc3313e4e7d408d574354ee2b3288c0da9fbba6ed",
+      "compressedPublicKey": "0379be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+      "uncompressedPublicKey": "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798b7c52588d95c3b9aa25b0403f1eef75702e84bb7597aabe663b82f6f04ef2777",
+      "signature": "54c4a33c6423d689378f160a7ff8b61330444abb58fb470f96ea16d99d4a2fed07082304410efa6b2943111b6a4e0aaa7b7db55a07e9861d1fb3cb1f421044a5",
+      "recovery": 0,
+      "signatureDer": "3044022054c4a33c6423d689378f160a7ff8b61330444abb58fb470f96ea16d99d4a2fed022007082304410efa6b2943111b6a4e0aaa7b7db55a07e9861d1fb3cb1f421044a5",
+      "valid": true,
+      "comment": "bitcoinjs-lib fixture (sha256 message); expected r=54c4a33c6423d689378f160a7ff8b61330444abb58fb470f96ea16d99d4a2fed"
+    },
+    {
+      "privateKey": "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364140",
+      "digest": "4d642665c81dd2d6fc3d386ee018043e1f38c5def0a9925febd766f5b15fdb8d",
+      "compressedPublicKey": "0379be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+      "uncompressedPublicKey": "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798b7c52588d95c3b9aa25b0403f1eef75702e84bb7597aabe663b82f6f04ef2777",
+      "signature": "ff466a9f1b7b273e2f4c3ffe032eb2e814121ed18ef84665d0f515360dab3dd06fc95f5132e5ecfdc8e5e6e616cc77151455d46ed48f5589b7db7771a332b283",
+      "recovery": 0,
+      "signatureDer": "3045022100ff466a9f1b7b273e2f4c3ffe032eb2e814121ed18ef84665d0f515360dab3dd002206fc95f5132e5ecfdc8e5e6e616cc77151455d46ed48f5589b7db7771a332b283",
+      "valid": true,
+      "comment": "bitcoinjs-lib fixture (sha256 message); expected r=ff466a9f1b7b273e2f4c3ffe032eb2e814121ed18ef84665d0f515360dab3dd0"
+    },
+    {
+      "privateKey": "0000000000000000000000000000000000000000000000000000000000000001",
+      "digest": "d507058c2f1472fe0de2ba3b4efe629505677440ab3a7032a9adeaf0ebda74a2",
+      "compressedPublicKey": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+      "uncompressedPublicKey": "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8",
+      "signature": "c0dafec8251f1d5010289d210232220b03202cba34ec11fec58b3e93a85b91d375afdc06b7d6322a590955bf264e7aaa155847f614d80078a90292fe205064d3",
+      "recovery": 1,
+      "signatureDer": "3045022100c0dafec8251f1d5010289d210232220b03202cba34ec11fec58b3e93a85b91d3022075afdc06b7d6322a590955bf264e7aaa155847f614d80078a90292fe205064d3",
+      "valid": true,
+      "comment": "bitcoinjs-lib fixture (sha256 message); expected r=c0dafec8251f1d5010289d210232220b03202cba34ec11fec58b3e93a85b91d3"
+    },
+    {
+      "privateKey": "69ec59eaa1f4f2e36b639716b7c30ca86d9a5375c7b38d8918bd9c0ebc80ba64",
+      "digest": "24833a5c2c927c9876d7a77e400577057598e0d7b0c96587ee8a37ea5381bede",
+      "compressedPublicKey": "027b1e94fda0419de93981119ec2ffc6fc8da22efcd62a28f89c1a62d92b59a829",
+      "uncompressedPublicKey": "047b1e94fda0419de93981119ec2ffc6fc8da22efcd62a28f89c1a62d92b59a8296c0485d9bd3c791697b47a112925d8961b110b4172f31ced84693fe3c3d9aa5a",
+      "signature": "7186363571d65e084e7f02b0b77c3ec44fb1b257dee26274c38c928986fea45d0de0b38e06807e46bda1f1e293f4f6323e854c86d58abdd00c46c16441085df6",
+      "recovery": 0,
+      "signatureDer": "304402207186363571d65e084e7f02b0b77c3ec44fb1b257dee26274c38c928986fea45d02200de0b38e06807e46bda1f1e293f4f6323e854c86d58abdd00c46c16441085df6",
+      "valid": true,
+      "comment": "bitcoinjs-lib fixture (sha256 message); expected r=7186363571d65e084e7f02b0b77c3ec44fb1b257dee26274c38c928986fea45d"
+    },
+    {
+      "privateKey": "00000000000000000000000000007246174ab1e92e9149c6e446fe194d072637",
+      "digest": "1eb6e69ca54e38a9b30d4e80b7f69f9dbb10f81579e635dc49557fc16f21e911",
+      "compressedPublicKey": "02b482d9656a4e99a15cfdab5e8b487cb07206df1cb83afb076c6f7ba890a43681",
+      "uncompressedPublicKey": "04b482d9656a4e99a15cfdab5e8b487cb07206df1cb83afb076c6f7ba890a4368183ebe04029d5c03300c401db65aa6a9dbd479b4e60bdd190a19ce5b5532013d2",
+      "signature": "fbfe5076a15860ba8ed00e75e9bd22e05d230f02a936b653eb55b61c99dda4870e68880ebb0050fe4312b1b1eb0899e1b82da89baa5b895f612619edf34cbd37",
+      "recovery": 1,
+      "signatureDer": "3045022100fbfe5076a15860ba8ed00e75e9bd22e05d230f02a936b653eb55b61c99dda48702200e68880ebb0050fe4312b1b1eb0899e1b82da89baa5b895f612619edf34cbd37",
+      "valid": true,
+      "comment": "bitcoinjs-lib fixture (sha256 message); expected r=fbfe5076a15860ba8ed00e75e9bd22e05d230f02a936b653eb55b61c99dda487"
+    },
+    {
+      "privateKey": "000000000000000000000000000000000000000000056916d0f9b31dc9b637f3",
+      "digest": "179fd85cbe8797f314f07f732438db0682da502c7a9aa9da87af39cf126aaeb3",
+      "compressedPublicKey": "0240902c19992973bbebff52fb90f0da3bab7b0d1fe905fbcb4e92277ea969b777",
+      "uncompressedPublicKey": "0440902c19992973bbebff52fb90f0da3bab7b0d1fe905fbcb4e92277ea969b777052e1e8339ad3434b7a13c71099024dfe03121b0177c188cd4a9490a72a9c06e",
+      "signature": "cde1302d83f8dd835d89aef803c74a119f561fbaef3eb9129e45f30de86abbf906ce643f5049ee1f27890467b77a6a8e11ec4661cc38cd8badf90115fbd03cef",
+      "recovery": 1,
+      "signatureDer": "3045022100cde1302d83f8dd835d89aef803c74a119f561fbaef3eb9129e45f30de86abbf9022006ce643f5049ee1f27890467b77a6a8e11ec4661cc38cd8badf90115fbd03cef",
+      "valid": true,
+      "comment": "bitcoinjs-lib fixture (sha256 message); expected r=cde1302d83f8dd835d89aef803c74a119f561fbaef3eb9129e45f30de86abbf9"
+    },
+    {
+      "privateKey": "4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318",
+      "digest": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "compressedPublicKey": "024e3b81af9c2234cad09d679ce6035ed1392347ce64ce405f5dcd36228a25de6e",
+      "uncompressedPublicKey": "044e3b81af9c2234cad09d679ce6035ed1392347ce64ce405f5dcd36228a25de6e47fd35c4215d1edf53e6f83de344615ce719bdb0fd878f6ed76f06dd277956de",
+      "signature": "69597f9553ac0acc453b5a75af2c731e3ca14dbfeae2231123fd202765b12738247bc920ef3e3ceebbc865651f98dc26a25a0d63240c5da091863fe0296e389b",
+      "recovery": 0,
+      "signatureDer": "3044022068597f9553ac0acc453b5a75af2c731e3ca14dbfeae2231123fd202765b127380220247bc920ef3e3ceebbc865651f98dc26a25a0d63240c5da091863fe0296e389b",
+      "valid": false,
+      "comment": "first byte of r flipped"
+    },
+    {
+      "privateKey": "4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318",
+      "digest": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "compressedPublicKey": "024e3b81af9c2234cad09d679ce6035ed1392347ce64ce405f5dcd36228a25de6e",
+      "uncompressedPublicKey": "044e3b81af9c2234cad09d679ce6035ed1392347ce64ce405f5dcd36228a25de6e47fd35c4215d1edf53e6f83de344615ce719bdb0fd878f6ed76f06dd277956de",
+      "signature": "68597f9553ac0acc453b5a75af2c731e3ca14dbfeae2231123fd202765b12738247bc920ef3e3ceebbc865651f98dc26a25a0d63240c5da091863fe0296e389a",
+      "recovery": 0,
+      "signatureDer": "3044022068597f9553ac0acc453b5a75af2c731e3ca14dbfeae2231123fd202765b127380220247bc920ef3e3ceebbc865651f98dc26a25a0d63240c5da091863fe0296e389b",
+      "valid": false,
+      "comment": "last byte of s flipped"
+    },
+    {
+      "privateKey": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "error": "input",
+      "comment": "31-byte secret key"
+    },
+    {
+      "privateKey": "0000000000000000000000000000000000000000000000000000000000000000",
+      "error": "crypto",
+      "comment": "zero scalar"
+    },
+    {
+      "privateKey": "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141",
+      "error": "crypto",
+      "comment": "key = curve order n"
+    },
+    {
+      "privateKey": "4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318",
+      "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "error": "input",
+      "comment": "31-byte digest"
+    }
+  ]
+}

@@ -5,6 +5,8 @@
 import { hexToBytes } from "@noble/hashes/utils.js";
 
 import { Wallet } from "../../src/core/index.ts";
+import { Secp256k1Signer } from "../../src/core/secp256k1.ts";
+import { SecretKey } from "../../src/core/secret.ts";
 import { NostrDeriver } from "../../src/nostr/index.ts";
 import { derivePrfKey, open, passkeyWallet, seal } from "../../src/vault/index.ts";
 
@@ -34,6 +36,12 @@ const PRF_KEY = "e6cfcaf65be954c01e73902a2288a935d3e8f2c6d2c434e6c1d19c941e45891
 
 // vectors/vault/passkey-wallet.json case 0.
 const PASSKEY_NPUB = "npub1y8d9v47f0w2muh9tswfhgej59r73gs26nndr4q8acxj7twwgydgserahqq";
+
+// vectors/core/secp256k1-ecdsa.json case 0 (signer/wallet RFC 6979 KAT).
+const SECP_KEY = "4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318";
+const SECP_DIGEST = "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20";
+const SECP_SIG =
+  "68597f9553ac0acc453b5a75af2c731e3ca14dbfeae2231123fd202765b12738247bc920ef3e3ceebbc865651f98dc26a25a0d63240c5da091863fe0296e389b00";
 
 function hex(b: Uint8Array): string {
   return Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
@@ -70,6 +78,19 @@ try {
   const passkey = passkeyWallet(hexToBytes(PRF));
   if (new NostrDeriver(passkey).derive(0).npub() !== PASSKEY_NPUB) {
     throw new Error("passkeyWallet npub mismatch");
+  }
+
+  const secpSecret = SecretKey.fromBytes(hexToBytes(SECP_KEY));
+  const secpSigner = Secp256k1Signer.fromSecretKey(secpSecret);
+  const secpOut = secpSigner.signRecoverable(hexToBytes(SECP_DIGEST));
+  const secpRecoverable = new Uint8Array(65);
+  secpRecoverable.set(secpOut.signature);
+  secpRecoverable[64] = secpOut.recovery;
+  if (hex(secpRecoverable) !== SECP_SIG) {
+    throw new Error("secp256k1 recoverable signature mismatch");
+  }
+  if (!secpSigner.verify(hexToBytes(SECP_DIGEST), secpRecoverable)) {
+    throw new Error("secp256k1 verify mismatch");
   }
 
   print("HERMES_SMOKE_OK");

@@ -4,6 +4,10 @@ All notable changes to this workspace are documented in this file. The format is
 
 ## [Unreleased]
 
+### Added
+
+- `SecretKey` — an owned, zeroize-on-drop 32-byte secret (`Debug` prints `SecretKey([REDACTED])`), plus `RecoverableSignature` (`r ‖ s ‖ recovery`, raw `0`/`1` parity) and the three curve signing primitives ported from qntx/signer and `@qntx/wallet`: secp256k1 ECDSA (RFC 6979 deterministic, low-S, recoverable or DER output), BIP-340 Schnorr, and Ed25519. On the Rust side they live in `kobe-core` behind the new `secp256k1`, `schnorr`, and `ed25519` features (`bip32` now implies `secp256k1`, `slip10` implies `ed25519`); on the TypeScript side the engines are internal modules of `@qntx/kobe/core` — only `SecretKey` and the `RecoverableSignature` type are exported — and SLIP-10 Ed25519 derivation (`deriveEd25519FromSeed`) joins the TS core. Shared vectors cover RFC 6979 (`vectors/core/secp256k1-ecdsa.json`), BIP-340 (`bip340.json`), RFC 8032 (`ed25519.json`), SLIP-10 (`slip10.json`), and `SecretKey` length errors (`secret-key.json`).
+
 ### Changed
 
 - `k256` upgraded to 0.14 and `bip32` to 0.6, unifying the workspace on one RustCrypto generation (sha2 0.11, hmac 0.13, digest 0.11, ripemd 0.2); `kobe-evm` no longer depends on `alloy-primitives` — EIP-55 checksums are computed with `sha3` directly.

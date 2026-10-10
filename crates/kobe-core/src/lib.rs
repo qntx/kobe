@@ -49,8 +49,11 @@
 //! | Feature              | Purpose                                          |
 //! | -------------------- | ------------------------------------------------ |
 //! | `std`  (default)     | `std::error::Error` impls                        |
-//! | `bip32`              | [`bip32::DerivedSecp256k1Key`]                   |
-//! | `slip10`             | [`slip10::DerivedEd25519Key`]                    |
+//! | `bip32`              | [`bip32::DerivedSecp256k1Key`] (implies `secp256k1`) |
+//! | `slip10`             | [`slip10::DerivedEd25519Key`] (implies `ed25519`) |
+//! | `secp256k1`          | [`Secp256k1Signer`]                              |
+//! | `schnorr`            | [`SchnorrSigner`] (implies `secp256k1`)          |
+//! | `ed25519`            | [`Ed25519Signer`]                                |
 //! | `encoding`           | [`encoding`] (`hash160` / `Base58Check`)         |
 //! | `camouflage`         | [`camouflage`] (PBKDF2 XOR helpers)              |
 //! | `raw-seed`           | [`Wallet::seed`] escape hatch (off by default)   |
@@ -91,6 +94,8 @@ extern crate alloc;
 
 mod derive;
 mod error;
+mod secret;
+mod signature;
 mod style;
 mod wallet;
 
@@ -98,18 +103,32 @@ mod wallet;
 pub mod bip32;
 #[cfg(feature = "camouflage")]
 pub mod camouflage;
+#[cfg(feature = "ed25519")]
+mod ed25519;
 #[cfg(feature = "encoding")]
 pub mod encoding;
 pub mod mnemonic;
+#[cfg(feature = "schnorr")]
+mod schnorr;
+#[cfg(feature = "secp256k1")]
+mod secp256k1;
 #[cfg(feature = "slip10")]
 pub mod slip10;
 
 pub use derive::{
     Derive, DeriveExt, DerivedAccount, DerivedPublicKey, PublicKeyKind, derive_range,
 };
+#[cfg(feature = "ed25519")]
+pub use ed25519::Ed25519Signer;
 pub use error::{Error, ErrorCode};
 // `rand_core::CryptoRng` appears in `Wallet::generate_with`'s signature.
 pub use rand_core;
+#[cfg(feature = "schnorr")]
+pub use schnorr::SchnorrSigner;
+#[cfg(feature = "secp256k1")]
+pub use secp256k1::Secp256k1Signer;
+pub use secret::SecretKey;
+pub use signature::RecoverableSignature;
 pub use style::{DerivationStyle, ParseDerivationStyleError};
 pub use wallet::Wallet;
 

@@ -135,6 +135,81 @@
         "tests": ["crates/kobe-vectors/tests/vault.rs"]
       },
       "vectors": ["vectors/vault/passkey-wallet.json"]
+    },
+    {
+      "id": "core.secret-key",
+      "tier": "A",
+      "status": "stable",
+      "milestone": "KB2",
+      "ts": {
+        "module": "packages/kobe/src/core/secret.ts",
+        "tests": ["packages/kobe/tests/vectors/core.test.ts"]
+      },
+      "rust": {
+        "module": "crates/kobe-core/src/secret.rs",
+        "tests": ["crates/kobe-vectors/tests/core.rs"]
+      },
+      "vectors": ["vectors/core/secret-key.json"]
+    },
+    {
+      "id": "core.secp256k1-ecdsa",
+      "tier": "A",
+      "status": "stable",
+      "milestone": "KB2",
+      "ts": {
+        "module": "packages/kobe/src/core/secp256k1.ts",
+        "tests": ["packages/kobe/tests/vectors/core.test.ts"]
+      },
+      "rust": {
+        "module": "crates/kobe-core/src/secp256k1.rs",
+        "tests": ["crates/kobe-vectors/tests/core.rs"]
+      },
+      "vectors": ["vectors/core/secp256k1-ecdsa.json"]
+    },
+    {
+      "id": "core.bip340",
+      "tier": "A",
+      "status": "stable",
+      "milestone": "KB2",
+      "ts": {
+        "module": "packages/kobe/src/core/schnorr.ts",
+        "tests": ["packages/kobe/tests/vectors/core.test.ts"]
+      },
+      "rust": {
+        "module": "crates/kobe-core/src/schnorr.rs",
+        "tests": ["crates/kobe-vectors/tests/core.rs"]
+      },
+      "vectors": ["vectors/core/bip340.json"]
+    },
+    {
+      "id": "core.ed25519",
+      "tier": "A",
+      "status": "stable",
+      "milestone": "KB2",
+      "ts": {
+        "module": "packages/kobe/src/core/ed25519.ts",
+        "tests": ["packages/kobe/tests/vectors/core.test.ts"]
+      },
+      "rust": {
+        "module": "crates/kobe-core/src/ed25519.rs",
+        "tests": ["crates/kobe-vectors/tests/core.rs"]
+      },
+      "vectors": ["vectors/core/ed25519.json"]
+    },
+    {
+      "id": "core.slip10",
+      "tier": "A",
+      "status": "stable",
+      "milestone": "KB2",
+      "ts": {
+        "module": "packages/kobe/src/core/slip10.ts",
+        "tests": ["packages/kobe/tests/vectors/core.test.ts"]
+      },
+      "rust": {
+        "module": "crates/kobe-core/src/slip10.rs",
+        "tests": ["crates/kobe-vectors/tests/core.rs"]
+      },
+      "vectors": ["vectors/core/slip10.json"]
     }
   ]
 }
