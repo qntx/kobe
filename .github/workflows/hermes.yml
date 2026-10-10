@@ -19,4 +19,4 @@ jobs:
       # React Native version kobe supports (RN 0.86 → hermes-v250829098.0.17).
       hermes-commit: 3477757eb2475555cf8d8df24bfb1deb0613880d
       script: smoke:hermes
-      working-directory: packages/kobe
+      working-directory: packages/wallet

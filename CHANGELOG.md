@@ -11,6 +11,7 @@ All notable changes to this workspace are documented in this file. The format is
 
 ### Changed
 
+- The TypeScript package moved to `@qntx/wallet` (`packages/wallet`), a near-verbatim port of the qntx-labs/wallet kernel; it is versioned independently of the Rust workspace and released with `wallet-v*` tags. `packages/kobe` (`@qntx/kobe`) was removed.
 - `k256` upgraded to 0.14 and `bip32` to 0.6, unifying the workspace on one RustCrypto generation (sha2 0.11, hmac 0.13, digest 0.11, ripemd 0.2); `kobe-evm` no longer depends on `alloy-primitives` — EIP-55 checksums are computed with `sha3` directly.
 
 ## [4.0.0] - 2026-10-09

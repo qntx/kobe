@@ -18,6 +18,7 @@
     "build": "vp run -r build",
     "test": "vp run -r test && vp test",
     "release": "bumpp",
+    "release:wallet": "bumpp --configFilePath bump.wallet.config.ts",
     "prepare": "vp config"
   },
   "devDependencies": {

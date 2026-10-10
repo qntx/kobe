@@ -21,18 +21,18 @@ println!("path={} address={}", account.path(), account.address());
 ## TypeScript
 
 ```ts
-import { passkeyWallet } from "@qntx/kobe/vault";
-import { NostrDeriver } from "@qntx/kobe/nostr";
+import { passkeyWallet } from "@qntx/wallet/vault";
+import { createNostrDeriver } from "@qntx/wallet/nostr";
 
-const wallet = passkeyWallet(prfOutput); // or Wallet.fromMnemonic(phrase)
+const wallet = passkeyWallet(prfOutput); // or walletFromMnemonic(phrase) from "@qntx/wallet/hd"
 const id = wallet.id();
-const account = new NostrDeriver(wallet).derive(0);
+const account = createNostrDeriver(wallet).derive(0);
 const secretKey = account.privateKeyBytes(); // hand to your Nostr library's signer
 account.dispose();
 wallet.dispose();
 ```
 
-For Nostr, kobe only derives keys and encodes `nsec`/`npub`; event signing,
-NIP-44, and friends belong to the Nostr protocol library (e.g.
-`@qntx/nostr`'s `Keys.fromSecretKey`). Secrets are held as bytes only —
+For Nostr, the wallet only derives keys and encodes `nsec`/`npub`; event
+signing, NIP-44, and friends belong to the Nostr protocol library (e.g.
+`@qntx/nostr`'s `KeysSigner`). Secrets are held as bytes only —
 `nsec()` and `mnemonic()` encode on demand.

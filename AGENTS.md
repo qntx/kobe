@@ -23,7 +23,7 @@ TypeScript runtime dependencies use caret ranges so consumers can deduplicate th
 
 - Follow the Rust API Guidelines. No `unsafe` (`unsafe_code = "deny"`), no panics, and no `unwrap`/`expect` in library code.
 - Shared test vectors live in `vectors/` (see `vectors/README.md`) and every capability implemented in both languages is tracked in `parity.json`; both languages run the same files.
-- npm and crates versions are lockstep: `bump.config.ts` bumps `packages/*/package.json` and `Cargo.toml` together, internal path dependencies pin `=<version>`, and `scripts/check-version.ts` guards drift.
+- Rust crates are versioned together via `bump.config.ts` (`v*.*.*` tags); `@qntx/wallet` is versioned independently and released with `wallet-v*` tags (`bump.wallet.config.ts`, `bun run release:wallet`). Internal path dependencies pin `=<version>`, and `scripts/check-version.ts` guards drift.
 - TOML is formatted by taplo (`.taplo.toml`, aligned `=`); run `taplo fmt`, and keep `taplo fmt --check` green in `bun run lint`.
 
 ## Commands

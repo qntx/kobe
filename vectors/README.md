@@ -1,7 +1,7 @@
 # vectors/
 
 Shared cross-language test vectors. Both the TypeScript tests (under
-`packages/kobe/tests/`) and the Rust `kobe-*` crates must pass against the
+`packages/wallet/tests/`) and the Rust `kobe-*` crates must pass against the
 same files, which makes byte-level parity checkable.
 
 ## Layout

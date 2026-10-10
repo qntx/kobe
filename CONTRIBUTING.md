@@ -45,8 +45,8 @@ License: contributions are dual-licensed [MIT](LICENSE-MIT) OR
 ## Repository layout
 
 ```text
-packages/kobe/        @qntx/kobe — the TypeScript SDK; builds with vp pack,
-                      no Rust toolchain needed
+packages/wallet/      @qntx/wallet — the TypeScript wallet kernel; builds
+                      with vp pack, no Rust toolchain needed
 crates/               kobe-* Rust crates
   kobe-core/          Wallet, Derive, bip32, slip10, encoding, …
   kobe-<chain>/       one publishable crate per network
@@ -62,7 +62,7 @@ docs/                 public user documentation (Fumadocs tree, validated by
 skills/kobe/SKILL.md  agent-facing CLI contract
 .github/workflows/
   ci.yml              Bun gate, Rust checks, portable no_std builds
-  hermes.yml          Hermes smoke for packages/kobe
+  hermes.yml          Hermes smoke for packages/wallet
   publish-crates.yml  crates.io publish order
   publish-npm.yml     npm publish (OIDC trusted publishing)
   release.yml         CLI binary release
@@ -273,16 +273,26 @@ by the Docs workflow. Update it together with any user-visible change.
 
 ## Versioning and release
 
-Maintainers only. npm and crates.io versions are lockstep.
+Maintainers only. The Rust workspace and `@qntx/wallet` are versioned
+independently.
+
+Cargo release (`vX.Y.Z` tags):
 
 1. `main` green on all CI jobs.
 2. Run the local gate.
 3. `CHANGELOG.md`: move `[Unreleased]` into a dated `## [X.Y.Z]` section.
-4. `bun run release` — bumpp bumps `packages/kobe/package.json` and
-   `Cargo.toml` together, runs `cargo update --workspace`, then commits, tags
-   `vX.Y.Z`, and pushes.
-5. The tag runs `publish-crates.yml` (crates.io), `publish-npm.yml` (npm,
-   OIDC), and `release.yml` (CLI binaries).
+4. `bun run release` — bumpp bumps `Cargo.toml`, runs
+   `cargo update --workspace`, then commits, tags `vX.Y.Z`, and pushes.
+5. The tag runs `publish-crates.yml` (crates.io) and `release.yml` (CLI
+   binaries).
+
+npm release (`wallet-vX.Y.Z` tags):
+
+1. `packages/wallet/CHANGELOG.md`: move `[Unreleased]` into a dated
+   `## [X.Y.Z]` section.
+2. `bun run release:wallet` — bumpp bumps `packages/wallet/package.json`,
+   then commits, tags `wallet-vX.Y.Z`, and pushes.
+3. The tag runs `publish-npm.yml` (npm, OIDC trusted publishing).
 
 Publish package order in `publish-crates.yml`:
 
