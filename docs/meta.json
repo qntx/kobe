@@ -1,5 +1,0 @@
-{
-  "title": "kobe",
-  "description": "Multi-chain HD wallet derivation.",
-  "pages": ["index", "install", "cli", "library", "chains"]
-}

@@ -3,9 +3,6 @@ dist
 *.tgz
 *.log
 .DS_Store
-!.vscode/
-!.vscode/settings.json
-!.vscode/extensions.json
 
 # dotenv environment variable files
 .env
@@ -14,10 +11,6 @@ dist
 
 # Rust artifacts
 /target
-
-# Hermes smoke bundle (built by packages/kobe/scripts/hermes-smoke.ts)
-.hermes-smoke.iife.js
-.vitest/
 
 # Local design documents (never committed)
 /design/

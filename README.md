@@ -1,10 +1,8 @@
 <!-- markdownlint-disable MD033 MD041 -->
 
-# kobe
+# wallet
 
-Multi-chain HD wallet derivation in Rust (`no_std`), with a TypeScript SDK in the same repository.
-
-User documentation lives in [docs/](docs/); changes are tracked in [CHANGELOG.md](CHANGELOG.md); layering rules and invariants for contributors live in [AGENTS.md](AGENTS.md).
+Multi-chain self-custodial wallet SDK for TypeScript (web and React Native), with a Rust implementation to follow.
 
 ## License
 
