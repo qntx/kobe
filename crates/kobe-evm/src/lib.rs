@@ -8,7 +8,9 @@
 
 extern crate alloc;
 
+mod address;
 mod deriver;
 
+pub use address::to_checksum;
 pub use deriver::{DerivationStyle, Deriver};
 pub use kobe_core::{DerivedAccount, DerivedPublicKey, Error, ParseDerivationStyleError};

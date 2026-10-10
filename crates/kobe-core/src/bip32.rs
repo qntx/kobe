@@ -70,7 +70,7 @@ impl DerivedSecp256k1Key {
     #[must_use]
     pub fn compressed_pubkey(&self) -> [u8; 33] {
         let sk: &SigningKey = self.xprv.private_key();
-        let point = sk.verifying_key().to_encoded_point(true);
+        let point = sk.verifying_key().to_sec1_point(true);
         let bytes = point.as_bytes();
         let mut out = [0u8; 33];
         out.copy_from_slice(bytes);
@@ -87,7 +87,7 @@ impl DerivedSecp256k1Key {
     #[must_use]
     pub fn uncompressed_pubkey(&self) -> [u8; 65] {
         let sk: &SigningKey = self.xprv.private_key();
-        let point = sk.verifying_key().to_encoded_point(false);
+        let point = sk.verifying_key().to_sec1_point(false);
         let bytes = point.as_bytes();
         let mut out = [0u8; 65];
         out.copy_from_slice(bytes);

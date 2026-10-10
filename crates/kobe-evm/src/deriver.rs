@@ -6,7 +6,6 @@ use alloc::vec::Vec;
 use core::fmt;
 use core::str::FromStr;
 
-use alloy_primitives::{Address, keccak256};
 use kobe_core::{
     // Anonymous trait import so method-call syntax (`style.path(i)`,
     // `style.name()`, `DerivationStyle::all()`) resolves without shadowing
@@ -20,6 +19,9 @@ use kobe_core::{
     Wallet,
     derive_range,
 };
+use sha3::{Digest, Keccak256};
+
+use crate::to_checksum;
 
 /// Derivation path styles for different Ethereum wallet software.
 ///
@@ -158,15 +160,16 @@ impl<'a> Deriver<'a> {
         let key = self.wallet.derive_secp256k1(path)?;
         let uncompressed = key.uncompressed_pubkey();
 
-        let addr_hash = keccak256(&uncompressed[1..]);
-        let (_, addr_bytes) = addr_hash.split_at(12);
-        let address = Address::from_slice(addr_bytes);
+        let addr_hash = Keccak256::digest(&uncompressed[1..]);
+        let (_, tail) = addr_hash.split_at(12);
+        let mut addr_bytes = [0u8; 20];
+        addr_bytes.copy_from_slice(tail);
 
         Ok(DerivedAccount::new(
             String::from(path),
             key.private_key_bytes(),
             DerivedPublicKey::Secp256k1Uncompressed(uncompressed),
-            address.to_checksum(None),
+            to_checksum(&addr_bytes),
         ))
     }
 }

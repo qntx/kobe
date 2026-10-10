@@ -4,6 +4,10 @@ All notable changes to this workspace are documented in this file. The format is
 
 ## [Unreleased]
 
+### Changed
+
+- `k256` upgraded to 0.14 and `bip32` to 0.6, unifying the workspace on one RustCrypto generation (sha2 0.11, hmac 0.13, digest 0.11, ripemd 0.2); `kobe-evm` no longer depends on `alloy-primitives` — EIP-55 checksums are computed with `sha3` directly.
+
 ## [4.0.0] - 2026-10-09
 
 ### Added
