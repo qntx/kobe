@@ -108,8 +108,8 @@
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
     "@qntx/tsconfig": "1.0.1",
-    "@types/node": "26.6.3",
-    "publint": "0.3.24",
+    "@types/node": "26.6.4",
+    "publint": "0.3.25",
     "typescript": "7.0.2",
     "vite-plus": "1.0.0"
   },
