@@ -1,0 +1,86 @@
+{
+  "name": "@qntx/wallet",
+  "version": "0.0.0",
+  "description": "Self-custodial wallet SDK: Wallet host entry, proxy signers, protocol and types",
+  "keywords": [
+    "nostr",
+    "sdk",
+    "self-custodial",
+    "typescript",
+    "wallet"
+  ],
+  "homepage": "https://github.com/qntx/wallet#readme",
+  "bugs": {
+    "url": "https://github.com/qntx/wallet/issues"
+  },
+  "license": "MIT OR Apache-2.0",
+  "author": "QuantX <x@qntx.org>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qntx/wallet.git",
+    "directory": "packages/wallet"
+  },
+  "files": [
+    "dist",
+    "LICENSE-MIT",
+    "LICENSE-APACHE"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    },
+    "./host": {
+      "types": "./dist/host.d.mts",
+      "import": "./dist/host.mjs",
+      "default": "./dist/host.mjs"
+    },
+    "./protocol": {
+      "types": "./dist/protocol.d.mts",
+      "import": "./dist/protocol.mjs",
+      "default": "./dist/protocol.mjs"
+    },
+    "./types": {
+      "types": "./dist/types.d.mts",
+      "import": "./dist/types.mjs",
+      "default": "./dist/types.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "vp test",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.src.json",
+    "check:pkg": "vp pack && publint && attw --pack . --profile esm-only",
+    "pack:local": "vp pack && bun pm pack"
+  },
+  "dependencies": {
+    "@qntx/nostr": "^0.13.0",
+    "@scure/base": "^2.4.0"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "0.18.5",
+    "@qntx/tsconfig": "1.0.1",
+    "@types/node": "26.6.4",
+    "publint": "0.3.25",
+    "typescript": "7.0.2",
+    "vite-plus": "1.0.0"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "bun",
+      "version": "1.4.0",
+      "onFail": "ignore"
+    }
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  }
+}
