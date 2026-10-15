@@ -17,17 +17,18 @@
   },
   "scripts": {
     "test": "vp run @qntx/wallet#build && vp test",
+    "test:coverage": "vp run @qntx/wallet#build && vp test --coverage",
     "typecheck": "vp run @qntx/wallet#build && tsc --noEmit && tsc --noEmit -p tsconfig.src.json"
   },
   "dependencies": {
-    "@noble/ciphers": "^2.4.0",
+    "@noble/ciphers": "2.4.0",
     "@noble/curves": "2.4.0",
-    "@noble/hashes": "^2.4.0",
-    "@qntx/nostr": "^0.14.0",
+    "@noble/hashes": "2.4.0",
+    "@qntx/nostr": "0.14.0",
     "@qntx/wallet": "0.2.0",
-    "@scure/base": "^2.4.0",
-    "@scure/bip32": "^2.4.0",
-    "@scure/bip39": "^2.4.0"
+    "@scure/base": "2.4.0",
+    "@scure/bip32": "2.4.0",
+    "@scure/bip39": "2.4.0"
   },
   "devDependencies": {
     "@qntx/tsconfig": "1.0.1",

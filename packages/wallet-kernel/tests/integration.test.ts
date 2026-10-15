@@ -1986,59 +1986,15 @@ describe("nostr backup state", () => {
     expect(statusBackedUp(h2, publicKey)).toBe(true);
   });
 
-  it("imported keys report backedUp immediately; derived and nip46 keys omit it", async () => {
-    const h = createHarness();
-    await h.settle();
-    const { session, walletId } = await createPasskeyWallet(h);
+  it(
+    "imported keys report backedUp immediately; derived and nip46 keys omit it",
+    { timeout: 15_000 },
+    async () => {
+      const h = createHarness();
+      await h.settle();
+      const { session, walletId } = await createPasskeyWallet(h);
 
-    const nsecKey = field(
-      ok(
-        await h.call(
-          "nostr.importKey",
-          { input: { kind: "nsec", nsec: utf8ToBytes(nip06.vectors[0]!.nsec) } },
-          session,
-        ),
-      ),
-      "key",
-    );
-    expect(field(nsecKey, "backedUp")).toBe(true);
-
-    const ncryptKey = field(
-      ok(
-        await h.call(
-          "nostr.importKey",
-          {
-            input: {
-              kind: "ncryptsec",
-              ncryptsec: NIP49_NCRYPTSEC,
-              password: utf8ToBytes("nostr"),
-            },
-          },
-          session,
-        ),
-      ),
-      "key",
-    );
-    expect(field(ncryptKey, "backedUp")).toBe(true);
-
-    const derived = ok(await h.call("nostr.deriveKey", { walletId, groupIndex: 0 }, session));
-    expect(hasOwn(derived, "backedUp")).toBe(false);
-    const nip46 = ok(await h.call("nostr.createNip46ClientKey", null, session));
-    expect(hasOwn(nip46, "backedUp")).toBe(false);
-  });
-
-  it("exports ncryptsec with key security byte 0x02 for every origin", async () => {
-    const h = createHarness();
-    await h.settle();
-    const { session, walletId } = await createPasskeyWallet(h);
-
-    const derived = await deriveKey(h, session, walletId);
-    const generated = strField(
-      field(ok(await h.call("nostr.generateKey", {}, session)), "key"),
-      "publicKey",
-    );
-    const imported = strField(
-      field(
+      const nsecKey = field(
         ok(
           await h.call(
             "nostr.importKey",
@@ -2047,22 +2003,75 @@ describe("nostr backup state", () => {
           ),
         ),
         "key",
-      ),
-      "publicKey",
-    );
-    const nip46 = strField(
-      ok(await h.call("nostr.createNip46ClientKey", null, session)),
-      "publicKey",
-    );
-    for (const publicKey of [derived, generated, imported, nip46]) {
-      // oxlint-disable-next-line eslint/no-await-in-loop -- sequential exports through one kernel
-      const encoded = await exportKey(h, session, publicKey, {
-        kind: "ncryptsec",
-        password: utf8ToBytes("export-pw"),
-      });
-      expect(exportedKsb(encoded)).toBe(0x02);
-    }
-  });
+      );
+      expect(field(nsecKey, "backedUp")).toBe(true);
+
+      const ncryptKey = field(
+        ok(
+          await h.call(
+            "nostr.importKey",
+            {
+              input: {
+                kind: "ncryptsec",
+                ncryptsec: NIP49_NCRYPTSEC,
+                password: utf8ToBytes("nostr"),
+              },
+            },
+            session,
+          ),
+        ),
+        "key",
+      );
+      expect(field(ncryptKey, "backedUp")).toBe(true);
+
+      const derived = ok(await h.call("nostr.deriveKey", { walletId, groupIndex: 0 }, session));
+      expect(hasOwn(derived, "backedUp")).toBe(false);
+      const nip46 = ok(await h.call("nostr.createNip46ClientKey", null, session));
+      expect(hasOwn(nip46, "backedUp")).toBe(false);
+    },
+  );
+
+  // Four sequential scrypt exports — under coverage instrumentation they can exceed 5 s.
+  it(
+    "exports ncryptsec with key security byte 0x02 for every origin",
+    { timeout: 30_000 },
+    async () => {
+      const h = createHarness();
+      await h.settle();
+      const { session, walletId } = await createPasskeyWallet(h);
+
+      const derived = await deriveKey(h, session, walletId);
+      const generated = strField(
+        field(ok(await h.call("nostr.generateKey", {}, session)), "key"),
+        "publicKey",
+      );
+      const imported = strField(
+        field(
+          ok(
+            await h.call(
+              "nostr.importKey",
+              { input: { kind: "nsec", nsec: utf8ToBytes(nip06.vectors[0]!.nsec) } },
+              session,
+            ),
+          ),
+          "key",
+        ),
+        "publicKey",
+      );
+      const nip46 = strField(
+        ok(await h.call("nostr.createNip46ClientKey", null, session)),
+        "publicKey",
+      );
+      for (const publicKey of [derived, generated, imported, nip46]) {
+        // oxlint-disable-next-line eslint/no-await-in-loop -- sequential exports through one kernel
+        const encoded = await exportKey(h, session, publicKey, {
+          kind: "ncryptsec",
+          password: utf8ToBytes("export-pw"),
+        });
+        expect(exportedKsb(encoded)).toBe(0x02);
+      }
+    },
+  );
 });
 
 describe("ncryptsec import hardening", () => {
@@ -2106,7 +2115,7 @@ describe("ncryptsec import hardening", () => {
     );
   });
 
-  it("maps a wrong password to wrong-password", async () => {
+  it("maps a wrong password to wrong-password", { timeout: 30_000 }, async () => {
     const h = createHarness();
     await h.settle();
     const { session } = await createPasskeyWallet(h);

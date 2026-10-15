@@ -79,6 +79,40 @@ export function checkVersion(packages: PackageEntry[], bunLock: unknown): string
     }
   }
 
+  // The kernel's runtime dependencies are the enclave's protocol attack surface: every one must
+  // be an exact pin, and bun.lock must resolve that exact version (workspace deps are covered by
+  // the internal-pin rule above).
+  const kernel = packages.find(({ pkg }) => asRecord(pkg)["name"] === "@qntx/wallet-kernel");
+  if (kernel === undefined) {
+    errors.push("packages: @qntx/wallet-kernel not found");
+  } else {
+    const exact = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+    const lockPackages = asRecord(asRecord(bunLock)["packages"]);
+    for (const [name, spec] of Object.entries(asRecord(asRecord(kernel.pkg)["dependencies"]))) {
+      if (typeof spec !== "string" || !exact.test(spec)) {
+        errors.push(
+          `${kernel.path}: dependencies["${name}"] must be an exact version, got ${JSON.stringify(spec)}`,
+        );
+        continue;
+      }
+      if (internalVersions.has(name)) {
+        continue;
+      }
+      const lockEntry = lockPackages[name];
+      const resolvedField: unknown = Array.isArray(lockEntry) ? lockEntry[0] : undefined;
+      if (typeof resolvedField !== "string") {
+        errors.push(`bun.lock: packages["${name}"] has no resolved version`);
+        continue;
+      }
+      const resolved = resolvedField.slice(name.length + 1);
+      if (resolved !== spec) {
+        errors.push(
+          `bun.lock: packages["${name}"] resolves ${JSON.stringify(resolved)}, kernel pins ${JSON.stringify(spec)}`,
+        );
+      }
+    }
+  }
+
   return errors;
 }
 

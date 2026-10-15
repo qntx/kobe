@@ -35,7 +35,7 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const outfile = resolve(root, ".hermes-smoke.iife.js");
 
 async function main(): Promise<number> {
-  const hermes = process.env.HERMES;
+  const hermes = process.env["HERMES"];
   if (hermes === undefined || hermes === "") {
     console.error("set HERMES to the hermes binary");
     return 1;

@@ -57,7 +57,7 @@ async function terminated(page: Page): Promise<number> {
 }
 
 test.describe("web host", () => {
-  test("passkey wallet: create, lock terminates the worker, unlock, sign", async ({
+  test("passkey wallet: create, lock terminates the worker, unlock, sign @webauthn", async ({
     context,
     page,
   }) => {
@@ -145,7 +145,7 @@ test.describe("web host", () => {
     expect(unlocked).toBe("unlocked");
   });
 
-  test("a second page sees the wallet without reload", async ({ context, page }) => {
+  test("a second page sees the wallet without reload @webauthn", async ({ context, page }) => {
     await virtualAuthenticator(context, page);
     await page.goto("/");
     await page.evaluate(async () => qntx.create());
@@ -167,7 +167,10 @@ test.describe("web host", () => {
     expect(nostrKeys).toBe(1);
   });
 
-  test("a tampered record header fails unlock with integrity", async ({ context, page }) => {
+  test("a tampered record header fails unlock with integrity @webauthn", async ({
+    context,
+    page,
+  }) => {
     await virtualAuthenticator(context, page);
     await page.goto("/");
     await page.evaluate(async () => qntx.create());
@@ -269,7 +272,7 @@ test.describe("web host", () => {
     await expect.poll(async () => page.evaluate(() => qntx.snapshot().vault)).toBe("unsupported");
   });
 
-  test("a failed passkey ceremony surfaces as cancelled", async ({ context, page }) => {
+  test("a failed passkey ceremony surfaces as cancelled @webauthn", async ({ context, page }) => {
     // isUserVerified: false — the authenticator cannot satisfy userVerification:"required",
     // so Chromium rejects the create with NotAllowedError, the same DOMException a real
     // user-cancel produces; the ceremony maps it to "cancelled".
