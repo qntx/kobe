@@ -2,7 +2,7 @@
 
 # wallet
 
-Multi-chain self-custodial wallet SDK for TypeScript (web and React Native), with a Rust implementation to follow.
+Self-custodial wallet SDK for TypeScript: an isolated secret enclave (Web Worker, React Native kernel runtime) with HD derivation, a unified vault, and Nostr, Spark and multi-chain signing.
 
 ## License
 

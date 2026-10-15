@@ -14,3 +14,10 @@ dist
 
 # Local design documents (never committed)
 /design/
+
+# Playwright artifacts
+test-results/
+playwright-report/
+
+# Hermes smoke bundle (built on demand by scripts/hermes-smoke.ts)
+packages/wallet-wasm/.hermes-smoke.iife.js
