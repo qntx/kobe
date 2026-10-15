@@ -13,7 +13,7 @@
   ],
   "type": "module",
   "scripts": {
-    "lint": "vp check && bun scripts/check-version.ts",
+    "lint": "vp run @qntx/wallet#build && vp check && bun scripts/check-version.ts",
     "typecheck": "vp run -r typecheck && tsc --noEmit",
     "test": "vp run -r test",
     "test:browser": "vp run @qntx/wallet-wasm#test:browser",
