@@ -33,7 +33,7 @@
     "@qntx/tsconfig": "1.0.1",
     "@types/node": "26.6.4",
     "typescript": "7.0.2",
-    "vite-plus": "1.0.0"
+    "vite-plus": "1.1.0"
   },
   "devEngines": {
     "packageManager": {
