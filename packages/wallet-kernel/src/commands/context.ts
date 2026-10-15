@@ -15,21 +15,22 @@ export type VaultHooks = {
   /** Whether the module owns stored record `kind` — an unclaimed stored kind corrupts the vault. */
   readonly ownsRecord: (kind: string) => boolean;
   /**
-   * Claims the module's plaintexts out of an unlock pass. Claimed plaintexts are consumed (the
-   * module wipes them into its own state); the records it returns unclaimed are passed to the next
-   * module and finally wiped by the caller.
+   * Claims the module's plaintexts out of an unlock/reconcile pass. Claimed plaintexts are consumed
+   * (the module wipes them into its own state); an entry that replaces a same-id one disposes the
+   * old live state; the records it returns unclaimed are passed to the next module and finally
+   * wiped by the caller.
    */
   readonly claimUnlocked: (records: ReadonlyArray<OpenedRecord>) => ReadonlyArray<OpenedRecord>;
+  /** Drops the live state derived from a record the store no longer has. */
+  readonly forget: (kind: string, id: string) => void;
   /** Lock bookkeeping: dispose every secret the module holds. */
   readonly lock: () => void;
   /**
    * The extra ops committed atomically when a wallet is deleted — the module's records derived from
-   * that walletId. `after` runs once the commit lands (evicting the keys from live state).
+   * that walletId. Live state follows the committed image through reconciliation, so no commit
+   * bookkeeping is needed here.
    */
-  readonly walletDeleteOps: (
-    image: VaultImage,
-    walletId: string,
-  ) => { readonly ops: ReadonlyArray<StoreOp>; readonly after: () => void };
+  readonly walletDeleteOps: (image: VaultImage, walletId: string) => ReadonlyArray<StoreOp>;
 };
 
 /** Vault health, recomputed on every load; only ok serves the full method set. */
@@ -66,6 +67,14 @@ export type KernelContext = {
   readonly commit: (ops: ReadonlyArray<StoreOp>, options?: CommitOptions) => Promise<void>;
   /** Reloads the store into `image` and recomputes `health`; throws the classified error. */
   readonly reload: () => Promise<void>;
+  /**
+   * Reconciles live module state from `prev` to the current `image` under the unlocked session:
+   * removed records are forgotten, added or changed rows are opened with the session DEK and
+   * claimed by their module, and changed factor rows are bound-checked. Any authentication failure
+   * latches `corrupted` and locks the session `invalidated`. A keyId mismatch invalidates the
+   * session outright. No-op unless the session is unlocked.
+   */
+  readonly reconcile: (prev: VaultImage) => void;
 };
 
 /**

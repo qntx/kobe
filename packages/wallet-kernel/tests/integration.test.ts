@@ -1,4 +1,5 @@
 import { bytesToHex, hexToBytes, utf8ToBytes } from "@noble/hashes/utils.js";
+import { base64urlnopad } from "@scure/base";
 import { describe, expect, it } from "vite-plus/test";
 
 import { Keys, KeysSigner, npubEncode, verifyEvent } from "@qntx/nostr";
@@ -10,12 +11,22 @@ import type { KernelEvent, ProtocolValue, WalletErrorCode } from "@qntx/wallet/p
 import type { FactorInfo, StatusPayload as StatusT } from "@qntx/wallet/types";
 
 import { KernelError } from "../src/errors.ts";
+import { Secret, wipe } from "../src/secret/secret.ts";
+import { factorPublicKey, passwordKek, unwrapDek, wrapDek } from "../src/vault/factors.ts";
+import { encodeHeader, parsePasswordFactorHeader } from "../src/vault/headers.ts";
 import { createMemoryStore } from "../src/vault/memory.ts";
-import type { RecordStore, VaultMeta } from "../src/vault/store.ts";
+import type {
+  RecordStore,
+  StoredFactor,
+  StoredRecord,
+  VaultImage,
+  VaultMeta,
+} from "../src/vault/store.ts";
 import { VAULT_FORMAT } from "../src/vault/store.ts";
+import { openRecord } from "../src/vault/vault.ts";
 import type { Harness, KernelResponse } from "./harness.ts";
 import { createHarness, nonEchoing } from "./harness.ts";
-import { loadVectors } from "./helpers.ts";
+import { kernelError, loadVectors, subtlePbkdf2 } from "./helpers.ts";
 
 const passkeyVector = loadVectors("passkey.json") as {
   vector: {
@@ -1281,6 +1292,7 @@ describe("vault health", () => {
           header: JSON.stringify({
             salt: "AAAAAAAAAAAAAAAAAAAAAA",
             iterations: 1_000_000,
+            publicKey: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
             createdAt: 0,
           }),
           sealed: new Uint8Array(48),
@@ -1377,6 +1389,7 @@ describe("concurrent writers on one store", () => {
     b: Harness;
     sessionA: string;
     sessionB: string;
+    walletId: string;
     passwordFactorId: string;
     passkeyFactorId: string;
   }> {
@@ -1390,6 +1403,7 @@ describe("concurrent writers on one store", () => {
       }),
     );
     const sessionA = strField(created, "session");
+    const walletId = strField(field(created, "wallet"), "walletId");
     ok(
       await a.call(
         "vault.addFactor",
@@ -1416,6 +1430,7 @@ describe("concurrent writers on one store", () => {
       b,
       sessionA,
       sessionB: strField(unlockB, "session"),
+      walletId,
       passwordFactorId,
       passkeyFactorId,
     };
@@ -1469,5 +1484,388 @@ describe("concurrent writers on one store", () => {
     expect(codes.filter((c) => c === "conflict")).toHaveLength(1);
     const image = await shared.load();
     expect(image.factors.filter((f) => f.kind === "password")).toHaveLength(1);
+  });
+});
+
+/** A password Factor for `vault.unlock` / verify fields — fresh bytes every call. */
+function passwordFactor(password: Uint8Array | string = PASSWORD): {
+  kind: "password";
+  password: Uint8Array;
+} {
+  return {
+    kind: "password",
+    password: typeof password === "string" ? utf8ToBytes(password) : new Uint8Array(password),
+  };
+}
+
+/** `sealed` with the byte at `offset` flipped — raw-store tampering helper. */
+function tamperSealed(sealed: Uint8Array, offset: number): Uint8Array {
+  const copy = new Uint8Array(sealed);
+  copy[offset] = (copy[offset] ?? 0) ^ 1;
+  return copy;
+}
+
+/** The record row matching `(kind, id)`, if any. */
+function recordOf(image: VaultImage, kind: string, id: string): StoredRecord | undefined {
+  return image.records.find((r) => r.kind === kind && r.id === id);
+}
+
+/** Unwraps the vault DEK from the (single) password factor row using the kernel's own functions. */
+async function dekFromStore(store: RecordStore, password: Uint8Array): Promise<Secret> {
+  const image = await store.load();
+  const factor = must(image.factors.find((f) => f.kind === "password"));
+  const { salt } = parsePasswordFactorHeader(factor.header);
+  const kek = await passwordKek(password, base64urlnopad.decode(salt), subtlePbkdf2);
+  try {
+    return unwrapDek(kek, factor);
+  } finally {
+    wipe(kek); // unwrapDek does not consume it
+  }
+}
+
+/**
+ * A structurally valid factor row bound to an attacker's own DEK — publicKey unwraps fine but the
+ * binding tag does not match this vault's DEK.
+ */
+function plantedFactor(): StoredFactor {
+  const attackerDek = Secret.take(hexToBytes("42".repeat(32)));
+  const attackerKek = hexToBytes("17".repeat(32));
+  const publicKey = factorPublicKey(attackerKek);
+  const id = "99".repeat(16);
+  const header = encodeHeader({
+    credentialId: "3q2-78r-",
+    publicKey: base64urlnopad.encode(publicKey),
+    createdAt: 0,
+  });
+  const sealed = wrapDek(attackerDek, publicKey, { kind: "passkey", id, header }, (length) =>
+    new Uint8Array(length).fill(7),
+  );
+  attackerDek.wipe();
+  return { kind: "passkey", id, header, sealed };
+}
+
+describe("public-key factor wrapping and DEK rotation", () => {
+  it("a tampered factor binding corrupts the vault at unlock", async () => {
+    const shared = createMemoryStore();
+    const setup = createHarness({ store: shared });
+    await setup.settle();
+    await createPasskeyWallet(setup);
+
+    // Flip a byte inside the binding tag (offset 33..65) of the stored factor row.
+    const image = await shared.load();
+    const factor = must(image.factors[0]);
+    const sealed = tamperSealed(factor.sealed, 40);
+    await shared.commit([{ op: "put-factor", factor: { ...factor, sealed } }]);
+
+    const h = createHarness({ store: shared });
+    await h.settle();
+    expect(errCode(await h.call("vault.unlock", { factor: passkeyFactor() }))).toBe("integrity");
+    expect(lastStatus(h).vault).toBe("corrupted");
+    // Nothing unlocked: no session, no keys.
+    await expect(h.call("status")).resolves.toBeDefined();
+    expect(field(ok(await h.call("status")), "vault")).toBe("corrupted");
+  });
+
+  it("a planted factor row corrupts a locked vault — the real password cannot unlock", async () => {
+    const shared = createMemoryStore();
+    const setup = createHarness({ store: shared });
+    await setup.settle();
+    ok(
+      await setup.call("wallet.importMnemonic", {
+        mnemonic: utf8ToBytes(nip06.vectors[0]!.mnemonic),
+        factor: passwordFactor(),
+      }),
+    );
+    await shared.commit([{ op: "put-factor", factor: plantedFactor() }]);
+
+    const h = createHarness({ store: shared });
+    await h.settle();
+    // The password still unwraps the real factor; reconciliation then proves the planted row's
+    // binding does not match this vault's DEK.
+    expect(errCode(await h.call("vault.unlock", { factor: passwordFactor() }))).toBe("integrity");
+    expect(lastStatus(h).vault).toBe("corrupted");
+    expect(lockReasons(h.events)).toContain("invalidated");
+  });
+
+  it("a planted factor row invalidates an unlocked session at once", async () => {
+    const h = createHarness();
+    await h.settle();
+    const { session } = await createPasskeyWallet(h);
+    const pk = strField(
+      field(ok(await h.call("nostr.generateKey", {}, session)), "key"),
+      "publicKey",
+    );
+    await h.store.commit([{ op: "put-factor", factor: plantedFactor() }]);
+    await h.settle();
+    expect(lastStatus(h).vault).toBe("corrupted");
+    expect(lockReasons(h.events)).toContain("invalidated");
+    expect(
+      errCode(
+        await h.call(
+          "nostr.signEvent",
+          { publicKey: pk, event: { kind: 1, created_at: 1, tags: [], content: "x" } },
+          session,
+        ),
+      ),
+    ).toBe("integrity");
+  });
+
+  it("changing the password rotates: new keyId, every record resealed, old DEK stale", async () => {
+    const h = createHarness();
+    await h.settle();
+    const created = ok(
+      await h.call("wallet.importMnemonic", {
+        mnemonic: utf8ToBytes(nip06.vectors[0]!.mnemonic),
+        factor: passwordFactor(),
+      }),
+    );
+    const session = strField(created, "session");
+    const walletId = strField(field(created, "wallet"), "walletId");
+    await deriveKey(h, session, walletId);
+    const before = await h.store.load();
+    const oldDek = await dekFromStore(h.store, new Uint8Array(PASSWORD));
+    try {
+      ok(
+        await h.call(
+          "vault.addFactor",
+          { verify: passwordFactor(), factor: passwordFactor("rotated horse battery") },
+          session,
+        ),
+      );
+      const after = await h.store.load();
+      expect(must(after.meta).keyId).not.toBe(must(before.meta).keyId);
+      // Every record re-sealed under the new DEK: same public headers, different bytes.
+      expect(after.records).toHaveLength(before.records.length);
+      for (const record of after.records) {
+        const old = must(recordOf(before, record.kind, record.id));
+        expect(record.header).toBe(old.header);
+        expect(bytesToHex(record.sealed)).not.toBe(bytesToHex(old.sealed));
+        expect(kernelError(() => openRecord(oldDek, record))).toBe("integrity");
+      }
+    } finally {
+      oldDek.wipe();
+    }
+    // Old password is just wrong now; the new one unlocks.
+    const h2 = respawn(h);
+    await h2.settle();
+    expect(errCode(await h2.call("vault.unlock", { factor: passwordFactor() }))).toBe(
+      "wrong-password",
+    );
+    expect(
+      "ok" in (await h2.call("vault.unlock", { factor: passwordFactor("rotated horse battery") })),
+    ).toBe(true);
+  });
+
+  it("adding a passkey keeps the keyId and both factors unlock", async () => {
+    const h = createHarness();
+    await h.settle();
+    const created = ok(
+      await h.call("wallet.importMnemonic", {
+        mnemonic: utf8ToBytes(nip06.vectors[0]!.mnemonic),
+        factor: passwordFactor(),
+      }),
+    );
+    const session = strField(created, "session");
+    const keyIdBefore = await storedMeta(h.store);
+    ok(
+      await h.call(
+        "vault.addFactor",
+        { verify: passwordFactor(), factor: passkeyFactor() },
+        session,
+      ),
+    );
+    await expect(storedMeta(h.store)).resolves.toMatchObject({ keyId: keyIdBefore.keyId });
+    expect(lastStatus(h).factors).toHaveLength(2);
+
+    const h2 = respawn(h);
+    await h2.settle();
+    expect("ok" in (await h2.call("vault.unlock", { factor: passkeyFactor() }))).toBe(true);
+    const h3 = respawn(h);
+    await h3.settle();
+    expect("ok" in (await h3.call("vault.unlock", { factor: passwordFactor() }))).toBe(true);
+  });
+
+  it("removing a passkey rotates; the password still unlocks and the passkey fails", async () => {
+    const h = createHarness();
+    await h.settle();
+    const created = ok(
+      await h.call("wallet.importMnemonic", {
+        mnemonic: utf8ToBytes(nip06.vectors[0]!.mnemonic),
+        factor: passwordFactor(),
+      }),
+    );
+    const session = strField(created, "session");
+    const added = ok(
+      await h.call(
+        "vault.addFactor",
+        { verify: passwordFactor(), factor: passkeyFactor() },
+        session,
+      ),
+    );
+    const passkeyId = strField(added, "id");
+    const keyIdBefore = await storedMeta(h.store);
+    ok(await h.call("vault.removeFactor", { verify: passwordFactor(), id: passkeyId }, session));
+    const keyIdAfter = await storedMeta(h.store);
+    expect(keyIdAfter.keyId).not.toBe(keyIdBefore.keyId);
+    expect(lastStatus(h).factors).toHaveLength(1);
+
+    const h2 = respawn(h);
+    await h2.settle();
+    expect("ok" in (await h2.call("vault.unlock", { factor: passwordFactor() }))).toBe(true);
+    const h3 = respawn(h);
+    await h3.settle();
+    expect(errCode(await h3.call("vault.unlock", { factor: passkeyFactor() }))).toBe("integrity");
+  });
+});
+
+describe("live-state reconciliation across kernels", () => {
+  /**
+   * A password vault on a shared store with A and B both unlocked (echoing watch: a commit on the
+   * raw store notifies both kernels).
+   */
+  async function pair(): Promise<{
+    shared: ReturnType<typeof createMemoryStore>;
+    a: Harness;
+    b: Harness;
+    sessionA: string;
+    sessionB: string;
+    walletId: string;
+  }> {
+    const shared = createMemoryStore();
+    const a = createHarness({ store: shared });
+    await a.settle();
+    const created = ok(
+      await a.call("wallet.importMnemonic", {
+        mnemonic: utf8ToBytes(nip06.vectors[0]!.mnemonic),
+        factor: passwordFactor(),
+      }),
+    );
+    const sessionA = strField(created, "session");
+    const walletId = strField(field(created, "wallet"), "walletId");
+    const b = createHarness({ store: shared });
+    await b.settle();
+    const unlockB = ok(await b.call("vault.unlock", { factor: passwordFactor() }));
+    return { shared, a, b, sessionA, walletId, sessionB: strField(unlockB, "session") };
+  }
+
+  const signWith = async (h: Harness, session: string, publicKey: string) =>
+    h.call(
+      "nostr.signEvent",
+      { publicKey, event: { kind: 1, created_at: 1, tags: [], content: "x" } },
+      session,
+    );
+
+  it("a key deleted in A is forgotten in B at once; a key imported in A signs in B", async () => {
+    const { b, sessionB, sessionA, a } = await pair();
+    // nip46-client keys need no re-verification on removal.
+    const pk = strField(
+      ok(await a.call("nostr.createNip46ClientKey", null, sessionA)),
+      "publicKey",
+    );
+    await b.settle();
+    // B never ran the import: reconciliation claimed the new record — it can sign immediately.
+    expect("ok" in (await signWith(b, sessionB, pk))).toBe(true);
+
+    ok(await a.call("nostr.removeKey", { publicKey: pk }, sessionA));
+    await b.settle();
+    // The record is gone from the image; B's live signer is forgotten — not-found, not stale sign.
+    expect(errCode(await signWith(b, sessionB, pk))).toBe("not-found");
+  });
+
+  it("an imported nsec is live in B without a re-unlock", async () => {
+    const { a, b, sessionA, sessionB } = await pair();
+    const imported = ok(
+      await a.call(
+        "nostr.importKey",
+        { input: { kind: "nsec", nsec: utf8ToBytes(nip06.vectors[0]!.nsec) } },
+        sessionA,
+      ),
+    );
+    const pk = strField(field(imported, "key"), "publicKey");
+    await b.settle();
+    const signed = ok(await signWith(b, sessionB, pk));
+    expect(strField(signed, "pubkey")).toBe(pk);
+  });
+
+  it("deleting a wallet in A removes its derived keys from B's live state", async () => {
+    const { a, b, sessionA, sessionB, walletId } = await pair();
+    const pk = await deriveKey(a, sessionA, walletId);
+    await b.settle();
+    expect("ok" in (await signWith(b, sessionB, pk))).toBe(true);
+    ok(await a.call("wallet.delete", { verify: passwordFactor(), walletId }, sessionA));
+    await b.settle();
+    expect(errCode(await signWith(b, sessionB, pk))).toBe("not-found");
+    expect(lastStatus(b).nostr.keys).toHaveLength(0);
+  });
+
+  it("rotation in A invalidates B; A stays unlocked and signs", async () => {
+    const { a, b, sessionA, sessionB, walletId } = await pair();
+    const pk = await deriveKey(a, sessionA, walletId);
+    await b.settle();
+    const passkeyId = strField(
+      ok(
+        await a.call(
+          "vault.addFactor",
+          { verify: passwordFactor(), factor: passkeyFactor() },
+          sessionA,
+        ),
+      ),
+      "id",
+    );
+    // Removing the passkey rotates the vault DEK + keyId under one guarded commit.
+    ok(await a.call("vault.removeFactor", { verify: passwordFactor(), id: passkeyId }, sessionA));
+    await b.settle();
+    // B's session DEK no longer matches the vault keyId: invalidated on the reload.
+    expect(lockReasons(b.events)).toContain("invalidated");
+    expect(lastStatus(b).vault).toBe("locked");
+    expect(errCode(await signWith(b, sessionB, pk))).toBe("locked");
+    // A rotated its own session: still unlocked and signing under the new DEK.
+    expect(lastStatus(a).vault).toBe("unlocked");
+    const signed = ok(await signWith(a, sessionA, pk));
+    expect(verifyEvent(signed as Event)).toBe(true);
+    // The password factor row was re-wrapped under the new DEK: B re-unlocks with it.
+    expect("ok" in (await b.call("vault.unlock", { factor: passwordFactor() }))).toBe(true);
+  });
+
+  it("tampered record bytes corrupt B on the next watch reload", async () => {
+    const { shared, a, b, sessionA, sessionB, walletId } = await pair();
+    const pk = await deriveKey(a, sessionA, walletId);
+    await b.settle();
+    const image = await shared.load();
+    const record = must(recordOf(image, "nostr-key", pk));
+    const sealed = tamperSealed(record.sealed, record.sealed.length - 1);
+    await shared.commit([{ op: "put-record", record: { ...record, sealed } }]);
+    await b.settle();
+    expect(lastStatus(b).vault).toBe("corrupted");
+    expect(lockReasons(b.events)).toContain("invalidated");
+    expect(errCode(await signWith(b, sessionB, pk))).toBe("integrity");
+  });
+
+  it("a rotation racing a record write yields exactly one conflict and a consistent store", async () => {
+    const { shared, a, b, sessionA, sessionB, walletId } = await pair();
+    const added = ok(
+      await a.call(
+        "vault.addFactor",
+        { verify: passwordFactor(), factor: passkeyFactor() },
+        sessionA,
+      ),
+    );
+    const passkeyId = strField(added, "id");
+    const [rotated, write] = await Promise.all([
+      a.call("vault.removeFactor", { verify: passwordFactor(), id: passkeyId }, sessionA),
+      b.call("nostr.deriveKey", { walletId, groupIndex: 7 }, sessionB),
+    ]);
+    const codes = [rotated, write].map(codeOf).toSorted();
+    expect(codes).toStrictEqual(["conflict", "ok"]);
+    // Whichever won, every stored record authenticates under the vault's final DEK.
+    const dek = await dekFromStore(shared, new Uint8Array(PASSWORD));
+    try {
+      const image = await shared.load();
+      for (const record of image.records) {
+        openRecord(dek, record);
+      }
+    } finally {
+      dek.wipe();
+    }
   });
 });

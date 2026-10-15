@@ -24,7 +24,7 @@ export function factorContext(kind: string, id: string): string {
   return `qntx-wallet/vault/v1/factor/${kind}/${id}`;
 }
 
-function aadOf(context: string, header: string): Uint8Array {
+export function aadOf(context: string, header: string): Uint8Array {
   const contextBytes = utf8ToBytes(context);
   const headerBytes = utf8ToBytes(header);
   const aad = new Uint8Array(3 + contextBytes.length + headerBytes.length);

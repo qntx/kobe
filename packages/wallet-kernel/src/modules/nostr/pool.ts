@@ -18,11 +18,15 @@ import { decodeUtf8Secret, wipe } from "../../secret/secret.ts";
 export class SignerPool {
   private readonly signers = new Map<string, KeysSigner>();
 
-  /** Takes ownership of `secretKey` and wipes it after the signer is constructed. */
+  /**
+   * Takes ownership of `secretKey` and wipes it after the signer is constructed. A same-key replace
+   * (reconciliation reclaims a changed record) disposes the signer it evicts.
+   */
   add(secretKey: Uint8Array): string {
     try {
       const signer = new KeysSigner(Keys.fromSecretKey(secretKey));
       const { publicKey } = signer.keys;
+      this.signers.get(publicKey)?.dispose();
       this.signers.set(publicKey, signer);
       return publicKey;
     } finally {

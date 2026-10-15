@@ -7,10 +7,18 @@ import type { FactorInfo, WalletInfo } from "@qntx/wallet/types";
 
 import { KernelError } from "../errors.ts";
 import type { KernelPlatform } from "../platform.ts";
-import type { Secret } from "../secret/secret.ts";
-import { wipe } from "../secret/secret.ts";
+import { Secret, wipe } from "../secret/secret.ts";
 import { open, recordContext, seal } from "./envelope.ts";
-import { assertPasswordPolicy, passkeyKek, passwordKek, unwrapDek, wrapDek } from "./factors.ts";
+import {
+  assertPasswordPolicy,
+  factorBindingOk,
+  factorHeaderPublicKey,
+  factorPublicKey,
+  passkeyKek,
+  passwordKek,
+  unwrapDek,
+  wrapDek,
+} from "./factors.ts";
 import type { EntropyHeader } from "./headers.ts";
 import { encodeHeader, parsePasskeyFactorHeader, parsePasswordFactorHeader } from "./headers.ts";
 import type { StoredFactor, StoredRecord, StoreOp, VaultImage, VaultMeta } from "./store.ts";
@@ -68,17 +76,24 @@ type FactorHeaderMaterial =
   | { readonly kind: "password"; readonly salt: Uint8Array }
   | { readonly kind: "passkey"; readonly credentialId: Uint8Array };
 
-/** Public header text for a new factor (raw bytes → base64url). */
-export function factorHeader(material: FactorHeaderMaterial, createdAt: number): string {
+/** Public header text for a new factor (raw bytes → base64url). `publicKey` is not consumed. */
+export function factorHeader(
+  material: FactorHeaderMaterial,
+  publicKey: Uint8Array,
+  createdAt: number,
+): string {
+  const pk = base64urlnopad.encode(publicKey);
   if (material.kind === "password") {
     return encodeHeader({
       salt: base64urlnopad.encode(material.salt),
       iterations: PASSWORD_FACTOR_ITERATIONS,
+      publicKey: pk,
       createdAt,
     });
   }
   return encodeHeader({
     credentialId: base64urlnopad.encode(material.credentialId),
+    publicKey: pk,
     createdAt,
   });
 }
@@ -91,9 +106,10 @@ export async function makeFactor(
 ): Promise<StoredFactor> {
   const material = await newFactorKek(platform, factor);
   const id = factorId(platform.random);
-  const header = factorHeader(material, platform.now());
   try {
-    const sealed = wrapDek(material.kek, dek, { kind: material.kind, id, header }, platform.random);
+    const publicKey = factorPublicKey(material.kek);
+    const header = factorHeader(material, publicKey, platform.now());
+    const sealed = wrapDek(dek, publicKey, { kind: material.kind, id, header }, platform.random);
     return { kind: material.kind, id, header, sealed };
   } finally {
     wipe(material.kek);
@@ -117,9 +133,9 @@ async function kekFor(
 }
 
 /**
- * One record's authenticated plaintext from the unlock pass. The vault layer opens every record
- * (AEAD bound to context plus the raw header) without interpreting kind or payload — the
- * composition point decides which module claims each plaintext and wipes the rest.
+ * One record's authenticated plaintext from an unlock or reconcile pass. The vault layer opens
+ * every record (AEAD bound to context plus the raw header) without interpreting kind or payload —
+ * the composition point decides which module claims each plaintext and wipes the rest.
  */
 export type OpenedRecord = {
   readonly kind: string;
@@ -128,9 +144,9 @@ export type OpenedRecord = {
 };
 
 /**
- * Unlocks the vault: factor unwrap against the caller-supplied fresh image, then one authentication
- * pass over every record (`open` binds each raw public header). Returns the DEK, every record
- * plaintext (ownership passes to the caller) and the vault keyId for the session.
+ * Unlocks the vault: factor unwrap against the caller-supplied fresh image. Returns the DEK and the
+ * vault keyId for the session; record and factor authentication happens in the reconcile pass that
+ * follows (every row is "new" to an empty live state).
  *
  * Password attempts are rate-limited on the stored counters: with no password factor the attempt is
  * `invalid-input` and never counted; an attempt rejected while backoff is armed is `rate-limited`
@@ -143,7 +159,7 @@ export async function unlock(
   image: VaultImage,
   factor: Factor,
   commit: (ops: ReadonlyArray<StoreOp>) => Promise<void>,
-): Promise<{ dek: Secret; records: OpenedRecord[]; keyId: string }> {
+): Promise<{ dek: Secret; keyId: string }> {
   const { meta } = image;
   if (meta === undefined) {
     throw new KernelError("invalid-input", "vault is not initialized");
@@ -168,7 +184,9 @@ export async function unlock(
         dek = unwrapDek(kek, stored);
         break;
       } catch (error) {
-        if (!(error instanceof KernelError) || error.code !== "integrity") {
+        // `wrong-password` (the derived key missed the factor's public key) tries the next
+        // password factor; corruption-marked integrity failures abort the attempt entirely.
+        if (!(error instanceof KernelError) || error.code !== "wrong-password") {
           throw error;
         }
       } finally {
@@ -197,18 +215,7 @@ export async function unlock(
     }
   }
 
-  try {
-    const records = authenticateRecords(dek, image.records);
-    return { dek, records, keyId: meta.keyId };
-  } catch (error) {
-    dek.wipe();
-    // The DEK opened but a record failed authentication: the vault contents are corrupt.
-    // (A wrong factor fails earlier, while unwrapping the DEK, and is not corruption.)
-    if (error instanceof KernelError) {
-      throw new KernelError(error.code, error.message, error.retryAt, true);
-    }
-    throw error;
-  }
+  return { dek, keyId: meta.keyId };
 }
 
 function credentialIdOf(stored: StoredFactor): string | undefined {
@@ -219,29 +226,11 @@ function credentialIdOf(stored: StoredFactor): string | undefined {
   }
 }
 
-/** Opens every record once; the caller claims or wipes the returned plaintexts. */
-function authenticateRecords(dek: Secret, records: ReadonlyArray<StoredRecord>): OpenedRecord[] {
-  const opened: OpenedRecord[] = [];
-  try {
-    for (const record of records) {
-      const plaintext = dek.use((bytes) =>
-        open(bytes, record.sealed, recordContext(record.kind, record.id), record.header),
-      );
-      opened.push({ kind: record.kind, id: record.id, plaintext });
-    }
-    return opened;
-  } catch (error) {
-    for (const record of opened) {
-      wipe(record.plaintext);
-    }
-    throw error;
-  }
-}
-
 /**
  * Re-verifies a factor against the live session DEK: unwrap with the factor KEK and constant-time
- * compare. Password mismatches are `wrong-password`; everything else that fails is `integrity`. The
- * verify path never touches the rate limiter.
+ * compare. Password mismatches are `wrong-password`; everything else that fails is `integrity`.
+ * Corruption-marked failures (broken structure, binding mismatch) propagate. The verify path never
+ * touches the rate limiter.
  */
 export async function verifyFactor(
   platform: KernelPlatform,
@@ -274,7 +263,8 @@ export async function verifyFactor(
       }
       sawPasswordFactor = stored.kind === "password";
     } catch (error) {
-      if (!(error instanceof KernelError) || error.code !== "integrity") {
+      // A public-key miss is a definite wrong password; a corrupted row aborts re-verification.
+      if (!(error instanceof KernelError) || error.code !== "integrity" || error.corrupted) {
         throw error;
       }
       sawPasswordFactor = stored.kind === "password";
@@ -289,6 +279,98 @@ export async function verifyFactor(
     );
   }
   throw new KernelError("integrity", "factor did not verify");
+}
+
+/**
+ * Rotates the vault: a fresh DEK and keyId; every record re-sealed under the new DEK keeping its
+ * public header; every retained factor re-wraps the new DEK to the public key of a row whose
+ * binding verified under the current DEK (an unverified row is never re-wrapped — it latches
+ * corrupted instead); added factors are built under the new DEK. One guarded commit lands it all:
+ * `set-key-id`, `delete-factor`s, `put-factor`s, `put-record`s.
+ *
+ * Everything secret is wiped on failure; on success the caller hands `dek` to `ctx.commit(ops, {
+ * rotate })` or wipes it.
+ */
+export async function rotateVault(
+  platform: KernelPlatform,
+  image: VaultImage,
+  dek: Secret,
+  removed: ReadonlySet<string>,
+  added: ReadonlyArray<Factor>,
+): Promise<{ ops: StoreOp[]; dek: Secret; keyId: string; added: StoredFactor[] }> {
+  const nextDek = Secret.take(platform.random(32));
+  try {
+    const keyId = bytesToHex(platform.random(16));
+    const ops: StoreOp[] = [{ op: "set-key-id", keyId }];
+    for (const id of removed) {
+      ops.push({ op: "delete-factor", id });
+    }
+    const addedRows: StoredFactor[] = [];
+    for (const factor of image.factors) {
+      if (removed.has(factor.id)) {
+        continue;
+      }
+      if (!factorBindingOk(dek, factor)) {
+        throw new KernelError(
+          "integrity",
+          "factor binding does not match the vault",
+          undefined,
+          true,
+        );
+      }
+      const publicKey = factorHeaderPublicKey(factor);
+      const sealed = wrapDek(
+        nextDek,
+        publicKey,
+        { kind: factor.kind, id: factor.id, header: factor.header },
+        platform.random,
+      );
+      ops.push({
+        op: "put-factor",
+        factor: { kind: factor.kind, id: factor.id, header: factor.header, sealed },
+      });
+    }
+    for (const factor of added) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- each KEK derives sequentially
+      const stored = await makeFactor(platform, factor, nextDek);
+      addedRows.push(stored);
+      ops.push({ op: "put-factor", factor: stored });
+    }
+    for (const record of image.records) {
+      let plaintext: Uint8Array;
+      try {
+        plaintext = openRecord(dek, record);
+      } catch {
+        throw new KernelError("integrity", "record failed authentication", undefined, true);
+      }
+      try {
+        const sealed = nextDek.use((bytes) =>
+          seal(
+            bytes,
+            plaintext,
+            recordContext(record.kind, record.id),
+            record.header,
+            platform.random,
+          ),
+        );
+        ops.push({
+          op: "put-record",
+          record: {
+            kind: record.kind,
+            id: record.id,
+            header: record.header,
+            sealed,
+          },
+        });
+      } finally {
+        wipe(plaintext);
+      }
+    }
+    return { ops, dek: nextDek, keyId, added: addedRows };
+  } catch (error) {
+    nextDek.wipe();
+    throw error;
+  }
 }
 
 export function sealRecord(

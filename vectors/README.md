@@ -11,6 +11,7 @@ it for funds.**
 | `factors.json`   | Password KEK (`PBKDF2-HMAC-SHA256` of the NFKC password, salt, 600000, 32) and passkey KEK (HKDF)  | Computed with `python3 hashlib.pbkdf2_hmac` and a hand-rolled HMAC HKDF; see below                                                    |
 | `envelope.json`  | Fixed key/nonce/context/header → sealed envelope (record and factor contexts)                      | `bun scripts/vectors/envelope.ts` — spells the format out byte by byte, no kernel imports                                              |
 | `passkey.json`   | PRF `00..1f` → entropy → mnemonic → seed → NIP-06 group 0 key → `walletId`                         | `bun scripts/vectors/passkey.ts` — uses the libraries directly, no kernel imports                                                      |
+| `factor-wrap.json` | KEK → factor public key; fixed DEK/eph/nonce → factor wrap v2 `sealed` (`0x02 ‖ ephPk ‖ binding ‖ envelope`) | `bun scripts/vectors/factor-wrap.ts` — uses noble directly, no kernel imports |
 
 ## factor vectors
 

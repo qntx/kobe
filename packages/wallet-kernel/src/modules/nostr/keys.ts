@@ -12,7 +12,6 @@ import { seedFromEntropy } from "../../seed/seed.ts";
 import type { StoredRecord } from "../../vault/store.ts";
 import { findRecord, openRecord, sealRecord, verifyFactor } from "../../vault/vault.ts";
 import { nostrKeyAt } from "./derive.ts";
-import type { SignerPool } from "./pool.ts";
 import {
   generateSecretKey,
   ncryptsecFromSecretKey,
@@ -55,11 +54,11 @@ function ensureNewKey(ctx: KernelContext, publicKey: string): void {
 /**
  * Adds a standalone nostr key. Same create/import gate as wallets: on an uninitialized vault the
  * `factor` establishes it (meta + factor + record in one guarded commit); otherwise a session is
- * required and `factor` must be absent.
+ * required and `factor` must be absent. The signer goes live when the committed image reconciles —
+ * command handlers never touch the pool.
  */
 async function addKey(
   ctx: KernelContext,
-  pool: SignerPool,
   secretKey: Uint8Array,
   origin: StandaloneOrigin,
   factor: Factor | undefined,
@@ -71,13 +70,11 @@ async function addKey(
   const header: NostrKeyHeader = { publicKey, origin, createdAt: ctx.platform.now() };
   const record = keyRecord(ctx, gated.dek, secretKey, header);
   const session = await commitRecords(ctx, gated, factor, [record]);
-  pool.add(secretKey);
   return { key: nostrKeyInfo(header), session };
 }
 
 export async function importKey(
   ctx: KernelContext,
-  pool: SignerPool,
   params: { input: NostrImportInput; factor?: Factor },
   requestSession: string | undefined,
 ): Promise<{ key: NostrKeyInfo; session: string }> {
@@ -87,7 +84,7 @@ export async function importKey(
       ? secretKeyFromNsec(input.nsec)
       : await secretKeyFromNcryptsec(input.ncryptsec, input.password);
   try {
-    return await addKey(ctx, pool, secretKey, input.kind, params.factor, requestSession);
+    return await addKey(ctx, secretKey, input.kind, params.factor, requestSession);
   } finally {
     wipe(secretKey);
   }
@@ -95,13 +92,12 @@ export async function importKey(
 
 export async function generateKey(
   ctx: KernelContext,
-  pool: SignerPool,
   params: { factor?: Factor },
   requestSession: string | undefined,
 ): Promise<{ key: NostrKeyInfo; session: string }> {
   const secretKey = generateSecretKey(ctx.platform.random);
   try {
-    return await addKey(ctx, pool, secretKey, "generated", params.factor, requestSession);
+    return await addKey(ctx, secretKey, "generated", params.factor, requestSession);
   } finally {
     wipe(secretKey);
   }
@@ -109,7 +105,6 @@ export async function generateKey(
 
 export async function createNip46ClientKey(
   ctx: KernelContext,
-  pool: SignerPool,
   requestSession: string | undefined,
 ): Promise<NostrKeyInfo> {
   const { dek } = ctx.session.require(requestSession);
@@ -123,7 +118,6 @@ export async function createNip46ClientKey(
       createdAt: ctx.platform.now(),
     };
     await ctx.commit([{ op: "put-record", record: keyRecord(ctx, dek, secretKey, header) }]);
-    pool.add(secretKey);
     return nostrKeyInfo(header);
   } finally {
     wipe(secretKey);
@@ -132,7 +126,6 @@ export async function createNip46ClientKey(
 
 export async function deriveKey(
   ctx: KernelContext,
-  pool: SignerPool,
   params: { walletId: string; groupIndex: number },
   requestSession: string | undefined,
 ): Promise<NostrKeyInfo> {
@@ -156,7 +149,6 @@ export async function deriveKey(
         createdAt: ctx.platform.now(),
       };
       await ctx.commit([{ op: "put-record", record: keyRecord(ctx, dek, secretKey, header) }]);
-      pool.add(secretKey);
       return nostrKeyInfo(header);
     } finally {
       wipe(secretKey);
@@ -194,7 +186,6 @@ export async function discover(
 
 export async function removeKey(
   ctx: KernelContext,
-  pool: SignerPool,
   params: { publicKey: string; verify?: Factor },
   requestSession: string | undefined,
 ): Promise<NullValue> {
@@ -208,8 +199,8 @@ export async function removeKey(
     }
     await verifyFactor(ctx.platform, ctx.image, params.verify, dek);
   }
+  // Reconciliation forgets the live signer once the delete lands.
   await ctx.commit([{ op: "delete-record", kind: NOSTR_KEY_KIND, id: params.publicKey }]);
-  pool.remove(params.publicKey);
   return null;
 }
 

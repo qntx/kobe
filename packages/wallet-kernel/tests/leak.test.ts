@@ -147,6 +147,23 @@ describe("leak check", () => {
         session,
       ),
     );
+    // Exercise the S7 paths: a password addFactor rotates the DEK (fresh keyId, resealed
+    // records, rewrapped factors); a passkey addFactor wraps the live DEK only.
+    ok(
+      await h.call(
+        "vault.addFactor",
+        {
+          verify: {
+            kind: "passkey",
+            credentialId: CREDENTIAL_ID,
+            prf: new Uint8Array(PRF_VAULT),
+          },
+          factor: { kind: "password", password: utf8ToBytes("leak test password") },
+        },
+        session,
+      ),
+    );
+
     // Lock is host-side: the respawned kernel over the same store is a fresh enclave.
     const h2 = createHarness({ seed: 43, store: h.store });
     await h2.settle();
@@ -166,6 +183,7 @@ describe("leak check", () => {
       PRF_VAULT,
       PASSWORD,
       utf8ToBytes(passkeyVector.vector.mnemonic),
+      utf8ToBytes("leak test password"),
       hexToBytes(nip06.vectors[0]!.privateKey),
       ...h.draws.filter((d) => d.length >= 32),
     ];
