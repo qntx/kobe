@@ -15,7 +15,7 @@ import {
   union,
   ValidationError,
   validate,
-} from "@qntx/wallet/protocol";
+} from "../src/protocol/index.ts";
 
 function fails(validator: (v: unknown) => unknown, value: unknown): boolean {
   try {
