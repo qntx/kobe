@@ -1,0 +1,32 @@
+# Caller owns on:. Pin at @v2.
+# OIDC. Do not pass NPM_TOKEN. Do not set environment, runs-on, or steps.
+# Required check-runs on a tag: wallet / publish and wallet-wasm / publish.
+# @qntx/wallet-kernel stays private — it is bundled into the hosts, never published.
+name: Publish
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  wallet:
+    uses: qntx/workflows/.github/workflows/publish-npm.yml@v2
+    permissions:
+      contents: read
+      id-token: write
+    with:
+      package-manager: bun
+      working-directory: packages/wallet
+
+  wallet-wasm:
+    uses: qntx/workflows/.github/workflows/publish-npm.yml@v2
+    permissions:
+      contents: read
+      id-token: write
+    with:
+      package-manager: bun
+      working-directory: packages/wallet-wasm

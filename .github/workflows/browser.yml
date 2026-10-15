@@ -1,0 +1,24 @@
+name: Browser
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install
+      - name: Install Chromium
+        working-directory: packages/wallet-wasm
+        run: bunx playwright install --with-deps chromium
+      - name: Build and run browser tests
+        run: bun run test:browser
