@@ -103,8 +103,8 @@ function walletRecord(
 
 /**
  * The dynamic gate on every "create or import" command: with an uninitialized vault `factor` is
- * required and the command must commit through `expect-uninitialized`; with an established vault
- * `factor` must be absent and the request must carry the live session.
+ * required and the command must commit through `init`; with an established vault `factor` must be
+ * absent and the request must carry the live session.
  */
 export function gate(
   ctx: KernelContext,
@@ -126,9 +126,9 @@ export function gate(
 
 /**
  * Commits a create/import command. On the uninitialized path the vault (meta + factor + records) is
- * established in ONE commit guarded by `expect-uninitialized`; a racing establish makes the commit
- * fail with `integrity` and nothing is written. On the initialized path only the records are
- * appended under the live session DEK. Returns the session id.
+ * established in ONE `init` commit; a racing establish makes the commit fail with `conflict` and
+ * nothing is written. On the initialized path only the records are appended under the live session
+ * DEK, guarded by `expect-revision`. Returns the session id.
  */
 export async function commitRecords(
   ctx: KernelContext,
@@ -141,13 +141,14 @@ export async function commitRecords(
       throw new KernelError("integrity", "unreachable: initial factor missing");
     }
     const storedFactor = await makeFactor(ctx.platform, factor, gated.dek);
+    const { ops, keyId } = establishOps(ctx.platform, storedFactor, records);
     try {
-      await ctx.commit([...establishOps(storedFactor, records)]);
+      await ctx.commit(ops);
     } catch (error) {
       gated.dek.wipe();
       throw error;
     }
-    return ctx.session.open(gated.dek);
+    return ctx.session.open(gated.dek, keyId);
   }
   await ctx.commit(records.map((record) => ({ op: "put-record" as const, record })));
   return ctx.session.current().id;
@@ -266,13 +267,14 @@ export async function confirmMnemonic(
         const dek = Secret.take(ctx.platform.random(32));
         const storedFactor = storedFactorForPending(ctx, taken.pendingFactor, dek);
         const record = walletRecord(ctx, dek, material, true, createdAt);
+        const { ops, keyId } = establishOps(ctx.platform, storedFactor, [record]);
         try {
-          await ctx.commit(establishOps(storedFactor, [record]));
+          await ctx.commit(ops);
         } catch (error) {
           dek.wipe();
           throw error;
         }
-        const session = ctx.session.open(dek);
+        const session = ctx.session.open(dek, keyId);
         return { wallet: walletInfoOf(material, true, createdAt), session };
       }
       const session = ctx.session.current();

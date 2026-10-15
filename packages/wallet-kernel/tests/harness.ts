@@ -48,13 +48,48 @@ export type Harness = {
   /** Every message the kernel posted, in order. */
   readonly posted: ProtocolValue[];
   readonly events: KernelEvent[];
+  /** The raw shared store — direct commits simulate an external writer. */
   readonly store: RecordStore;
   readonly draws: Uint8Array[];
+  /** Advances the monotonic elapsed clock (session deadlines, timers). */
   readonly advance: (ms: number) => void;
+  /** Moves the wall clock by `ms` — may be negative (persisted timestamps, backoff). */
+  readonly advanceWall: (ms: number) => void;
+  /** The current wall-clock reading (`platform.now()`). */
+  readonly wallNow: () => number;
   readonly settle: () => Promise<void>;
   /** Sends a raw (possibly malformed) message to the kernel and awaits its response. */
   readonly sendRaw: (raw: unknown) => Promise<KernelResponse>;
 };
+
+/**
+ * Like the real Web/Node stores: a watcher never fires for commits made through the same
+ * RecordStore instance — only for other writers'. Kernel `commit` reloads explicitly, so the kernel
+ * never relies on its own echo.
+ */
+export function nonEchoing(store: RecordStore): RecordStore {
+  let ownCommits = 0;
+  return {
+    load: async () => store.load(),
+    commit: async (ops) => {
+      ownCommits++;
+      try {
+        await store.commit(ops);
+      } catch (error) {
+        ownCommits--; // a failed commit fires no watch — do not eat the next external notice
+        throw error;
+      }
+    },
+    watch: (listener) =>
+      store.watch(() => {
+        if (ownCommits > 0) {
+          ownCommits--;
+          return;
+        }
+        listener();
+      }),
+  };
+}
 
 function isResponse(message: ProtocolValue): message is {
   id: number;
@@ -86,12 +121,15 @@ export function createHarness(opts?: {
   start?: number;
   idleMs?: number;
   maxSessionMs?: number;
-  /** Wrap the store (e.g. to suppress watch notifications for the kernel's own commits). */
-  wrapStore?: (store: RecordStore) => RecordStore;
+  /** Share one store between harnesses (the raw store — each kernel still gets its own view). */
+  store?: RecordStore;
+  /** Wrap the kernel's store view (e.g. `nonEchoing` so own commits do not self-notify). */
+  wrapStore?: ((store: RecordStore) => RecordStore) | undefined;
 }): Harness {
-  let now = opts?.start ?? 1_700_000_000_000;
+  let now = opts?.start ?? 1_700_000_000_000; // wall clock — persisted timestamps only
+  let elapsed = 0; // monotonic clock — session deadlines and timers
   const { random, draws } = seededRandom(opts?.seed ?? 1);
-  const inner = createMemoryStore();
+  const inner = opts?.store ?? createMemoryStore();
   const store = opts?.wrapStore === undefined ? inner : opts.wrapStore(inner);
   const posted: ProtocolValue[] = [];
   const events: KernelEvent[] = [];
@@ -127,16 +165,17 @@ export function createHarness(opts?: {
 
   const takeDueTimer = (): { fn: () => void } | undefined => {
     timers.sort((a, b) => a.fireAt - b.fireAt);
-    const due = timers.findIndex((t) => t.fireAt <= now);
+    const due = timers.findIndex((t) => t.fireAt <= elapsed);
     return due === -1 ? undefined : timers.splice(due, 1)[0];
   };
 
   const platform: KernelPlatform = {
     random,
     now: () => now,
-    // Fake timers driven by the fake clock: `advance` fires everything that came due.
+    elapsed: () => elapsed,
+    // Fake timers driven by the monotonic clock: `advance` fires everything that came due.
     setTimer: (delayMs, fn) => {
-      const entry = { fireAt: now + delayMs, fn };
+      const entry = { fireAt: elapsed + delayMs, fn };
       timers.push(entry);
       return () => {
         const index = timers.indexOf(entry);
@@ -150,6 +189,7 @@ export function createHarness(opts?: {
     policy: {
       idleMs: opts?.idleMs ?? 15 * 60_000,
       maxSessionMs: opts?.maxSessionMs ?? 12 * 3_600_000,
+      maxScryptLogN: 20,
     },
   };
   startKernel(platform, port);
@@ -158,7 +198,7 @@ export function createHarness(opts?: {
   return {
     posted,
     events,
-    store,
+    store: inner,
     draws,
     call: async (method, params, session) =>
       new Promise<KernelResponse>((resolve) => {
@@ -167,7 +207,7 @@ export function createHarness(opts?: {
         handler?.({ v: 1, id, method, session, params: params ?? null });
       }),
     advance: (ms) => {
-      now += ms;
+      elapsed += ms;
       // Fire due timers in deadline order; a firing timer may re-arm itself (idle reschedule).
       for (;;) {
         const timer = takeDueTimer();
@@ -177,6 +217,10 @@ export function createHarness(opts?: {
         timer.fn();
       }
     },
+    advanceWall: (ms) => {
+      now += ms;
+    },
+    wallNow: () => now,
     settle: async () => {
       // Store watchers reload the image asynchronously; let them flush.
       await new Promise<void>((resolve) => {

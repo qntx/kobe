@@ -80,7 +80,7 @@ type Kernel = {
   readonly posted: ReadonlyArray<ProtocolValue>;
 };
 
-function boot(): Kernel {
+function boot(store: ReturnType<typeof createMemoryStore>): Kernel {
   const posted: ProtocolValue[] = [];
   const pending = new Map<number, (reply: Reply) => void>();
   let handler: ((message: unknown) => void) | undefined;
@@ -116,11 +116,12 @@ function boot(): Kernel {
   const platform: KernelPlatform = {
     random,
     now: () => 1_700_000_000_000,
+    elapsed: () => 0,
     // The session's idle/max timers simply never fire in this smoke — no ambient clock advances.
     setTimer: () => () => undefined,
     pbkdf2: noblePbkdf2,
-    store: createMemoryStore(),
-    policy: { idleMs: 15 * 60_000, maxSessionMs: 12 * 3_600_000 },
+    store,
+    policy: { idleMs: 15 * 60_000, maxSessionMs: 12 * 3_600_000, maxScryptLogN: 20 },
   };
   startKernel(platform, port);
 
@@ -161,7 +162,8 @@ function field(value: ProtocolValue, name: string): ProtocolValue {
 }
 
 export async function main(): Promise<void> {
-  const kernel = boot();
+  const store = createMemoryStore();
+  const kernel = boot(store);
 
   // 1. Import the NIP-06 mnemonic with a password factor → wallet + session, then derive the
   // group-0 key through the nostr module.
@@ -174,24 +176,26 @@ export async function main(): Promise<void> {
   const walletId = field(field(imported, "wallet"), "walletId");
   const sessionValue = field(imported, "session");
   assert(typeof sessionValue === "string" && sessionValue.length === 32, "importMnemonic session");
-  let session = sessionValue;
-  const derived = ok(await kernel.call("nostr.deriveKey", { walletId, groupIndex: 0 }, session));
+  const derived = ok(
+    await kernel.call("nostr.deriveKey", { walletId, groupIndex: 0 }, sessionValue),
+  );
   eq(field(derived, "publicKey"), EXPECTED_PUBLIC_KEY, "deriveKey public key");
 
-  // 2. Lock, 3. unlock with the password → a fresh session.
-  await kernel.call("vault.lock", null, session);
+  // 2./3. A lock is host-side (the worker dies and respawns): booting a fresh kernel over the
+  // same store is the locked enclave — unlock with the password → a fresh session.
+  const kernel2 = boot(store);
   const unlocked = ok(
-    await kernel.call("vault.unlock", {
+    await kernel2.call("vault.unlock", {
       factor: { kind: "password", password: utf8ToBytes(PASSWORD) },
     }),
   );
   const unlockSession = field(unlocked, "session");
   assert(typeof unlockSession === "string" && unlockSession.length === 32, "unlock session");
-  session = unlockSession;
+  const session = unlockSession;
 
   // 4. Sign an event with the derived key — the schnorr signature must verify.
   const signed = ok(
-    await kernel.call(
+    await kernel2.call(
       "nostr.signEvent",
       {
         publicKey: EXPECTED_PUBLIC_KEY,
@@ -212,7 +216,7 @@ export async function main(): Promise<void> {
 
   // 5./6. NIP-44 round trip against a fixed peer.
   const ciphertext = ok(
-    await kernel.call(
+    await kernel2.call(
       "nostr.nip44Encrypt",
       { publicKey: EXPECTED_PUBLIC_KEY, peer: PEER_PUBLIC_KEY, text: "hermes nip44" },
       session,
@@ -220,7 +224,7 @@ export async function main(): Promise<void> {
   );
   assert(typeof ciphertext === "string" && ciphertext.length > 0, "nip44Encrypt payload");
   const plaintext = ok(
-    await kernel.call(
+    await kernel2.call(
       "nostr.nip44Decrypt",
       { publicKey: EXPECTED_PUBLIC_KEY, peer: PEER_PUBLIC_KEY, text: ciphertext },
       session,
@@ -230,7 +234,7 @@ export async function main(): Promise<void> {
 
   // 7. Export the key in nsec format — re-verifies with the password factor.
   const nsecBytes = ok(
-    await kernel.call(
+    await kernel2.call(
       "nostr.exportKey",
       {
         verify: { kind: "password", password: utf8ToBytes(PASSWORD) },
@@ -244,7 +248,7 @@ export async function main(): Promise<void> {
   const nsec = new TextDecoder().decode(nsecBytes);
   eq(nsec, EXPECTED_NSEC, "nostr.exportKey nsec");
 
-  const statusEvents = kernel.posted.filter(
+  const statusEvents = kernel2.posted.filter(
     (m) => typeof m === "object" && m !== null && !Array.isArray(m) && "event" in m,
   );
   assert(statusEvents.length > 0, "kernel posted status events");

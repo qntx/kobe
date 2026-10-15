@@ -9,27 +9,34 @@ import type { MessagePort } from "node:worker_threads";
 import { startKernel } from "@qntx/wallet-kernel";
 import type { KernelPlatform, Port } from "@qntx/wallet-kernel";
 
+import { MAX_SESSION_MS, idleMsOf, isNodeWorkerData } from "../shared.ts";
 import { createStoreClient } from "./store-client.ts";
 import { subtlePbkdf2 } from "./subtle.ts";
 
 export type NodeWorkerData = {
-  readonly idleMs: number;
-  readonly maxSessionMs: number;
+  readonly idleMinutes: 5 | 15 | 60;
   readonly storePort: MessagePort;
 };
 
-// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the host constructs workerData; a wrong shape fails loudly at first use
-const data = workerData as NodeWorkerData;
 const main = parentPort;
 if (main === null) {
   throw new Error("kernel.node.js must run inside a worker_threads Worker");
 }
+if (!isNodeWorkerData(workerData)) {
+  throw new Error("kernel.node.js received invalid workerData");
+}
+const data: NodeWorkerData = {
+  idleMinutes: workerData.idleMinutes,
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- isNodeWorkerData narrowed the shape; MessagePort is the node type
+  storePort: workerData.storePort as MessagePort,
+};
 
 data.storePort.start();
 
 const platform: KernelPlatform = {
   random: (length) => crypto.getRandomValues(new Uint8Array(length)),
   now: () => Date.now(),
+  elapsed: () => performance.now(),
   setTimer: (delayMs, fn) => {
     const timer = setTimeout(fn, delayMs);
     return () => {
@@ -52,7 +59,9 @@ const platform: KernelPlatform = {
       };
     },
   }),
-  policy: { idleMs: data.idleMs, maxSessionMs: data.maxSessionMs },
+  // Session limits are owned here, not by the host: idle from the validated workerData, the
+  // fixed maximum, and the scrypt ceiling for this platform.
+  policy: { idleMs: idleMsOf(data.idleMinutes), maxSessionMs: MAX_SESSION_MS, maxScryptLogN: 20 },
 };
 
 const port: Port = {

@@ -237,6 +237,38 @@ test.describe("web host", () => {
     expect(await spawned(page)).toBe(2);
   });
 
+  test("a newer-version open is not blocked — the worker's connection closes on versionchange", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.evaluate(async () => qntx.create());
+    const draft = await page.evaluate(async (p) => qntx.createMnemonic(p), PASSWORD);
+    if (!draft.ok) {
+      throw new Error(`createMnemonic failed: ${draft.code}`);
+    }
+    const answers = draft.value.quiz.map((position) => {
+      const word = draft.value.words[position];
+      if (word === undefined) {
+        throw new Error("quiz position out of range");
+      }
+      return word;
+    });
+    const confirmed = await page.evaluate(async (a) => qntx.confirm(a), answers);
+    expect(confirmed.ok).toBe(true);
+
+    // Another tab (here, the main thread) opens the DB at a newer version: the worker's
+    // versionchange handler closes its connection, so the upgrade proceeds — upgradeneeded and
+    // success fire, never blocked.
+    const opened = await page.evaluate(async () => qntx.openNewerDb());
+    expect(opened).toEqual({ upgraded: true, blocked: false, success: true });
+
+    // The vault database is now newer than this build's schema: the worker's next store access
+    // fails VersionError → the vault reports unsupported, not corrupted, and stays untouched.
+    const unlocked = await page.evaluate(async (p) => qntx.unlockPassword(p), PASSWORD);
+    expect(unlocked).toEqual({ ok: false, code: "unsupported" });
+    await expect.poll(async () => page.evaluate(() => qntx.snapshot().vault)).toBe("unsupported");
+  });
+
   test("a failed passkey ceremony surfaces as cancelled", async ({ context, page }) => {
     // isUserVerified: false — the authenticator cannot satisfy userVerification:"required",
     // so Chromium rejects the create with NotAllowedError, the same DOMException a real

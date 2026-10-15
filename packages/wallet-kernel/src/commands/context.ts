@@ -1,6 +1,7 @@
 import type { MethodName, ParamsOf, ResultOf } from "@qntx/wallet/protocol";
 
 import type { KernelPlatform } from "../platform.ts";
+import type { Secret } from "../secret/secret.ts";
 import type { Session } from "../session/session.ts";
 import type { StoreOp, VaultImage } from "../vault/store.ts";
 import type { OpenedRecord } from "../vault/vault.ts";
@@ -31,9 +32,19 @@ export type VaultHooks = {
   ) => { readonly ops: ReadonlyArray<StoreOp>; readonly after: () => void };
 };
 
+/** Vault health, recomputed on every load; only ok serves the full method set. */
+export type Health = "ok" | "corrupted" | "unsupported" | "unavailable";
+
+/** Options for a commit that also rotates the DEK (wired by the rotation command). */
+export type CommitOptions = {
+  /** Swap the live session to a new DEK/keyId after the commit lands; wiped on failure. */
+  readonly rotate?: { readonly dek: Secret; readonly keyId: string };
+};
+
 /**
  * Services and state a command handler needs. `image` is replaced after every commit or external
- * change; `commit` writes, reloads `image`, and marks the status event dirty.
+ * change; `commit` writes, reloads `image`, and marks the status event dirty; `reload` refreshes
+ * the image without writing.
  */
 export type KernelContext = {
   readonly platform: KernelPlatform;
@@ -41,13 +52,20 @@ export type KernelContext = {
   readonly modules: ReadonlyArray<VaultHooks>;
   image: VaultImage;
   /**
-   * The vault image cannot be trusted: set on a failed store load, a public header that fails to
-   * parse, a stored kind no module owns, or a record that fails authentication after the DEK
-   * opened. While true only `status` and `vault.reset` are served; a successful commit recomputes
-   * and can clear it.
+   * The kernel's read on the store: "corrupted" (authentication or structure), "unsupported" (data
+   * written by another build — left untouched) or "unavailable" (transient I/O). While non-ok only
+   * `status` and `vault.reset` are served.
    */
-  corrupted: boolean;
-  readonly commit: (ops: ReadonlyArray<StoreOp>) => Promise<void>;
+  health: Health;
+  /**
+   * Atomically commits `ops`. Unless the commit is the `init`, carries `clear`, or only touches the
+   * failure counters, an `expect-revision` guard is prepended — a stale writer fails with
+   * `conflict` (the image is reloaded best-effort before the error propagates). Non-KernelError
+   * failures map to `unavailable`. On success the image reloads and `health` updates.
+   */
+  readonly commit: (ops: ReadonlyArray<StoreOp>, options?: CommitOptions) => Promise<void>;
+  /** Reloads the store into `image` and recomputes `health`; throws the classified error. */
+  readonly reload: () => Promise<void>;
 };
 
 /**

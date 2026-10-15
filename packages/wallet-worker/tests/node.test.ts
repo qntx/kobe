@@ -1,4 +1,5 @@
 import type { Worker } from "node:worker_threads";
+import { MessageChannel } from "node:worker_threads";
 
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { describe, expect, it } from "vite-plus/test";
@@ -6,10 +7,15 @@ import { describe, expect, it } from "vite-plus/test";
 import { npubEncode, verifyEvent } from "@qntx/nostr";
 import { WalletError } from "@qntx/wallet";
 import type { Wallet } from "@qntx/wallet";
+import { KernelError, createMemoryStore } from "@qntx/wallet-kernel";
+import type { RecordStore } from "@qntx/wallet-kernel";
 import { nostr } from "@qntx/wallet/nostr";
 
 import { createNodeWallet, createSoftwarePasskey } from "../src/node/index.ts";
 import type { NodeWalletOptions } from "../src/node/index.ts";
+import { serveStore } from "../src/node/store-server.ts";
+import { isBrowserWorkerInit, isNodeWorkerData } from "../src/shared.ts";
+import { createStoreClient } from "../src/worker/store-client.ts";
 
 // The worker is built by the package `test` script (bun build → dist/kernel.node.js).
 const KERNEL_URL = new URL("../dist/kernel.node.js", import.meta.url);
@@ -63,6 +69,13 @@ function walletError(error: unknown): WalletError {
     throw error;
   }
   return error;
+}
+
+function kernelErrorCode(error: unknown): string {
+  if (!(error instanceof KernelError)) {
+    throw error;
+  }
+  return error.code;
 }
 
 describe("node host end to end", () => {
@@ -242,5 +255,98 @@ describe("node host end to end", () => {
     });
     await expect(attempt).rejects.toSatisfy((e) => walletError(e).code === "invalid-input");
     expect(workers).toHaveLength(0);
+  });
+});
+
+describe("worker init validation", () => {
+  it("accepts only the three idle choices and rejects extra keys", () => {
+    for (const idleMinutes of [5, 15, 60] as const) {
+      expect(isBrowserWorkerInit({ t: "init", idleMinutes })).toBe(true);
+    }
+    expect(isBrowserWorkerInit({ t: "init", idleMinutes: 7 })).toBe(false);
+    expect(isBrowserWorkerInit({ t: "init", idleMinutes: 15, maxSessionMs: 3_600_000 })).toBe(
+      false,
+    );
+    expect(isBrowserWorkerInit({ t: "init" })).toBe(false);
+    expect(isBrowserWorkerInit({ t: "boot", idleMinutes: 15 })).toBe(false);
+    expect(isBrowserWorkerInit("init")).toBe(false);
+  });
+
+  it("accepts only { idleMinutes, storePort } for the Node workerData", () => {
+    const port = new MessageChannel().port1;
+    for (const idleMinutes of [5, 15, 60] as const) {
+      expect(isNodeWorkerData({ idleMinutes, storePort: port })).toBe(true);
+    }
+    expect(isNodeWorkerData({ idleMinutes: 7, storePort: port })).toBe(false);
+    expect(isNodeWorkerData({ idleMinutes: 15, storePort: port, maxSessionMs: 1 })).toBe(false);
+    expect(isNodeWorkerData({ idleMinutes: 15 })).toBe(false);
+    expect(isNodeWorkerData({ storePort: port, idleMinutes: 15, extra: 1 })).toBe(false);
+    port.close();
+  });
+});
+
+describe("store RPC", () => {
+  /** A store client/server pair wired directly over a MessageChannel — no worker needed. */
+  function storePair(store: RecordStore): {
+    readonly client: RecordStore;
+    readonly stop: () => void;
+  } {
+    const channel = new MessageChannel();
+    const stop = serveStore(store, channel.port1);
+    const client = createStoreClient({
+      post: (message) => {
+        channel.port2.postMessage(message);
+      },
+      listen: (handler) => {
+        const listener = (message: unknown) => {
+          handler(message);
+        };
+        channel.port2.on("message", listener);
+        return () => {
+          channel.port2.off("message", listener);
+        };
+      },
+    });
+    channel.port2.start();
+    return {
+      client,
+      stop: () => {
+        stop();
+        channel.port2.close();
+      },
+    };
+  }
+
+  it("a failed commit replies with the KernelError code instead of hanging", async () => {
+    const { client, stop } = storePair(createMemoryStore());
+    try {
+      // An expect-revision guard on an empty store cannot hold — the server replies "failed"
+      // and the client rejects with the conflict code, never hangs.
+      await expect(client.commit([{ op: "expect-revision", revision: 7 }])).rejects.toSatisfy(
+        (e) => kernelErrorCode(e) === "conflict",
+      );
+      // The channel still works afterwards.
+      const image = await client.load();
+      expect(image.meta).toBeUndefined();
+    } finally {
+      stop();
+    }
+  });
+
+  it("a non-kernel store failure maps to unavailable on the client", async () => {
+    const failing: RecordStore = {
+      load: async () => Promise.reject(new Error("disk gone")),
+      commit: async () => Promise.reject(new Error("disk gone")),
+      watch: () => () => undefined,
+    };
+    const { client, stop } = storePair(failing);
+    try {
+      await expect(client.load()).rejects.toSatisfy((e) => kernelErrorCode(e) === "unavailable");
+      await expect(client.commit([{ op: "clear" }])).rejects.toSatisfy(
+        (e) => kernelErrorCode(e) === "unavailable",
+      );
+    } finally {
+      stop();
+    }
   });
 });

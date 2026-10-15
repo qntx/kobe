@@ -135,10 +135,26 @@ describe("header rejection", () => {
     );
   });
 
-  it("iterations other than 600000", () => {
+  it("iterations other than 600000 is unsupported; a non-integer is integrity", () => {
+    // A well-formed header with different KDF parameters came from another build.
     expect(
       kernelError(() =>
         parsePasswordFactorHeader(JSON.stringify({ ...passwordFactor, iterations: 599_999 })),
+      ),
+    ).toBe("unsupported");
+    expect(
+      kernelError(() =>
+        parsePasswordFactorHeader(JSON.stringify({ ...passwordFactor, iterations: 1_000_000 })),
+      ),
+    ).toBe("unsupported");
+    expect(
+      kernelError(() =>
+        parsePasswordFactorHeader(JSON.stringify({ ...passwordFactor, iterations: 0.5 })),
+      ),
+    ).toBe("integrity");
+    expect(
+      kernelError(() =>
+        parsePasswordFactorHeader(JSON.stringify({ ...passwordFactor, iterations: "600000" })),
       ),
     ).toBe("integrity");
   });

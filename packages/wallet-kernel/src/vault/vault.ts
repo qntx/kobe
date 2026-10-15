@@ -14,10 +14,22 @@ import { assertPasswordPolicy, passkeyKek, passwordKek, unwrapDek, wrapDek } fro
 import type { EntropyHeader } from "./headers.ts";
 import { encodeHeader, parsePasskeyFactorHeader, parsePasswordFactorHeader } from "./headers.ts";
 import type { StoredFactor, StoredRecord, StoreOp, VaultImage, VaultMeta } from "./store.ts";
+import { VAULT_FORMAT } from "./store.ts";
 
 /** Consecutive password failures → enforced wait: 30 s, 60 s, then 300 s from the 5th failure. */
 const BACKOFF_MS = [30_000, 60_000, 300_000];
 const FAILURES_BEFORE_BACKOFF = 5;
+
+/**
+ * The wall-clock wait after `failedAttempts` counted failures. The deadline is derived from the
+ * stored `lastFailureAt` (not a stored retryAt), so a clock that moved backwards stays limited.
+ */
+function backoffDelay(failedAttempts: number): number {
+  return failedAttempts >= FAILURES_BEFORE_BACKOFF
+    ? (BACKOFF_MS[Math.min(failedAttempts - FAILURES_BEFORE_BACKOFF, BACKOFF_MS.length - 1)] ??
+        300_000)
+    : 0;
+}
 
 export const PASSWORD_FACTOR_ITERATIONS = 600000;
 
@@ -116,68 +128,59 @@ export type OpenedRecord = {
 };
 
 /**
- * Unlocks the vault: rate limiting, factor unwrap, then one authentication pass over every record
- * (`open` binds each raw public header). Returns the DEK and every record plaintext; ownership of
- * the plaintexts passes to the caller. Password failures count toward the rate limit; passkey
- * failures are `integrity` and do not.
+ * Unlocks the vault: factor unwrap against the caller-supplied fresh image, then one authentication
+ * pass over every record (`open` binds each raw public header). Returns the DEK, every record
+ * plaintext (ownership passes to the caller) and the vault keyId for the session.
+ *
+ * Password attempts are rate-limited on the stored counters: with no password factor the attempt is
+ * `invalid-input` and never counted; an attempt rejected while backoff is armed is `rate-limited`
+ * and never counted; a real miss commits `record-failure` through the given `commit` (atomic
+ * against the shared store) and a success clears a nonzero counter with `reset-failures`. Passkey
+ * unlock is never gated or counted.
  */
 export async function unlock(
   platform: KernelPlatform,
   image: VaultImage,
   factor: Factor,
-): Promise<{ dek: Secret; records: OpenedRecord[] }> {
+  commit: (ops: ReadonlyArray<StoreOp>) => Promise<void>,
+): Promise<{ dek: Secret; records: OpenedRecord[]; keyId: string }> {
   const { meta } = image;
   if (meta === undefined) {
     throw new KernelError("invalid-input", "vault is not initialized");
   }
-  const now = platform.now();
-  if (now < meta.retryAt) {
-    throw new KernelError("rate-limited", "too many wrong passwords", meta.retryAt);
-  }
 
   let dek: Secret | undefined;
   if (factor.kind === "password") {
-    let lastError: KernelError | undefined;
-    for (const stored of image.factors) {
-      if (stored.kind !== "password") {
-        continue;
-      }
+    const passwords = image.factors.filter((stored) => stored.kind === "password");
+    if (passwords.length === 0) {
+      throw new KernelError("invalid-input", "no password factor exists");
+    }
+    const retryAt = meta.lastFailureAt + backoffDelay(meta.failedAttempts);
+    if (platform.now() < retryAt) {
+      // A rejected attempt never ran PBKDF2: it is not counted, so retries during backoff
+      // cannot push the horizon forward.
+      throw new KernelError("rate-limited", "too many wrong passwords", retryAt);
+    }
+    for (const stored of passwords) {
       // oxlint-disable-next-line eslint/no-await-in-loop -- factors are tried sequentially, not in parallel
       const kek = await kekFor(platform, factor, stored);
       try {
         dek = unwrapDek(kek, stored);
         break;
       } catch (error) {
-        if (!(error instanceof KernelError)) {
+        if (!(error instanceof KernelError) || error.code !== "integrity") {
           throw error;
         }
-        lastError = error;
       } finally {
         wipe(kek);
       }
     }
     if (dek === undefined) {
-      const failedAttempts = meta.failedAttempts + 1;
-      const delay =
-        failedAttempts >= FAILURES_BEFORE_BACKOFF
-          ? (BACKOFF_MS[
-              Math.min(failedAttempts - FAILURES_BEFORE_BACKOFF, BACKOFF_MS.length - 1)
-            ] ?? 300_000)
-          : 0;
-      await platform.store.commit([
-        {
-          op: "put-meta",
-          meta: { ...meta, failedAttempts, retryAt: delay > 0 ? now + delay : 0 },
-        },
-      ]);
-      throw lastError === undefined
-        ? new KernelError("invalid-input", "no password factor exists")
-        : new KernelError("wrong-password", "password did not open the vault");
+      await commit([{ op: "record-failure", at: platform.now() }]);
+      throw new KernelError("wrong-password", "password did not open the vault");
     }
-    if (meta.failedAttempts !== 0 || meta.retryAt !== 0) {
-      await platform.store.commit([
-        { op: "put-meta", meta: { ...meta, failedAttempts: 0, retryAt: 0 } },
-      ]);
+    if (meta.failedAttempts !== 0) {
+      await commit([{ op: "reset-failures" }]);
     }
   } else {
     const wanted = base64urlnopad.encode(factor.credentialId);
@@ -196,7 +199,7 @@ export async function unlock(
 
   try {
     const records = authenticateRecords(dek, image.records);
-    return { dek, records };
+    return { dek, records, keyId: meta.keyId };
   } catch (error) {
     dek.wipe();
     // The DEK opened but a record failed authentication: the vault contents are corrupt.
@@ -271,7 +274,7 @@ export async function verifyFactor(
       }
       sawPasswordFactor = stored.kind === "password";
     } catch (error) {
-      if (!(error instanceof KernelError)) {
+      if (!(error instanceof KernelError) || error.code !== "integrity") {
         throw error;
       }
       sawPasswordFactor = stored.kind === "password";
@@ -316,18 +319,31 @@ export function findRecord(image: VaultImage, kind: string, id: string): StoredR
   return record;
 }
 
-/** Ops that establish the vault in one atomic commit, guarded against concurrent races. */
+/**
+ * Ops that establish the vault in one atomic `init` commit, rejected by `conflict` if the store is
+ * not empty. The caller keeps `keyId` for the session it opens afterwards.
+ */
 export function establishOps(
+  platform: KernelPlatform,
   factor: StoredFactor,
   records: ReadonlyArray<StoredRecord>,
-): StoreOp[] {
-  const meta: VaultMeta = { format: 1, failedAttempts: 0, retryAt: 0 };
-  return [
-    { op: "expect-uninitialized" },
-    { op: "put-meta", meta },
-    { op: "put-factor", factor },
-    ...records.map((record) => ({ op: "put-record" as const, record })),
-  ];
+): { ops: StoreOp[]; keyId: string } {
+  const keyId = bytesToHex(platform.random(16));
+  const meta: VaultMeta = {
+    format: VAULT_FORMAT,
+    revision: 1,
+    keyId,
+    failedAttempts: 0,
+    lastFailureAt: 0,
+  };
+  return {
+    keyId,
+    ops: [
+      { op: "init", meta },
+      { op: "put-factor", factor },
+      ...records.map((record) => ({ op: "put-record" as const, record })),
+    ],
+  };
 }
 
 /** The `FactorInfo` a stored factor reports: kind, id, creation time, passkey credentialId. */

@@ -31,6 +31,11 @@ export type QntxApi = {
   readonly sign: (ref: NostrKeyRef, event: UnsignedEvent) => Promise<EvalResult<Event>>;
   readonly tamperBackedUp: () => Promise<{ readonly flipped: boolean }>;
   readonly tamperSealed: () => Promise<{ readonly written: boolean }>;
+  readonly openNewerDb: () => Promise<{
+    readonly upgraded: boolean;
+    readonly blocked: boolean;
+    readonly success: boolean;
+  }>;
 };
 
 declare global {

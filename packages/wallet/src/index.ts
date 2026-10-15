@@ -20,6 +20,7 @@ export {
   type StatusPayload,
   type UnlockFactor,
   type VaultApi,
+  type VaultState,
   type Wallet,
   type WalletErrorCode,
   type WalletInfo,

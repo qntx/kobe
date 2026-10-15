@@ -147,8 +147,10 @@ describe("leak check", () => {
         session,
       ),
     );
-    await h.call("vault.lock");
-    await h.call("vault.unlock", {
+    // Lock is host-side: the respawned kernel over the same store is a fresh enclave.
+    const h2 = createHarness({ seed: 43, store: h.store });
+    await h2.settle();
+    await h2.call("vault.unlock", {
       factor: {
         kind: "passkey",
         credentialId: CREDENTIAL_ID,
@@ -168,7 +170,7 @@ describe("leak check", () => {
       ...h.draws.filter((d) => d.length >= 32),
     ];
 
-    for (const message of nonExempt(h.posted, exemptIds)) {
+    for (const message of nonExempt([...h.posted, ...h2.posted], exemptIds)) {
       const bytes: Uint8Array[] = [];
       const strings: string[] = [];
       collectFragments(message, bytes, strings);

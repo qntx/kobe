@@ -10,7 +10,7 @@ export type { KernelErrorCode } from "./errors.ts";
 export { startKernel } from "./kernel.ts";
 export type { KernelPlatform, KernelPolicy, Pbkdf2, Port, Random } from "./platform.ts";
 export { createMemoryStore } from "./vault/memory.ts";
-export { isRecordKind } from "./vault/store.ts";
+export { isRecordKind, VAULT_FORMAT } from "./vault/store.ts";
 export type {
   RecordStore,
   StoredFactor,

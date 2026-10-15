@@ -70,10 +70,14 @@ export const walletErrorCode: Validator<WalletErrorCode> = union(
   literal("factor-unavailable"),
   literal("factor-invalidated"),
   literal("wrong-password"),
+  literal("wrong-passkey"),
   literal("rate-limited"),
   literal("invalid-input"),
   literal("not-found"),
   literal("already-exists"),
+  literal("conflict"),
+  literal("unsupported"),
+  literal("unavailable"),
   literal("integrity"),
   literal("crashed"),
 );
@@ -93,7 +97,6 @@ const createdResult: Validator<CreatedResult> = obj({ wallet: walletInfo, sessio
 // section — it is wired in protocol/index.ts, not here.
 export const CORE_METHODS: {
   readonly "vault.unlock": MethodSpec<{ readonly factor: Factor }, { readonly session: string }>;
-  readonly "vault.lock": MethodSpec<NullValue, NullValue>;
   readonly "vault.reset": MethodSpec<NullValue, NullValue>;
   readonly "vault.addFactor": MethodSpec<
     { readonly verify: Factor; readonly factor: Factor },
@@ -147,7 +150,6 @@ export const CORE_METHODS: {
     params: obj({ factor }),
     result: obj({ session: sessionId }),
   },
-  "vault.lock": { session: false, params: nullValue, result: nullValue },
   "vault.reset": { session: false, params: nullValue, result: nullValue },
   "vault.addFactor": {
     session: true,

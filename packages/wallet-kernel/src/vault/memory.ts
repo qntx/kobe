@@ -28,10 +28,23 @@ function cloneImage(image: VaultImage): VaultImage {
   };
 }
 
+function conflict(message: string): KernelError {
+  return new KernelError("conflict", `vault store: ${message}`);
+}
+
+function requireMeta(meta: VaultMeta | undefined): VaultMeta {
+  if (meta === undefined) {
+    throw conflict("vault is not initialized");
+  }
+  return meta;
+}
+
 /**
  * In-memory RecordStore for the Node host and kernel tests. Loads and commits deep-copy every
  * Uint8Array, so callers can never mutate stored state. `commit` applies ops to a clone and swaps
- * atomically: a failing `expect-uninitialized` leaves the store untouched.
+ * atomically: a failing precondition (`init`, `expect-revision`, a counter op on an empty store)
+ * leaves the store untouched. Content ops bump `meta.revision` once per commit; an `init` commit
+ * writes its meta verbatim (revision stays as the initializer set it).
  */
 export function createMemoryStore(): RecordStore {
   let image: VaultImage = { meta: undefined, records: [], factors: [] };
@@ -41,15 +54,37 @@ export function createMemoryStore(): RecordStore {
     let { meta } = image;
     let { records } = image;
     let { factors } = image;
+    let bump = false;
+    let initialized = false;
     for (const op of ops) {
       switch (op.op) {
-        case "expect-uninitialized":
+        case "init":
           if (meta !== undefined || records.length > 0 || factors.length > 0) {
-            throw new KernelError("integrity", "vault already initialized");
+            throw conflict("vault already initialized");
+          }
+          meta = cloneMeta(op.meta);
+          initialized = true;
+          break;
+        case "expect-revision":
+          if (meta === undefined || meta.revision !== op.revision) {
+            throw conflict("vault changed underneath");
           }
           break;
-        case "put-meta":
-          meta = cloneMeta(op.meta);
+        case "set-key-id":
+          meta = { ...requireMeta(meta), keyId: op.keyId };
+          bump = true;
+          break;
+        case "record-failure": {
+          const current = requireMeta(meta);
+          meta = {
+            ...current,
+            failedAttempts: current.failedAttempts + 1,
+            lastFailureAt: op.at,
+          };
+          break;
+        }
+        case "reset-failures":
+          meta = { ...requireMeta(meta), failedAttempts: 0, lastFailureAt: 0 };
           break;
         case "put-record":
           records = [
@@ -58,18 +93,22 @@ export function createMemoryStore(): RecordStore {
             ),
             cloneRecord(op.record),
           ];
+          bump = true;
           break;
         case "delete-record":
           records = records.filter((record) => !(record.kind === op.kind && record.id === op.id));
+          bump = true;
           break;
         case "put-factor":
           factors = [
             ...factors.filter((factor) => factor.id !== op.factor.id),
             cloneFactor(op.factor),
           ];
+          bump = true;
           break;
         case "delete-factor":
           factors = factors.filter((factor) => factor.id !== op.id);
+          bump = true;
           break;
         case "clear":
           meta = undefined;
@@ -77,6 +116,9 @@ export function createMemoryStore(): RecordStore {
           factors = [];
           break;
       }
+    }
+    if (bump && !initialized && meta !== undefined) {
+      meta = { ...meta, revision: meta.revision + 1 };
     }
     return { meta, records, factors };
   }

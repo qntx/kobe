@@ -17,10 +17,12 @@ export type Pbkdf2 = (
   length: number,
 ) => Promise<Uint8Array>;
 
-/** Session limits chosen by the host (Web and Node: idle from `autoLock`, max 12 h). */
+/** Session limits owned by the worker entry (Web and Node: idle 5/15/60 min, max 12 h). */
 export type KernelPolicy = {
   readonly idleMs: number;
   readonly maxSessionMs: number;
+  /** Upper bound for ncryptsec imports; enforced by the nostr module. */
+  readonly maxScryptLogN: number;
 };
 
 /**
@@ -31,8 +33,13 @@ export type SetTimer = (delayMs: number, fn: () => void) => () => void;
 
 export type KernelPlatform = {
   readonly random: Random;
-  /** Milliseconds since the epoch; fake clocks keep tests deterministic. */
+  /** Milliseconds since the epoch, for persisted timestamps only (createdAt, lastFailureAt). */
   readonly now: () => number;
+  /**
+   * Monotonic elapsed milliseconds (Web/Node: `performance.now()`); session deadlines are measured
+   * on this clock so a wall-clock jump can never extend or shorten a session.
+   */
+  readonly elapsed: () => number;
   readonly setTimer: SetTimer;
   readonly pbkdf2: Pbkdf2;
   readonly store: RecordStore;

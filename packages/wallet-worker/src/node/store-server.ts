@@ -5,7 +5,8 @@
  */
 import type { MessagePort } from "node:worker_threads";
 
-import type { RecordStore } from "@qntx/wallet-kernel";
+import { KernelError } from "@qntx/wallet-kernel";
+import type { KernelErrorCode, RecordStore } from "@qntx/wallet-kernel";
 
 import type { StoreReply, StoreRequest } from "../shared.ts";
 import { encodeImage } from "../shared.ts";
@@ -30,9 +31,20 @@ export function serveStore(store: RecordStore, port: MessagePort): () => void {
     port.postMessage(reply);
   };
 
+  // A failed load/commit replies "failed" with the KernelError code (or "unavailable" for a
+  // non-kernel failure) — a request that hangs would deadlock the kernel's sequential queue.
+  const failed = (id: number, error: unknown): void => {
+    const code: KernelErrorCode = error instanceof KernelError ? error.code : "unavailable";
+    post({ t: "failed", id, code });
+  };
+
   const answer = async (request: StoreRequest): Promise<void> => {
     if (request.t === "load") {
-      post({ t: "loaded", id: request.id, image: encodeImage(await store.load()) });
+      try {
+        post({ t: "loaded", id: request.id, image: encodeImage(await store.load()) });
+      } catch (error) {
+        failed(request.id, error);
+      }
       return;
     }
     ownCommits++;
@@ -40,7 +52,8 @@ export function serveStore(store: RecordStore, port: MessagePort): () => void {
       await store.commit(request.ops);
     } catch (error) {
       ownCommits--; // a failed commit fires no watch — do not eat the next external notice
-      throw error;
+      failed(request.id, error);
+      return;
     }
     post({ t: "committed", id: request.id });
   };

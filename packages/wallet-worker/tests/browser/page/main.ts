@@ -129,6 +129,32 @@ async function tamperSealed(): Promise<{ readonly written: boolean }> {
   return { written: true };
 }
 
+/** Opens the vault DB at a newer version — as another tab would — and reports which events fired. */
+async function openNewerDb(): Promise<{
+  readonly upgraded: boolean;
+  readonly blocked: boolean;
+  readonly success: boolean;
+}> {
+  return new Promise((resolve) => {
+    const outcome = { upgraded: false, blocked: false, success: false };
+    const request = indexedDB.open("qntx-wallet", 2);
+    request.addEventListener("upgradeneeded", () => {
+      outcome.upgraded = true;
+    });
+    request.addEventListener("blocked", () => {
+      outcome.blocked = true;
+    });
+    request.addEventListener("success", () => {
+      outcome.success = true;
+      request.result.close();
+      resolve(outcome);
+    });
+    request.addEventListener("error", () => {
+      resolve(outcome);
+    });
+  });
+}
+
 const api = {
   stats,
   async create(): Promise<unknown> {
@@ -184,6 +210,7 @@ const api = {
   },
   tamperBackedUp,
   tamperSealed,
+  openNewerDb,
 };
 
 Object.assign(globalThis, { qntx: api });
