@@ -1,6 +1,6 @@
 {
   "name": "@qntx/wallet-kernel",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "qntx/wallet secret enclave kernel (private, bundled by the host packages)",
   "license": "MIT OR Apache-2.0",
@@ -23,7 +23,7 @@
     "@noble/ciphers": "^2.4.0",
     "@noble/hashes": "^2.4.0",
     "@qntx/nostr": "^0.14.0",
-    "@qntx/wallet": "0.1.0",
+    "@qntx/wallet": "0.2.0",
     "@scure/base": "^2.4.0",
     "@scure/bip32": "^2.4.0",
     "@scure/bip39": "^2.4.0"

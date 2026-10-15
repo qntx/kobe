@@ -9,6 +9,8 @@ A `vX.Y.Z` tag runs `publish-npm.yml` (publishing `packages/wallet` and `package
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-15
+
 ### Removed
 
 - **BREAKING:** `WalletOptions.logger` and the `WalletLogger` type — the option was declared but never wired to anything.
@@ -22,5 +24,6 @@ A `vX.Y.Z` tag runs `publish-npm.yml` (publishing `packages/wallet` and `package
 - `@qntx/wallet-worker/node`: `createNodeWallet` runs the same kernel in `worker_threads`, with the test-only `createSoftwarePasskey`.
 - The kernel: BIP-39 (random with a backup quiz, import, export), passkey wallets (PRF output as BIP-39 entropy), BIP-32 and NIP-06 derivation, `walletId`, an XChaCha20-Poly1305 vault whose public headers are authenticated and record-kind agnostic (an unknown kind reports `corrupted` rather than silently dropping data), password and passkey factors with online rate limiting, sessions with idle and absolute limits, a statically composed Nostr module (derived keys, nsec, ncryptsec, generated, NIP-46 client; NIP-04, NIP-44 and batched NIP-59 unwrapping).
 
-[Unreleased]: https://github.com/qntx/wallet/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/qntx/wallet/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/qntx/wallet/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/qntx/wallet/releases/tag/v0.1.0
