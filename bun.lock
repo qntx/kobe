@@ -25,7 +25,7 @@
       "name": "@qntx/wallet",
       "version": "0.0.0",
       "dependencies": {
-        "@qntx/nostr": "^0.13.0",
+        "@qntx/nostr": "^0.14.0",
         "@scure/base": "^2.4.0",
       },
       "devDependencies": {
@@ -43,7 +43,7 @@
       "dependencies": {
         "@noble/ciphers": "^2.4.0",
         "@noble/hashes": "^2.4.0",
-        "@qntx/nostr": "^0.13.0",
+        "@qntx/nostr": "^0.14.0",
         "@qntx/wallet": "0.0.0",
         "@scure/base": "^2.4.0",
         "@scure/bip32": "^2.4.0",
@@ -64,7 +64,7 @@
         "@arethetypeswrong/cli": "0.18.5",
         "@noble/hashes": "2.4.0",
         "@playwright/test": "1.63.0",
-        "@qntx/nostr": "0.13.0",
+        "@qntx/nostr": "0.14.0",
         "@qntx/tsconfig": "1.0.1",
         "@qntx/wallet": "0.0.0",
         "@qntx/wallet-kernel": "0.0.0",
@@ -214,7 +214,7 @@
 
     "@publint/pack": ["@publint/pack@0.1.7", "", { "dependencies": { "tinyexec": "^1.3.0" } }, "sha512-4EDEmvxWtgsCnnVeBvtFIFZtUhPPt1+bA9JrSwU4Sa//6oKtzCSlGGXYJr44OD9aGISymbieJ4mCKHUygUDU+g=="],
 
-    "@qntx/nostr": ["@qntx/nostr@0.13.0", "", { "dependencies": { "@noble/ciphers": "^2.4.0", "@noble/curves": "^2.4.0", "@noble/hashes": "^2.4.0", "@scure/base": "^2.4.0" }, "peerDependencies": { "ws": "^8.18.0" }, "optionalPeers": ["ws"] }, "sha512-+0u/3bDldJm9KmX89a8gLUXam/Hmp9PBUVgpPS12Hoe9EPf7i/SroiiHcyXXb1yougsQ4Hfs10p2Y9Snl9LXLw=="],
+    "@qntx/nostr": ["@qntx/nostr@0.14.0", "", { "dependencies": { "@noble/ciphers": "^2.4.0", "@noble/curves": "^2.4.0", "@noble/hashes": "^2.4.0", "@scure/base": "^2.4.0" }, "peerDependencies": { "ws": "^8.18.0" }, "optionalPeers": ["ws"] }, "sha512-3QrIyBLWa0+KLlnyLhxr09jExUp4UXIJ5gvQprB7FaGBFpL27qM5jE35SmHT/5YVk0G1FYX4k0tiOGVEOUYeWw=="],
 
     "@qntx/oxfmt": ["@qntx/oxfmt@1.1.1", "", { "peerDependencies": { "oxfmt": ">=0.66.0 <1.0.0" }, "optionalPeers": ["oxfmt"] }, "sha512-i/+3GBLZlwDNW6gT1Z76LKEfPBm4LMSjee0URPRn5YeILbEtGQtMuUNNLcfabYpGPZI4wGL3YyPjdD3/Abf9Kw=="],
 

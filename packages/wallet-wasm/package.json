@@ -57,7 +57,7 @@
     "@arethetypeswrong/cli": "0.18.5",
     "@noble/hashes": "2.4.0",
     "@playwright/test": "1.63.0",
-    "@qntx/nostr": "0.13.0",
+    "@qntx/nostr": "0.14.0",
     "@qntx/tsconfig": "1.0.1",
     "@qntx/wallet": "0.0.0",
     "@qntx/wallet-kernel": "0.0.0",

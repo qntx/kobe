@@ -62,7 +62,7 @@
     "pack:local": "vp pack && bun pm pack"
   },
   "dependencies": {
-    "@qntx/nostr": "^0.13.0",
+    "@qntx/nostr": "^0.14.0",
     "@scure/base": "^2.4.0"
   },
   "devDependencies": {
