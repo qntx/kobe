@@ -4,7 +4,7 @@
  * ciphertext plus public headers only, never decrypted secrets. This file stays platform-neutral:
  * the port shape is injected on both sides.
  */
-import { KernelError } from "@qntx/wallet-kernel";
+import { KernelError, RECORD_KIND_PATTERN } from "@qntx/wallet-kernel";
 import type { StoreOp, VaultImage } from "@qntx/wallet-kernel";
 
 export type StorePort = {
@@ -37,7 +37,6 @@ const MIN_SEALED = 16;
 const MAX_SEALED = 8192;
 const MAX_ROWS = 4096;
 const FACTOR_ID = /^[0-9a-f]{32}$/;
-const RECORD_KINDS = new Set(["entropy", "nostr-key", "data-key"]);
 const FACTOR_KINDS = new Set(["password", "passkey"]);
 
 function bad(what: string): KernelError {
@@ -105,8 +104,8 @@ export function assertVaultImage(value: unknown): VaultImage {
   for (const entry of records) {
     const row = plainObject(entry);
     exactKeys(row, "header,id,kind,sealed");
-    if (typeof row["kind"] !== "string" || !RECORD_KINDS.has(row["kind"])) {
-      throw bad("record kind is unknown");
+    if (typeof row["kind"] !== "string" || !RECORD_KIND_PATTERN.test(row["kind"])) {
+      throw bad("record kind is not a valid kind string");
     }
     boundedString(row["id"], MAX_ID, "record id");
     boundedString(row["header"], MAX_HEADER, "record header");

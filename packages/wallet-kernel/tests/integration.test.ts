@@ -161,9 +161,19 @@ async function createPasskeyWallet(h: ReturnType<typeof createHarness>) {
   );
   return {
     session: strField(res, "session"),
-    publicKey: strField(field(res, "nostr"), "publicKey"),
     walletId: strField(field(res, "wallet"), "walletId"),
   };
+}
+
+/** Creation no longer derives keys: tests get the group-0 key explicitly. */
+async function deriveKey(
+  h: ReturnType<typeof createHarness>,
+  session: string,
+  walletId: string,
+  groupIndex = 0,
+): Promise<string> {
+  const res = ok(await h.call("nostr.deriveKey", { walletId, groupIndex }, session));
+  return strField(res, "publicKey");
 }
 
 describe("create / import", () => {
@@ -172,17 +182,18 @@ describe("create / import", () => {
     await h.settle();
     expect(field(ok(await h.call("status")), "vault")).toBe("uninitialized");
 
-    const { session, publicKey, walletId } = await createPasskeyWallet(h);
+    const { session, walletId } = await createPasskeyWallet(h);
     expect(session).toMatch(/^[0-9a-f]{32}$/);
-    expect(publicKey).toBe(passkeyVector.vector.publicKey);
     expect(walletId).toBe(passkeyVector.vector.walletId);
+    const publicKey = await deriveKey(h, session, walletId);
+    expect(publicKey).toBe(passkeyVector.vector.publicKey);
     expect(npubEncode(publicKey)).toMatch(/^npub1/);
 
     const status = lastStatus(h);
     expect(status.vault).toBe("unlocked");
     expect(status.wallets[0]?.walletId).toBe(passkeyVector.vector.walletId);
     expect(status.wallets[0]?.backedUp).toBe(true);
-    expect(status.nostrKeys[0]?.publicKey).toBe(publicKey);
+    expect(status.nostr.keys[0]?.publicKey).toBe(publicKey);
     expect(status.factors).toHaveLength(1);
   });
 
@@ -210,7 +221,10 @@ describe("create / import", () => {
         factor: { kind: "passkey", credentialId: CREDENTIAL_ID, prf: new Uint8Array(PRF_VAULT) },
       }),
     );
-    expect(strField(field(res, "nostr"), "publicKey")).toBe(nip06.vectors[0]!.publicKey);
+    const session = strField(res, "session");
+    const walletId = strField(field(res, "wallet"), "walletId");
+    const publicKey = await deriveKey(h, session, walletId);
+    expect(publicKey).toBe(nip06.vectors[0]!.publicKey);
   });
 
   it("imports nsec and ncryptsec keys", async () => {
@@ -296,10 +310,11 @@ describe("nostr operations", () => {
   it("derives keys, discovers pubkeys, and rejects duplicate derivation", async () => {
     const h = createHarness();
     await h.settle();
-    const { session, publicKey: pk0, walletId } = await createPasskeyWallet(h);
+    const { session, walletId } = await createPasskeyWallet(h);
+    const pk0 = await deriveKey(h, session, walletId);
 
     const discovered = listField(
-      ok(await h.call("wallet.discoverNostr", { walletId, from: 0, count: 3 }, session)),
+      ok(await h.call("nostr.discover", { walletId, from: 0, count: 3 }, session)),
       "keys",
     );
     expect(discovered).toHaveLength(3);
@@ -321,7 +336,8 @@ describe("nostr operations", () => {
   it("signs events that verify", async () => {
     const h = createHarness();
     await h.settle();
-    const { session, publicKey } = await createPasskeyWallet(h);
+    const { session, walletId } = await createPasskeyWallet(h);
+    const publicKey = await deriveKey(h, session, walletId);
     const event = ok(
       await h.call(
         "nostr.signEvent",
@@ -339,7 +355,8 @@ describe("nostr operations", () => {
   it("round-trips nip04 and nip44 between two keys", async () => {
     const h = createHarness();
     await h.settle();
-    const { session, publicKey: alice } = await createPasskeyWallet(h);
+    const { session, walletId } = await createPasskeyWallet(h);
+    const alice = await deriveKey(h, session, walletId);
     const bob = strField(
       field(ok(await h.call("nostr.generateKey", {}, session)), "key"),
       "publicKey",
@@ -372,7 +389,8 @@ describe("nostr operations", () => {
   it("unwraps gift wraps and isolates corrupted items", async () => {
     const h = createHarness();
     await h.settle();
-    const { session, publicKey } = await createPasskeyWallet(h);
+    const { session, walletId } = await createPasskeyWallet(h);
+    const publicKey = await deriveKey(h, session, walletId);
 
     const sender = new KeysSigner(Keys.generate());
     const rumor = createRumor(await sender.getPublicKey(), { kind: 14, content: "secret dm" });
@@ -433,19 +451,20 @@ describe("exports and data keys", () => {
   it("exports the mnemonic and nostr keys", async () => {
     const h = createHarness();
     await h.settle();
-    const { session, publicKey, walletId } = await createPasskeyWallet(h);
+    const { session, walletId } = await createPasskeyWallet(h);
+    const publicKey = await deriveKey(h, session, walletId);
     const verify = {
       kind: "passkey",
       credentialId: CREDENTIAL_ID,
       prf: new Uint8Array(PRF_VAULT),
     };
 
-    const exported = ok(await h.call("export.mnemonic", { verify, walletId }, session));
+    const exported = ok(await h.call("wallet.exportMnemonic", { verify, walletId }, session));
     expect(new TextDecoder().decode(exported as Uint8Array)).toBe(passkeyVector.vector.mnemonic);
 
     const nsecBytes = ok(
       await h.call(
-        "export.nostrKey",
+        "nostr.exportKey",
         {
           verify: { kind: "passkey", credentialId: CREDENTIAL_ID, prf: new Uint8Array(PRF_VAULT) },
           publicKey,
@@ -460,7 +479,7 @@ describe("exports and data keys", () => {
 
     const ncryptBytes = ok(
       await h.call(
-        "export.nostrKey",
+        "nostr.exportKey",
         {
           verify: { kind: "passkey", credentialId: CREDENTIAL_ID, prf: new Uint8Array(PRF_VAULT) },
           publicKey,
@@ -688,12 +707,18 @@ describe("factors, lock, reset", () => {
     expect(field(ok(await h.call("status")), "vault")).toBe("uninitialized");
   });
 
-  it("deletes a wallet and its derived keys", async () => {
+  it("deletes a wallet and its derived keys atomically", async () => {
     const h = createHarness();
     await h.settle();
     const { session, walletId } = await createPasskeyWallet(h);
+    const derivedPk = await deriveKey(h, session, walletId, 0);
     ok(await h.call("nostr.deriveKey", { walletId, groupIndex: 5 }, session));
-    expect(lastStatus(h).nostrKeys).toHaveLength(2);
+    // A standalone key is not the wallet's: it survives the deletion.
+    const standalone = strField(
+      field(ok(await h.call("nostr.generateKey", {}, session)), "key"),
+      "publicKey",
+    );
+    expect(lastStatus(h).nostr.keys).toHaveLength(3);
     expect(
       ok(
         await h.call(
@@ -712,10 +737,23 @@ describe("factors, lock, reset", () => {
     ).toBeNull();
     const status = lastStatus(h);
     expect(status.wallets).toHaveLength(0);
-    expect(status.nostrKeys).toHaveLength(0);
+    expect(status.nostr.keys.map((k) => k.publicKey)).toStrictEqual([standalone]);
+    // The delete committed atomically: no derived row survived, no signer is left in the pool.
     expect(errCode(await h.call("nostr.deriveKey", { walletId, groupIndex: 6 }, session))).toBe(
       "not-found",
     );
+    expect(
+      errCode(
+        await h.call(
+          "nostr.signEvent",
+          {
+            publicKey: derivedPk,
+            event: { kind: 1, created_at: 1, tags: [], content: "x" },
+          },
+          session,
+        ),
+      ),
+    ).toBe("not-found");
   });
 });
 
@@ -829,7 +867,8 @@ describe("integrity", () => {
   it("rejects swapped sealed blobs between records", async () => {
     const h = createHarness();
     await h.settle();
-    await createPasskeyWallet(h);
+    const { session, walletId } = await createPasskeyWallet(h);
+    await deriveKey(h, session, walletId); // a second sealed record to swap with
     const image = await h.store.load();
     const [rawA, rawB] = image.records;
     const a = must(rawA);
@@ -863,6 +902,37 @@ describe("integrity", () => {
       errCode(
         await h.call("vault.unlock", {
           factor: { kind: "password", password: new Uint8Array(PASSWORD) },
+        }),
+      ),
+    ).toBe("integrity");
+    expect(ok(await h.call("vault.reset"))).toBeNull();
+    expect(lastStatus(h).vault).toBe("uninitialized");
+  });
+
+  it("a stored record of an unknown kind corrupts the vault — it is never silently dropped", async () => {
+    const h = createHarness();
+    await h.settle();
+    await createPasskeyWallet(h);
+    // Simulate a vault written by a newer build: a record kind this kernel does not own.
+    await h.store.commit([
+      {
+        op: "put-record",
+        record: {
+          kind: "spark-key",
+          id: "00".repeat(32),
+          header: JSON.stringify({ publicKey: "00".repeat(32), createdAt: 0 }),
+          sealed: new Uint8Array(48),
+        },
+      },
+    ]);
+    await h.settle();
+    const status = lastStatus(h);
+    expect(status.vault).toBe("corrupted");
+    // Everything except status and vault.reset fails closed.
+    expect(
+      errCode(
+        await h.call("vault.unlock", {
+          factor: { kind: "passkey", credentialId: CREDENTIAL_ID, prf: new Uint8Array(PRF_VAULT) },
         }),
       ),
     ).toBe("integrity");

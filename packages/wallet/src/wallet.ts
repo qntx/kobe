@@ -1,7 +1,9 @@
 /**
- * The host-facing `Wallet` (design/entry.mdx "API"): snapshot state, the API groups, and the glue
- * between the kernel `Channel`, factor resolution and proxy signers. `connectKernel` is exported
- * under the `./host` subpath — reserved for host packages; applications must not use it.
+ * The host-facing `Wallet` (design/entry.mdx "API"): snapshot state, the core API groups, and the
+ * glue between the kernel `Channel` and factor resolution. `connectKernel` is exported under the
+ * `./host` subpath — reserved for host packages; applications must not use it. Protocol modules
+ * (@qntx/wallet/nostr and future siblings) reach this wallet's channel through the registered
+ * internals in internal.ts — never through the public type.
  */
 import { Channel } from "./channel.ts";
 import type { MainPort } from "./channel.ts";
@@ -16,29 +18,23 @@ import {
   wireSecretText,
 } from "./factors.ts";
 import type { FactorSource, PasskeyCeremony } from "./factors.ts";
+import { registerInternals } from "./internal.ts";
 import type { Factor } from "./protocol/index.ts";
 import { SingleUseSecret } from "./secret.ts";
-import { proxySigner } from "./signer.ts";
 import { WalletError } from "./types.ts";
 import type {
   DataKeyApi,
-  DerivedNostrKey,
-  ExportApi,
   ExportedSecret,
   FactorInfo,
   InitialFactor,
   LockReason,
   MnemonicDraft,
-  NostrApi,
-  NostrKeyInfo,
-  NostrKeyRef,
   PasskeyConfig,
   StatusPayload,
   UnlockFactor,
   VaultApi,
   Wallet,
-  WalletCreated,
-  WalletSigner,
+  WalletInfo,
   WalletSnapshot,
   WalletsApi,
 } from "./types.ts";
@@ -47,6 +43,8 @@ export type ConnectOptions = {
   readonly spawn: () => MainPort;
   readonly passkey: PasskeyConfig;
   readonly ceremony: PasskeyCeremony | undefined;
+  /** Runs once inside `destroy()` — host-side cleanup (page listeners, timers). */
+  readonly onDestroy?: () => void;
 };
 
 /** Structural equality over plain snapshot data (validated protocol payloads only). */
@@ -84,6 +82,8 @@ export class KernelWallet implements Wallet {
   private readonly channel: Channel;
   private readonly passkeyCfg: PasskeyConfig;
   private readonly ceremony: PasskeyCeremony | undefined;
+  private readonly onDestroy: (() => void) | undefined;
+  private destroyed = false;
 
   private status: StatusPayload | undefined;
   private lockReason: LockReason | undefined;
@@ -94,13 +94,14 @@ export class KernelWallet implements Wallet {
   private constructor(options: ConnectOptions) {
     this.passkeyCfg = options.passkey;
     this.ceremony = options.ceremony;
+    this.onDestroy = options.onDestroy;
     this.snapshotValue = {
       vault: "uninitialized",
       lockReason: undefined,
       verifying: false,
       factors: [],
       wallets: [],
-      nostrKeys: [],
+      nostr: { keys: [] },
     };
     this.channel = new Channel(options.spawn, {
       onStatus: (status) => {
@@ -113,6 +114,17 @@ export class KernelWallet implements Wallet {
       onCrashed: () => {
         this.lockReason = "crashed";
         this.emit();
+      },
+    });
+    registerInternals(this, {
+      call: async (method, params, transfer) => this.channel.call(method, params, transfer),
+      ready: async () => this.channel.ready,
+      snapshot: () => this.snapshotValue,
+      withVerifying: async (fn) => this.withVerifying(fn),
+      resolveFactor: async (factor, transfer) => resolveFactor(this.factorSource, factor, transfer),
+      createFactorParam: async (factor, transfer) => this.createFactorParam(factor, transfer),
+      sessionOf: (result) => {
+        this.sessionOf(result);
       },
     });
   }
@@ -143,7 +155,7 @@ export class KernelWallet implements Wallet {
       verifying: this.verifying > 0,
       factors: status === undefined ? [] : status.factors,
       wallets: status === undefined ? [] : status.wallets,
-      nostrKeys: status === undefined ? [] : status.nostrKeys,
+      nostr: { keys: status === undefined ? [] : status.nostr.keys },
     };
     const current = this.snapshotValue;
     if (
@@ -152,7 +164,7 @@ export class KernelWallet implements Wallet {
       current.verifying === next.verifying &&
       deepEqual(current.factors, next.factors) &&
       deepEqual(current.wallets, next.wallets) &&
-      deepEqual(current.nostrKeys, next.nostrKeys)
+      deepEqual(current.nostr, next.nostr)
     ) {
       return;
     }
@@ -213,9 +225,8 @@ export class KernelWallet implements Wallet {
     return resolveInitialFactor(this.factorSource, factor, transfer);
   }
 
-  private sessionOf(result: { session: string }): string {
+  private sessionOf(result: { readonly session: string }): void {
     this.channel.session = result.session;
-    return result.session;
   }
 
   readonly vault: VaultApi = {
@@ -266,7 +277,7 @@ export class KernelWallet implements Wallet {
     createWithPasskey: async (options: {
       readonly name: string;
       readonly factor?: InitialFactor;
-    }): Promise<WalletCreated> =>
+    }): Promise<WalletInfo> =>
       this.withVerifying(async () => {
         const ceremony = requireCeremony(this.factorSource);
         const name = passkeyName(options.name);
@@ -298,11 +309,11 @@ export class KernelWallet implements Wallet {
           transfer,
         );
         this.sessionOf(created);
-        return { wallet: created.wallet, nostr: created.nostr };
+        return created.wallet;
       }),
     restoreWithPasskey: async (options?: {
       readonly factor?: InitialFactor;
-    }): Promise<WalletCreated> =>
+    }): Promise<WalletInfo> =>
       this.withVerifying(async () => {
         const ceremony = requireCeremony(this.factorSource);
         const transfer: ArrayBuffer[] = [];
@@ -331,7 +342,7 @@ export class KernelWallet implements Wallet {
           transfer,
         );
         this.sessionOf(created);
-        return { wallet: created.wallet, nostr: created.nostr };
+        return created.wallet;
       }),
     createMnemonic: async (options: {
       readonly words: 12 | 24;
@@ -348,7 +359,7 @@ export class KernelWallet implements Wallet {
       return {
         words: new SingleUseSecret(created.words),
         quiz: created.quiz,
-        confirm: async (answers: ReadonlyArray<string>): Promise<WalletCreated> => {
+        confirm: async (answers: ReadonlyArray<string>): Promise<WalletInfo> => {
           const answerTransfer: ArrayBuffer[] = [];
           const encoded = answers.map((word) => wireSecretText(word, answerTransfer));
           const confirmed = await this.channel.call(
@@ -357,7 +368,7 @@ export class KernelWallet implements Wallet {
             answerTransfer,
           );
           this.sessionOf(confirmed);
-          return { wallet: confirmed.wallet, nostr: confirmed.nostr };
+          return confirmed.wallet;
         },
         discard: async (): Promise<void> => {
           await this.channel.call("wallet.discardMnemonic", { draft: draftId });
@@ -367,7 +378,7 @@ export class KernelWallet implements Wallet {
     importMnemonic: async (options: {
       readonly mnemonic: string;
       readonly factor?: InitialFactor;
-    }): Promise<WalletCreated> => {
+    }): Promise<WalletInfo> => {
       const transfer: ArrayBuffer[] = [];
       const factor = await this.createFactorParam(options.factor, transfer);
       const mnemonic = wireSecretText(options.mnemonic, transfer);
@@ -377,120 +388,24 @@ export class KernelWallet implements Wallet {
         transfer,
       );
       this.sessionOf(created);
-      return { wallet: created.wallet, nostr: created.nostr };
+      return created.wallet;
     },
-    discoverNostr: async (
-      walletId: string,
-      from: number,
-      count: number,
-    ): Promise<ReadonlyArray<DerivedNostrKey>> => {
-      const result = await this.channel.call("wallet.discoverNostr", { walletId, from, count });
-      return result.keys;
-    },
-    delete: async (walletId: string, verify: UnlockFactor): Promise<void> =>
-      this.withVerifying(async () => {
-        const transfer: ArrayBuffer[] = [];
-        const wireVerify = await resolveFactor(this.factorSource, verify, transfer);
-        await this.channel.call("wallet.delete", { verify: wireVerify, walletId }, transfer);
-      }),
-  };
-
-  readonly nostr: NostrApi = {
-    signer: (ref: NostrKeyRef): WalletSigner =>
-      proxySigner(ref, this.channel, (key) => this.resolveRef(key)),
-    deriveKey: async (walletId: string, groupIndex: number): Promise<NostrKeyInfo> =>
-      this.channel.call("nostr.deriveKey", { walletId, groupIndex }),
-    importKey: async (
-      input: { readonly nsec: string } | { readonly ncryptsec: string; readonly password: string },
-      options?: { readonly factor?: InitialFactor },
-    ): Promise<NostrKeyInfo> => {
-      const transfer: ArrayBuffer[] = [];
-      const factor = await this.createFactorParam(options?.factor, transfer);
-      const wireInput =
-        "nsec" in input
-          ? { kind: "nsec" as const, nsec: wireSecretText(input.nsec, transfer) }
-          : {
-              kind: "ncryptsec" as const,
-              ncryptsec: input.ncryptsec,
-              password: wireSecretText(input.password, transfer),
-            };
-      const result = await this.channel.call(
-        "nostr.importKey",
-        { input: wireInput, ...(factor === undefined ? {} : { factor }) },
-        transfer,
-      );
-      this.sessionOf(result);
-      return result.key;
-    },
-    generateKey: async (options?: { readonly factor?: InitialFactor }): Promise<NostrKeyInfo> => {
-      const transfer: ArrayBuffer[] = [];
-      const factor = await this.createFactorParam(options?.factor, transfer);
-      const result = await this.channel.call(
-        "nostr.generateKey",
-        factor === undefined ? {} : { factor },
-        transfer,
-      );
-      this.sessionOf(result);
-      return result.key;
-    },
-    createNip46ClientKey: async (): Promise<NostrKeyInfo> =>
-      this.channel.call("nostr.createNip46ClientKey", null),
-    removeKey: async (ref: NostrKeyRef, verify?: UnlockFactor): Promise<void> =>
-      this.withVerifying(async () => {
-        const info = this.keyInfo(ref); // resolves ref → publicKey + origin from the snapshot
-        const transfer: ArrayBuffer[] = [];
-        let wireVerify: Factor | undefined;
-        if (info.origin !== "nip46-client") {
-          if (verify === undefined) {
-            throw new WalletError("invalid-input", "factor verification is required");
-          }
-          wireVerify = await resolveFactor(this.factorSource, verify, transfer);
-        }
-        await this.channel.call(
-          "nostr.removeKey",
-          {
-            publicKey: info.publicKey,
-            ...(wireVerify === undefined ? {} : { verify: wireVerify }),
-          },
-          transfer,
-        );
-      }),
-  };
-
-  readonly exports: ExportApi = {
-    mnemonic: async (walletId: string, verify: UnlockFactor): Promise<ExportedSecret> =>
+    exportMnemonic: async (walletId: string, verify: UnlockFactor): Promise<ExportedSecret> =>
       this.withVerifying(async () => {
         const transfer: ArrayBuffer[] = [];
         const wireVerify = await resolveFactor(this.factorSource, verify, transfer);
         const bytes = await this.channel.call(
-          "export.mnemonic",
+          "wallet.exportMnemonic",
           { verify: wireVerify, walletId },
           transfer,
         );
         return new SingleUseSecret(bytes);
       }),
-    nostrKey: async (
-      ref: NostrKeyRef,
-      format: { readonly kind: "nsec" } | { readonly kind: "ncryptsec"; readonly password: string },
-      verify: UnlockFactor,
-    ): Promise<ExportedSecret> =>
+    delete: async (walletId: string, verify: UnlockFactor): Promise<void> =>
       this.withVerifying(async () => {
-        const publicKey = this.resolveRef(ref);
         const transfer: ArrayBuffer[] = [];
         const wireVerify = await resolveFactor(this.factorSource, verify, transfer);
-        const wireFormat =
-          format.kind === "nsec"
-            ? { kind: "nsec" as const }
-            : {
-                kind: "ncryptsec" as const,
-                password: wireSecretText(format.password, transfer),
-              };
-        const bytes = await this.channel.call(
-          "export.nostrKey",
-          { verify: wireVerify, publicKey, format: wireFormat },
-          transfer,
-        );
-        return new SingleUseSecret(bytes);
+        await this.channel.call("wallet.delete", { verify: wireVerify, walletId }, transfer);
       }),
   };
 
@@ -501,30 +416,12 @@ export class KernelWallet implements Wallet {
 
   // oxlint-disable-next-line typescript/require-await -- the interface's Promise is resolved synchronously
   async destroy(): Promise<void> {
-    this.channel.destroy();
-  }
-
-  /** Resolves a public ref to its stored key record; missing refs are `not-found`. */
-  private keyInfo(ref: NostrKeyRef): NostrKeyInfo {
-    const info = this.snapshotValue.nostrKeys.find((key) => {
-      const k = key.ref;
-      return (
-        (ref.kind === "derived" &&
-          k.kind === "derived" &&
-          k.walletId === ref.walletId &&
-          k.groupIndex === ref.groupIndex) ||
-        (ref.kind === "nip46-client" && k.kind === "nip46-client" && k.id === ref.id) ||
-        (ref.kind === "standalone" && k.kind === "standalone" && k.id === ref.id)
-      );
-    });
-    if (info === undefined) {
-      throw new WalletError("not-found", "no such nostr key");
+    if (this.destroyed) {
+      return;
     }
-    return info;
-  }
-
-  private resolveRef(ref: NostrKeyRef): string {
-    return this.keyInfo(ref).publicKey;
+    this.destroyed = true;
+    this.onDestroy?.();
+    this.channel.destroy();
   }
 }
 

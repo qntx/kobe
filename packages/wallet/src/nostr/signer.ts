@@ -7,23 +7,41 @@
 import { signedMatchesUnsigned, verifyEvent } from "@qntx/nostr";
 import type { UnsignedEvent } from "@qntx/nostr";
 
-import { integrity } from "./channel.ts";
-import type { Channel } from "./channel.ts";
-import type { UnsignedEventInput } from "./protocol/index.ts";
-import type { NostrKeyRef, NostrUnwrapResult, WalletSigner } from "./types.ts";
+import { integrity } from "../channel.ts";
+import type { WalletInternals } from "../internal.ts";
+import type { UnsignedEventInput } from "../protocol/index.ts";
+import { WalletError } from "../types.ts";
+import type { NostrKeyInfo, NostrKeyRef } from "../types.ts";
+import type { NostrUnwrapResult, WalletSigner } from "./types.ts";
 
-export function proxySigner(
-  ref: NostrKeyRef,
-  channel: Channel,
-  resolvePublicKey: (ref: NostrKeyRef) => string,
-): WalletSigner {
+/** Resolves a public ref to its stored key record; missing refs are `not-found`. */
+export function keyInfoOf(internals: WalletInternals, ref: NostrKeyRef): NostrKeyInfo {
+  const info = internals.snapshot().nostr.keys.find((key) => {
+    const k = key.ref;
+    return (
+      (ref.kind === "derived" &&
+        k.kind === "derived" &&
+        k.walletId === ref.walletId &&
+        k.groupIndex === ref.groupIndex) ||
+      (ref.kind === "nip46-client" && k.kind === "nip46-client" && k.id === ref.id) ||
+      (ref.kind === "standalone" && k.kind === "standalone" && k.id === ref.id)
+    );
+  });
+  if (info === undefined) {
+    throw new WalletError("not-found", "no such nostr key");
+  }
+  return info;
+}
+
+export function proxySigner(ref: NostrKeyRef, internals: WalletInternals): WalletSigner {
+  const resolvePublicKey = (): string => keyInfoOf(internals, ref).publicKey;
   return {
     getPublicKey: async () => {
-      await channel.ready;
-      return resolvePublicKey(ref);
+      await internals.ready();
+      return resolvePublicKey();
     },
     signEvent: async (unsigned) => {
-      const publicKey = resolvePublicKey(ref);
+      const publicKey = resolvePublicKey();
       // An absent pubkey must stay absent: `pubkey: undefined` is not a ProtocolValue and the
       // kernel would reject the params outright.
       const event: UnsignedEventInput =
@@ -41,7 +59,7 @@ export function proxySigner(
               content: unsigned.content,
               pubkey: unsigned.pubkey,
             };
-      const signed = await channel.call("nostr.signEvent", { publicKey, event });
+      const signed = await internals.call("nostr.signEvent", { publicKey, event });
       // The kernel output must be the requested event, signed by the expected key.
       const requested: UnsignedEvent = {
         kind: unsigned.kind,
@@ -60,32 +78,32 @@ export function proxySigner(
       return signed;
     },
     nip04Encrypt: async (peer, plaintext) =>
-      channel.call("nostr.nip04Encrypt", {
-        publicKey: resolvePublicKey(ref),
+      internals.call("nostr.nip04Encrypt", {
+        publicKey: resolvePublicKey(),
         peer,
         text: plaintext,
       }),
     nip04Decrypt: async (peer, ciphertext) =>
-      channel.call("nostr.nip04Decrypt", {
-        publicKey: resolvePublicKey(ref),
+      internals.call("nostr.nip04Decrypt", {
+        publicKey: resolvePublicKey(),
         peer,
         text: ciphertext,
       }),
     nip44Encrypt: async (peer, plaintext) =>
-      channel.call("nostr.nip44Encrypt", {
-        publicKey: resolvePublicKey(ref),
+      internals.call("nostr.nip44Encrypt", {
+        publicKey: resolvePublicKey(),
         peer,
         text: plaintext,
       }),
     nip44Decrypt: async (peer, payload) =>
-      channel.call("nostr.nip44Decrypt", {
-        publicKey: resolvePublicKey(ref),
+      internals.call("nostr.nip44Decrypt", {
+        publicKey: resolvePublicKey(),
         peer,
         text: payload,
       }),
     unwrapGiftWraps: async (events): Promise<ReadonlyArray<NostrUnwrapResult>> => {
-      const result = await channel.call("nostr.unwrapGiftWraps", {
-        publicKey: resolvePublicKey(ref),
+      const result = await internals.call("nostr.unwrapGiftWraps", {
+        publicKey: resolvePublicKey(),
         events: [...events],
       });
       return result.results;

@@ -7,9 +7,9 @@ import type { Rumor } from "@qntx/nostr/nips/nip59";
 import type { UnwrapResult } from "@qntx/wallet/protocol";
 import type { WalletErrorCode } from "@qntx/wallet/types";
 
-import { KernelError } from "../errors.ts";
-import type { KernelPlatform } from "../platform.ts";
-import { decodeUtf8Secret, wipe } from "../secret/secret.ts";
+import { KernelError } from "../../errors.ts";
+import type { KernelPlatform } from "../../platform.ts";
+import { decodeUtf8Secret, wipe } from "../../secret/secret.ts";
 
 /**
  * Signer pool: one KeysSigner per nostr-key record, keyed by public key. Built at unlock from the

@@ -6,6 +6,7 @@ const config: UserConfig = defineConfig({
     entry: {
       index: "src/index.ts",
       host: "src/host.ts",
+      nostr: "src/nostr/index.ts",
       protocol: "src/protocol/index.ts",
       types: "src/types.ts",
     },

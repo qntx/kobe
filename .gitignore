@@ -20,4 +20,4 @@ test-results/
 playwright-report/
 
 # Hermes smoke bundle (built on demand by scripts/hermes-smoke.ts)
-packages/wallet-wasm/.hermes-smoke.iife.js
+packages/wallet-worker/.hermes-smoke.iife.js

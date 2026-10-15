@@ -5,6 +5,7 @@ import { getPublicKey, KeysSigner } from "@qntx/nostr";
 import type { UnsignedEvent } from "@qntx/nostr";
 
 import type { MainPort } from "../src/channel.ts";
+import { nostr } from "../src/nostr/index.ts";
 import type { ProtocolValue } from "../src/protocol/index.ts";
 import { WalletError } from "../src/types.ts";
 import type { NostrKeyInfo, StatusPayload, WalletErrorCode } from "../src/types.ts";
@@ -150,7 +151,7 @@ function unlockedStatus(): StatusPayload {
     vault: "unlocked",
     factors: [{ kind: "passkey", id: "f".repeat(32), credentialId: "Y3JlZA", createdAt: 1 }],
     wallets: [],
-    nostrKeys: [NOSTR_KEY],
+    nostr: { keys: [NOSTR_KEY] },
   };
 }
 
@@ -209,7 +210,7 @@ describe("response validation", () => {
         content: "forged",
       },
     }));
-    const signer = wallet.nostr.signer(NOSTR_KEY.ref);
+    const signer = nostr(wallet).signer(NOSTR_KEY.ref);
     await expect(
       signer.signEvent({ kind: 1, created_at: 1, tags: [], content: "x", pubkey: PUBLIC_KEY }),
     ).rejects.toSatisfy((e) => walletError(e).code === "integrity");
@@ -227,7 +228,7 @@ describe("response validation", () => {
         content: "different",
       }),
     }));
-    const signer = wallet.nostr.signer(NOSTR_KEY.ref);
+    const signer = nostr(wallet).signer(NOSTR_KEY.ref);
     await expect(
       signer.signEvent({ kind: 1, created_at: 1, tags: [], content: "x", pubkey: PUBLIC_KEY }),
     ).rejects.toSatisfy((e) => walletError(e).code === "integrity");
@@ -306,7 +307,7 @@ describe("port lifecycle", () => {
     const snapshot = wallet.getSnapshot();
     expect(snapshot.vault).toBe("locked");
     expect(snapshot.lockReason).toBe("idle");
-    expect(snapshot.nostrKeys.at(0)?.publicKey).toBe(PUBLIC_KEY);
+    expect(snapshot.nostr.keys.at(0)?.publicKey).toBe(PUBLIC_KEY);
 
     // The fresh kernel answers session methods with "locked".
     kernel.handlers.set("dataKeys.get", () => ({ err: { code: "locked" } }));
@@ -382,7 +383,7 @@ describe("proxy signer", () => {
       return { ok: { session: "0a".repeat(16) } };
     });
 
-    const signer = wallet.nostr.signer(NOSTR_KEY.ref);
+    const signer = nostr(wallet).signer(NOSTR_KEY.ref);
     await expect(signer.getPublicKey()).resolves.toBe(PUBLIC_KEY);
     const signed = await signer.signEvent({
       kind: 1,
@@ -506,13 +507,25 @@ describe("snapshot", () => {
   });
 });
 
+describe("nostr module factory", () => {
+  it("returns the same object for the same wallet and rejects foreign objects", async () => {
+    const { wallet } = await connectFake(unlockedStatus());
+    const first = nostr(wallet);
+    expect(nostr(wallet)).toBe(first);
+    expect(() => nostr({ ...wallet })).toThrow(WalletError);
+    expect(() => nostr({} as Parameters<typeof nostr>[0])).toThrow(
+      expect.objectContaining({ code: "invalid-input" }) as WalletError,
+    );
+  });
+});
+
 describe("ExportedSecret", () => {
   it("reads exactly once and wipes", async () => {
     const { wallet, kernel } = await connectFake(unlockedStatus());
     const secret = utf8ToBytes("abandon abandon abandon");
-    kernel.handlers.set("export.mnemonic", () => ({ ok: new Uint8Array(secret) }));
+    kernel.handlers.set("wallet.exportMnemonic", () => ({ ok: new Uint8Array(secret) }));
     const verify = { kind: "password" as const, password: "long enough password" };
-    const exported = await wallet.exports.mnemonic("0".repeat(16), verify);
+    const exported = await wallet.wallets.exportMnemonic("0".repeat(16), verify);
     const bytes = exported.read();
     expect(new TextDecoder().decode(bytes)).toBe("abandon abandon abandon");
     expect(() => exported.read()).toThrow(WalletError);

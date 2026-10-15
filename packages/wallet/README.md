@@ -1,19 +1,19 @@
 # @qntx/wallet
 
 Public API surface of the qntx wallet: the `Wallet` interface, the immutable `WalletSnapshot`,
-`WalletError`, the API group types (vault, wallets, nostr, exports, dataKeys), and the host/kernel
-wire protocol. This package contains no runtime of its own — a `Wallet` comes from a host package
-that spawns the kernel, currently [`@qntx/wallet-wasm`](https://www.npmjs.com/package/@qntx/wallet-wasm)
-for Web and Node.
+`WalletError`, the core API groups (vault, wallets, dataKeys), the host/kernel wire protocol, and
+the `@qntx/wallet/nostr` subpath — the first protocol module. This package contains no runtime of
+its own — a `Wallet` comes from a host package that spawns the kernel, currently
+[`@qntx/wallet-worker`](https://www.npmjs.com/package/@qntx/wallet-worker) for Web and Node.
 
 ```bash
-npm install @qntx/wallet @qntx/wallet-wasm
+npm install @qntx/wallet @qntx/wallet-worker
 ```
 
 ## Usage
 
 ```ts
-import { createWebWallet } from "@qntx/wallet-wasm/browser";
+import { createWebWallet } from "@qntx/wallet-worker/browser";
 
 const wallet = await createWebWallet({
   passkey: {
@@ -31,8 +31,12 @@ const created = await wallet.wallets.createWithPasskey({ name: "Example Wallet" 
 // Later runs: unlock with the passkey (or a password factor).
 await wallet.vault.unlock({ kind: "passkey" });
 
+// The Nostr module lives in its own subpath — the root entry never pulls @qntx/nostr.
+import { nostr } from "@qntx/wallet/nostr";
+
+const key = await nostr(wallet).deriveKey(created.walletId, 0);
 // A proxy NostrSigner — resolves the kernel key per call and survives lock/unlock.
-const signer = wallet.nostr.signer(created.nostr.ref);
+const signer = nostr(wallet).signer(key.ref);
 const event = await signer.signEvent({
   kind: 1,
   created_at: Math.floor(Date.now() / 1000),
@@ -60,7 +64,7 @@ const snapshot = useSyncExternalStore(wallet.subscribe, wallet.getSnapshot);
   against a compromised browser or device.
 - Your CSP must allow the bundled worker: `worker-src 'self'` (the worker loads from your own
   origin — a stricter policy breaks the wallet).
-- Vite users: set `optimizeDeps.exclude: ["@qntx/wallet-wasm"]` so the worker URL survives dev.
+- Vite users: set `optimizeDeps.exclude: ["@qntx/wallet-worker"]` so the worker URL survives dev.
 - `@qntx/wallet/host` is reserved for host packages — applications must not use it.
 - A vault that reports `corrupted` cannot be unlocked; `wallet.vault.reset()` is the only way
   forward and destroys the stored vault.

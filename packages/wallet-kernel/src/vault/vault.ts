@@ -3,7 +3,7 @@ import { bytesToHex } from "@noble/hashes/utils.js";
 import { base64urlnopad } from "@scure/base";
 
 import type { Factor } from "@qntx/wallet/protocol";
-import type { FactorInfo, NostrKeyInfo, WalletInfo } from "@qntx/wallet/types";
+import type { FactorInfo, WalletInfo } from "@qntx/wallet/types";
 
 import { KernelError } from "../errors.ts";
 import type { KernelPlatform } from "../platform.ts";
@@ -11,15 +11,8 @@ import type { Secret } from "../secret/secret.ts";
 import { wipe } from "../secret/secret.ts";
 import { open, recordContext, seal } from "./envelope.ts";
 import { assertPasswordPolicy, passkeyKek, passwordKek, unwrapDek, wrapDek } from "./factors.ts";
-import type { EntropyHeader, NostrKeyHeader } from "./headers.ts";
-import {
-  encodeHeader,
-  parseDataKeyHeader,
-  parseEntropyHeader,
-  parseNostrKeyHeader,
-  parsePasskeyFactorHeader,
-  parsePasswordFactorHeader,
-} from "./headers.ts";
+import type { EntropyHeader } from "./headers.ts";
+import { encodeHeader, parsePasskeyFactorHeader, parsePasswordFactorHeader } from "./headers.ts";
 import type { StoredFactor, StoredRecord, StoreOp, VaultImage, VaultMeta } from "./store.ts";
 
 /** Consecutive password failures → enforced wait: 30 s, 60 s, then 300 s from the 5th failure. */
@@ -112,16 +105,27 @@ async function kekFor(
 }
 
 /**
+ * One record's authenticated plaintext from the unlock pass. The vault layer opens every record
+ * (AEAD bound to context plus the raw header) without interpreting kind or payload — the
+ * composition point decides which module claims each plaintext and wipes the rest.
+ */
+export type OpenedRecord = {
+  readonly kind: string;
+  readonly id: string;
+  readonly plaintext: Uint8Array;
+};
+
+/**
  * Unlocks the vault: rate limiting, factor unwrap, then one authentication pass over every record
- * (`open` binds each raw public header). Returns the DEK and the nostr-key plaintexts keyed by
- * public key; every other plaintext is wiped. Password failures count toward the rate limit;
- * passkey failures are `integrity` and do not.
+ * (`open` binds each raw public header). Returns the DEK and every record plaintext; ownership of
+ * the plaintexts passes to the caller. Password failures count toward the rate limit; passkey
+ * failures are `integrity` and do not.
  */
 export async function unlock(
   platform: KernelPlatform,
   image: VaultImage,
   factor: Factor,
-): Promise<{ dek: Secret; nostrKeys: Map<string, Uint8Array> }> {
+): Promise<{ dek: Secret; records: OpenedRecord[] }> {
   const { meta } = image;
   if (meta === undefined) {
     throw new KernelError("invalid-input", "vault is not initialized");
@@ -191,8 +195,8 @@ export async function unlock(
   }
 
   try {
-    const nostrKeys = authenticateRecords(dek, image.records);
-    return { dek, nostrKeys };
+    const records = authenticateRecords(dek, image.records);
+    return { dek, records };
   } catch (error) {
     dek.wipe();
     // The DEK opened but a record failed authentication: the vault contents are corrupt.
@@ -212,27 +216,20 @@ function credentialIdOf(stored: StoredFactor): string | undefined {
   }
 }
 
-/** Opens every record once; keeps only nostr-key plaintexts, wipes the rest. */
-function authenticateRecords(
-  dek: Secret,
-  records: ReadonlyArray<StoredRecord>,
-): Map<string, Uint8Array> {
-  const nostrKeys = new Map<string, Uint8Array>();
+/** Opens every record once; the caller claims or wipes the returned plaintexts. */
+function authenticateRecords(dek: Secret, records: ReadonlyArray<StoredRecord>): OpenedRecord[] {
+  const opened: OpenedRecord[] = [];
   try {
     for (const record of records) {
       const plaintext = dek.use((bytes) =>
         open(bytes, record.sealed, recordContext(record.kind, record.id), record.header),
       );
-      if (record.kind === "nostr-key") {
-        nostrKeys.set(record.id, plaintext);
-      } else {
-        wipe(plaintext);
-      }
+      opened.push({ kind: record.kind, id: record.id, plaintext });
     }
-    return nostrKeys;
+    return opened;
   } catch (error) {
-    for (const plaintext of nostrKeys.values()) {
-      wipe(plaintext);
+    for (const record of opened) {
+      wipe(record.plaintext);
     }
     throw error;
   }
@@ -294,7 +291,7 @@ export async function verifyFactor(
 export function sealRecord(
   platform: KernelPlatform,
   dek: Secret,
-  kind: StoredRecord["kind"],
+  kind: string,
   id: string,
   header: string,
   plaintext: Uint8Array,
@@ -311,11 +308,7 @@ export function openRecord(dek: Secret, record: StoredRecord): Uint8Array {
   );
 }
 
-export function findRecord(
-  image: VaultImage,
-  kind: StoredRecord["kind"],
-  id: string,
-): StoredRecord {
+export function findRecord(image: VaultImage, kind: string, id: string): StoredRecord {
   const record = image.records.find((r) => r.kind === kind && r.id === id);
   if (record === undefined) {
     throw new KernelError("not-found", "record not found");
@@ -364,58 +357,4 @@ export function walletInfo(header: EntropyHeader): WalletInfo {
     backedUp: header.backedUp,
     createdAt: header.createdAt,
   };
-}
-
-/** The `NostrKeyInfo` a nostr-key record's public header reports. */
-export function nostrKeyInfo(header: NostrKeyHeader): NostrKeyInfo {
-  return {
-    ref:
-      header.origin === "derived"
-        ? { kind: "derived", walletId: header.walletId, groupIndex: header.groupIndex }
-        : header.origin === "nip46-client"
-          ? { kind: "nip46-client", id: header.publicKey }
-          : { kind: "standalone", id: header.publicKey },
-    publicKey: header.publicKey,
-    origin: header.origin,
-    createdAt: header.createdAt,
-  };
-}
-
-/**
- * Snapshot contents for the `status` payload. Locked snapshots are display-only data from
- * unauthenticated public headers; a row whose header fails to parse is omitted from the lists and
- * flips `corrupted` — the kernel reports the vault corrupted rather than silently dropping identity
- * rows.
- */
-export function snapshotContents(image: VaultImage): {
-  factors: FactorInfo[];
-  wallets: WalletInfo[];
-  nostrKeys: NostrKeyInfo[];
-  corrupted: boolean;
-} {
-  const factors: FactorInfo[] = [];
-  const wallets: WalletInfo[] = [];
-  const nostrKeys: NostrKeyInfo[] = [];
-  let corrupted = false;
-  for (const factor of image.factors) {
-    try {
-      factors.push(factorInfo(factor));
-    } catch {
-      corrupted = true;
-    }
-  }
-  for (const record of image.records) {
-    try {
-      if (record.kind === "entropy") {
-        wallets.push(walletInfo(parseEntropyHeader(record.header)));
-      } else if (record.kind === "nostr-key") {
-        nostrKeys.push(nostrKeyInfo(parseNostrKeyHeader(record.header)));
-      } else {
-        parseDataKeyHeader(record.header);
-      }
-    } catch {
-      corrupted = true;
-    }
-  }
-  return { factors, wallets, nostrKeys, corrupted };
 }

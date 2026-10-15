@@ -1,7 +1,7 @@
 {
-  "name": "@qntx/wallet-wasm",
+  "name": "@qntx/wallet-worker",
   "version": "0.1.0",
-  "description": "Web/Node host package for @qntx/wallet — spawns the wallet kernel in a Worker",
+  "description": "Web Worker and worker_threads hosts for @qntx/wallet",
   "keywords": [
     "nostr",
     "sdk",
@@ -19,7 +19,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/qntx/wallet.git",
-    "directory": "packages/wallet-wasm"
+    "directory": "packages/wallet-worker"
   },
   "files": [
     "dist",

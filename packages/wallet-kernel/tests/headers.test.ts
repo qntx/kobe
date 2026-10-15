@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vite-plus/test";
 
+import { encodeNostrKeyHeader, parseNostrKeyHeader } from "../src/modules/nostr/record.ts";
+import type { NostrKeyHeader } from "../src/modules/nostr/record.ts";
 import {
   encodeHeader,
   parseDataKeyHeader,
   parseEntropyHeader,
-  parseNostrKeyHeader,
   parsePasskeyFactorHeader,
   parsePasswordFactorHeader,
 } from "../src/vault/headers.ts";
 import type {
   DataKeyHeader,
   EntropyHeader,
-  NostrKeyHeader,
   PasskeyFactorHeader,
   PasswordFactorHeader,
 } from "../src/vault/headers.ts";
@@ -58,8 +58,10 @@ describe("header round trip", () => {
   });
 
   it("nostr-key derived and standalone", () => {
-    expect(parseNostrKeyHeader(encodeHeader(nostrDerived))).toStrictEqual(nostrDerived);
-    expect(parseNostrKeyHeader(encodeHeader(nostrStandalone))).toStrictEqual(nostrStandalone);
+    expect(parseNostrKeyHeader(encodeNostrKeyHeader(nostrDerived))).toStrictEqual(nostrDerived);
+    expect(parseNostrKeyHeader(encodeNostrKeyHeader(nostrStandalone))).toStrictEqual(
+      nostrStandalone,
+    );
   });
 
   it("data-key", () => {

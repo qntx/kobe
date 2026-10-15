@@ -2,25 +2,33 @@ import type { Factor, NullValue } from "@qntx/wallet/protocol";
 import type { FactorInfo } from "@qntx/wallet/types";
 
 import { KernelError } from "../errors.ts";
+import { wipe } from "../secret/secret.ts";
 import type { StoreOp } from "../vault/store.ts";
 import { factorInfo, makeFactor, unlock, verifyFactor } from "../vault/vault.ts";
+import type { OpenedRecord } from "../vault/vault.ts";
 import type { KernelContext } from "./context.ts";
 
 export async function unlockVault(
   ctx: KernelContext,
   params: { factor: Factor },
 ): Promise<{ session: string }> {
-  const { dek, nostrKeys } = await unlock(ctx.platform, ctx.image, params.factor);
+  const { dek, records } = await unlock(ctx.platform, ctx.image, params.factor);
   try {
-    ctx.pool.dispose();
-    for (const secretKey of nostrKeys.values()) {
-      ctx.pool.add(secretKey); // takes ownership and wipes the record plaintext
+    // A re-unlock replaces any live module state; modules drop it before claiming.
+    for (const module of ctx.modules) {
+      module.lock();
     }
-    nostrKeys.clear();
+    let unclaimed: ReadonlyArray<OpenedRecord> = records;
+    for (const module of ctx.modules) {
+      unclaimed = module.claimUnlocked(unclaimed);
+    }
+    for (const record of unclaimed) {
+      wipe(record.plaintext);
+    }
     return { session: ctx.session.open(dek) };
   } catch (error) {
-    for (const secretKey of nostrKeys.values()) {
-      secretKey.fill(0);
+    for (const record of records) {
+      wipe(record.plaintext);
     }
     dek.wipe();
     throw error;

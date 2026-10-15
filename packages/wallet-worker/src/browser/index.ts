@@ -79,6 +79,11 @@ export async function createWebWallet(options: WalletOptions): Promise<Wallet> {
     spawn,
     passkey: options.passkey,
     ceremony,
+    onDestroy: () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      globalThis.removeEventListener("pagehide", onPageHide);
+      globalThis.clearTimeout(hiddenTimer);
+    },
   });
 
   // Page lifecycle: lock when the page has been hidden for 5 minutes, and on pagehide. A
@@ -111,21 +116,7 @@ export async function createWebWallet(options: WalletOptions): Promise<Wallet> {
     }
   });
 
-  return {
-    getSnapshot: () => wallet.getSnapshot(),
-    subscribe: (listener) => wallet.subscribe(listener),
-    vault: wallet.vault,
-    wallets: wallet.wallets,
-    nostr: wallet.nostr,
-    exports: wallet.exports,
-    dataKeys: wallet.dataKeys,
-    destroy: async () => {
-      document.removeEventListener("visibilitychange", onVisibility);
-      globalThis.removeEventListener("pagehide", onPageHide);
-      globalThis.clearTimeout(hiddenTimer);
-      await wallet.destroy();
-    },
-  };
+  return wallet;
 }
 
 export { createWebAuthnPasskey } from "./passkey.ts";

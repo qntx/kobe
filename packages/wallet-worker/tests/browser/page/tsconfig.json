@@ -8,7 +8,7 @@
     // The page exercises the built dist at runtime (package exports); for typecheck the
     // source entry keeps dist builds out of the dependency chain.
     "paths": {
-      "@qntx/wallet-wasm/browser": ["../../../src/browser/index.ts"]
+      "@qntx/wallet-worker/browser": ["../../../src/browser/index.ts"]
     }
   },
   "include": ["."]

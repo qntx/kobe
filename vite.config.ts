@@ -23,8 +23,9 @@ const platformNeutralImports = {
 
 // One-directional layer graph for packages/wallet-kernel/src — mirrors
 // AGENTS.md "Architecture invariants". Each layer is a directory; the root
-// files platform.ts and errors.ts are leaves importable by every layer.
-// Later milestones extend this object (session, nostr, commands, kernel).
+// files platform.ts, errors.ts, status.ts and kernel.ts compose them.
+// `modules` is the protocol-module edge: it may import core layers and core
+// commands (gate, context); nothing in core may import it back.
 const KERNEL_SRC = "packages/wallet-kernel/src";
 const LAYERS = {
   secret: [],
@@ -32,8 +33,8 @@ const LAYERS = {
   derive: ["secret"],
   vault: ["secret"],
   session: ["secret", "vault"],
-  nostr: ["secret"],
-  commands: ["secret", "seed", "derive", "vault", "session", "nostr"],
+  commands: ["secret", "seed", "derive", "vault", "session"],
+  modules: ["secret", "seed", "derive", "vault", "session", "commands"],
 } as const;
 
 const LAYER_NAMES = Object.keys(LAYERS).filter(
@@ -79,14 +80,21 @@ const kernelBoundaryImports = {
         "the kernel may only import @qntx/wallet/protocol and @qntx/wallet/types — never the host entry",
     },
     {
-      group: ["@qntx/nostr/client", "@qntx/nostr/relay", "@qntx/nostr/store"],
-      message: "the kernel uses only the core, nips and signer parts of @qntx/nostr",
-    },
-    {
-      group: ["@qntx/*-wasm", "@qntx/*-native"],
+      group: ["@qntx/*-worker", "@qntx/*-native"],
       message: "backends are injected by the host packages, never imported by the kernel",
     },
   ],
+};
+
+// Only the nostr module may touch @qntx/nostr — even types. Inside the
+// module the chatty subpaths stay banned (signing happens in the pool).
+const nostrModuleOnlyImports = {
+  group: ["@qntx/nostr", "@qntx/nostr/**"],
+  message: "only packages/wallet-kernel/src/modules/nostr may import @qntx/nostr",
+};
+const nostrModuleBoundaryImports = {
+  group: ["@qntx/nostr/client", "@qntx/nostr/relay", "@qntx/nostr/store"],
+  message: "the kernel uses only the core, nips and signer parts of @qntx/nostr",
 };
 
 // Node-only and browser-only globals are both absent on Hermes; library code
@@ -124,6 +132,7 @@ const kernelLayerOverrides: OxlintOverride[] = LAYER_NAMES.map((layer) => ({
         patterns: [
           ...platformNeutralImports.patterns,
           ...kernelBoundaryImports.patterns,
+          layer === "modules" ? nostrModuleBoundaryImports : nostrModuleOnlyImports,
           ...layerImports(layer).patterns,
         ],
       },
@@ -149,14 +158,14 @@ const config: UserConfig = defineConfig({
     },
     overrides: [
       {
-        files: ["scripts/**", "packages/wallet-wasm/scripts/**"],
+        files: ["scripts/**", "packages/*/scripts/**"],
         rules: {
           // Maintenance scripts print their results.
           "eslint/no-console": "off",
         },
       },
       {
-        files: ["packages/wallet-kernel/tests/**", "packages/wallet-wasm/tests/hermes/**"],
+        files: ["packages/wallet-kernel/tests/**", "packages/wallet-worker/tests/hermes/**"],
         rules: {
           // The seeded PRNG (mulberry32) and the Hermes UTF-8/xorshift shims are integer
           // arithmetic on purpose.
@@ -205,9 +214,9 @@ const config: UserConfig = defineConfig({
         // Node/CJS-only names stay banned. Everywhere else keeps the full
         // platform-neutral list, including the kernel.
         files: [
-          "packages/wallet-wasm/src/browser/**",
-          "packages/wallet-wasm/src/worker/browser.ts",
-          "packages/wallet-wasm/src/worker/indexeddb.ts",
+          "packages/wallet-worker/src/browser/**",
+          "packages/wallet-worker/src/worker/browser.ts",
+          "packages/wallet-worker/src/worker/indexeddb.ts",
         ],
         rules: {
           "eslint/no-restricted-globals": [
@@ -231,7 +240,7 @@ const config: UserConfig = defineConfig({
         // builtin they may touch is worker_threads. The store wire (shared.ts,
         // store-client.ts, subtle.ts) stays platform-neutral for the W4 browser
         // worker.
-        files: ["packages/wallet-wasm/src/node/**", "packages/wallet-wasm/src/worker/node.ts"],
+        files: ["packages/wallet-worker/src/node/**", "packages/wallet-worker/src/worker/node.ts"],
         rules: {
           "eslint/no-restricted-imports": [
             "error",
@@ -250,15 +259,80 @@ const config: UserConfig = defineConfig({
         },
       },
       {
-        // Kernel root files (index.ts, platform.ts, errors.ts) compose or
-        // feed the layers; the package boundary still applies.
+        // Kernel root files (index.ts, platform.ts, errors.ts, status.ts, kernel.ts) compose or
+        // feed the layers; the package boundary still applies, and @qntx/nostr stays module-only.
         files: [`${KERNEL_SRC}/*.ts`],
         rules: {
           "eslint/no-restricted-imports": [
             "error",
             {
               paths: platformNeutralImports.paths,
-              patterns: [...platformNeutralImports.patterns, ...kernelBoundaryImports.patterns],
+              patterns: [
+                ...platformNeutralImports.patterns,
+                ...kernelBoundaryImports.patterns,
+                nostrModuleOnlyImports,
+              ],
+            },
+          ],
+        },
+      },
+      {
+        // The wire protocol never sees @qntx/nostr — even types — and never reaches
+        // the runtime module; protocol/nostr.ts is protocol data composed in index.ts.
+        files: ["packages/wallet/src/protocol/**"],
+        rules: {
+          "eslint/no-restricted-imports": [
+            "error",
+            {
+              paths: platformNeutralImports.paths,
+              patterns: [
+                ...platformNeutralImports.patterns,
+                {
+                  group: ["@qntx/nostr", "@qntx/nostr/**", "../nostr", "../nostr/**"],
+                  message: "src/protocol stays free of @qntx/nostr and of src/nostr",
+                },
+              ],
+            },
+          ],
+        },
+      },
+      {
+        // Core runtime files never touch @qntx/nostr or the nostr module — the ./nostr
+        // subpath reaches the channel through the WeakMap in internal.ts.
+        files: ["packages/wallet/src/*.ts"],
+        rules: {
+          "eslint/no-restricted-imports": [
+            "error",
+            {
+              paths: platformNeutralImports.paths,
+              patterns: [
+                ...platformNeutralImports.patterns,
+                {
+                  group: ["@qntx/nostr", "@qntx/nostr/**", "./nostr", "./nostr/**"],
+                  message: "only packages/wallet/src/nostr may import @qntx/nostr",
+                },
+              ],
+            },
+          ],
+        },
+      },
+      {
+        // The nostr subpath may use @qntx/nostr (signer types, event verification) but
+        // never the transport subpaths.
+        files: ["packages/wallet/src/nostr/**"],
+        rules: {
+          "eslint/no-restricted-imports": [
+            "error",
+            {
+              paths: platformNeutralImports.paths,
+              patterns: [
+                ...platformNeutralImports.patterns,
+                {
+                  group: ["@qntx/nostr/client", "@qntx/nostr/relay", "@qntx/nostr/store"],
+                  message:
+                    "the nostr module uses only the core, nips and signer parts of @qntx/nostr",
+                },
+              ],
             },
           ],
         },

@@ -1,7 +1,7 @@
 /**
  * The host side of the kernel channel (design/enclave.mdx "协议与传输"): port lifecycle, respawn,
  * request/response correlation and wire validation. Internal to the `./host` subpath — reserved for
- * host packages (wallet-wasm, wallet-native); applications must not use it.
+ * host packages (wallet-worker, wallet-native); applications must not use it.
  */
 import {
   isProtocolValue,

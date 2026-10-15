@@ -1,6 +1,13 @@
+/**
+ * A record kind names the module that owns the record's header and plaintext format. The store and
+ * the envelope are kind-agnostic: any string matching the pattern is a valid kind, and a stored
+ * kind no module claims marks the vault corrupted rather than being dropped.
+ */
+export const RECORD_KIND_PATTERN: RegExp = /^[a-z][a-z0-9-]{0,31}$/;
+
 /** On-disk vault shapes. `header` is the raw JSON text, authenticated as-is. */
 export type StoredRecord = {
-  readonly kind: "entropy" | "nostr-key" | "data-key";
+  readonly kind: string; // RECORD_KIND_PATTERN
   readonly id: string;
   readonly header: string;
   readonly sealed: Uint8Array;

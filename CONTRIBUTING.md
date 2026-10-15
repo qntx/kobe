@@ -16,7 +16,7 @@ scripts/                 repo tooling (check-version, vectors/)
 ```
 
 Packages are created only when they have content: `@qntx/wallet` and
-`@qntx/wallet-wasm` appear in later milestones.
+`@qntx/wallet-worker` appear in later milestones.
 
 ## Local gate
 

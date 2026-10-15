@@ -5,7 +5,8 @@ import { describe, expect, it } from "vite-plus/test";
 
 import { npubEncode, verifyEvent } from "@qntx/nostr";
 import { WalletError } from "@qntx/wallet";
-import type { NostrKeyInfo, Wallet } from "@qntx/wallet";
+import type { Wallet } from "@qntx/wallet";
+import { nostr } from "@qntx/wallet/nostr";
 
 import { createNodeWallet, createSoftwarePasskey } from "../src/node/index.ts";
 import type { NodeWalletOptions } from "../src/node/index.ts";
@@ -64,13 +65,6 @@ function walletError(error: unknown): WalletError {
   return error;
 }
 
-function derivedKey(wallet: Wallet): NostrKeyInfo {
-  return must(
-    wallet.getSnapshot().nostrKeys.find((key) => key.ref.kind === "derived"),
-    "derived nostr key",
-  );
-}
-
 describe("node host end to end", () => {
   it("creates a passkey wallet, locks by terminating the worker, unlocks and signs", async () => {
     const passkey = createSoftwarePasskey(SEED);
@@ -81,22 +75,23 @@ describe("node host end to end", () => {
     // Status precedes the response: the snapshot is already current when the call resolves.
     const snapshot = wallet.getSnapshot();
     expect(snapshot.vault).toBe("unlocked");
-    expect(snapshot.wallets[0]?.walletId).toBe(created.wallet.walletId);
-    const nostr = derivedKey(wallet);
-    expect(nostr.ref).toStrictEqual({
+    expect(snapshot.wallets[0]?.walletId).toBe(created.walletId);
+    const api = nostr(wallet);
+    const key = await api.deriveKey(created.walletId, 0);
+    expect(key.ref).toStrictEqual({
       kind: "derived",
-      walletId: created.wallet.walletId,
+      walletId: created.walletId,
       groupIndex: 0,
     });
-    expect(npubEncode(nostr.publicKey)).toMatch(/^npub1/);
+    expect(npubEncode(key.publicKey)).toMatch(/^npub1/);
 
-    // No settle: signing right after create must already work (status + session are in place).
-    const immediate = await wallet.nostr.signer(nostr.ref).signEvent({
+    // No settle: signing right after derive must already work (status + session are in place).
+    const immediate = await api.signer(key.ref).signEvent({
       kind: 1,
       created_at: Math.floor(Date.now() / 1000),
       tags: [],
       content: "right after create",
-      pubkey: nostr.publicKey,
+      pubkey: key.publicKey,
     });
     expect(verifyEvent(immediate)).toBe(true);
 
@@ -107,21 +102,21 @@ describe("node host end to end", () => {
     expect(workers.length).toBeGreaterThanOrEqual(2);
     const locked = wallet.getSnapshot();
     expect(locked.vault).toBe("locked");
-    expect(locked.wallets[0]?.walletId).toBe(created.wallet.walletId);
-    expect(locked.nostrKeys[0]?.publicKey).toBe(nostr.publicKey);
+    expect(locked.wallets[0]?.walletId).toBe(created.walletId);
+    expect(locked.nostr.keys[0]?.publicKey).toBe(key.publicKey);
 
     // Unlock with the passkey and sign through the proxy.
     await wallet.vault.unlock({ kind: "passkey" });
     expect(wallet.getSnapshot().vault).toBe("unlocked");
-    const signer = wallet.nostr.signer(nostr.ref);
+    const signer = api.signer(key.ref);
     const event = await signer.signEvent({
       kind: 1,
       created_at: Math.floor(Date.now() / 1000),
       tags: [],
       content: "hello from the worker",
-      pubkey: nostr.publicKey,
+      pubkey: key.publicKey,
     });
-    expect(event.pubkey).toBe(nostr.publicKey);
+    expect(event.pubkey).toBe(key.publicKey);
     expect(verifyEvent(event)).toBe(true);
     await wallet.destroy();
   }, 60_000);
@@ -136,7 +131,7 @@ describe("node host end to end", () => {
     const words = new TextDecoder().decode(draft.words.read()).split(" ");
     const answers = draft.quiz.map((position) => must(words[position], "quiz word"));
     const created = await draft.confirm(answers);
-    expect(wallet.getSnapshot().wallets[0]?.walletId).toBe(created.wallet.walletId);
+    expect(wallet.getSnapshot().wallets[0]?.walletId).toBe(created.walletId);
 
     // Change password: a new password factor replaces the old one atomically.
     await wallet.vault.addFactor(
@@ -167,7 +162,7 @@ describe("node host end to end", () => {
       mnemonic: "leader monkey parrot ring guide accident before fence cannon height naive bean",
       factor: { kind: "password", password: PASSWORD },
     });
-    const derived = derivedKey(wallet);
+    const derived = await nostr(wallet).deriveKey(created.walletId, 0);
     expect(derived.publicKey).toBe(
       "17162c921dc4d2518f9a101db33695df1afb56ab82f5ff3e5da6eec3ca5cd917",
     );
@@ -176,7 +171,7 @@ describe("node host end to end", () => {
     );
 
     // The second NIP-06 vector's key — the first vector's nsec is the derived group-0 key.
-    const imported = await wallet.nostr.importKey({
+    const imported = await nostr(wallet).importKey({
       nsec: "nsec1c9wh8xy5eqdzln7n5t0ctgxjcrdug73gp5yj0x03gntn67h83twssdfhel",
     });
     expect(imported.origin).toBe("nsec");
@@ -184,7 +179,7 @@ describe("node host end to end", () => {
       "d41b22899549e1f3d335a31002cfd382174006e166d3e658e3a5eecdb6463573",
     );
 
-    const exported = await wallet.exports.mnemonic(created.wallet.walletId, {
+    const exported = await wallet.wallets.exportMnemonic(created.walletId, {
       kind: "password",
       password: PASSWORD,
     });
@@ -192,7 +187,7 @@ describe("node host end to end", () => {
       "leader monkey parrot ring guide accident before fence cannon height naive bean",
     );
 
-    const nsec = await wallet.exports.nostrKey(
+    const nsec = await nostr(wallet).exportKey(
       imported.ref,
       { kind: "nsec" },
       { kind: "password", password: PASSWORD },
@@ -222,13 +217,14 @@ describe("node host end to end", () => {
     const passkey = createSoftwarePasskey(SEED);
     const first = await nodeWallet(passkey);
     const created = await first.wallet.wallets.createWithPasskey({ name: "Node Test Wallet" });
-    const { publicKey } = derivedKey(first.wallet);
+    const { publicKey } = await nostr(first.wallet).deriveKey(created.walletId, 0);
     await first.wallet.destroy();
 
     const second = await nodeWallet(passkey);
     const restored = await second.wallet.wallets.restoreWithPasskey();
-    expect(restored.wallet.walletId).toBe(created.wallet.walletId);
-    expect(restored.nostr.publicKey).toBe(publicKey);
+    expect(restored.walletId).toBe(created.walletId);
+    const restoredKey = await nostr(second.wallet).deriveKey(restored.walletId, 0);
+    expect(restoredKey.publicKey).toBe(publicKey);
     await second.wallet.destroy();
   }, 60_000);
 

@@ -1,35 +1,32 @@
 import { getPublicKey } from "@qntx/nostr";
-import type { Event } from "@qntx/nostr";
-import type { Factor, NostrImportInput, NullValue, UnwrapResult } from "@qntx/wallet/protocol";
+import type { Factor, NostrExportFormat, NostrImportInput, NullValue } from "@qntx/wallet/protocol";
 import type { NostrKeyInfo } from "@qntx/wallet/types";
 
-import { masterKey } from "../derive/hd.ts";
-import { nostrKeyAt } from "../derive/templates.ts";
-import { KernelError } from "../errors.ts";
+import type { KernelContext } from "../../commands/context.ts";
+import { commitRecords, gate } from "../../commands/wallets.ts";
+import { masterKey } from "../../derive/hd.ts";
+import { KernelError } from "../../errors.ts";
+import { wipe } from "../../secret/secret.ts";
+import type { Secret } from "../../secret/secret.ts";
+import { seedFromEntropy } from "../../seed/seed.ts";
+import type { StoredRecord } from "../../vault/store.ts";
+import { findRecord, openRecord, sealRecord, verifyFactor } from "../../vault/vault.ts";
+import { nostrKeyAt } from "./derive.ts";
+import type { SignerPool } from "./pool.ts";
 import {
   generateSecretKey,
+  ncryptsecFromSecretKey,
+  nsecFromSecretKey,
   secretKeyFromNcryptsec,
   secretKeyFromNsec,
-  signEvent,
-  unwrapGiftWrap,
-} from "../nostr/pool.ts";
-import { wipe } from "../secret/secret.ts";
-import type { Secret } from "../secret/secret.ts";
-import { seedFromEntropy } from "../seed/seed.ts";
-import { encodeHeader, parseNostrKeyHeader } from "../vault/headers.ts";
-import type { NostrKeyHeader } from "../vault/headers.ts";
-import type { StoredRecord } from "../vault/store.ts";
+} from "./pool.ts";
+import type { NostrKeyHeader } from "./record.ts";
 import {
-  establishOps,
-  findRecord,
-  makeFactor,
+  encodeNostrKeyHeader,
+  NOSTR_KEY_KIND,
   nostrKeyInfo,
-  openRecord,
-  sealRecord,
-  verifyFactor,
-} from "../vault/vault.ts";
-import type { KernelContext } from "./context.ts";
-import { gate } from "./wallets.ts";
+  parseNostrKeyHeader,
+} from "./record.ts";
 
 type StandaloneOrigin = "nsec" | "ncryptsec" | "generated" | "nip46-client";
 
@@ -42,15 +39,15 @@ function keyRecord(
   return sealRecord(
     ctx.platform,
     dek,
-    "nostr-key",
+    NOSTR_KEY_KIND,
     header.publicKey,
-    encodeHeader(header),
+    encodeNostrKeyHeader(header),
     new Uint8Array(secretKey),
   );
 }
 
 function ensureNewKey(ctx: KernelContext, publicKey: string): void {
-  if (ctx.image.records.some((r) => r.kind === "nostr-key" && r.id === publicKey)) {
+  if (ctx.image.records.some((r) => r.kind === NOSTR_KEY_KIND && r.id === publicKey)) {
     throw new KernelError("already-exists", "nostr key already exists");
   }
 }
@@ -62,6 +59,7 @@ function ensureNewKey(ctx: KernelContext, publicKey: string): void {
  */
 async function addKey(
   ctx: KernelContext,
+  pool: SignerPool,
   secretKey: Uint8Array,
   origin: StandaloneOrigin,
   factor: Factor | undefined,
@@ -70,30 +68,16 @@ async function addKey(
   const gated = gate(ctx, factor, requestSession);
   const publicKey = getPublicKey(secretKey);
   ensureNewKey(ctx, publicKey);
-  const createdAt = ctx.platform.now();
-  const header: NostrKeyHeader = { publicKey, origin, createdAt };
+  const header: NostrKeyHeader = { publicKey, origin, createdAt: ctx.platform.now() };
   const record = keyRecord(ctx, gated.dek, secretKey, header);
-  if (gated.uninitialized) {
-    if (factor === undefined) {
-      throw new KernelError("integrity", "unreachable: initial factor missing");
-    }
-    const storedFactor = await makeFactor(ctx.platform, factor, gated.dek);
-    try {
-      await ctx.commit(establishOps(storedFactor, [record]));
-    } catch (error) {
-      gated.dek.wipe();
-      throw error;
-    }
-    ctx.pool.add(secretKey);
-    return { key: nostrKeyInfo(header), session: ctx.session.open(gated.dek) };
-  }
-  await ctx.commit([{ op: "put-record", record }]);
-  ctx.pool.add(secretKey);
-  return { key: nostrKeyInfo(header), session: ctx.session.current().id };
+  const session = await commitRecords(ctx, gated, factor, [record]);
+  pool.add(secretKey);
+  return { key: nostrKeyInfo(header), session };
 }
 
 export async function importKey(
   ctx: KernelContext,
+  pool: SignerPool,
   params: { input: NostrImportInput; factor?: Factor },
   requestSession: string | undefined,
 ): Promise<{ key: NostrKeyInfo; session: string }> {
@@ -103,7 +87,7 @@ export async function importKey(
       ? secretKeyFromNsec(input.nsec)
       : await secretKeyFromNcryptsec(input.ncryptsec, input.password);
   try {
-    return await addKey(ctx, secretKey, input.kind, params.factor, requestSession);
+    return await addKey(ctx, pool, secretKey, input.kind, params.factor, requestSession);
   } finally {
     wipe(secretKey);
   }
@@ -111,12 +95,13 @@ export async function importKey(
 
 export async function generateKey(
   ctx: KernelContext,
+  pool: SignerPool,
   params: { factor?: Factor },
   requestSession: string | undefined,
 ): Promise<{ key: NostrKeyInfo; session: string }> {
   const secretKey = generateSecretKey(ctx.platform.random);
   try {
-    return await addKey(ctx, secretKey, "generated", params.factor, requestSession);
+    return await addKey(ctx, pool, secretKey, "generated", params.factor, requestSession);
   } finally {
     wipe(secretKey);
   }
@@ -124,6 +109,7 @@ export async function generateKey(
 
 export async function createNip46ClientKey(
   ctx: KernelContext,
+  pool: SignerPool,
   requestSession: string | undefined,
 ): Promise<NostrKeyInfo> {
   const { dek } = ctx.session.require(requestSession);
@@ -137,7 +123,7 @@ export async function createNip46ClientKey(
       createdAt: ctx.platform.now(),
     };
     await ctx.commit([{ op: "put-record", record: keyRecord(ctx, dek, secretKey, header) }]);
-    ctx.pool.add(secretKey);
+    pool.add(secretKey);
     return nostrKeyInfo(header);
   } finally {
     wipe(secretKey);
@@ -146,6 +132,7 @@ export async function createNip46ClientKey(
 
 export async function deriveKey(
   ctx: KernelContext,
+  pool: SignerPool,
   params: { walletId: string; groupIndex: number },
   requestSession: string | undefined,
 ): Promise<NostrKeyInfo> {
@@ -169,7 +156,7 @@ export async function deriveKey(
         createdAt: ctx.platform.now(),
       };
       await ctx.commit([{ op: "put-record", record: keyRecord(ctx, dek, secretKey, header) }]);
-      ctx.pool.add(secretKey);
+      pool.add(secretKey);
       return nostrKeyInfo(header);
     } finally {
       wipe(secretKey);
@@ -179,13 +166,40 @@ export async function deriveKey(
   }
 }
 
+export async function discover(
+  ctx: KernelContext,
+  params: { walletId: string; from: number; count: number },
+  requestSession: string | undefined,
+): Promise<{ keys: Array<{ groupIndex: number; publicKey: string }> }> {
+  const { dek } = ctx.session.require(requestSession);
+  const record = findRecord(ctx.image, "entropy", params.walletId);
+  const entropy = openRecord(dek, record);
+  const keys: Array<{ groupIndex: number; publicKey: string }> = [];
+  const seed = await seedFromEntropy(entropy, ctx.platform.pbkdf2);
+  wipe(entropy);
+  const master = masterKey(seed);
+  wipe(seed);
+  try {
+    for (let i = 0; i < params.count; i++) {
+      const groupIndex = params.from + i;
+      const secretKey = nostrKeyAt(master, groupIndex);
+      keys.push({ groupIndex, publicKey: getPublicKey(secretKey) });
+      wipe(secretKey);
+    }
+    return { keys };
+  } finally {
+    master.wipePrivateData();
+  }
+}
+
 export async function removeKey(
   ctx: KernelContext,
+  pool: SignerPool,
   params: { publicKey: string; verify?: Factor },
   requestSession: string | undefined,
 ): Promise<NullValue> {
   const { dek } = ctx.session.require(requestSession);
-  const record = findRecord(ctx.image, "nostr-key", params.publicKey);
+  const record = findRecord(ctx.image, NOSTR_KEY_KIND, params.publicKey);
   const header = parseNostrKeyHeader(record.header);
   if (header.origin !== "nip46-client") {
     // Every other key requires re-verification before deletion.
@@ -194,75 +208,30 @@ export async function removeKey(
     }
     await verifyFactor(ctx.platform, ctx.image, params.verify, dek);
   }
-  await ctx.commit([{ op: "delete-record", kind: "nostr-key", id: params.publicKey }]);
-  ctx.pool.remove(params.publicKey);
+  await ctx.commit([{ op: "delete-record", kind: NOSTR_KEY_KIND, id: params.publicKey }]);
+  pool.remove(params.publicKey);
   return null;
 }
 
-export async function signEventCommand(
+export async function exportKey(
   ctx: KernelContext,
-  params: {
-    publicKey: string;
-    event: {
-      kind: number;
-      created_at: number;
-      tags: ReadonlyArray<ReadonlyArray<string>>;
-      content: string;
-      pubkey?: string;
-    };
-  },
+  params: { verify: Factor; publicKey: string; format: NostrExportFormat },
   requestSession: string | undefined,
-): Promise<Event> {
-  ctx.session.require(requestSession);
-  return signEvent(ctx.pool, params.publicKey, params.event);
-}
-
-export async function nip04Encrypt(
-  ctx: KernelContext,
-  params: { publicKey: string; peer: string; text: string },
-  requestSession: string | undefined,
-): Promise<string> {
-  ctx.session.require(requestSession);
-  return ctx.pool.get(params.publicKey).nip04Encrypt(params.peer, params.text);
-}
-
-export async function nip04Decrypt(
-  ctx: KernelContext,
-  params: { publicKey: string; peer: string; text: string },
-  requestSession: string | undefined,
-): Promise<string> {
-  ctx.session.require(requestSession);
-  return ctx.pool.get(params.publicKey).nip04Decrypt(params.peer, params.text);
-}
-
-export async function nip44Encrypt(
-  ctx: KernelContext,
-  params: { publicKey: string; peer: string; text: string },
-  requestSession: string | undefined,
-): Promise<string> {
-  ctx.session.require(requestSession);
-  return ctx.pool.get(params.publicKey).nip44Encrypt(params.peer, params.text);
-}
-
-export async function nip44Decrypt(
-  ctx: KernelContext,
-  params: { publicKey: string; peer: string; text: string },
-  requestSession: string | undefined,
-): Promise<string> {
-  ctx.session.require(requestSession);
-  return ctx.pool.get(params.publicKey).nip44Decrypt(params.peer, params.text);
-}
-
-export async function unwrapGiftWraps(
-  ctx: KernelContext,
-  params: { publicKey: string; events: ReadonlyArray<Event> },
-  requestSession: string | undefined,
-): Promise<{ results: ReadonlyArray<UnwrapResult> }> {
-  ctx.session.require(requestSession);
-  const results: UnwrapResult[] = [];
-  for (const event of params.events) {
-    // oxlint-disable-next-line eslint/no-await-in-loop -- batch results are produced in order, one wrap at a time
-    results.push(await unwrapGiftWrap(ctx.pool, params.publicKey, event));
+): Promise<Uint8Array> {
+  const { dek } = ctx.session.require(requestSession);
+  await verifyFactor(ctx.platform, ctx.image, params.verify, dek);
+  const record = findRecord(ctx.image, NOSTR_KEY_KIND, params.publicKey);
+  const header = parseNostrKeyHeader(record.header);
+  const secretKey = openRecord(dek, record);
+  try {
+    if (params.format.kind === "nsec") {
+      return nsecFromSecretKey(secretKey);
+    }
+    // Key security byte: 0x01 for keys recoverable from the wallet (derived, generated),
+    // 0x02 for keys that exist only here (imported, nip46-client).
+    const ksb = header.origin === "derived" || header.origin === "generated" ? 0x01 : 0x02;
+    return await ncryptsecFromSecretKey(secretKey, params.format.password, ksb);
+  } finally {
+    wipe(secretKey);
   }
-  return { results };
 }

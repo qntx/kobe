@@ -2,8 +2,26 @@
  * Secret-area wire protocol (design/impl/wallet-e0.mdx "协议与传输"). Shared by the kernel and the main
  * runtime: the kernel validates every request, the host validates every response. Web/Node carry
  * ProtocolValue via structured clone; the RN host encodes the same values as CBOR.
+ *
+ * This file is the method-table composition point: `METHODS` spreads the core table
+ * (protocol/core.ts) and the nostr module's table (protocol/nostr.ts), and the status result
+ * validator composes the core sections with each module's status section.
  */
 import type { LockReason, StatusPayload, WalletErrorCode } from "../types.ts";
+// oxlint-disable-next-line unicorn/prefer-export-from -- the tables are composed locally AND re-exported
+import {
+  CORE_METHODS,
+  factorInfo,
+  MAX_SNAPSHOT_ITEMS,
+  safeTime,
+  walletErrorCode,
+  walletInfo,
+} from "./core.ts";
+import type { MethodSpec } from "./core.ts";
+// oxlint-disable-next-line unicorn/prefer-export-from -- the table is composed locally AND re-exported
+import { NOSTR_METHODS, nostrStatus } from "./nostr.ts";
+import { arr, literal, nullValue, obj, opt, union } from "./validate.ts";
+import type { Validator } from "./validate.ts";
 
 export type { WalletErrorCode } from "../types.ts";
 
@@ -73,24 +91,79 @@ export function isProtocolValue(value: unknown): value is ProtocolValue {
   return Object.values(value).every(isProtocolValue);
 }
 
-export {
-  METHODS,
-  kernelEvent,
-  responseError,
-  type MethodName,
-  type MethodSpec,
-  type ParamsOf,
-  type ResultOf,
-} from "./methods.ts";
+/** The status payload: core sections plus one object section per protocol module. */
+const statusPayload: Validator<StatusPayload> = obj({
+  protocol: literal(1),
+  vault: union(
+    literal("uninitialized"),
+    literal("locked"),
+    literal("unlocked"),
+    literal("corrupted"),
+  ),
+  factors: arr(factorInfo, MAX_SNAPSHOT_ITEMS),
+  wallets: arr(walletInfo, MAX_SNAPSHOT_ITEMS),
+  nostr: nostrStatus,
+});
+
+// The explicit annotation is the composition contract: a key missing from either table fails
+// declaration emit, and a duplicated key fails assignability (the spread's type for that key
+// cannot satisfy the intersection).
+export const METHODS: {
+  readonly status: MethodSpec<NullValue, StatusPayload>;
+} & typeof CORE_METHODS &
+  typeof NOSTR_METHODS = {
+  status: {
+    session: false,
+    params: nullValue,
+    result: statusPayload,
+  },
+  ...CORE_METHODS,
+  ...NOSTR_METHODS,
+};
+
+// A method name must live in exactly one table: an overlap violates the never constraint.
+type AssertNever<T extends never> = T;
+export type MethodTablesDisjoint = AssertNever<
+  keyof typeof CORE_METHODS & keyof typeof NOSTR_METHODS
+>;
+
+export type MethodName = keyof typeof METHODS;
+export type ParamsOf<M extends MethodName> = ReturnType<(typeof METHODS)[M]["params"]>;
+export type ResultOf<M extends MethodName> = ReturnType<(typeof METHODS)[M]["result"]>;
+
+const lockReason: Validator<LockReason> = union(
+  literal("cold-start"),
+  literal("user"),
+  literal("idle"),
+  literal("background"),
+  literal("expired"),
+  literal("crashed"),
+);
+
+const errorPayload = obj({ code: walletErrorCode, retryAt: opt(safeTime) });
+
+/** Host-side validators: `kernelEvent` covers the two push messages. */
+export const kernelEvent: Validator<KernelEvent> = union(
+  obj({ v: literal(1), event: literal("status"), status: statusPayload }),
+  obj({ v: literal(1), event: literal("locked"), reason: lockReason }),
+);
+
+/** Validates the `err` payload of a response; `ok` is checked against `METHODS[m].result`. */
+export const responseError: Validator<{ code: WalletErrorCode; retryAt?: number | undefined }> =
+  errorPayload;
+
+export { CORE_METHODS, NOSTR_METHODS };
+export type { MethodSpec } from "./core.ts";
+export type { CreatedResult, Factor } from "./core.ts";
 export type {
-  CreatedResult,
-  Factor,
   KeyResult,
   NostrExportFormat,
   NostrImportInput,
+  Rumor,
+  SignedEvent,
   UnsignedEventInput,
   UnwrapResult,
-} from "./methods.ts";
+} from "./nostr.ts";
 export {
   ValidationError,
   arr,

@@ -7,7 +7,8 @@ import type { MnemonicDraft, NostrKeyRef, Wallet, WalletOptions } from "@qntx/wa
  * small `window.qntx` API over the real wallet. Fallible calls return `{ ok, code }` because thrown
  * WalletError instances do not survive page.evaluate serialization with their `code`.
  */
-import { createWebWallet } from "@qntx/wallet-wasm/browser";
+import { createWebWallet } from "@qntx/wallet-worker/browser";
+import { nostr } from "@qntx/wallet/nostr";
 
 const stats = { spawned: 0, terminated: 0 };
 const NativeWorker = Worker;
@@ -175,8 +176,11 @@ const api = {
   async unlockPasskey(): Promise<unknown> {
     return attempt(async () => current().vault.unlock({ kind: "passkey" }));
   },
+  async deriveKey(walletId: string, groupIndex: number): Promise<unknown> {
+    return attempt(async () => nostr(current()).deriveKey(walletId, groupIndex));
+  },
   async sign(ref: NostrKeyRef, event: UnsignedEvent): Promise<unknown> {
-    return attempt(async () => current().nostr.signer(ref).signEvent(event));
+    return attempt(async () => nostr(current()).signer(ref).signEvent(event));
   },
   tamperBackedUp,
   tamperSealed,

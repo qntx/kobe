@@ -3,9 +3,9 @@ import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
 import { describe, expect, it } from "vite-plus/test";
 
 import { masterKey } from "../src/derive/hd.ts";
-import { nostrKeyAt } from "../src/derive/templates.ts";
 import { walletIdOf } from "../src/derive/wallet-id.ts";
 import { KernelError } from "../src/errors.ts";
+import { nostrKeyAt } from "../src/modules/nostr/derive.ts";
 import { mnemonicFromEntropy } from "../src/seed/mnemonic.ts";
 import { entropyFromPrf } from "../src/seed/passkey.ts";
 import { seedFromEntropy } from "../src/seed/seed.ts";

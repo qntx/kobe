@@ -1,9 +1,8 @@
 {
   "name": "@qntx/wallet",
   "version": "0.1.0",
-  "description": "Self-custodial wallet SDK: Wallet host entry, proxy signers, protocol and types",
+  "description": "Self-custodial wallet SDK: Wallet host entry, protocol and types",
   "keywords": [
-    "nostr",
     "sdk",
     "self-custodial",
     "typescript",
@@ -38,6 +37,11 @@
       "import": "./dist/host.mjs",
       "default": "./dist/host.mjs"
     },
+    "./nostr": {
+      "types": "./dist/nostr.d.mts",
+      "import": "./dist/nostr.mjs",
+      "default": "./dist/nostr.mjs"
+    },
     "./protocol": {
       "types": "./dist/protocol.d.mts",
       "import": "./dist/protocol.mjs",
@@ -58,20 +62,29 @@
     "dev": "vp pack --watch",
     "test": "vp test",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.src.json",
-    "check:pkg": "vp pack && publint && attw --pack . --profile esm-only",
+    "check:pkg": "vp pack && bun run check:chunks && publint && attw --pack . --profile esm-only",
+    "check:chunks": "bun scripts/check-nostr-free.ts",
     "pack:local": "vp pack && bun pm pack"
   },
   "dependencies": {
-    "@qntx/nostr": "^0.14.0",
     "@scure/base": "^2.4.0"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
+    "@qntx/nostr": "0.14.0",
     "@qntx/tsconfig": "1.0.1",
     "@types/node": "26.6.4",
     "publint": "0.3.25",
     "typescript": "7.0.2",
     "vite-plus": "1.0.0"
+  },
+  "peerDependencies": {
+    "@qntx/nostr": "^0.14.0"
+  },
+  "peerDependenciesMeta": {
+    "@qntx/nostr": {
+      "optional": true
+    }
   },
   "devEngines": {
     "packageManager": {

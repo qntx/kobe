@@ -25,17 +25,23 @@
       "name": "@qntx/wallet",
       "version": "0.1.0",
       "dependencies": {
-        "@qntx/nostr": "^0.14.0",
         "@scure/base": "^2.4.0",
       },
       "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
+        "@qntx/nostr": "0.14.0",
         "@qntx/tsconfig": "1.0.1",
         "@types/node": "26.6.4",
         "publint": "0.3.25",
         "typescript": "7.0.2",
         "vite-plus": "1.0.0",
       },
+      "peerDependencies": {
+        "@qntx/nostr": "^0.14.0",
+      },
+      "optionalPeers": [
+        "@qntx/nostr",
+      ],
     },
     "packages/wallet-kernel": {
       "name": "@qntx/wallet-kernel",
@@ -57,8 +63,8 @@
         "vite-plus": "1.0.0",
       },
     },
-    "packages/wallet-wasm": {
-      "name": "@qntx/wallet-wasm",
+    "packages/wallet-worker": {
+      "name": "@qntx/wallet-worker",
       "version": "0.1.0",
       "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
@@ -226,7 +232,7 @@
 
     "@qntx/wallet-kernel": ["@qntx/wallet-kernel@workspace:packages/wallet-kernel"],
 
-    "@qntx/wallet-wasm": ["@qntx/wallet-wasm@workspace:packages/wallet-wasm"],
+    "@qntx/wallet-worker": ["@qntx/wallet-worker@workspace:packages/wallet-worker"],
 
     "@quansync/fs": ["@quansync/fs@1.1.0", "", { "dependencies": { "quansync": "^1.0.0" } }, "sha512-qAPG/t3HqML1TlN7sY/pTbEjzFVAKsMjNNMGheyDosro+kT4iw2KCUoHcVdmliwWjorm4elZbgNQyU2eD97eDg=="],
 

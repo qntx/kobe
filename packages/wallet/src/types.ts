@@ -1,7 +1,4 @@
 /** Public types of @qntx/wallet, per design/entry.mdx. Secret data never appears here. */
-import type { Event, NostrSigner } from "@qntx/nostr";
-import type { Rumor } from "@qntx/nostr/nips/nip59";
-
 export type LockReason = "cold-start" | "user" | "idle" | "background" | "expired" | "crashed";
 
 export type FactorInfo =
@@ -35,8 +32,7 @@ export type NostrKeyInfo = {
   readonly createdAt: number;
 };
 
-export type WalletCreated = { readonly wallet: WalletInfo; readonly nostr: NostrKeyInfo };
-
+/** One entry of a `nostr.discover` result: the public key an account group would produce. */
 export type DerivedNostrKey = { readonly groupIndex: number; readonly publicKey: string };
 
 export type WalletErrorCode =
@@ -55,13 +51,14 @@ export type WalletErrorCode =
 /**
  * `status` result / status event payload. Locked snapshots come from unauthenticated headers;
  * "corrupted" means the vault data itself failed to load or verify (reset is the only way out).
+ * Each protocol module contributes one section (here: `nostr`).
  */
 export type StatusPayload = {
   readonly protocol: 1;
   readonly vault: "uninitialized" | "locked" | "unlocked" | "corrupted";
   readonly factors: ReadonlyArray<FactorInfo>;
   readonly wallets: ReadonlyArray<WalletInfo>;
-  readonly nostrKeys: ReadonlyArray<NostrKeyInfo>;
+  readonly nostr: { readonly keys: ReadonlyArray<NostrKeyInfo> };
 };
 
 /** One error class for the whole API; `code` carries the distinction. Messages never echo input. */
@@ -76,8 +73,6 @@ export class WalletError extends Error {
     this.retryAt = retryAt;
   }
 }
-
-export type NostrUnwrapResult = { readonly ok: Rumor } | { readonly err: WalletErrorCode };
 
 /** A factor the user proves again for a guarded operation (Web/Node). */
 export type UnlockFactor =
@@ -121,7 +116,7 @@ export type WalletSnapshot = {
   readonly verifying: boolean; // a user verification is in flight
   readonly factors: ReadonlyArray<FactorInfo>;
   readonly wallets: ReadonlyArray<WalletInfo>;
-  readonly nostrKeys: ReadonlyArray<NostrKeyInfo>;
+  readonly nostr: { readonly keys: ReadonlyArray<NostrKeyInfo> };
 };
 
 /** A one-shot secret buffer: `read` detaches the bytes to the caller, `wipe` zeroes them. */
@@ -133,7 +128,7 @@ export type ExportedSecret = {
 export type MnemonicDraft = {
   readonly words: ExportedSecret; // read once, then the host is responsible for wiping
   readonly quiz: ReadonlyArray<number>; // three positions the enclave picked
-  readonly confirm: (answers: ReadonlyArray<string>) => Promise<WalletCreated>;
+  readonly confirm: (answers: ReadonlyArray<string>) => Promise<WalletInfo>;
   readonly discard: () => Promise<void>;
 };
 
@@ -150,10 +145,10 @@ export type WalletsApi = {
     /** Display name for the new passkey credential (1–64 characters after trimming). */
     readonly name: string;
     readonly factor?: InitialFactor;
-  }) => Promise<WalletCreated>;
+  }) => Promise<WalletInfo>;
   readonly restoreWithPasskey: (options?: {
     readonly factor?: InitialFactor;
-  }) => Promise<WalletCreated>;
+  }) => Promise<WalletInfo>;
   readonly createMnemonic: (options: {
     readonly words: 12 | 24;
     readonly factor?: InitialFactor;
@@ -161,41 +156,10 @@ export type WalletsApi = {
   readonly importMnemonic: (options: {
     readonly mnemonic: string;
     readonly factor?: InitialFactor;
-  }) => Promise<WalletCreated>;
-  readonly discoverNostr: (
-    walletId: string,
-    from: number,
-    count: number,
-  ) => Promise<ReadonlyArray<DerivedNostrKey>>;
+  }) => Promise<WalletInfo>;
+  /** One-shot mnemonic export; requires re-verification every call. */
+  readonly exportMnemonic: (walletId: string, verify: UnlockFactor) => Promise<ExportedSecret>;
   readonly delete: (walletId: string, verify: UnlockFactor) => Promise<void>;
-};
-
-/** A proxy NostrSigner: the kernel key is resolved per call, so it survives lock/unlock cycles. */
-export type WalletSigner = {
-  readonly unwrapGiftWraps: (
-    events: ReadonlyArray<Event>,
-  ) => Promise<ReadonlyArray<NostrUnwrapResult>>;
-} & NostrSigner;
-
-export type NostrApi = {
-  readonly signer: (ref: NostrKeyRef) => WalletSigner;
-  readonly deriveKey: (walletId: string, groupIndex: number) => Promise<NostrKeyInfo>;
-  readonly importKey: (
-    input: { readonly nsec: string } | { readonly ncryptsec: string; readonly password: string },
-    options?: { readonly factor?: InitialFactor },
-  ) => Promise<NostrKeyInfo>;
-  readonly generateKey: (options?: { readonly factor?: InitialFactor }) => Promise<NostrKeyInfo>;
-  readonly createNip46ClientKey: () => Promise<NostrKeyInfo>;
-  readonly removeKey: (ref: NostrKeyRef, verify?: UnlockFactor) => Promise<void>;
-};
-
-export type ExportApi = {
-  readonly mnemonic: (walletId: string, verify: UnlockFactor) => Promise<ExportedSecret>;
-  readonly nostrKey: (
-    ref: NostrKeyRef,
-    format: { readonly kind: "nsec" } | { readonly kind: "ncryptsec"; readonly password: string },
-    verify: UnlockFactor,
-  ) => Promise<ExportedSecret>;
 };
 
 export type DataKeyApi = {
@@ -207,8 +171,6 @@ export type Wallet = {
   readonly subscribe: (listener: () => void) => () => void;
   readonly vault: VaultApi;
   readonly wallets: WalletsApi;
-  readonly nostr: NostrApi;
-  readonly exports: ExportApi;
   readonly dataKeys: DataKeyApi;
   readonly destroy: () => Promise<void>;
 };

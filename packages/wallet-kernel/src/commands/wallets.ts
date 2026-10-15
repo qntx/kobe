@@ -2,12 +2,10 @@ import { equalBytes } from "@noble/ciphers/utils.js";
 import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils.js";
 import type { HDKey } from "@scure/bip32";
 
-import { getPublicKey } from "@qntx/nostr";
 import type { Factor, NullValue } from "@qntx/wallet/protocol";
-import type { NostrKeyInfo, WalletInfo } from "@qntx/wallet/types";
+import type { WalletInfo } from "@qntx/wallet/types";
 
 import { masterKey } from "../derive/hd.ts";
-import { nostrKeyAt } from "../derive/templates.ts";
 import { walletIdOf } from "../derive/wallet-id.ts";
 import { KernelError } from "../errors.ts";
 import type { KernelPlatform } from "../platform.ts";
@@ -18,7 +16,7 @@ import { entropyFromPrf } from "../seed/passkey.ts";
 import { seedFromEntropy } from "../seed/seed.ts";
 import type { PendingFactor } from "../session/session.ts";
 import { wrapDek } from "../vault/factors.ts";
-import { encodeHeader, parseNostrKeyHeader } from "../vault/headers.ts";
+import { encodeHeader } from "../vault/headers.ts";
 import type { EntropyHeader } from "../vault/headers.ts";
 import type { StoredFactor, StoredRecord } from "../vault/store.ts";
 import {
@@ -27,8 +25,6 @@ import {
   findRecord,
   makeFactor,
   newFactorKek,
-  nostrKeyInfo,
-  openRecord,
   sealRecord,
   verifyFactor,
   walletInfo,
@@ -51,13 +47,11 @@ async function deriveWalletMaterial(
 type WalletMaterial = {
   readonly walletId: string;
   readonly entropy: Uint8Array;
-  readonly nostrSecretKey: Uint8Array;
-  readonly nostrPublicKey: string;
   readonly words: EntropyHeader["words"];
   readonly origin: EntropyHeader["origin"];
 };
 
-/** Entropy → master → walletId + group-0 NIP-06 key. `entropy` is not consumed. */
+/** Entropy → master → walletId. `entropy` is not consumed. */
 async function walletMaterial(
   platform: KernelPlatform,
   entropy: Uint8Array,
@@ -66,15 +60,7 @@ async function walletMaterial(
 ): Promise<WalletMaterial> {
   const { master, walletId } = await deriveWalletMaterial(platform, entropy);
   try {
-    const nostrSecretKey = nostrKeyAt(master, 0);
-    return {
-      walletId,
-      entropy,
-      nostrSecretKey,
-      nostrPublicKey: getPublicKey(nostrSecretKey),
-      words,
-      origin,
-    };
+    return { walletId, entropy, words, origin };
   } finally {
     master.wipePrivateData();
   }
@@ -90,34 +76,29 @@ function walletInfoOf(material: WalletMaterial, backedUp: boolean, createdAt: nu
   });
 }
 
-/** Entropy + nostr-key records for a new wallet, sealed under `dek`. Consumes nothing. */
-function walletRecords(
+/** The entropy record for a new wallet, sealed under `dek`. Consumes nothing. */
+function walletRecord(
   ctx: KernelContext,
   dek: Secret,
   material: WalletMaterial,
   backedUp: boolean,
   createdAt: number,
-): StoredRecord[] {
-  const entropyHeader = encodeHeader({
+): StoredRecord {
+  const header = encodeHeader({
     walletId: material.walletId,
     origin: material.origin,
     words: material.words,
     backedUp,
     createdAt,
   });
-  const keyHeader = encodeHeader({
-    publicKey: material.nostrPublicKey,
-    origin: "derived",
-    walletId: material.walletId,
-    groupIndex: 0,
-    createdAt,
-  });
-  const entropyCopy = new Uint8Array(material.entropy);
-  const keyCopy = new Uint8Array(material.nostrSecretKey);
-  return [
-    sealRecord(ctx.platform, dek, "entropy", material.walletId, entropyHeader, entropyCopy),
-    sealRecord(ctx.platform, dek, "nostr-key", material.nostrPublicKey, keyHeader, keyCopy),
-  ];
+  return sealRecord(
+    ctx.platform,
+    dek,
+    "entropy",
+    material.walletId,
+    header,
+    new Uint8Array(material.entropy),
+  );
 }
 
 /**
@@ -149,12 +130,11 @@ export function gate(
  * fail with `integrity` and nothing is written. On the initialized path only the records are
  * appended under the live session DEK. Returns the session id.
  */
-async function commitWallet(
+export async function commitRecords(
   ctx: KernelContext,
   gated: { readonly uninitialized: boolean; readonly dek: Secret },
   factor: Factor | undefined,
   records: StoredRecord[],
-  nostrSecretKey: Uint8Array,
 ): Promise<string> {
   if (gated.uninitialized) {
     if (factor === undefined) {
@@ -167,20 +147,15 @@ async function commitWallet(
       gated.dek.wipe();
       throw error;
     }
-    ctx.pool.add(nostrSecretKey);
     return ctx.session.open(gated.dek);
   }
   await ctx.commit(records.map((record) => ({ op: "put-record" as const, record })));
-  ctx.pool.add(nostrSecretKey);
   return ctx.session.current().id;
 }
 
 function ensureNewWallet(ctx: KernelContext, material: WalletMaterial): void {
   if (ctx.image.records.some((r) => r.kind === "entropy" && r.id === material.walletId)) {
     throw new KernelError("already-exists", "wallet already exists");
-  }
-  if (ctx.image.records.some((r) => r.kind === "nostr-key" && r.id === material.nostrPublicKey)) {
-    throw new KernelError("already-exists", "nostr key already exists");
   }
 }
 
@@ -264,7 +239,7 @@ function storedFactorForPending(
 export async function confirmMnemonic(
   ctx: KernelContext,
   params: { draft: string; answers: ReadonlyArray<Uint8Array> },
-): Promise<{ wallet: WalletInfo; nostr: NostrKeyInfo; session: string }> {
+): Promise<{ wallet: WalletInfo; session: string }> {
   const draft = ctx.session.getDraft(params.draft);
   const allMatch = draft.expected.every((expected, i) => {
     const answer = params.answers[i];
@@ -290,44 +265,22 @@ export async function confirmMnemonic(
       if (taken.pendingFactor !== undefined) {
         const dek = Secret.take(ctx.platform.random(32));
         const storedFactor = storedFactorForPending(ctx, taken.pendingFactor, dek);
-        const records = walletRecords(ctx, dek, material, true, createdAt);
+        const record = walletRecord(ctx, dek, material, true, createdAt);
         try {
-          await ctx.commit(establishOps(storedFactor, records));
+          await ctx.commit(establishOps(storedFactor, [record]));
         } catch (error) {
           dek.wipe();
           throw error;
         }
-        ctx.pool.add(new Uint8Array(material.nostrSecretKey));
         const session = ctx.session.open(dek);
-        return {
-          wallet: walletInfoOf(material, true, createdAt),
-          nostr: nostrKeyInfo({
-            publicKey: material.nostrPublicKey,
-            origin: "derived",
-            walletId: material.walletId,
-            groupIndex: 0,
-            createdAt,
-          }),
-          session,
-        };
+        return { wallet: walletInfoOf(material, true, createdAt), session };
       }
       const session = ctx.session.current();
-      const records = walletRecords(ctx, session.dek, material, true, createdAt);
-      await ctx.commit(records.map((record) => ({ op: "put-record" as const, record })));
-      ctx.pool.add(new Uint8Array(material.nostrSecretKey));
-      return {
-        wallet: walletInfoOf(material, true, createdAt),
-        nostr: nostrKeyInfo({
-          publicKey: material.nostrPublicKey,
-          origin: "derived",
-          walletId: material.walletId,
-          groupIndex: 0,
-          createdAt,
-        }),
-        session: session.id,
-      };
+      const record = walletRecord(ctx, session.dek, material, true, createdAt);
+      await ctx.commit([{ op: "put-record", record }]);
+      return { wallet: walletInfoOf(material, true, createdAt), session: session.id };
     } finally {
-      wipe(entropy, material.nostrSecretKey);
+      wipe(entropy);
     }
   } finally {
     taken.entropy.wipe();
@@ -362,7 +315,7 @@ export async function importMnemonic(
   ctx: KernelContext,
   params: { mnemonic: Uint8Array; factor?: Factor },
   requestSession: string | undefined,
-): Promise<{ wallet: WalletInfo; nostr: NostrKeyInfo; session: string }> {
+): Promise<{ wallet: WalletInfo; session: string }> {
   const gated = gate(ctx, params.factor, requestSession);
   const text = decodeUtf8Secret(params.mnemonic); // wipes `params.mnemonic`
   const entropy = entropyFromMnemonic(text);
@@ -371,21 +324,11 @@ export async function importMnemonic(
     ensureNewWallet(ctx, material);
     const createdAt = ctx.platform.now();
     // An imported mnemonic is already written down somewhere: backedUp is true.
-    const records = walletRecords(ctx, gated.dek, material, true, createdAt);
-    const session = await commitWallet(ctx, gated, params.factor, records, material.nostrSecretKey);
-    return {
-      wallet: walletInfoOf(material, true, createdAt),
-      nostr: nostrKeyInfo({
-        publicKey: material.nostrPublicKey,
-        origin: "derived",
-        walletId: material.walletId,
-        groupIndex: 0,
-        createdAt,
-      }),
-      session,
-    };
+    const record = walletRecord(ctx, gated.dek, material, true, createdAt);
+    const session = await commitRecords(ctx, gated, params.factor, [record]);
+    return { wallet: walletInfoOf(material, true, createdAt), session };
   } finally {
-    wipe(entropy, material.nostrSecretKey);
+    wipe(entropy);
   }
 }
 
@@ -393,7 +336,7 @@ export async function createWithPasskey(
   ctx: KernelContext,
   params: { credentialId: Uint8Array; prfWallet: Uint8Array; factor?: Factor },
   requestSession: string | undefined,
-): Promise<{ wallet: WalletInfo; nostr: NostrKeyInfo; session: string }> {
+): Promise<{ wallet: WalletInfo; session: string }> {
   const gated = gate(ctx, params.factor, requestSession);
   const entropy = entropyFromPrf(params.prfWallet);
   const material = await walletMaterial(ctx.platform, entropy, "passkey", 12);
@@ -402,44 +345,10 @@ export async function createWithPasskey(
     const createdAt = ctx.platform.now();
     // Passkey wallets are backed up by definition: the credential is synced by the platform's
     // password manager and the entropy is re-derivable.
-    const records = walletRecords(ctx, gated.dek, material, true, createdAt);
-    const session = await commitWallet(ctx, gated, params.factor, records, material.nostrSecretKey);
-    return {
-      wallet: walletInfoOf(material, true, createdAt),
-      nostr: nostrKeyInfo({
-        publicKey: material.nostrPublicKey,
-        origin: "derived",
-        walletId: material.walletId,
-        groupIndex: 0,
-        createdAt,
-      }),
-      session,
-    };
+    const record = walletRecord(ctx, gated.dek, material, true, createdAt);
+    const session = await commitRecords(ctx, gated, params.factor, [record]);
+    return { wallet: walletInfoOf(material, true, createdAt), session };
   } finally {
-    wipe(entropy, material.nostrSecretKey);
-  }
-}
-
-export async function discoverNostr(
-  ctx: KernelContext,
-  params: { walletId: string; from: number; count: number },
-  requestSession: string | undefined,
-): Promise<{ keys: Array<{ groupIndex: number; publicKey: string }> }> {
-  const { dek } = ctx.session.require(requestSession);
-  const record = findRecord(ctx.image, "entropy", params.walletId);
-  const entropy = openRecord(dek, record);
-  const keys: Array<{ groupIndex: number; publicKey: string }> = [];
-  const { master } = await deriveWalletMaterial(ctx.platform, entropy);
-  try {
-    for (let i = 0; i < params.count; i++) {
-      const groupIndex = params.from + i;
-      const secretKey = nostrKeyAt(master, groupIndex);
-      keys.push({ groupIndex, publicKey: getPublicKey(secretKey) });
-      wipe(secretKey);
-    }
-    return { keys };
-  } finally {
-    master.wipePrivateData();
     wipe(entropy);
   }
 }
@@ -452,22 +361,15 @@ export async function deleteWallet(
   const { dek } = ctx.session.require(requestSession);
   await verifyFactor(ctx.platform, ctx.image, params.verify, dek);
   findRecord(ctx.image, "entropy", params.walletId);
-  const derived: string[] = [];
-  for (const r of ctx.image.records) {
-    if (r.kind !== "nostr-key") {
-      continue;
-    }
-    const header = parseNostrKeyHeader(r.header);
-    if (header.origin === "derived" && header.walletId === params.walletId) {
-      derived.push(r.id);
-    }
-  }
+  // The entropy row and every module record derived from this wallet go in ONE commit —
+  // a partial deletion can never land.
+  const extras = ctx.modules.map((module) => module.walletDeleteOps(ctx.image, params.walletId));
   await ctx.commit([
     { op: "delete-record", kind: "entropy", id: params.walletId },
-    ...derived.map((id) => ({ op: "delete-record" as const, kind: "nostr-key" as const, id })),
+    ...extras.flatMap((extra) => extra.ops),
   ]);
-  for (const publicKey of derived) {
-    ctx.pool.remove(publicKey);
+  for (const extra of extras) {
+    extra.after();
   }
   return null;
 }

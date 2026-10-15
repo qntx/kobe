@@ -8,19 +8,16 @@ import type {
   Response,
   ResultOf,
 } from "@qntx/wallet/protocol";
-import type { LockReason, StatusPayload } from "@qntx/wallet/types";
+import type { LockReason } from "@qntx/wallet/types";
 
-import type { KernelContext } from "./commands/context.ts";
-import * as nostrCommands from "./commands/nostr.ts";
-import * as secretsCommands from "./commands/secrets.ts";
-import * as vaultCommands from "./commands/vault.ts";
-import * as walletCommands from "./commands/wallets.ts";
+import type { Handler, KernelContext } from "./commands/context.ts";
+import { CORE_HANDLERS } from "./commands/index.ts";
 import { KernelError } from "./errors.ts";
-import { SignerPool } from "./nostr/pool.ts";
+import { createNostrModule } from "./modules/nostr/index.ts";
 import type { KernelPlatform, Port } from "./platform.ts";
 import { Session } from "./session/session.ts";
+import { statusContents, statusPayload } from "./status.ts";
 import type { StoreOp, VaultImage } from "./vault/store.ts";
-import { snapshotContents } from "./vault/vault.ts";
 
 const EMPTY_IMAGE: VaultImage = { meta: undefined, records: [], factors: [] };
 
@@ -50,79 +47,17 @@ function isMethodName(method: string): method is MethodName {
   return method in METHODS;
 }
 
-/** The `status` payload for the current session + image; shared by `status` and `postStatus`. */
-function statusPayload(ctx: KernelContext): StatusPayload {
-  const { factors, wallets, nostrKeys } = snapshotContents(ctx.image);
-  return {
-    protocol: PROTOCOL_VERSION,
-    vault: ctx.corrupted ? "corrupted" : ctx.session.status,
-    factors,
-    wallets,
-    nostrKeys,
-  };
-}
-
-type Handler<M extends MethodName> = (
-  ctx: KernelContext,
-  params: ParamsOf<M>,
-  session: string | undefined,
-) => Promise<ResultOf<M>> | ResultOf<M>;
-
-/**
- * One typed entry per protocol method; `ParamsOf`/`ResultOf` come from the METHODS validators, so a
- * handler whose shape drifts from the table fails to typecheck. Params are validated once in
- * `dispatch`, generically, before the handler runs.
- */
-const HANDLERS: { [M in MethodName]: Handler<M> } = {
-  status: (ctx) => statusPayload(ctx),
-  "vault.unlock": async (ctx, params) => vaultCommands.unlockVault(ctx, params),
-  "vault.lock": (ctx) => vaultCommands.lockVault(ctx),
-  "vault.reset": async (ctx) => vaultCommands.resetVault(ctx),
-  "vault.addFactor": async (ctx, params, session) => vaultCommands.addFactor(ctx, params, session),
-  "vault.removeFactor": async (ctx, params, session) =>
-    vaultCommands.removeFactor(ctx, params, session),
-  "wallet.createWithPasskey": async (ctx, params, session) =>
-    walletCommands.createWithPasskey(ctx, params, session),
-  "wallet.restoreWithPasskey": async (ctx, params, session) =>
-    walletCommands.createWithPasskey(ctx, params, session),
-  "wallet.createMnemonic": async (ctx, params, session) =>
-    walletCommands.createMnemonic(ctx, params, session),
-  "wallet.confirmMnemonic": async (ctx, params) => walletCommands.confirmMnemonic(ctx, params),
-  "wallet.discardMnemonic": (ctx, params) => walletCommands.discardMnemonic(ctx, params),
-  "wallet.importMnemonic": async (ctx, params, session) =>
-    walletCommands.importMnemonic(ctx, params, session),
-  "wallet.discoverNostr": async (ctx, params, session) =>
-    walletCommands.discoverNostr(ctx, params, session),
-  "wallet.delete": async (ctx, params, session) =>
-    walletCommands.deleteWallet(ctx, params, session),
-  "nostr.deriveKey": async (ctx, params, session) => nostrCommands.deriveKey(ctx, params, session),
-  "nostr.importKey": async (ctx, params, session) => nostrCommands.importKey(ctx, params, session),
-  "nostr.generateKey": async (ctx, params, session) =>
-    nostrCommands.generateKey(ctx, params, session),
-  "nostr.createNip46ClientKey": async (ctx, _params, session) =>
-    nostrCommands.createNip46ClientKey(ctx, session),
-  "nostr.removeKey": async (ctx, params, session) => nostrCommands.removeKey(ctx, params, session),
-  "nostr.signEvent": async (ctx, params, session) =>
-    nostrCommands.signEventCommand(ctx, params, session),
-  "nostr.nip04Encrypt": async (ctx, params, session) =>
-    nostrCommands.nip04Encrypt(ctx, params, session),
-  "nostr.nip04Decrypt": async (ctx, params, session) =>
-    nostrCommands.nip04Decrypt(ctx, params, session),
-  "nostr.nip44Encrypt": async (ctx, params, session) =>
-    nostrCommands.nip44Encrypt(ctx, params, session),
-  "nostr.nip44Decrypt": async (ctx, params, session) =>
-    nostrCommands.nip44Decrypt(ctx, params, session),
-  "nostr.unwrapGiftWraps": async (ctx, params, session) =>
-    nostrCommands.unwrapGiftWraps(ctx, params, session),
-  "export.mnemonic": async (ctx, params, session) =>
-    secretsCommands.exportMnemonic(ctx, params, session),
-  "export.nostrKey": async (ctx, params, session) =>
-    secretsCommands.exportNostrKey(ctx, params, session),
-  "dataKeys.get": async (ctx, params, session) => secretsCommands.getDataKey(ctx, params, session),
-};
-
 export function startKernel(platform: KernelPlatform, port: Port): void {
-  const pool = new SignerPool();
+  // The module composition is explicit and static: the nostr module owns its handler table, its
+  // VaultHooks entry in ctx.modules and its status section; there is no registry — future modules
+  // add a line here and a section in status.ts's composition.
+  const nostr = createNostrModule();
+  const HANDLERS = {
+    status: (ctx: KernelContext) => statusPayload(ctx, nostr),
+    ...CORE_HANDLERS,
+    ...nostr.handlers,
+  } satisfies { [M in MethodName]: Handler<M> };
+
   let dirty = false; // a commit happened since the last status event
   let inRequest = false; // a request is being dispatched — locks defer their event
   let pendingLock: LockReason | undefined;
@@ -148,13 +83,14 @@ export function startKernel(platform: KernelPlatform, port: Port): void {
 
   /**
    * Installs a freshly loaded image and recomputes corruption from it — a public header that fails
-   * to parse marks the vault corrupted, a clean load clears an earlier flag (vault.reset is the
-   * recovery path; a sealed-record failure re-detects on the next unlock).
+   * its owner's parser, or a stored kind no module claims, marks the vault corrupted; a clean load
+   * clears an earlier flag (vault.reset is the recovery path; a sealed-record failure re-detects on
+   * the next unlock).
    */
   const applyImage = (image: VaultImage): void => {
     ctx.image = image;
     ctx.session.setInitialized(image.meta !== undefined);
-    ctx.corrupted = snapshotContents(image).corrupted;
+    ctx.corrupted = statusContents(image, ctx.modules, nostr).corrupted;
   };
 
   const post = (message: ProtocolValue): void => {
@@ -162,12 +98,18 @@ export function startKernel(platform: KernelPlatform, port: Port): void {
   };
 
   const postStatus = (): void => {
-    const event: KernelEvent = { v: PROTOCOL_VERSION, event: "status", status: statusPayload(ctx) };
+    const event: KernelEvent = {
+      v: PROTOCOL_VERSION,
+      event: "status",
+      status: statusPayload(ctx, nostr),
+    };
     post(event);
   };
 
   const onLock = (reason: LockReason): void => {
-    pool.dispose();
+    for (const module of ctx.modules) {
+      module.lock();
+    }
     if (inRequest) {
       // Message ordering is status → response → locked: the request that caused the lock
       // (vault.lock, vault.reset, a timeout at the top of the request) must still resolve.
@@ -180,8 +122,8 @@ export function startKernel(platform: KernelPlatform, port: Port): void {
 
   const ctx: KernelContext = {
     platform,
-    pool,
     session: new Session(platform, onLock),
+    modules: [nostr.vault],
     image: EMPTY_IMAGE,
     corrupted: false,
     commit: async (ops: ReadonlyArray<StoreOp>) => {
@@ -207,7 +149,8 @@ export function startKernel(platform: KernelPlatform, port: Port): void {
   ): Promise<ResultOf<M>> => {
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- METHODS[method].params output is ParamsOf<M>
     const parsed = METHODS[method].params(params) as ParamsOf<M>;
-    const handler: Handler<M> = HANDLERS[method];
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- HANDLERS covers every MethodName; indexing with the generic M re-widens to the union
+    const handler = HANDLERS[method] as Handler<M>;
     return handler(ctx, parsed, requestSession);
   };
 

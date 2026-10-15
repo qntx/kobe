@@ -70,11 +70,18 @@ test.describe("web host", () => {
     if (!created.ok) {
       throw new Error(`createWithPasskey failed: ${created.code}`);
     }
+    const derived = await page.evaluate(
+      async (walletId) => qntx.deriveKey(walletId, 0),
+      created.value.walletId,
+    );
+    if (!derived.ok) {
+      throw new Error(`deriveKey failed: ${derived.code}`);
+    }
     let snap = await snapshot(page);
     expect(snap.vault).toBe("unlocked");
-    expect(snap.wallets[0]?.walletId).toBe(created.value.wallet.walletId);
-    expect(snap.nostrKeys[0]?.publicKey).toBe(created.value.nostr.publicKey);
-    expect(npubEncode(created.value.nostr.publicKey)).toMatch(/^npub1/);
+    expect(snap.wallets[0]?.walletId).toBe(created.value.walletId);
+    expect(snap.nostr.keys[0]?.publicKey).toBe(derived.value.publicKey);
+    expect(npubEncode(derived.value.publicKey)).toMatch(/^npub1/);
 
     // Lock destroys the enclave: the worker is terminated, a fresh one spawns, identities stay.
     const locked = await page.evaluate(async () => qntx.lock());
@@ -83,11 +90,11 @@ test.describe("web host", () => {
     await expect.poll(async () => spawned(page)).toBeGreaterThanOrEqual(2);
     snap = await snapshot(page);
     expect(snap.vault).toBe("locked");
-    expect(snap.wallets[0]?.walletId).toBe(created.value.wallet.walletId);
+    expect(snap.wallets[0]?.walletId).toBe(created.value.walletId);
 
     const unlockedNow = await page.evaluate(async () => qntx.unlockPasskey());
     expect(unlockedNow.ok).toBe(true);
-    const { ref, publicKey } = created.value.nostr;
+    const { ref, publicKey } = derived.value;
     const signed = await page.evaluate(
       async (input: { keyRef: NostrKeyRef; pubkey: string }) => {
         return qntx.sign(input.keyRef, {
@@ -147,9 +154,16 @@ test.describe("web host", () => {
 
     // Page A commits; the BroadcastChannel notice makes B's worker reload and repost status.
     const made = await page.evaluate(async () => qntx.createPasskey());
-    expect(made.ok).toBe(true);
+    if (!made.ok) {
+      throw new Error(`createWithPasskey failed: ${made.code}`);
+    }
+    const derived = await page.evaluate(
+      async (walletId) => qntx.deriveKey(walletId, 0),
+      made.value.walletId,
+    );
+    expect(derived.ok).toBe(true);
     await expect.poll(async () => walletCount(pageB)).toBe(1);
-    const nostrKeys = await pageB.evaluate(() => qntx.snapshot().nostrKeys.length);
+    const nostrKeys = await pageB.evaluate(() => qntx.snapshot().nostr.keys.length);
     expect(nostrKeys).toBe(1);
   });
 

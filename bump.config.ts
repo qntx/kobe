@@ -7,7 +7,7 @@ import { defineConfig } from "bumpp";
 const config: ReturnType<typeof defineConfig> = defineConfig({
   files: [
     "packages/wallet/package.json",
-    "packages/wallet-wasm/package.json",
+    "packages/wallet-worker/package.json",
     "packages/wallet-kernel/package.json",
   ],
   execute: "bun scripts/sync-versions.ts",

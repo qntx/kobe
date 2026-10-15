@@ -163,19 +163,20 @@ function field(value: ProtocolValue, name: string): ProtocolValue {
 export async function main(): Promise<void> {
   const kernel = boot();
 
-  // 1. Import the NIP-06 mnemonic with a password factor → wallet + derived key + session.
+  // 1. Import the NIP-06 mnemonic with a password factor → wallet + session, then derive the
+  // group-0 key through the nostr module.
   const imported = ok(
     await kernel.call("wallet.importMnemonic", {
       mnemonic: utf8ToBytes(MNEMONIC),
       factor: { kind: "password", password: utf8ToBytes(PASSWORD) },
     }),
   );
-  const nostr = field(imported, "nostr");
-  const publicKey = field(nostr, "publicKey");
-  eq(publicKey, EXPECTED_PUBLIC_KEY, "importMnemonic public key");
+  const walletId = field(field(imported, "wallet"), "walletId");
   const sessionValue = field(imported, "session");
   assert(typeof sessionValue === "string" && sessionValue.length === 32, "importMnemonic session");
   let session = sessionValue;
+  const derived = ok(await kernel.call("nostr.deriveKey", { walletId, groupIndex: 0 }, session));
+  eq(field(derived, "publicKey"), EXPECTED_PUBLIC_KEY, "deriveKey public key");
 
   // 2. Lock, 3. unlock with the password → a fresh session.
   await kernel.call("vault.lock", null, session);
@@ -230,7 +231,7 @@ export async function main(): Promise<void> {
   // 7. Export the key in nsec format — re-verifies with the password factor.
   const nsecBytes = ok(
     await kernel.call(
-      "export.nostrKey",
+      "nostr.exportKey",
       {
         verify: { kind: "password", password: utf8ToBytes(PASSWORD) },
         publicKey: EXPECTED_PUBLIC_KEY,
@@ -239,9 +240,9 @@ export async function main(): Promise<void> {
       session,
     ),
   );
-  assert(nsecBytes instanceof Uint8Array, "export.nostrKey bytes");
+  assert(nsecBytes instanceof Uint8Array, "nostr.exportKey bytes");
   const nsec = new TextDecoder().decode(nsecBytes);
-  eq(nsec, EXPECTED_NSEC, "export.nostrKey nsec");
+  eq(nsec, EXPECTED_NSEC, "nostr.exportKey nsec");
 
   const statusEvents = kernel.posted.filter(
     (m) => typeof m === "object" && m !== null && !Array.isArray(m) && "event" in m,

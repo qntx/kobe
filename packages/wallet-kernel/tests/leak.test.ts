@@ -120,7 +120,7 @@ describe("leak check", () => {
     exempt(await h.call("dataKeys.get", { purpose: "leak-test" }, session));
     exempt(
       await h.call(
-        "export.mnemonic",
+        "wallet.exportMnemonic",
         {
           verify: {
             kind: "passkey",
@@ -134,7 +134,7 @@ describe("leak check", () => {
     );
     exempt(
       await h.call(
-        "export.nostrKey",
+        "nostr.exportKey",
         {
           verify: {
             kind: "passkey",

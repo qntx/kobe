@@ -4,7 +4,7 @@ import { bech32 } from "@scure/base";
 import { describe, expect, it } from "vite-plus/test";
 
 import { masterKey } from "../src/derive/hd.ts";
-import { nostrKeyAt } from "../src/derive/templates.ts";
+import { nostrKeyAt } from "../src/modules/nostr/derive.ts";
 import { entropyFromMnemonic } from "../src/seed/mnemonic.ts";
 import { seedFromEntropy } from "../src/seed/seed.ts";
 import { kernelError, loadVectors, subtlePbkdf2 } from "./helpers.ts";

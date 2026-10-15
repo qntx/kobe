@@ -1,14 +1,14 @@
 /**
  * Serves the static test page through vite-plus's dev server (the brief's `optimizeDeps.exclude`
- * only exists on the dev server). The page imports `@qntx/wallet-wasm/browser` from the built dist,
- * and `new URL("kernel.worker.js", import.meta.url)` resolves against the served dist path.
+ * only exists on the dev server). The page imports `@qntx/wallet-worker/browser` from the built
+ * dist, and `new URL("kernel.worker.js", import.meta.url)` resolves against the served dist path.
  */
 import { createServer } from "vite";
 
 const server = await createServer({
   configFile: false,
   root: new URL("page", import.meta.url).pathname,
-  optimizeDeps: { exclude: ["@qntx/wallet-wasm"] },
+  optimizeDeps: { exclude: ["@qntx/wallet-worker"] },
   server: {
     // localhost, not 127.0.0.1 — WebAuthn rejects IP literals as rpId ("invalid domain").
     host: "localhost",

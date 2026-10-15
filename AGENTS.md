@@ -17,7 +17,7 @@
 - Secrets (entropy, seed, private keys, DEK, PRF output) exist only in the enclave
   (Web Worker, RN kernel runtime). Messages carry no signing secrets, except user exports
   and the data key.
-- The kernel source never imports -wasm or -native packages; backends are injected by the
+- The kernel source never imports -worker or -native packages; backends are injected by the
   host packages. The engine and @qntx/wallet never import signing implementations.
 - Kernel code uses only the globals allowed in design/enclave.mdx; it must run in a bare
   Hermes runtime.
