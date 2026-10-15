@@ -45,8 +45,9 @@
     "access": "public"
   },
   "scripts": {
-    "build": "vp run @qntx/wallet#build && vp pack && bun build --target node --outfile dist/kernel.node.js src/worker/node.ts && bun build --target browser --outfile dist/kernel.worker.js src/worker/browser.ts",
+    "build": "vp run @qntx/wallet#build && vp pack && bun build --target node --outfile dist/kernel.node.js src/worker/node.ts && bun build --target browser --outfile dist/kernel.worker.js src/worker/browser.ts && bun scripts/kernel-manifest.ts",
     "test": "vp run @qntx/wallet#build && bun build --target node --outfile dist/kernel.node.js src/worker/node.ts && vp test",
+    "test:coverage": "vp run @qntx/wallet#build && bun build --target node --outfile dist/kernel.node.js src/worker/node.ts && vp test --coverage",
     "test:browser": "bun run build && playwright test --config tests/browser/playwright.config.ts",
     "smoke:hermes": "vp run @qntx/wallet#build && bun scripts/hermes-smoke.ts",
     "typecheck": "vp run @qntx/wallet#build && tsc --noEmit && tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p src/browser/tsconfig.json && tsc --noEmit -p src/worker/tsconfig.json && tsc --noEmit -p tests/browser/page/tsconfig.json",

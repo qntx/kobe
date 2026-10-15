@@ -18,5 +18,8 @@ jobs:
     uses: qntx/workflows/.github/workflows/ci-bun.yml@v2
     permissions:
       contents: read
+    with:
+      scripts: "check:pkg test:coverage"
     # bun run lint → vp check + check-version
     # bun run test → vp run -r test (per-package vp test)
+    # scripts → bun run check:pkg && bun run test:coverage

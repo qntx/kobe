@@ -1,6 +1,6 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["src", "tests", "vite.config.ts"],
+  "include": ["src", "tests", "scripts", "vite.config.ts"],
   // DOM and WebWorker code live in nested per-directory tsconfig.json programs
   // (src/browser, src/worker's browser files, tests/browser/page); each is also the
   // project the type-aware lint service assigns those files to.

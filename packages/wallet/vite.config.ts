@@ -20,6 +20,7 @@ const config: UserConfig = defineConfig({
   },
   test: {
     include: ["tests/**/*.{test,spec}.ts"],
+    coverage: { provider: "v8", reporter: ["text", "text-summary"], include: ["src/**/*.ts"] },
   },
 });
 

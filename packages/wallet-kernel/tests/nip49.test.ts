@@ -43,7 +43,7 @@ function spyingScrypt(calls: { count: number }, result?: () => Promise<Uint8Arra
 }
 
 describe("secretKeyFromNcryptsec", () => {
-  it("decrypts the NIP-49 vector", async () => {
+  it("decrypts the NIP-49 vector", { timeout: 30_000 }, async () => {
     const key = await secretKeyFromNcryptsec(NIP49_NCRYPTSEC, utf8ToBytes("nostr"), 20);
     expect(key).toHaveLength(32);
   });
@@ -77,7 +77,7 @@ describe("secretKeyFromNcryptsec", () => {
     expect(calls.count).toBe(0);
   });
 
-  it("maps a wrong password to wrong-password", async () => {
+  it("maps a wrong password to wrong-password", { timeout: 30_000 }, async () => {
     await expect(
       codeOf(secretKeyFromNcryptsec(NIP49_NCRYPTSEC, utf8ToBytes("nope"), 20)),
     ).resolves.toBe("wrong-password");
