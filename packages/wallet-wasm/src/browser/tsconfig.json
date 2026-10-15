@@ -1,0 +1,10 @@
+{
+  // DOM code — checked without Node types. The nested tsconfig.json also makes the
+  // type-aware lint project service assign these files here (nearest including tsconfig).
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "types": []
+  },
+  "include": ["."]
+}

@@ -1,0 +1,9 @@
+{
+  // Same es2022 floor as the kernel: the worker entry shares this source.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["es2022"]
+  },
+  "include": ["src"],
+  "exclude": ["src/browser", "src/worker/browser.ts", "src/worker/indexeddb.ts"]
+}
