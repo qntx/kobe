@@ -101,13 +101,9 @@ export type AutoLockPolicy =
   | { readonly platform: "native"; readonly backgroundSeconds: 0 | 60 | 300 | 900 }
   | { readonly platform: "web"; readonly idleMinutes: 5 | 15 | 60 };
 
-/** Structured events only — never anything secret-bearing. */
-export type WalletLogger = (event: { readonly name: string }) => void;
-
 export type WalletOptions = {
   readonly passkey: PasskeyConfig;
   readonly autoLock: AutoLockPolicy;
-  readonly logger?: WalletLogger;
 };
 
 export type WalletSnapshot = {

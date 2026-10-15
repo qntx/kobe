@@ -9,6 +9,10 @@ A `vX.Y.Z` tag runs `publish-npm.yml` (publishing `packages/wallet` and `package
 
 ## [Unreleased]
 
+### Removed
+
+- **BREAKING:** `WalletOptions.logger` and the `WalletLogger` type — the option was declared but never wired to anything.
+
 ## [0.1.0] - 2026-10-15
 
 ### Added

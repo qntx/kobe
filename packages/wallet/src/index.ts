@@ -23,7 +23,6 @@ export {
   type Wallet,
   type WalletErrorCode,
   type WalletInfo,
-  type WalletLogger,
   type WalletOptions,
   type WalletSnapshot,
   type WalletsApi,
