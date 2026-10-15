@@ -3,11 +3,16 @@
  * the envelope are kind-agnostic: any string matching the pattern is a valid kind, and a stored
  * kind no module claims marks the vault corrupted rather than being dropped.
  */
-export const RECORD_KIND_PATTERN: RegExp = /^[a-z][a-z0-9-]{0,31}$/;
+const RECORD_KIND_PATTERN = /^[a-z][a-z0-9-]{0,31}$/;
+
+/** Whether `kind` is a well-formed record kind (lowercase, 1–32 characters). */
+export function isRecordKind(kind: string): boolean {
+  return RECORD_KIND_PATTERN.test(kind);
+}
 
 /** On-disk vault shapes. `header` is the raw JSON text, authenticated as-is. */
 export type StoredRecord = {
-  readonly kind: string; // RECORD_KIND_PATTERN
+  readonly kind: string; // see isRecordKind
   readonly id: string;
   readonly header: string;
   readonly sealed: Uint8Array;
