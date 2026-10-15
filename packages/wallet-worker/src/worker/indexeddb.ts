@@ -3,9 +3,14 @@
  * The Web vault store, running inside the kernel worker: database `qntx-wallet` v1 with object
  * stores `records` (keyPath ["kind","id"]), `factors` (keyPath "id") and `meta` (key "vault").
  * Every commit runs inside the cross-tab Web Lock `qntx-wallet` so two tabs' workers serialize;
- * `expect-uninitialized` is checked inside that transaction and aborts it, so nothing is written.
- * Other tabs' workers learn about commits through `BroadcastChannel("qntx-wallet")` — the channel
- * never echoes to the sender, and own commits are already reloaded by the kernel's commit path.
+ * preconditions (`init`, `expect-revision`, counter ops on a missing meta) are checked inside that
+ * transaction and abort it, so nothing is written. Other tabs' workers learn about commits through
+ * `BroadcastChannel("qntx-wallet")` — the channel never echoes to the sender, and own commits are
+ * already reloaded by the kernel's commit path.
+ *
+ * A `versionchange` (another tab opened a newer DB version) closes the connection and drops the
+ * cached promise; the next load/commit reopens lazily — which either serves the newer layout or
+ * fails `VersionError` → `unsupported`. An open request `blocked` longer than five seconds fails.
  */
 import { KernelError } from "@qntx/wallet-kernel";
 import type {
@@ -20,10 +25,12 @@ import type {
 import { assertVaultImage } from "../shared.ts";
 
 const DB_NAME = "qntx-wallet";
+const DB_VERSION = 1; // the IndexedDB schema version — independent of the vault format
 const LOCK_NAME = "qntx-wallet";
 const CHANNEL_NAME = "qntx-wallet";
 const META_KEY = "vault";
 const STORES = ["records", "factors", "meta"] as const;
+const BLOCKED_MS = 5000;
 
 // IDB request results are `any`; the row shape is fixed by this store's writers, so the type
 // argument is asserted once here instead of at every call site.
@@ -54,25 +61,101 @@ async function transactionDone(tx: IDBTransaction): Promise<void> {
   });
 }
 
+function openError(error: unknown): Error {
+  // A stored DB whose version is newer than this build's is "unsupported", not corruption.
+  if (error instanceof DOMException && error.name === "VersionError") {
+    return new KernelError("unsupported", "indexeddb: vault database needs a newer build");
+  }
+  return error instanceof Error ? error : new Error("indexeddb open failed");
+}
+
 async function openDb(): Promise<IDBDatabase> {
-  const request = indexedDB.open(DB_NAME, 1);
-  request.addEventListener("upgradeneeded", () => {
-    const db = request.result;
-    db.createObjectStore("records", { keyPath: ["kind", "id"] });
-    db.createObjectStore("factors", { keyPath: "id" });
-    db.createObjectStore("meta");
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    let settled = false;
+    let blockedTimer: ReturnType<typeof setTimeout> | undefined;
+    const settle = (fn: () => void): void => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (blockedTimer !== undefined) {
+        clearTimeout(blockedTimer);
+      }
+      fn();
+    };
+    request.addEventListener("upgradeneeded", () => {
+      const db = request.result;
+      db.createObjectStore("records", { keyPath: ["kind", "id"] });
+      db.createObjectStore("factors", { keyPath: "id" });
+      db.createObjectStore("meta");
+    });
+    request.addEventListener("blocked", () => {
+      // Another connection refused to close on versionchange: give it five seconds, then
+      // fail — a generic Error the kernel classifies as "unavailable" (retryable).
+      blockedTimer = setTimeout(() => {
+        settle(() => {
+          reject(new Error("indexeddb: open request blocked"));
+        });
+      }, BLOCKED_MS);
+    });
+    request.addEventListener("success", () => {
+      if (settled) {
+        // The request succeeded after the blocked timeout already rejected: close the
+        // late connection so it can never wedge a later upgrade.
+        request.result.close();
+        return;
+      }
+      settle(() => {
+        resolve(request.result);
+      });
+    });
+    request.addEventListener("error", () => {
+      settle(() => {
+        reject(openError(request.error));
+      });
+    });
   });
-  return requestValue(request);
 }
 
 export function createIndexedDbStore(): RecordStore {
-  const db = openDb();
+  let dbPromise: Promise<IDBDatabase> | undefined;
+  let current: IDBDatabase | undefined;
   const channel = new BroadcastChannel(CHANNEL_NAME);
+
+  // Lazily (re)opened connection: dropped on versionchange and after a failed open, so a
+  // transient failure or a version bump never latches the store dead.
+  const open = async (): Promise<IDBDatabase> => {
+    const db = await openDb();
+    current = db;
+    db.addEventListener("versionchange", () => {
+      db.close();
+      if (current === db) {
+        current = undefined;
+        dbPromise = undefined;
+      }
+    });
+    return db;
+  };
+
+  const database = async (): Promise<IDBDatabase> => {
+    if (dbPromise === undefined) {
+      const opening = open();
+      dbPromise = opening;
+      // oxlint-disable-next-line promise/prefer-await-to-then -- clears the cache only if this open is still the current one
+      void opening.catch(() => {
+        if (dbPromise === opening) {
+          dbPromise = undefined;
+        }
+      });
+    }
+    return dbPromise;
+  };
 
   return {
     async load(): Promise<VaultImage> {
-      const database = await db;
-      const tx = database.transaction(STORES, "readonly");
+      const db = await database();
+      const tx = db.transaction(STORES, "readonly");
       const [meta, records, factors] = await Promise.all([
         requestValue<VaultMeta | undefined>(tx.objectStore("meta").get(META_KEY)),
         requestValue<StoredRecord[]>(tx.objectStore("records").getAll()),
@@ -84,42 +167,105 @@ export function createIndexedDbStore(): RecordStore {
     },
 
     async commit(ops: ReadonlyArray<StoreOp>): Promise<void> {
-      let preconditionFailed = false;
+      let precondition: string | undefined;
       await navigator.locks.request(LOCK_NAME, async () => {
-        const database = await db;
-        const tx = database.transaction(STORES, "readwrite");
+        const db = await database();
+        const tx = db.transaction(STORES, "readwrite");
         const done = transactionDone(tx);
         const metaStore = tx.objectStore("meta");
         const records = tx.objectStore("records");
         const factors = tx.objectStore("factors");
+        // Meta is read lazily once and carried in `metaValue`; mutations stage a put so the
+        // revision bump (once per commit) always writes the final row.
+        let metaLoaded = false;
+        let metaValue: VaultMeta | undefined;
+        let bump = false;
+        let initialized = false;
+        const readMeta = async (): Promise<VaultMeta | undefined> => {
+          if (!metaLoaded) {
+            metaValue = await requestValue<VaultMeta | undefined>(metaStore.get(META_KEY));
+            metaLoaded = true;
+          }
+          return metaValue;
+        };
+        const writeMeta = (meta: VaultMeta): void => {
+          metaValue = meta;
+          metaStore.put(meta, META_KEY);
+        };
+        const requireMeta = async (): Promise<VaultMeta | undefined> => {
+          const meta = await readMeta();
+          if (meta === undefined) {
+            precondition = "vault is not initialized";
+            tx.abort();
+          }
+          return meta;
+        };
         for (const op of ops) {
           switch (op.op) {
-            case "expect-uninitialized": {
+            case "init": {
               const [meta, recordCount, factorCount] = await Promise.all([
-                requestValue<VaultMeta | undefined>(metaStore.get(META_KEY)),
+                readMeta(),
                 requestValue<number>(records.count()),
                 requestValue<number>(factors.count()),
               ]);
               if (meta !== undefined || recordCount > 0 || factorCount > 0) {
-                preconditionFailed = true;
+                precondition = "vault already initialized";
+                tx.abort();
+              } else {
+                writeMeta(op.meta); // init writes the meta verbatim — no revision bump
+                initialized = true;
+              }
+              break;
+            }
+            case "expect-revision": {
+              const meta = await readMeta();
+              if (meta === undefined || meta.revision !== op.revision) {
+                precondition = "vault changed underneath";
                 tx.abort();
               }
               break;
             }
-            case "put-meta":
-              metaStore.put(op.meta, META_KEY);
+            case "set-key-id": {
+              const meta = await requireMeta();
+              if (meta !== undefined) {
+                writeMeta({ ...meta, keyId: op.keyId });
+                bump = true;
+              }
               break;
+            }
+            case "record-failure": {
+              const meta = await requireMeta();
+              if (meta !== undefined) {
+                writeMeta({
+                  ...meta,
+                  failedAttempts: meta.failedAttempts + 1,
+                  lastFailureAt: op.at,
+                });
+              }
+              break;
+            }
+            case "reset-failures": {
+              const meta = await requireMeta();
+              if (meta !== undefined) {
+                writeMeta({ ...meta, failedAttempts: 0, lastFailureAt: 0 });
+              }
+              break;
+            }
             case "put-record":
               records.put(op.record);
+              bump = true;
               break;
             case "delete-record":
               records.delete([op.kind, op.id]);
+              bump = true;
               break;
             case "put-factor":
               factors.put(op.factor);
+              bump = true;
               break;
             case "delete-factor":
               factors.delete(op.id);
+              bump = true;
               break;
             case "clear":
               for (const name of STORES) {
@@ -127,15 +273,21 @@ export function createIndexedDbStore(): RecordStore {
               }
               break;
           }
-          if (preconditionFailed) {
+          if (precondition !== undefined) {
             break;
+          }
+        }
+        if (precondition === undefined && bump && !initialized) {
+          const meta = await readMeta();
+          if (meta !== undefined) {
+            writeMeta({ ...meta, revision: meta.revision + 1 });
           }
         }
         try {
           await done;
         } catch (error) {
-          if (preconditionFailed) {
-            throw new KernelError("integrity", "vault already initialized");
+          if (precondition !== undefined) {
+            throw new KernelError("conflict", `vault store: ${precondition}`);
           }
           throw error;
         }

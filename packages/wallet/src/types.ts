@@ -1,5 +1,12 @@
 /** Public types of @qntx/wallet, per design/entry.mdx. Secret data never appears here. */
-export type LockReason = "cold-start" | "user" | "idle" | "background" | "expired" | "crashed";
+export type LockReason =
+  | "cold-start"
+  | "user"
+  | "idle"
+  | "background"
+  | "expired"
+  | "crashed"
+  | "invalidated";
 
 export type FactorInfo =
   | { readonly kind: "hardware" }
@@ -41,12 +48,29 @@ export type WalletErrorCode =
   | "factor-unavailable"
   | "factor-invalidated"
   | "wrong-password"
+  | "wrong-passkey"
   | "rate-limited"
   | "invalid-input"
   | "not-found"
   | "already-exists"
+  | "conflict"
+  | "unsupported"
+  | "unavailable"
   | "integrity"
   | "crashed";
+
+/**
+ * The vault half of the status payload: `corrupted` means authentication or structural data failed
+ * to verify, `unsupported` means a newer build wrote it (data untouched, update the app),
+ * `unavailable` means a transient store I/O failure (retried on the next request or change).
+ */
+export type VaultState =
+  | "uninitialized"
+  | "locked"
+  | "unlocked"
+  | "corrupted"
+  | "unsupported"
+  | "unavailable";
 
 /**
  * `status` result / status event payload. Locked snapshots come from unauthenticated headers;
@@ -55,7 +79,7 @@ export type WalletErrorCode =
  */
 export type StatusPayload = {
   readonly protocol: 1;
-  readonly vault: "uninitialized" | "locked" | "unlocked" | "corrupted";
+  readonly vault: VaultState;
   readonly factors: ReadonlyArray<FactorInfo>;
   readonly wallets: ReadonlyArray<WalletInfo>;
   readonly nostr: { readonly keys: ReadonlyArray<NostrKeyInfo> };
@@ -107,7 +131,7 @@ export type WalletOptions = {
 };
 
 export type WalletSnapshot = {
-  readonly vault: "uninitialized" | "locked" | "unlocked" | "corrupted";
+  readonly vault: VaultState;
   readonly lockReason: LockReason | undefined;
   readonly verifying: boolean; // a user verification is in flight
   readonly factors: ReadonlyArray<FactorInfo>;

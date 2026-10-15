@@ -5,5 +5,5 @@
  */
 export { connectKernel } from "./wallet.ts";
 export type { ConnectOptions } from "./wallet.ts";
-export type { MainPort } from "./channel.ts";
+export type { MainPort, SetTimer } from "./channel.ts";
 export type { PasskeyCeremony, PrfResult, PrfSalts } from "./factors.ts";

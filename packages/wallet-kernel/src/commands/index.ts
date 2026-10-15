@@ -14,7 +14,6 @@ export const CORE_HANDLERS: {
   [M in keyof typeof CORE_METHODS & MethodName]: Handler<M>;
 } = {
   "vault.unlock": async (ctx, params) => vaultCommands.unlockVault(ctx, params),
-  "vault.lock": (ctx) => vaultCommands.lockVault(ctx),
   "vault.reset": async (ctx) => vaultCommands.resetVault(ctx),
   "vault.addFactor": async (ctx, params, session) => vaultCommands.addFactor(ctx, params, session),
   "vault.removeFactor": async (ctx, params, session) =>

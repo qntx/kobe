@@ -98,10 +98,11 @@ function boot(pbkdf2: Pbkdf2): Kernel {
   const platform: KernelPlatform = {
     random: (n) => __qntx.random(n),
     now: () => __qntx.now(),
+    elapsed: () => __qntx.now(),
     setTimer: (ms, fn) => __qntx.setTimer(ms, fn),
     pbkdf2,
     store: createMemoryStore(),
-    policy: { idleMs: 15 * 60_000, maxSessionMs: 12 * 3_600_000 },
+    policy: { idleMs: 15 * 60_000, maxSessionMs: 12 * 3_600_000, maxScryptLogN: 18 },
   };
   startKernel(platform, port);
 
@@ -247,9 +248,8 @@ async function main(): Promise<void> {
   assert(verifyEvent(event), "signEvent verifies");
   timings["import-to-first-sign"] = __qntx.now() - t0;
 
-  // Password factor lock/unlock — 600k PBKDF2-SHA256 through the native KDF.
+  // Password factor unlock — 600k PBKDF2-SHA256 through the native KDF.
   t0 = __qntx.now();
-  await kernel.call("vault.lock", null, session);
   const unlocked = ok(
     await kernel.call("vault.unlock", {
       factor: { kind: "password", password: utf8ToBytes(PASSWORD) },
@@ -258,7 +258,7 @@ async function main(): Promise<void> {
   const unlockSession = field(unlocked, "session");
   assert(typeof unlockSession === "string" && unlockSession.length === 32, "unlock session");
   session = unlockSession;
-  timings["password-lock-unlock"] = __qntx.now() - t0;
+  timings["password-unlock"] = __qntx.now() - t0;
 
   // NIP-44 round trip against a fixed peer.
   t0 = __qntx.now();

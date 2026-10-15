@@ -12,7 +12,16 @@ export async function unlockVault(
   ctx: KernelContext,
   params: { factor: Factor },
 ): Promise<{ session: string }> {
-  const { dek, records } = await unlock(ctx.platform, ctx.image, params.factor);
+  // The attempt must see the freshest counters and factor set — not the cached image. If the
+  // reload surfaces a non-ok health (data this build rejects), the unlock must not run.
+  await ctx.reload();
+  if (ctx.health === "corrupted") {
+    throw new KernelError("integrity", "the vault is corrupted");
+  }
+  if (ctx.health === "unsupported") {
+    throw new KernelError("unsupported", "the vault needs a newer build");
+  }
+  const { dek, records, keyId } = await unlock(ctx.platform, ctx.image, params.factor, ctx.commit);
   try {
     // A re-unlock replaces any live module state; modules drop it before claiming.
     for (const module of ctx.modules) {
@@ -25,7 +34,7 @@ export async function unlockVault(
     for (const record of unclaimed) {
       wipe(record.plaintext);
     }
-    return { session: ctx.session.open(dek) };
+    return { session: ctx.session.open(dek, keyId) };
   } catch (error) {
     for (const record of records) {
       wipe(record.plaintext);
@@ -35,13 +44,11 @@ export async function unlockVault(
   }
 }
 
-export function lockVault(ctx: KernelContext): NullValue {
-  ctx.session.lock("user");
-  return null;
-}
-
 export async function resetVault(ctx: KernelContext): Promise<NullValue> {
-  await ctx.commit([{ op: "clear" }]); // commit itself drops the session to uninitialized
+  // A user-initiated reset locks with "user" before the commit drops the session to
+  // uninitialized — an external wipe reaching setInitialized instead reports "invalidated".
+  ctx.session.lock("user");
+  await ctx.commit([{ op: "clear" }]);
   return null;
 }
 

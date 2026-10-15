@@ -27,10 +27,17 @@ export function integrity(message: string): WalletError {
   return new WalletError("integrity", message);
 }
 
+/** Schedules `fn` after `delayMs` and returns a cancel function — injected by the host package. */
+export type SetTimer = (delayMs: number, fn: () => void) => () => void;
+
+/** A silent kernel is a wedged kernel: every call gets this long before the port is replaced. */
+const CALL_TIMEOUT_MS = 60_000;
+
 type Pending = {
   readonly method: MethodName;
   readonly resolve: (value: unknown) => void;
   readonly reject: (error: WalletError) => void;
+  readonly cancelTimer: () => void;
 };
 
 /**
@@ -66,10 +73,12 @@ export class Channel {
 
   private readonly spawn: () => MainPort;
   private readonly handlers: ChannelHandlers;
+  private readonly setTimer: SetTimer;
 
-  constructor(spawn: () => MainPort, handlers: ChannelHandlers) {
+  constructor(spawn: () => MainPort, handlers: ChannelHandlers, setTimer: SetTimer) {
     this.spawn = spawn;
     this.handlers = handlers;
+    this.setTimer = setTimer;
     this.readyPromise = new Promise((resolve, reject) => {
       this.resolveReady = resolve;
       this.rejectReady = reject;
@@ -150,11 +159,46 @@ export class Channel {
     this.respawn();
   }
 
+  /**
+   * Immediate host-side lock: no kernel round trip. Fails everything in flight with `locked`, drops
+   * the session, reports the user lock, and replaces the port — the old worker can never answer
+   * again. Safe mid-commit: IndexedDB transactions are atomic.
+   */
+  lockNow(): void {
+    if (this.destroyed || this.broken !== undefined) {
+      return;
+    }
+    this.session = undefined;
+    this.failPending(new WalletError("locked", "the vault locked"));
+    this.handlers.onLocked("user");
+    this.respawn();
+  }
+
+  private onCallTimeout(): void {
+    if (this.destroyed || this.broken !== undefined) {
+      return;
+    }
+    this.failPending(new WalletError("crashed", "the kernel did not answer in time"));
+    this.handlers.onCrashed();
+    this.respawn();
+  }
+
   private failPending(error: WalletError): void {
     for (const [, pending] of this.pending) {
+      pending.cancelTimer();
       pending.reject(error);
     }
     this.pending.clear();
+  }
+
+  /** Removes the pending entry (cancelling its timeout) and runs `fn` on it. */
+  private settle(id: number, fn: (pending: Pending) => void): void {
+    const pending = this.pending.get(id);
+    if (pending !== undefined) {
+      pending.cancelTimer();
+      this.pending.delete(id);
+      fn(pending);
+    }
   }
 
   /**
@@ -250,14 +294,15 @@ export class Channel {
     if (hasErr) {
       try {
         const err = responseError(message["err"]);
-        this.pending.delete(id);
-        pending.reject(
-          new WalletError(
-            err.code,
-            `kernel returned ${err.code}`,
-            typeof err.retryAt === "number" ? err.retryAt : undefined,
-          ),
-        );
+        this.settle(id, (p) => {
+          p.reject(
+            new WalletError(
+              err.code,
+              `kernel returned ${err.code}`,
+              typeof err.retryAt === "number" ? err.retryAt : undefined,
+            ),
+          );
+        });
       } catch (error) {
         if (!(error instanceof ValidationError)) {
           throw error;
@@ -268,8 +313,9 @@ export class Channel {
     }
     try {
       const result = METHODS[pending.method].result(message["ok"]);
-      this.pending.delete(id);
-      pending.resolve(result);
+      this.settle(id, (p) => {
+        p.resolve(result);
+      });
     } catch (error) {
       if (!(error instanceof ValidationError)) {
         throw error;
@@ -303,10 +349,14 @@ export class Channel {
       message["session"] = this.session;
     }
     const result = await new Promise<unknown>((resolve, reject) => {
-      this.pending.set(id, { method, resolve, reject });
+      const cancelTimer = this.setTimer(CALL_TIMEOUT_MS, () => {
+        this.onCallTimeout();
+      });
+      this.pending.set(id, { method, resolve, reject, cancelTimer });
       try {
         port.post(message, transfer);
       } catch {
+        cancelTimer();
         this.pending.delete(id);
         reject(integrity("the kernel port refused the message"));
       }

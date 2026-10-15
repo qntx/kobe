@@ -2,10 +2,17 @@ import { describe, expect, it, vi } from "vite-plus/test";
 
 import { createMemoryStore } from "../src/vault/memory.ts";
 import type { StoredFactor, StoredRecord, VaultImage, VaultMeta } from "../src/vault/store.ts";
+import { VAULT_FORMAT } from "../src/vault/store.ts";
 
 const empty: VaultImage = { meta: undefined, records: [], factors: [] };
 
-const meta: VaultMeta = { format: 1, failedAttempts: 0, retryAt: 0 };
+const meta: VaultMeta = {
+  format: VAULT_FORMAT,
+  revision: 1,
+  keyId: "a".repeat(32),
+  failedAttempts: 0,
+  lastFailureAt: 0,
+};
 
 const record: StoredRecord = {
   kind: "entropy",
@@ -28,29 +35,90 @@ describe("memory store", () => {
     await expect(store.load()).resolves.toStrictEqual(empty);
   });
 
-  it("commit applies ops atomically and watch fires", async () => {
+  it("init applies ops atomically and watch fires", async () => {
     const store = createMemoryStore();
     const watcher = vi.fn();
     store.watch(watcher);
     await store.commit([
-      { op: "expect-uninitialized" },
-      { op: "put-meta", meta },
+      { op: "init", meta },
       { op: "put-record", record },
     ]);
     expect(watcher).toHaveBeenCalledTimes(1);
     const loaded = await store.load();
+    // init writes the meta verbatim — the content op in the same commit does not bump it
     expect(loaded.meta).toStrictEqual(meta);
     expect(loaded.records).toStrictEqual([record]);
   });
 
-  it("a failing expect-uninitialized writes nothing", async () => {
+  it("a failing init writes nothing", async () => {
     const store = createMemoryStore();
-    await store.commit([{ op: "put-meta", meta }]);
+    await store.commit([{ op: "init", meta }]);
     const before = await store.load();
     await expect(
-      store.commit([{ op: "expect-uninitialized" }, { op: "put-record", record }]),
-    ).rejects.toMatchObject({ code: "integrity" });
+      store.commit([
+        { op: "init", meta },
+        { op: "put-record", record },
+      ]),
+    ).rejects.toMatchObject({ code: "conflict" });
     await expect(store.load()).resolves.toStrictEqual(before);
+  });
+
+  it("content commits bump the revision by one", async () => {
+    const store = createMemoryStore();
+    await store.commit([{ op: "init", meta }]);
+    await store.commit([
+      { op: "expect-revision", revision: 1 },
+      { op: "put-record", record },
+    ]);
+    await store.commit([{ op: "put-factor", factor }]);
+    const loaded = await store.load();
+    expect(loaded.meta).toStrictEqual({ ...meta, revision: 3 });
+  });
+
+  it("expect-revision mismatch fails with conflict and writes nothing", async () => {
+    const store = createMemoryStore();
+    await store.commit([
+      { op: "init", meta },
+      { op: "put-factor", factor },
+    ]);
+    const before = await store.load();
+    await expect(
+      store.commit([
+        { op: "expect-revision", revision: 99 },
+        { op: "delete-factor", id: "bb" },
+      ]),
+    ).rejects.toMatchObject({ code: "conflict" });
+    await expect(store.load()).resolves.toStrictEqual(before);
+  });
+
+  it("counter ops do not bump the revision", async () => {
+    const store = createMemoryStore();
+    await store.commit([{ op: "init", meta }]);
+    await store.commit([{ op: "record-failure", at: 123 }]);
+    await store.commit([{ op: "record-failure", at: 456 }]);
+    const loaded = await store.load();
+    expect(loaded.meta).toStrictEqual({ ...meta, failedAttempts: 2, lastFailureAt: 456 });
+    await store.commit([{ op: "reset-failures" }]);
+    const cleared = await store.load();
+    expect(cleared.meta).toStrictEqual(meta);
+  });
+
+  it("counter ops on an empty store fail with conflict", async () => {
+    const store = createMemoryStore();
+    await expect(store.commit([{ op: "record-failure", at: 1 }])).rejects.toMatchObject({
+      code: "conflict",
+    });
+    await expect(store.commit([{ op: "reset-failures" }])).rejects.toMatchObject({
+      code: "conflict",
+    });
+  });
+
+  it("set-key-id changes keyId and bumps the revision", async () => {
+    const store = createMemoryStore();
+    await store.commit([{ op: "init", meta }]);
+    await store.commit([{ op: "set-key-id", keyId: "b".repeat(32) }]);
+    const loaded = await store.load();
+    expect(loaded.meta).toStrictEqual({ ...meta, keyId: "b".repeat(32), revision: 2 });
   });
 
   it("load returns copies, not the stored buffers", async () => {
@@ -74,7 +142,7 @@ describe("memory store", () => {
   it("delete-record, delete-factor and clear work", async () => {
     const store = createMemoryStore();
     await store.commit([
-      { op: "put-meta", meta },
+      { op: "init", meta },
       { op: "put-record", record },
       { op: "put-factor", factor },
     ]);

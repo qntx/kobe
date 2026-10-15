@@ -10,7 +10,7 @@ import type {
 } from "@qntx/wallet/protocol";
 import type { LockReason } from "@qntx/wallet/types";
 
-import type { Handler, KernelContext } from "./commands/context.ts";
+import type { CommitOptions, Handler, KernelContext } from "./commands/context.ts";
 import { CORE_HANDLERS } from "./commands/index.ts";
 import { KernelError } from "./errors.ts";
 import { createNostrModule } from "./modules/nostr/index.ts";
@@ -47,6 +47,33 @@ function isMethodName(method: string): method is MethodName {
   return method in METHODS;
 }
 
+/** Counter ops never fence: they fold into the store atomically against whatever is there. */
+function isCounterOp(op: StoreOp): boolean {
+  return op.op === "record-failure" || op.op === "reset-failures";
+}
+
+/** Whether the commit needs the `expect-revision` guard prepended (see KernelContext.commit). */
+function needsGuard(ops: ReadonlyArray<StoreOp>): boolean {
+  return (
+    ops[0]?.op !== "init" &&
+    !ops.some((op) => op.op === "clear") &&
+    !ops.every(isCounterOp) &&
+    !ops.some((op) => op.op === "expect-revision")
+  );
+}
+
+function classifyLoadFailure(error: unknown): "corrupted" | "unsupported" | "unavailable" {
+  if (error instanceof KernelError) {
+    if (error.code === "unsupported") {
+      return "unsupported";
+    }
+    if (error.code === "integrity") {
+      return "corrupted";
+    }
+  }
+  return "unavailable";
+}
+
 export function startKernel(platform: KernelPlatform, port: Port): void {
   // The module composition is explicit and static: the nostr module owns its handler table, its
   // VaultHooks entry in ctx.modules and its status section; there is no registry — future modules
@@ -61,36 +88,30 @@ export function startKernel(platform: KernelPlatform, port: Port): void {
   let dirty = false; // a commit happened since the last status event
   let inRequest = false; // a request is being dispatched — locks defer their event
   let pendingLock: LockReason | undefined;
-  // Set when a store read throws: the rows cannot be trusted, so the vault latches
-  // "corrupted" and requests answer "integrity" instead of running against an empty image —
-  // and the enclave keeps serving errors rather than crashing (a crash would respawn into
-  // the same broken store forever). A successful commit clears the flag, which keeps
-  // vault.reset usable as the recovery path.
-  let storeFailure: Error | undefined;
+  // An authenticated-open failure (a sealed record the DEK could not open) proves the vault is
+  // corrupt beyond what public headers show: latched until the vault becomes uninitialized.
+  let integrityFailure = false;
 
-  const loadImage = async (): Promise<VaultImage> => {
-    if (storeFailure !== undefined) {
-      throw storeFailure;
-    }
-    try {
-      return await platform.store.load();
-    } catch (error) {
-      storeFailure = error instanceof Error ? error : new Error(String(error));
-      ctx.corrupted = true;
-      throw storeFailure;
+  /** Health transitions while unlocked invalidate the session immediately — except unavailable. */
+  const setHealth = (next: KernelContext["health"]): void => {
+    ctx.health = next;
+    if (next === "corrupted" || next === "unsupported") {
+      ctx.session.lock("invalidated"); // no-op unless unlocked
     }
   };
 
   /**
-   * Installs a freshly loaded image and recomputes corruption from it — a public header that fails
-   * its owner's parser, or a stored kind no module claims, marks the vault corrupted; a clean load
-   * clears an earlier flag (vault.reset is the recovery path; a sealed-record failure re-detects on
-   * the next unlock).
+   * Installs a freshly loaded image and recomputes health from it. The integrity latch wins over a
+   * clean structural read until the vault is gone; `unsupported` wins over everything.
    */
   const applyImage = (image: VaultImage): void => {
     ctx.image = image;
     ctx.session.setInitialized(image.meta !== undefined);
-    ctx.corrupted = statusContents(image, ctx.modules, nostr).corrupted;
+    if (image.meta === undefined) {
+      integrityFailure = false;
+    }
+    const assessed = statusContents(image, ctx.modules, nostr).health;
+    setHealth(assessed === "ok" && integrityFailure ? "corrupted" : assessed);
   };
 
   const post = (message: ProtocolValue): void => {
@@ -112,7 +133,7 @@ export function startKernel(platform: KernelPlatform, port: Port): void {
     }
     if (inRequest) {
       // Message ordering is status → response → locked: the request that caused the lock
-      // (vault.lock, vault.reset, a timeout at the top of the request) must still resolve.
+      // (vault.reset, a timeout or invalidation at the top of the request) must still resolve.
       pendingLock = reason;
       return;
     }
@@ -120,26 +141,56 @@ export function startKernel(platform: KernelPlatform, port: Port): void {
     postStatus();
   };
 
+  const reload = async (): Promise<void> => {
+    let image: VaultImage;
+    try {
+      image = await platform.store.load();
+    } catch (error) {
+      setHealth(classifyLoadFailure(error));
+      throw error instanceof KernelError
+        ? error
+        : new KernelError("unavailable", "vault store: load failed");
+    }
+    applyImage(image);
+  };
+
   const ctx: KernelContext = {
     platform,
     session: new Session(platform, onLock),
     modules: [nostr.vault],
     image: EMPTY_IMAGE,
-    corrupted: false,
-    commit: async (ops: ReadonlyArray<StoreOp>) => {
-      await platform.store.commit(ops);
-      // A commit re-establishes the store: clear any recorded failure so the
-      // post-commit read actually runs (vault.reset is the corrupted-store recovery).
-      storeFailure = undefined;
+    health: "ok",
+    commit: async (ops: ReadonlyArray<StoreOp>, options?: CommitOptions) => {
+      const guarded: StoreOp[] = needsGuard(ops)
+        ? [{ op: "expect-revision", revision: ctx.image.meta?.revision ?? 0 }, ...ops]
+        : [...ops];
+      try {
+        await platform.store.commit(guarded);
+      } catch (error) {
+        options?.rotate?.dek.wipe();
+        if (error instanceof KernelError) {
+          // The vault moved underneath us: pick up the winning image, then report the conflict.
+          if (error.code === "conflict") {
+            await reload().catch(() => undefined);
+          }
+          throw error;
+        }
+        setHealth("unavailable");
+        throw new KernelError("unavailable", "vault store: commit failed");
+      }
+      if (options?.rotate !== undefined) {
+        if (ctx.session.unlocked) {
+          ctx.session.rotate(options.rotate.dek, options.rotate.keyId);
+        } else {
+          options.rotate.dek.wipe();
+        }
+      }
       // A reset lands as an uninitialized image here; the session follows without waiting
       // for the store watch (which may legitimately skip a host's own commits).
-      applyImage(await loadImage());
       dirty = true;
+      await reload();
     },
-  };
-
-  const reload = async (): Promise<void> => {
-    applyImage(await loadImage());
+    reload,
   };
 
   const dispatch = async <M extends MethodName>(
@@ -157,11 +208,11 @@ export function startKernel(platform: KernelPlatform, port: Port): void {
   const handle = async (raw: unknown): Promise<void> => {
     // Timeouts are enforced before anything else, on every request.
     const vaultBefore = ctx.session.status;
-    const corruptedBefore = ctx.corrupted;
+    const healthBefore = ctx.health;
     let response: Response | undefined;
     inRequest = true;
     try {
-      const expired = ctx.session.checkTimeouts(platform.now());
+      const expired = ctx.session.checkTimeouts();
       if (expired !== undefined) {
         ctx.session.lock(expired);
       }
@@ -169,7 +220,7 @@ export function startKernel(platform: KernelPlatform, port: Port): void {
     } finally {
       inRequest = false;
     }
-    if (dirty || ctx.session.status !== vaultBefore || ctx.corrupted !== corruptedBefore) {
+    if (dirty || ctx.session.status !== vaultBefore || ctx.health !== healthBefore) {
       dirty = false;
       postStatus();
     }
@@ -232,11 +283,22 @@ export function startKernel(platform: KernelPlatform, port: Port): void {
         throw new KernelError("integrity", "malformed params");
       }
       const params: ProtocolValue = candidate;
-      // A corrupted vault cannot serve requests honestly: report integrity for everything
-      // except status (still answers from the image in memory) and vault.reset (the recovery
-      // path — its commit clears the flag). No session is opened while corrupted.
-      if (ctx.corrupted && method !== "status" && method !== "vault.reset") {
-        throw new KernelError("integrity", "the vault is corrupted");
+      // A vault that is not healthy cannot serve requests honestly: only status (answers from
+      // the image in memory) and vault.reset (the recovery path) get through. A transient
+      // failure retries one load before answering — a successful reload clears it.
+      if (ctx.health !== "ok" && method !== "status" && method !== "vault.reset") {
+        if (ctx.health === "unavailable") {
+          await reload(); // throws the classified error, or restores health
+        }
+        if (ctx.health === "corrupted") {
+          throw new KernelError("integrity", "the vault is corrupted");
+        }
+        if (ctx.health === "unsupported") {
+          throw new KernelError("unsupported", "the vault needs a newer build");
+        }
+        if (ctx.health === "unavailable") {
+          throw new KernelError("unavailable", "the vault store is unavailable");
+        }
       }
       const result = await dispatch(
         method,
@@ -246,10 +308,10 @@ export function startKernel(platform: KernelPlatform, port: Port): void {
       return { v: PROTOCOL_VERSION, id, ok: result };
     } catch (error) {
       // A corruption-marked error (a sealed record that failed authentication after the DEK
-      // opened) latches the corrupted state for this kernel instance; it re-detects
-      // deterministically after a respawn.
+      // opened) latches the corrupted state until the vault is wiped or reset.
       if (error instanceof KernelError && error.corrupted) {
-        ctx.corrupted = true;
+        integrityFailure = true;
+        setHealth("corrupted");
       }
       const err: ErrorPayload =
         error instanceof KernelError
@@ -271,14 +333,13 @@ export function startKernel(platform: KernelPlatform, port: Port): void {
   };
 
   // Other tabs/hosts commit through the same store; reload and rebroadcast the snapshot.
-  // A failed reload must not kill the enclave: loadImage records the failure (requests now
-  // answer "integrity") and the snapshot still goes out — from the image already in memory,
-  // or empty on startup.
+  // A failed reload must not kill the enclave: reload classifies the failure into health and the
+  // snapshot still goes out — from the image already in memory, or empty on startup.
   const reloadAndPost = async (): Promise<void> => {
     try {
       await reload();
     } catch {
-      // Recorded by loadImage; swallow so the queue tail never rejects.
+      // Classified by reload; swallow so the queue tail never rejects.
     }
     postStatus();
   };

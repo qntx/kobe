@@ -10,9 +10,11 @@ import type { KernelEvent, ProtocolValue, WalletErrorCode } from "@qntx/wallet/p
 import type { FactorInfo, StatusPayload as StatusT } from "@qntx/wallet/types";
 
 import { KernelError } from "../src/errors.ts";
-import type { RecordStore } from "../src/vault/store.ts";
-import type { KernelResponse } from "./harness.ts";
-import { createHarness } from "./harness.ts";
+import { createMemoryStore } from "../src/vault/memory.ts";
+import type { RecordStore, VaultMeta } from "../src/vault/store.ts";
+import { VAULT_FORMAT } from "../src/vault/store.ts";
+import type { Harness, KernelResponse } from "./harness.ts";
+import { createHarness, nonEchoing } from "./harness.ts";
 import { loadVectors } from "./helpers.ts";
 
 const passkeyVector = loadVectors("passkey.json") as {
@@ -149,6 +151,80 @@ function lastStatus(h: ReturnType<typeof createHarness>): StatusT {
     }
   }
   throw new Error("no status event yet");
+}
+
+/** The stored meta row, asserted present. */
+async function storedMeta(store: RecordStore): Promise<VaultMeta> {
+  const image = await store.load();
+  return must(image.meta);
+}
+
+/** The persisted wrong-password counter. */
+async function storedFailedAttempts(store: RecordStore): Promise<number> {
+  const meta = await storedMeta(store);
+  return meta.failedAttempts;
+}
+
+/** "ok" or the error code — lifted out so test bodies carry no conditionals. */
+function codeOf(response: KernelResponse): string {
+  return "err" in response ? response.err.code : "ok";
+}
+
+/** A store wrapper that fails every `load` while `broken` holds true. */
+function flakyLoad(store: RecordStore, broken: { current: boolean }): RecordStore {
+  return {
+    ...store,
+    load: async () => {
+      if (broken.current) {
+        throw new Error("transient io");
+      }
+      return store.load();
+    },
+  };
+}
+
+/** A store wrapper that fails every `commit` while `broken` holds true. */
+function flakyCommit(store: RecordStore, broken: { current: boolean }): RecordStore {
+  return {
+    ...store,
+    commit: async (ops) => {
+      if (broken.current) {
+        throw new Error("quota exceeded");
+      }
+      return store.commit(ops);
+    },
+  };
+}
+
+/** A format-2 meta row as written by a vault init, with overridable fields for health tests. */
+function metaOf(overrides?: Partial<VaultMeta>): VaultMeta {
+  return {
+    format: VAULT_FORMAT,
+    revision: 1,
+    keyId: "ab".repeat(16),
+    failedAttempts: 0,
+    lastFailureAt: 0,
+    ...overrides,
+  };
+}
+
+// A factory, not a constant: the kernel wipes a factor's secret bytes while consuming them, so a
+// wire factor must never be shared between calls.
+function passkeyFactor(): { kind: "passkey"; credentialId: Uint8Array; prf: Uint8Array } {
+  return {
+    kind: "passkey",
+    credentialId: new Uint8Array(CREDENTIAL_ID),
+    prf: new Uint8Array(PRF_VAULT),
+  };
+}
+
+/**
+ * A fresh kernel over the same store — what a host-side lock + worker respawn looks like from the
+ * kernel's side. The old harness stays subscribed (a terminated worker's ghost) but is inert for
+ * the test's purposes.
+ */
+function respawn(h: Harness, wrapStore?: (store: RecordStore) => RecordStore): Harness {
+  return createHarness({ store: h.store, wrapStore });
 }
 
 async function createPasskeyWallet(h: ReturnType<typeof createHarness>) {
@@ -506,14 +582,16 @@ describe("exports and data keys", () => {
     const again = ok(await h.call("dataKeys.get", { purpose: "meowl-db" }, session));
     expect(bytesToHex(again as Uint8Array)).toBe(bytesToHex(first as Uint8Array));
 
-    ok(await h.call("vault.lock"));
+    // Lock = the host killed the worker; a fresh kernel over the same store is the respawn.
+    const h2 = respawn(h);
+    await h2.settle();
     const unlocked = ok(
-      await h.call("vault.unlock", {
+      await h2.call("vault.unlock", {
         factor: { kind: "passkey", credentialId: CREDENTIAL_ID, prf: new Uint8Array(PRF_VAULT) },
       }),
     );
     const session2 = strField(unlocked, "session");
-    const afterLock = ok(await h.call("dataKeys.get", { purpose: "meowl-db" }, session2));
+    const afterLock = ok(await h2.call("dataKeys.get", { purpose: "meowl-db" }, session2));
     expect(bytesToHex(afterLock as Uint8Array)).toBe(bytesToHex(first as Uint8Array));
   });
 });
@@ -535,30 +613,31 @@ describe("factors, lock, reset", () => {
     expect(strField(added, "kind")).toBe("password");
     expect(lastStatus(h).factors).toHaveLength(2);
 
-    // The new password factor can unlock after a lock.
-    ok(await h.call("vault.lock"));
+    // The new password factor can unlock after a lock — a fresh kernel over the same store.
+    const h2 = respawn(h);
+    await h2.settle();
     const unlocked = ok(
-      await h.call("vault.unlock", {
+      await h2.call("vault.unlock", {
         factor: { kind: "password", password: new Uint8Array(PASSWORD) },
       }),
     );
     const session2 = strField(unlocked, "session");
-    expect(lastStatus(h).vault).toBe("unlocked");
+    expect(lastStatus(h2).vault).toBe("unlocked");
 
     // Removing with password verify works; the last factor cannot be removed.
     expect(
       ok(
-        await h.call(
+        await h2.call(
           "vault.removeFactor",
           { verify: { kind: "password", password: new Uint8Array(PASSWORD) }, id: addedId },
           session2,
         ),
       ),
     ).toBeNull();
-    const lastId = factorId(lastStatus(h).factors[0]);
+    const lastId = factorId(lastStatus(h2).factors[0]);
     expect(
       errCode(
-        await h.call(
+        await h2.call(
           "vault.removeFactor",
           {
             verify: {
@@ -604,17 +683,18 @@ describe("factors, lock, reset", () => {
     expect(passwordFactors).toHaveLength(1);
     expect(factorId(passwordFactors[0])).toBe(strField(changed, "id"));
 
-    ok(await h.call("vault.lock"));
+    const h2 = respawn(h);
+    await h2.settle();
     // The old password is a normal wrong-password failure; the new one opens the vault.
     expect(
       errCode(
-        await h.call("vault.unlock", {
+        await h2.call("vault.unlock", {
           factor: { kind: "password", password: utf8ToBytes("first correct horse") },
         }),
       ),
     ).toBe("wrong-password");
     const unlocked = ok(
-      await h.call("vault.unlock", {
+      await h2.call("vault.unlock", {
         factor: { kind: "password", password: utf8ToBytes("second battery staple") },
       }),
     );
@@ -654,15 +734,9 @@ describe("factors, lock, reset", () => {
   });
 
   it("resets to uninitialized even when the store watch never fires", async () => {
-    // A host store that suppresses change notices for the kernel's own commits: the
-    // commit path itself must reload the image and drop the session.
-    const h = createHarness({
-      wrapStore: (store) => ({
-        load: async () => store.load(),
-        commit: async (ops) => store.commit(ops),
-        watch: () => () => {},
-      }),
-    });
+    // A host store that suppresses change notices for the kernel's own commits (as the real
+    // Web/Node stores do): the commit path itself must reload the image and drop the session.
+    const h = createHarness({ wrapStore: nonEchoing });
     await h.settle();
     const { session } = await createPasskeyWallet(h);
     expect(ok(await h.call("vault.reset", null, session))).toBeNull();
@@ -681,17 +755,18 @@ describe("factors, lock, reset", () => {
     expect(errCode(await h.call("nostr.createNip46ClientKey", null, session))).toBe("locked");
   });
 
-  it("locks: session methods return locked and a locked event is emitted", async () => {
+  it("a respawned kernel starts locked and rejects a stale session id", async () => {
     const h = createHarness();
     await h.settle();
     const { session } = await createPasskeyWallet(h);
-    ok(await h.call("vault.lock"));
-    expect(lastStatus(h).vault).toBe("locked");
-    expect(lockReasons(h.events)).toContain("user");
-    expect(errCode(await h.call("nostr.createNip46ClientKey", null, session))).toBe("locked");
+    // Lock is host-side now: the worker is terminated and a fresh kernel respawns on the store.
+    const h2 = respawn(h);
+    await h2.settle();
+    expect(lastStatus(h2).vault).toBe("locked");
+    expect(errCode(await h2.call("nostr.createNip46ClientKey", null, session))).toBe("locked");
     // A stale session id is rejected even after re-unlock.
     const unlocked = ok(
-      await h.call("vault.unlock", {
+      await h2.call("vault.unlock", {
         factor: { kind: "passkey", credentialId: CREDENTIAL_ID, prf: new Uint8Array(PRF_VAULT) },
       }),
     );
@@ -778,49 +853,192 @@ describe("session expiry and rate limiting", () => {
     expect(lockReasons(h.events)).toContain("expired");
   });
 
-  it("rate limits wrong passwords: 30s, 60s, 300s, then resets on success", async () => {
-    const h = createHarness();
+  it("a backward wall-clock jump never extends the session", async () => {
+    const h = createHarness({ idleMs: 60_000 });
     await h.settle();
     const { session } = await createPasskeyWallet(h);
-    const verify = { kind: "passkey", credentialId: CREDENTIAL_ID, prf: new Uint8Array(PRF_VAULT) };
+    // The wall clock jumps an hour backwards: session deadlines ride the monotonic clock.
+    h.advanceWall(-3_600_000);
+    h.advance(61_000);
+    await h.settle();
+    expect(lastStatus(h).vault).toBe("locked");
+    expect(lockReasons(h.events)).toContain("idle");
+    expect(errCode(await h.call("nostr.createNip46ClientKey", null, session))).toBe("locked");
+  });
+
+  it("a forward wall-clock jump never shortens the session", async () => {
+    const h = createHarness({ idleMs: 60_000 });
+    await h.settle();
+    const { session } = await createPasskeyWallet(h);
+    h.advanceWall(10 * 3_600_000); // the wall clock leaps forward ten hours
+    // Elapsed time is what counts: still unlocked a second later, idle-locked at 60 s.
+    h.advance(1000);
+    expect("ok" in (await h.call("nostr.createNip46ClientKey", null, session))).toBe(true);
+    h.advance(61_000);
+    await h.settle();
+    expect(lastStatus(h).vault).toBe("locked");
+    expect(lockReasons(h.events)).toContain("idle");
+  });
+});
+
+describe("password rate limiting", () => {
+  /** A vault whose only factor is a password, created on `h`. */
+  async function createPasswordVault(h: Harness): Promise<void> {
     ok(
-      await h.call(
-        "vault.addFactor",
-        { verify, factor: { kind: "password", password: new Uint8Array(PASSWORD) } },
-        session,
-      ),
+      await h.call("wallet.importMnemonic", {
+        mnemonic: utf8ToBytes(nip06.vectors[0]!.mnemonic),
+        factor: { kind: "password", password: new Uint8Array(PASSWORD) },
+      }),
     );
-    ok(await h.call("vault.lock"));
+  }
 
-    const bad = async () =>
-      h.call("vault.unlock", { factor: { kind: "password", password: utf8ToBytes("wrong pass") } });
+  const badPassword = async (h: Harness) =>
+    h.call("vault.unlock", {
+      factor: { kind: "password", password: utf8ToBytes("a wrong password") },
+    });
 
-    // Failures 1-4: wrong-password, no rate limit.
+  it("limits wrong passwords: 30s, 60s, 300s — on a non-echoing store", async () => {
+    // The real Web/Node stores never echo a worker's own commits (issue #91).
+    const h = createHarness({ wrapStore: nonEchoing });
+    await h.settle();
+    await createPasswordVault(h);
+    const h2 = respawn(h, nonEchoing);
+    await h2.settle();
+
+    // Failures 1-4: wrong-password, no rate limit yet.
     for (let i = 0; i < 4; i++) {
       // oxlint-disable-next-line eslint/no-await-in-loop -- unlock attempts are sequential by design
-      expect(errCode(await bad())).toBe("wrong-password");
+      expect(errCode(await badPassword(h2))).toBe("wrong-password");
     }
-    // 5th failure arms the 30 s backoff.
-    expect(errCode(await bad())).toBe("wrong-password");
-    const limited = await bad();
+    // The 5th failure arms the 30 s backoff.
+    expect(errCode(await badPassword(h2))).toBe("wrong-password");
+    const t = h2.wallNow();
+    await expect(storedFailedAttempts(h.store)).resolves.toBe(5);
+    // The 6th attempt is rate-limited with the armed deadline — never counted: retries cannot
+    // push the horizon forward.
+    const limited = await badPassword(h2);
     expect(errCode(limited)).toBe("rate-limited");
-    expect(errPayload(limited).retryAt).toBeGreaterThan(0);
-    h.advance(31_000);
-    // Failure #6 → 60 s backoff; #7 → 300 s.
-    expect(errCode(await bad())).toBe("wrong-password");
-    expect(errCode(await bad())).toBe("rate-limited");
-    h.advance(61_000);
-    expect(errCode(await bad())).toBe("wrong-password");
-    expect(errCode(await bad())).toBe("rate-limited");
-    h.advance(301_000);
-    // Success resets the counter.
-    const unlocked = await h.call("vault.unlock", {
+    expect(errPayload(limited).retryAt).toBe(t + 30_000);
+    await expect(storedFailedAttempts(h.store)).resolves.toBe(5);
+    // The next real failure lands the 6th increment and arms the 60 s tier.
+    h2.advanceWall(61_000);
+    expect(errCode(await badPassword(h2))).toBe("wrong-password");
+    const limited2 = await badPassword(h2);
+    expect(errCode(limited2)).toBe("rate-limited");
+    expect(errPayload(limited2).retryAt).toBe(t + 61_000 + 60_000);
+    // The 7th real failure arms the 300 s tier.
+    h2.advanceWall(61_000);
+    expect(errCode(await badPassword(h2))).toBe("wrong-password");
+    const limited3 = await badPassword(h2);
+    expect(errCode(limited3)).toBe("rate-limited");
+    expect(errPayload(limited3).retryAt).toBe(t + 122_000 + 300_000);
+    // Success resets the counter — a fresh failure starts at 1.
+    h2.advanceWall(301_000);
+    const unlocked = await h2.call("vault.unlock", {
       factor: { kind: "password", password: new Uint8Array(PASSWORD) },
     });
     expect("ok" in unlocked).toBe(true);
-    // Failing again starts at 1, not where we left off.
-    ok(await h.call("vault.lock"));
-    expect(errCode(await bad())).toBe("wrong-password");
+    await expect(storedFailedAttempts(h.store)).resolves.toBe(0);
+    const h3 = respawn(h, nonEchoing);
+    await h3.settle();
+    expect(errCode(await badPassword(h3))).toBe("wrong-password");
+    await expect(storedFailedAttempts(h.store)).resolves.toBe(1);
+  });
+
+  it("pipelined attempts never lose an increment", async () => {
+    const h = createHarness({ wrapStore: nonEchoing });
+    await h.settle();
+    await createPasswordVault(h);
+    const h2 = respawn(h, nonEchoing);
+    await h2.settle();
+    const results = await Promise.all(Array.from({ length: 6 }, async () => badPassword(h2)));
+    const codes = results.map(errCode);
+    expect(codes.filter((c) => c === "wrong-password")).toHaveLength(5);
+    expect(codes.filter((c) => c === "rate-limited")).toHaveLength(1);
+    await expect(storedFailedAttempts(h.store)).resolves.toBe(5);
+  });
+
+  it("retries during backoff move neither the counter nor the deadline", async () => {
+    const h = createHarness({ wrapStore: nonEchoing });
+    await h.settle();
+    await createPasswordVault(h);
+    const h2 = respawn(h, nonEchoing);
+    await h2.settle();
+    for (let i = 0; i < 5; i++) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- unlock attempts are sequential by design
+      expect(errCode(await badPassword(h2))).toBe("wrong-password");
+    }
+    const t = h2.wallNow();
+    // Every further attempt while armed reports the same deadline and leaves the counter at 5.
+    for (let i = 0; i < 4; i++) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- unlock attempts are sequential by design
+      const limited = await badPassword(h2);
+      expect(errCode(limited)).toBe("rate-limited");
+      expect(errPayload(limited).retryAt).toBe(t + 30_000);
+    }
+    await expect(storedFailedAttempts(h.store)).resolves.toBe(5);
+  });
+
+  it("two kernels sharing one store never lose an increment", async () => {
+    const h = createHarness({ wrapStore: nonEchoing });
+    await h.settle();
+    await createPasswordVault(h);
+    const a = respawn(h, nonEchoing);
+    const b = respawn(h, nonEchoing);
+    await a.settle();
+    await b.settle();
+    const results = await Promise.all([
+      ...Array.from({ length: 5 }, async () => badPassword(a)),
+      ...Array.from({ length: 5 }, async () => badPassword(b)),
+    ]);
+    // The wrong-password/rate-limited split depends on interleaving — whichever attempts reload
+    // before the counter crosses 5 see an unarmed backoff. What must hold: every attempt either
+    // failed honestly or was limited, every honest miss landed its increment (never lost), and
+    // enough attempts ran far enough to arm the backoff.
+    const codes = results.map(errCode);
+    for (const code of codes) {
+      expect(["wrong-password", "rate-limited"]).toContain(code);
+    }
+    const counted = codes.filter((c) => c === "wrong-password").length;
+    await expect(storedFailedAttempts(h.store)).resolves.toBe(counted);
+    expect(counted).toBeGreaterThanOrEqual(5);
+  });
+
+  it("a password attempt on a passkey-only vault is invalid-input and never counted", async () => {
+    const h = createHarness({ wrapStore: nonEchoing });
+    await h.settle();
+    await createPasskeyWallet(h);
+    const h2 = respawn(h, nonEchoing);
+    await h2.settle();
+    expect(errCode(await badPassword(h2))).toBe("invalid-input");
+    await expect(storedFailedAttempts(h.store)).resolves.toBe(0);
+  });
+
+  it("a passkey unlock is never gated by password backoff", async () => {
+    const h = createHarness({ wrapStore: nonEchoing });
+    await h.settle();
+    const { session } = await createPasskeyWallet(h);
+    ok(
+      await h.call(
+        "vault.addFactor",
+        {
+          verify: passkeyFactor(),
+          factor: { kind: "password", password: new Uint8Array(PASSWORD) },
+        },
+        session,
+      ),
+    );
+    const h2 = respawn(h, nonEchoing);
+    await h2.settle();
+    // Arm the backoff fully — the sixth attempt is rejected without counting.
+    for (let i = 0; i < 6; i++) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- sequential attempts
+      await badPassword(h2);
+    }
+    await expect(storedFailedAttempts(h.store)).resolves.toBe(5);
+    // The passkey path does not consult the password counters at all.
+    const unlocked = await h2.call("vault.unlock", { factor: passkeyFactor() });
+    expect("ok" in unlocked).toBe(true);
   });
 });
 
@@ -909,10 +1127,11 @@ describe("integrity", () => {
     expect(lastStatus(h).vault).toBe("uninitialized");
   });
 
-  it("a stored record of an unknown kind corrupts the vault — it is never silently dropped", async () => {
+  it("a stored record of an unknown kind is unsupported — the vault locks and stays untouched", async () => {
     const h = createHarness();
     await h.settle();
-    await createPasskeyWallet(h);
+    const { session } = await createPasskeyWallet(h);
+    const before = await h.store.load();
     // Simulate a vault written by a newer build: a record kind this kernel does not own.
     await h.store.commit([
       {
@@ -927,20 +1146,26 @@ describe("integrity", () => {
     ]);
     await h.settle();
     const status = lastStatus(h);
-    expect(status.vault).toBe("corrupted");
-    // Everything except status and vault.reset fails closed.
+    expect(status.vault).toBe("unsupported");
+    // The unlocked session is invalidated immediately, not at the next timeout.
+    expect(lockReasons(h.events)).toContain("invalidated");
+    // Everything except status and vault.reset fails closed — the store bytes stay as written.
     expect(
       errCode(
         await h.call("vault.unlock", {
           factor: { kind: "passkey", credentialId: CREDENTIAL_ID, prf: new Uint8Array(PRF_VAULT) },
         }),
       ),
-    ).toBe("integrity");
+    ).toBe("unsupported");
+    expect(errCode(await h.call("nostr.createNip46ClientKey", null, session))).toBe("unsupported");
+    const untouched = await h.store.load();
+    expect(untouched.records).toHaveLength(before.records.length + 1);
+    expect(untouched.records.some((r) => r.kind === "spark-key")).toBe(true);
     expect(ok(await h.call("vault.reset"))).toBeNull();
     expect(lastStatus(h).vault).toBe("uninitialized");
   });
 
-  it("a racing establish fails with integrity and writes nothing", async () => {
+  it("a racing establish fails with conflict and writes nothing", async () => {
     const h = createHarness();
     await h.settle();
     const created = ok(
@@ -954,15 +1179,12 @@ describe("integrity", () => {
     const words = new TextDecoder().decode(bytesField(created, "words")).split(" ");
 
     // Another tab establishes a vault first.
-    await h.store.commit([
-      { op: "expect-uninitialized" },
-      { op: "put-meta", meta: { format: 1, failedAttempts: 0, retryAt: 0 } },
-    ]);
+    await h.store.commit([{ op: "init", meta: metaOf() }]);
     await h.settle();
 
     const answers = quiz.map((p) => utf8ToBytes(words[p]!));
     const res = await h.call("wallet.confirmMnemonic", { draft, answers });
-    expect(errCode(res)).toBe("integrity");
+    expect(errCode(res)).toBe("conflict");
     const image = await h.store.load();
     expect(image.records).toHaveLength(0);
     expect(image.factors).toHaveLength(0);
@@ -1007,5 +1229,245 @@ describe("integrity", () => {
         }),
       ),
     ).toBe("invalid-input");
+  });
+});
+
+describe("vault health", () => {
+  it("a meta format this build cannot read is unsupported and stays untouched", async () => {
+    const h = createHarness();
+    await h.settle();
+    // A newer build initialized this vault.
+    await h.store.commit([{ op: "init", meta: metaOf({ format: 3 }) }]);
+    await h.settle();
+    expect(lastStatus(h).vault).toBe("unsupported");
+    expect(errCode(await h.call("vault.unlock", { factor: passkeyFactor() }))).toBe("unsupported");
+    // Nothing is rewritten and reset still recovers.
+    const metaAfter = await storedMeta(h.store);
+    expect(metaAfter.format).toBe(3);
+    expect(ok(await h.call("vault.reset"))).toBeNull();
+    expect(lastStatus(h).vault).toBe("uninitialized");
+  });
+
+  it("a factor kind this build does not know is unsupported", async () => {
+    const h = createHarness();
+    await h.settle();
+    await h.store.commit([
+      { op: "init", meta: metaOf() },
+      {
+        op: "put-factor",
+        factor: {
+          kind: "u2f-key",
+          id: "cc".repeat(16),
+          header: "{}",
+          sealed: new Uint8Array(48),
+        },
+      },
+    ]);
+    await h.settle();
+    expect(lastStatus(h).vault).toBe("unsupported");
+    expect(errCode(await h.call("vault.unlock", { factor: passkeyFactor() }))).toBe("unsupported");
+  });
+
+  it("a password factor with unknown KDF parameters is unsupported", async () => {
+    const h = createHarness();
+    await h.settle();
+    await h.store.commit([
+      { op: "init", meta: metaOf() },
+      {
+        op: "put-factor",
+        factor: {
+          kind: "password",
+          id: "dd".repeat(16),
+          header: JSON.stringify({
+            salt: "AAAAAAAAAAAAAAAAAAAAAA",
+            iterations: 1_000_000,
+            createdAt: 0,
+          }),
+          sealed: new Uint8Array(48),
+        },
+      },
+    ]);
+    await h.settle();
+    expect(lastStatus(h).vault).toBe("unsupported");
+    const stored = await h.store.load();
+    expect(stored.factors[0]?.kind).toBe("password");
+  });
+
+  it("a malformed header of a known kind while unlocked is corrupted and locks at once", async () => {
+    const h = createHarness();
+    await h.settle();
+    const { session } = await createPasskeyWallet(h);
+    await h.store.commit([
+      {
+        op: "put-factor",
+        factor: {
+          kind: "password",
+          id: "ee".repeat(16),
+          header: "not json",
+          sealed: new Uint8Array(48),
+        },
+      },
+    ]);
+    await h.settle();
+    expect(lastStatus(h).vault).toBe("corrupted");
+    // The unlocked session is invalidated immediately — DEK and drafts are wiped.
+    expect(lockReasons(h.events)).toContain("invalidated");
+    expect(errCode(await h.call("nostr.createNip46ClientKey", null, session))).toBe("integrity");
+    expect(ok(await h.call("vault.reset"))).toBeNull();
+    expect(lastStatus(h).vault).toBe("uninitialized");
+  });
+
+  it("a transient load failure is unavailable — retried, never latched", async () => {
+    const broken = { current: false };
+    const h = createHarness({ wrapStore: (store) => flakyLoad(store, broken) });
+    await h.settle();
+    await createPasskeyWallet(h);
+    await h.settle(); // flush the create commit's own echo-reload before arming the failure
+    // An external commit triggers a reload whose load fails once.
+    broken.current = true;
+    await h.store.commit([{ op: "reset-failures" }]);
+    await h.settle();
+    expect(lastStatus(h).vault).toBe("unavailable");
+    broken.current = false;
+    // The next request retries the load once, recovers, and runs honestly.
+    const unlocked = await h.call("vault.unlock", { factor: passkeyFactor() });
+    expect("ok" in unlocked).toBe(true);
+    expect(lastStatus(h).vault).toBe("unlocked");
+  });
+
+  it("a store that fails to load at startup is unavailable, not corrupted", async () => {
+    const broken = { current: true };
+    const h = createHarness({ wrapStore: (store) => flakyLoad(store, broken) });
+    await h.settle();
+    expect(lastStatus(h).vault).toBe("unavailable");
+    expect(errCode(await h.call("nostr.generateKey", {}))).toBe("unavailable");
+    broken.current = false;
+    // The next request's reload restores health without any reset.
+    const created = await h.call("wallet.createMnemonic", {
+      words: 12,
+      factor: { kind: "password", password: new Uint8Array(PASSWORD) },
+    });
+    expect("ok" in created).toBe(true);
+  });
+
+  it("a generic commit failure surfaces as unavailable", async () => {
+    const broken = { current: true };
+    const h = createHarness({ wrapStore: (store) => flakyCommit(store, broken) });
+    await h.settle();
+    const res = await h.call("wallet.importMnemonic", {
+      mnemonic: utf8ToBytes(nip06.vectors[0]!.mnemonic),
+      factor: { kind: "password", password: new Uint8Array(PASSWORD) },
+    });
+    expect(errCode(res)).toBe("unavailable");
+    expect(lastStatus(h).vault).toBe("unavailable");
+    broken.current = false;
+    const retry = await h.call("wallet.importMnemonic", {
+      mnemonic: utf8ToBytes(nip06.vectors[0]!.mnemonic),
+      factor: { kind: "password", password: new Uint8Array(PASSWORD) },
+    });
+    expect("ok" in retry).toBe(true);
+  });
+});
+
+describe("concurrent writers on one store", () => {
+  /** A vault with password + passkey factors; both kernels hold unlocked sessions. */
+  async function twoKernels(): Promise<{
+    shared: ReturnType<typeof createMemoryStore>;
+    a: Harness;
+    b: Harness;
+    sessionA: string;
+    sessionB: string;
+    passwordFactorId: string;
+    passkeyFactorId: string;
+  }> {
+    const shared = createMemoryStore();
+    const a = createHarness({ store: shared });
+    await a.settle();
+    const created = ok(
+      await a.call("wallet.importMnemonic", {
+        mnemonic: utf8ToBytes(nip06.vectors[0]!.mnemonic),
+        factor: { kind: "password", password: new Uint8Array(PASSWORD) },
+      }),
+    );
+    const sessionA = strField(created, "session");
+    ok(
+      await a.call(
+        "vault.addFactor",
+        {
+          verify: { kind: "password", password: new Uint8Array(PASSWORD) },
+          factor: passkeyFactor(),
+        },
+        sessionA,
+      ),
+    );
+    const { factors } = lastStatus(a);
+    const passwordFactorId = factorId(factors.find((f) => f.kind === "password"));
+    const passkeyFactorId = factorId(factors.find((f) => f.kind === "passkey"));
+    const b = createHarness({ store: shared });
+    await b.settle();
+    const unlockB = ok(
+      await b.call("vault.unlock", {
+        factor: { kind: "password", password: new Uint8Array(PASSWORD) },
+      }),
+    );
+    return {
+      shared,
+      a,
+      b,
+      sessionA,
+      sessionB: strField(unlockB, "session"),
+      passwordFactorId,
+      passkeyFactorId,
+    };
+  }
+
+  it("concurrent removeFactor commits conflict — exactly one wins, one factor remains", async () => {
+    const { shared, a, b, sessionA, sessionB, passwordFactorId, passkeyFactorId } =
+      await twoKernels();
+    // Each call needs its own verify object: the kernel wipes the password bytes it consumes.
+    const [ra, rb] = await Promise.all([
+      a.call(
+        "vault.removeFactor",
+        { verify: { kind: "password", password: new Uint8Array(PASSWORD) }, id: passkeyFactorId },
+        sessionA,
+      ),
+      b.call(
+        "vault.removeFactor",
+        { verify: { kind: "password", password: new Uint8Array(PASSWORD) }, id: passwordFactorId },
+        sessionB,
+      ),
+    ]);
+    const codes = [ra, rb].map(codeOf);
+    expect(codes.filter((c) => c === "ok")).toHaveLength(1);
+    expect(codes.filter((c) => c === "conflict")).toHaveLength(1);
+    const image = await shared.load();
+    expect(image.factors.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("concurrent password addFactor commits conflict — one password factor remains", async () => {
+    const { shared, a, b, sessionA, sessionB } = await twoKernels();
+    const [ra, rb] = await Promise.all([
+      a.call(
+        "vault.addFactor",
+        {
+          verify: { kind: "password", password: new Uint8Array(PASSWORD) },
+          factor: { kind: "password", password: utf8ToBytes("new password alpha") },
+        },
+        sessionA,
+      ),
+      b.call(
+        "vault.addFactor",
+        {
+          verify: { kind: "password", password: new Uint8Array(PASSWORD) },
+          factor: { kind: "password", password: utf8ToBytes("new password bravo") },
+        },
+        sessionB,
+      ),
+    ]);
+    const codes = [ra, rb].map(codeOf);
+    expect(codes.filter((c) => c === "ok")).toHaveLength(1);
+    expect(codes.filter((c) => c === "conflict")).toHaveLength(1);
+    const image = await shared.load();
+    expect(image.factors.filter((f) => f.kind === "password")).toHaveLength(1);
   });
 });

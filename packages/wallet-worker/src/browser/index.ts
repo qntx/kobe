@@ -13,7 +13,6 @@ import type { ProtocolValue } from "@qntx/wallet/protocol";
 import type { BrowserWorkerInit } from "../shared.ts";
 import { createWebAuthnPasskey } from "./passkey.ts";
 
-const MAX_SESSION_MS = 12 * 3_600_000; // fixed: 12 h
 const HIDDEN_LOCK_MS = 5 * 60_000; // lock after the page has been hidden for 5 minutes
 
 async function bestEffort(task: () => Promise<unknown>): Promise<void> {
@@ -29,11 +28,8 @@ export async function createWebWallet(options: WalletOptions): Promise<Wallet> {
   if (autoLock.platform !== "web") {
     throw new WalletError("invalid-input", "createWebWallet accepts only the web autoLock policy");
   }
-  const init: BrowserWorkerInit = {
-    t: "init",
-    idleMs: autoLock.idleMinutes * 60_000,
-    maxSessionMs: MAX_SESSION_MS,
-  };
+  // The page sends only the idle choice; the worker owns the maximum session duration.
+  const init: BrowserWorkerInit = { t: "init", idleMinutes: autoLock.idleMinutes };
   const kernelUrl = new URL("kernel.worker.js", import.meta.url);
   const ceremony = createWebAuthnPasskey({
     id: options.passkey.rpId,
@@ -79,6 +75,12 @@ export async function createWebWallet(options: WalletOptions): Promise<Wallet> {
     spawn,
     passkey: options.passkey,
     ceremony,
+    setTimer: (delayMs, fn) => {
+      const timer = globalThis.setTimeout(fn, delayMs);
+      return () => {
+        globalThis.clearTimeout(timer);
+      };
+    },
     onDestroy: () => {
       document.removeEventListener("visibilitychange", onVisibility);
       globalThis.removeEventListener("pagehide", onPageHide);

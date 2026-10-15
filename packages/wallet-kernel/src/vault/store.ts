@@ -1,7 +1,7 @@
 /**
  * A record kind names the module that owns the record's header and plaintext format. The store and
  * the envelope are kind-agnostic: any string matching the pattern is a valid kind, and a stored
- * kind no module claims marks the vault corrupted rather than being dropped.
+ * kind no module claims marks the vault unsupported rather than being dropped.
  */
 const RECORD_KIND_PATTERN = /^[a-z][a-z0-9-]{0,31}$/;
 
@@ -19,16 +19,21 @@ export type StoredRecord = {
 };
 
 export type StoredFactor = {
-  readonly kind: "password" | "passkey";
+  readonly kind: string; // see isRecordKind; unknown kinds are classified by the kernel
   readonly id: string; // hex of 16 random bytes
   readonly header: string;
   readonly sealed: Uint8Array; // wrapped DEK
 };
 
+/** The vault format this build reads and writes. Anything else is `unsupported`. */
+export const VAULT_FORMAT = 2;
+
 export type VaultMeta = {
-  readonly format: 1;
-  readonly failedAttempts: number;
-  readonly retryAt: number; // epoch ms; 0 means no wait required
+  readonly format: number; // this build reads only VAULT_FORMAT
+  readonly revision: number; // incremented once per content commit, inside the transaction
+  readonly keyId: string; // 32 lowercase hex; changes on DEK rotation (public change signal)
+  readonly failedAttempts: number; // consecutive password failures
+  readonly lastFailureAt: number; // wall-clock ms of the last counted failure; 0 = none
 };
 
 export type VaultImage = {
@@ -38,17 +43,24 @@ export type VaultImage = {
 };
 
 export type StoreOp =
-  | { readonly op: "expect-uninitialized" } // precondition, checked inside the transaction
-  | { readonly op: "put-meta"; readonly meta: VaultMeta }
+  | { readonly op: "init"; readonly meta: VaultMeta } // precondition: the store is fully empty
+  | { readonly op: "expect-revision"; readonly revision: number } // precondition: meta.revision matches
+  | { readonly op: "set-key-id"; readonly keyId: string }
+  | { readonly op: "record-failure"; readonly at: number } // failedAttempts += 1, lastFailureAt = at
+  | { readonly op: "reset-failures" } // failedAttempts = 0, lastFailureAt = 0
   | { readonly op: "put-record"; readonly record: StoredRecord }
-  | { readonly op: "delete-record"; readonly kind: StoredRecord["kind"]; readonly id: string }
+  | { readonly op: "delete-record"; readonly kind: string; readonly id: string }
   | { readonly op: "put-factor"; readonly factor: StoredFactor }
   | { readonly op: "delete-factor"; readonly id: string }
   | { readonly op: "clear" };
 
 export type RecordStore = {
   load: () => Promise<VaultImage>;
-  /** Atomic. A failed precondition rejects without writing anything. */
+  /**
+   * Atomic. A failed precondition rejects with `KernelError("conflict")` and writes nothing; a
+   * commit containing a content op (put/delete record or factor, set-key-id) increments
+   * `meta.revision` by one inside the same transaction.
+   */
   commit: (ops: ReadonlyArray<StoreOp>) => Promise<void>;
   /** Fires after every commit (other tabs on Web trigger it via the host). */
   watch: (listener: () => void) => () => void;

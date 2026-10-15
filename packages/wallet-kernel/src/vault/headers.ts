@@ -1,3 +1,4 @@
+import { KernelError } from "../errors.ts";
 import {
   asBase64url,
   asCreatedAt,
@@ -106,8 +107,13 @@ export function parseDataKeyHeader(text: string): DataKeyHeader {
 export function parsePasswordFactorHeader(text: string): PasswordFactorHeader {
   const object = headerObject(text);
   expectKeys(object, ["salt", "iterations", "createdAt"]);
-  if (object["iterations"] !== PASSWORD_ITERATIONS) {
+  const { iterations } = object;
+  if (typeof iterations !== "number" || !Number.isSafeInteger(iterations)) {
     throw headerFailure();
+  }
+  if (iterations !== PASSWORD_ITERATIONS) {
+    // A well-formed header with different KDF parameters came from another build.
+    throw new KernelError("unsupported", "password factor uses unknown KDF parameters");
   }
   return {
     salt: asBase64url(object["salt"], 16, 16),

@@ -6,7 +6,7 @@
  * internals in internal.ts — never through the public type.
  */
 import { Channel } from "./channel.ts";
-import type { MainPort } from "./channel.ts";
+import type { MainPort, SetTimer } from "./channel.ts";
 import {
   passkeyName,
   requireCeremony,
@@ -43,6 +43,8 @@ export type ConnectOptions = {
   readonly spawn: () => MainPort;
   readonly passkey: PasskeyConfig;
   readonly ceremony: PasskeyCeremony | undefined;
+  /** Timer source injected by the host package (globalThis timers on web/node). */
+  readonly setTimer: SetTimer;
   /** Runs once inside `destroy()` — host-side cleanup (page listeners, timers). */
   readonly onDestroy?: () => void;
 };
@@ -103,19 +105,23 @@ export class KernelWallet implements Wallet {
       wallets: [],
       nostr: { keys: [] },
     };
-    this.channel = new Channel(options.spawn, {
-      onStatus: (status) => {
-        this.onStatus(status);
+    this.channel = new Channel(
+      options.spawn,
+      {
+        onStatus: (status) => {
+          this.onStatus(status);
+        },
+        onLocked: (reason) => {
+          this.lockReason = reason;
+          this.emit();
+        },
+        onCrashed: () => {
+          this.lockReason = "crashed";
+          this.markLocked();
+        },
       },
-      onLocked: (reason) => {
-        this.lockReason = reason;
-        this.emit();
-      },
-      onCrashed: () => {
-        this.lockReason = "crashed";
-        this.emit();
-      },
-    });
+      options.setTimer,
+    );
     registerInternals(this, {
       call: async (method, params, transfer) => this.channel.call(method, params, transfer),
       ready: async () => this.channel.ready,
@@ -133,6 +139,18 @@ export class KernelWallet implements Wallet {
     const wallet = new KernelWallet(options);
     await wallet.channel.start();
     return wallet;
+  }
+
+  /**
+   * The worker is dead or replaced — no status will arrive from it, yet an unlocked vault is locked
+   * now. Reflect that in the snapshot without waiting for the respawned kernel; other states
+   * (uninitialized, corrupted, …) are the kernel's truth and stay untouched.
+   */
+  private markLocked(): void {
+    if (this.status !== undefined && this.status.vault === "unlocked") {
+      this.status = { ...this.status, vault: "locked" };
+    }
+    this.emit();
   }
 
   private onStatus(status: StatusPayload): void {
@@ -241,15 +259,12 @@ export class KernelWallet implements Wallet {
         const result = await this.channel.call("vault.unlock", { factor: wire }, transfer);
         this.sessionOf(result);
       }),
+    // Host-side lock: immediate, no kernel round trip — fails pending calls, clears the session
+    // and respawns the port. Idempotent: re-locking is a no-op.
+    // oxlint-disable-next-line typescript/require-await -- the interface's Promise is resolved synchronously
     lock: async (): Promise<void> => {
-      try {
-        await this.channel.call("vault.lock", null);
-      } catch (error) {
-        // Locking an already-locked (or just-locked) vault is the postcondition anyway.
-        if (!(error instanceof WalletError) || error.code !== "locked") {
-          throw error;
-        }
-      }
+      this.channel.lockNow();
+      this.markLocked();
     },
     addFactor: async (factor: InitialFactor, verify: UnlockFactor): Promise<FactorInfo> =>
       this.withVerifying(async () => {

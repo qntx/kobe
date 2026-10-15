@@ -7,7 +7,7 @@
 import { startKernel } from "@qntx/wallet-kernel";
 import type { KernelPlatform, Port } from "@qntx/wallet-kernel";
 
-import { isBrowserWorkerInit } from "../shared.ts";
+import { MAX_SESSION_MS, idleMsOf, isBrowserWorkerInit } from "../shared.ts";
 import { createIndexedDbStore } from "./indexeddb.ts";
 import { subtlePbkdf2 } from "./subtle.ts";
 
@@ -21,6 +21,7 @@ const onInit = (event: MessageEvent<unknown>): void => {
   const platform: KernelPlatform = {
     random: (length) => crypto.getRandomValues(new Uint8Array(length)),
     now: () => Date.now(),
+    elapsed: () => performance.now(),
     setTimer: (delayMs, fn) => {
       const timer = setTimeout(fn, delayMs);
       return () => {
@@ -29,7 +30,9 @@ const onInit = (event: MessageEvent<unknown>): void => {
     },
     pbkdf2: subtlePbkdf2,
     store: createIndexedDbStore(),
-    policy: { idleMs: data.idleMs, maxSessionMs: data.maxSessionMs },
+    // Session limits are owned here, not by the page: idle from the validated init message,
+    // the fixed maximum, and the scrypt ceiling for this platform.
+    policy: { idleMs: idleMsOf(data.idleMinutes), maxSessionMs: MAX_SESSION_MS, maxScryptLogN: 18 },
   };
 
   const port: Port = {

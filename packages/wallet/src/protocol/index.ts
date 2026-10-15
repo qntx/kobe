@@ -99,6 +99,8 @@ const statusPayload: Validator<StatusPayload> = obj({
     literal("locked"),
     literal("unlocked"),
     literal("corrupted"),
+    literal("unsupported"),
+    literal("unavailable"),
   ),
   factors: arr(factorInfo, MAX_SNAPSHOT_ITEMS),
   wallets: arr(walletInfo, MAX_SNAPSHOT_ITEMS),
@@ -138,6 +140,7 @@ const lockReason: Validator<LockReason> = union(
   literal("background"),
   literal("expired"),
   literal("crashed"),
+  literal("invalidated"),
 );
 
 const errorPayload = obj({ code: walletErrorCode, retryAt: opt(safeTime) });
@@ -152,7 +155,7 @@ export const kernelEvent: Validator<KernelEvent> = union(
 export const responseError: Validator<{ code: WalletErrorCode; retryAt?: number | undefined }> =
   errorPayload;
 
-export { CORE_METHODS, NOSTR_METHODS };
+export { CORE_METHODS, NOSTR_METHODS, walletErrorCode };
 export type { MethodSpec } from "./core.ts";
 export type { CreatedResult, Factor } from "./core.ts";
 export type {

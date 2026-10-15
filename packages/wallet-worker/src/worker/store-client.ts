@@ -1,16 +1,33 @@
 /**
  * RecordStore over a MessagePort RPC: the vault image (ciphertext + public headers) lives in the
  * main thread so a lock can destroy the whole worker without losing the vault. The main side pushes
- * a "changed" notice when some other writer committed; `watch` relays it to the kernel.
+ * a "changed" notice when some other writer committed; `watch` relays it to the kernel. A failed
+ * request comes back as `{ t: "failed", code }` and rejects — never left hanging.
  */
-import type { RecordStore, StoreOp, VaultImage } from "@qntx/wallet-kernel";
+import { KernelError } from "@qntx/wallet-kernel";
+import type { KernelErrorCode, RecordStore, StoreOp, VaultImage } from "@qntx/wallet-kernel";
+import { walletErrorCode } from "@qntx/wallet/protocol";
 
 import type { StorePort, StoreReply, StoreRequest } from "../shared.ts";
 import { assertVaultImage } from "../shared.ts";
 
+type Pending = {
+  readonly resolve: (reply: StoreReply) => void;
+  readonly reject: (error: Error) => void;
+};
+
+/** The code on a `failed` reply is only trusted if it is a real WalletErrorCode. */
+function replyCode(code: unknown): KernelErrorCode {
+  try {
+    return walletErrorCode(code);
+  } catch {
+    return "unavailable";
+  }
+}
+
 export function createStoreClient(port: StorePort): RecordStore {
   let nextId = 1;
-  const pending = new Map<number, (reply: StoreReply) => void>();
+  const pending = new Map<number, Pending>();
   const watchers = new Set<() => void>();
 
   port.listen((raw) => {
@@ -27,11 +44,15 @@ export function createStoreClient(port: StorePort): RecordStore {
       }
       return;
     }
-    if (reply.t === "loaded" || reply.t === "committed") {
-      const resolve = pending.get(reply.id);
-      if (resolve !== undefined) {
+    if (reply.t === "loaded" || reply.t === "committed" || reply.t === "failed") {
+      const entry = pending.get(reply.id);
+      if (entry !== undefined) {
         pending.delete(reply.id);
-        resolve(reply);
+        if (reply.t === "failed") {
+          entry.reject(new KernelError(replyCode(reply.code), "vault store: request failed"));
+        } else {
+          entry.resolve(reply);
+        }
       }
     }
   });
@@ -42,8 +63,11 @@ export function createStoreClient(port: StorePort): RecordStore {
   ): Promise<VaultImage | undefined> {
     const id = nextId++;
     return new Promise((resolve, reject) => {
-      pending.set(id, (reply) => {
-        resolve(pick(reply));
+      pending.set(id, {
+        resolve: (reply) => {
+          resolve(pick(reply));
+        },
+        reject,
       });
       try {
         port.post(build(id));

@@ -32,8 +32,10 @@ type State =
       readonly status: "unlocked";
       readonly id: string;
       readonly dek: Secret;
-      readonly unlockedAt: number;
-      lastRequestAt: number;
+      /** The vault keyId the DEK belongs to — a keyId change elsewhere invalidates the session. */
+      readonly keyId: string;
+      readonly unlockedAt: number; // elapsed clock
+      lastRequestAt: number; // elapsed clock
     };
 
 function wipePendingFactor(pending: PendingFactor): void {
@@ -85,31 +87,43 @@ export class Session {
     if (this.state.status === "uninitialized" && initialized) {
       this.state = { status: "locked" };
     } else if (!initialized && this.state.status !== "uninitialized") {
-      // The vault was wiped externally (reset in another tab); drop the session.
-      this.lock("user");
+      // The vault was wiped externally (reset in another tab): the session is invalidated.
+      this.lock("invalidated");
       this.state = { status: "uninitialized" };
     }
   }
 
   /** Opens a session, replacing any existing one. Returns the new session id. */
-  open(dek: Secret): string {
+  open(dek: Secret, keyId: string): string {
     this.wipeUnlocked();
     const id = bytesToHex(this.platform.random(16));
-    const now = this.platform.now();
-    this.state = { status: "unlocked", id, dek, unlockedAt: now, lastRequestAt: now };
+    const at = this.platform.elapsed();
+    this.state = { status: "unlocked", id, dek, keyId, unlockedAt: at, lastRequestAt: at };
     this.schedule();
     return id;
   }
 
+  /** Swaps the live DEK after a rotation commit (old DEK wiped); throws `locked` when not unlocked. */
+  rotate(dek: Secret, keyId: string): void {
+    const { state } = this;
+    if (state.status !== "unlocked") {
+      throw new KernelError("locked", "session is not unlocked");
+    }
+    state.dek.wipe();
+    this.state = { ...state, dek, keyId };
+  }
+
   /**
-   * Enforces idle and max-session deadlines. Returns the lock reason when the session expired; the
-   * caller locks before handling the request. Otherwise stamps the request time.
+   * Enforces idle and max-session deadlines on the monotonic elapsed clock. Returns the lock reason
+   * when the session expired; the caller locks before handling the request. Otherwise stamps the
+   * request time.
    */
-  checkTimeouts(now: number): LockReason | undefined {
+  checkTimeouts(): LockReason | undefined {
     const { state } = this;
     if (state.status !== "unlocked") {
       return undefined;
     }
+    const now = this.platform.elapsed();
     if (now - state.unlockedAt > this.platform.policy.maxSessionMs) {
       return "expired";
     }
@@ -200,7 +214,7 @@ export class Session {
     if (this.state.status !== "unlocked") {
       return;
     }
-    const now = this.platform.now();
+    const now = this.platform.elapsed();
     const deadline = Math.min(
       this.state.unlockedAt + this.platform.policy.maxSessionMs,
       this.state.lastRequestAt + this.platform.policy.idleMs,
@@ -210,7 +224,7 @@ export class Session {
       this.cancelTimer();
     }
     this.cancelTimer = this.platform.setTimer(delay, () => {
-      const reason = this.checkTimeouts(this.platform.now());
+      const reason = this.checkTimeouts();
       if (reason === undefined) {
         this.schedule();
       } else {

@@ -28,13 +28,8 @@ function randomMalformed(next: () => number): unknown {
 
   let method =
     pick(10) === 0 ? "no.such.method" : (METHOD_NAMES[pick(METHOD_NAMES.length)] ?? "status");
-  // These four methods accept `params: null` — keep them malformed by construction.
-  const nullParamMethods = new Set([
-    "status",
-    "vault.lock",
-    "vault.reset",
-    "nostr.createNip46ClientKey",
-  ]);
+  // These three methods accept `params: null` — keep them malformed by construction.
+  const nullParamMethods = new Set(["status", "vault.reset", "nostr.createNip46ClientKey"]);
   const style = pick(8);
   if (nullParamMethods.has(method) && (style === 4 || style === 5 || style === 7)) {
     method = "vault.unlock"; // a method whose null params are malformed

@@ -18,8 +18,6 @@ import { serveStore } from "./store-server.ts";
 
 export { createSoftwarePasskey } from "./software-passkey.ts";
 
-const MAX_SESSION_MS = 12 * 3_600_000; // fixed: 12 h
-
 export type NodeWalletOptions = {
   readonly passkey: PasskeyConfig;
   readonly autoLock: AutoLockPolicy;
@@ -37,10 +35,8 @@ export async function createNodeWallet(options: NodeWalletOptions): Promise<Wall
   if (autoLock.platform !== "web") {
     throw new WalletError("invalid-input", "createNodeWallet accepts only the web autoLock policy");
   }
-  const workerData = {
-    idleMs: autoLock.idleMinutes * 60_000,
-    maxSessionMs: MAX_SESSION_MS,
-  };
+  // The host sends only the idle choice; the worker owns the maximum session duration.
+  const workerData = { idleMinutes: autoLock.idleMinutes };
   const store = createMemoryStore(); // ciphertext + public headers only — safe in the main thread
   const kernelUrl = options.kernelUrl ?? new URL("kernel.node.js", import.meta.url);
 
@@ -85,5 +81,11 @@ export async function createNodeWallet(options: NodeWalletOptions): Promise<Wall
     spawn,
     passkey: options.passkey,
     ceremony: options.authenticator,
+    setTimer: (delayMs, fn) => {
+      const timer = setTimeout(fn, delayMs);
+      return () => {
+        clearTimeout(timer);
+      };
+    },
   });
 }
