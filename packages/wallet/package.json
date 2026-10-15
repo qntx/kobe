@@ -1,6 +1,6 @@
 {
   "name": "@qntx/wallet",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Self-custodial wallet SDK: Wallet host entry, proxy signers, protocol and types",
   "keywords": [
     "nostr",
