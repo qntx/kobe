@@ -121,7 +121,7 @@ export function obj<S extends Shape>(shape: S): Validator<ShapeResult<S>> {
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- narrowed to a plain object above
     const record = value as Record<string, unknown>;
     for (const key of Object.keys(record)) {
-      if (!(key in shape)) {
+      if (!Object.hasOwn(shape, key)) {
         fail();
       }
     }
@@ -137,7 +137,7 @@ export function obj<S extends Shape>(shape: S): Validator<ShapeResult<S>> {
           out[key] = field.validator(raw);
         }
       } else {
-        if (!(key in record)) {
+        if (!Object.hasOwn(record, key)) {
           fail();
         }
         out[key] = field(raw);

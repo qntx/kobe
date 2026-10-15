@@ -5,10 +5,18 @@ import { getPublicKey, KeysSigner } from "@qntx/nostr";
 import type { UnsignedEvent } from "@qntx/nostr";
 
 import type { MainPort, SetTimer } from "../src/channel.ts";
+import { PASSKEY_PURPOSE_VAULT, PASSKEY_PURPOSE_WALLET } from "../src/factors.ts";
+import type { PasskeyCeremony, PrfResult } from "../src/factors.ts";
 import { nostr } from "../src/nostr/index.ts";
 import type { ProtocolValue } from "../src/protocol/index.ts";
 import { WalletError } from "../src/types.ts";
-import type { LockReason, NostrKeyInfo, StatusPayload, WalletErrorCode } from "../src/types.ts";
+import type {
+  LockReason,
+  NostrKeyInfo,
+  PasskeyConfig,
+  StatusPayload,
+  WalletErrorCode,
+} from "../src/types.ts";
 import { connectKernel } from "../src/wallet.ts";
 
 const SECRET_KEY = hexToBytes("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
@@ -19,6 +27,7 @@ const NOSTR_KEY: NostrKeyInfo = {
   ref: { kind: "standalone", id: PUBLIC_KEY },
   publicKey: PUBLIC_KEY,
   origin: "nsec",
+  backedUp: true,
   createdAt: 1,
 };
 
@@ -47,6 +56,8 @@ type Handler = (request: Request) => Reply | Promise<Reply>;
 class FakeKernel {
   status: StatusPayload;
   readonly handlers = new Map<string, Handler>();
+  /** Every request method that reached the kernel, in order. */
+  readonly received: string[] = [];
   private active: ScriptedPort | undefined;
 
   constructor(status: StatusPayload) {
@@ -69,6 +80,7 @@ class FakeKernel {
   }
 
   receive(port: ScriptedPort, request: Request): void {
+    this.received.push(request.method);
     const handler = this.handlers.get(request.method);
     const respond = (reply: Reply): void => {
       port.send({ v: 1, id: request.id, ...reply });
@@ -607,5 +619,161 @@ describe("ExportedSecret", () => {
     expect(new TextDecoder().decode(bytes)).toBe("abandon abandon abandon");
     expect(() => exported.read()).toThrow(WalletError);
     exported.wipe();
+  });
+});
+
+describe("request size cap", () => {
+  const event = (content: string): UnsignedEvent => ({
+    pubkey: PUBLIC_KEY,
+    kind: 1,
+    created_at: 1,
+    tags: [],
+    content,
+  });
+
+  it("rejects an over-cap request with invalid-input and posts nothing", async () => {
+    const { wallet, kernel } = await connectFake(unlockedStatus());
+    kernel.handlers.set("nostr.signEvent", async () => ({
+      ok: await SIGNER.signEvent(event("x")),
+    }));
+    const signer = nostr(wallet).signer(NOSTR_KEY.ref);
+    // 400k UTF-16 units measure 1.2 MB against the 1 MiB cap — the request never posts.
+    await expect(
+      signer.signEvent({ ...event("x".repeat(400_000)), pubkey: PUBLIC_KEY }),
+    ).rejects.toSatisfy((e) => walletError(e).code === "invalid-input");
+    expect(kernel.received).not.toContain("nostr.signEvent");
+  });
+
+  it("posts a just-under-cap request", async () => {
+    const { wallet, kernel } = await connectFake(unlockedStatus());
+    kernel.handlers.set("nostr.signEvent", async (request) => {
+      const params = request.params as { publicKey: string; event: UnsignedEvent };
+      return { ok: await SIGNER.signEvent({ ...params.event, pubkey: params.publicKey }) };
+    });
+    const signer = nostr(wallet).signer(NOSTR_KEY.ref);
+    // MAX_TEXT chars measure ~786 kB — under the cap — so the kernel sees the request.
+    const signed = await signer.signEvent({ ...event("x".repeat(262_144)), pubkey: PUBLIC_KEY });
+    expect(signed.pubkey).toBe(PUBLIC_KEY);
+    expect(kernel.received).toContain("nostr.signEvent");
+  });
+});
+
+describe("passkey restore purpose", () => {
+  function ceremonyWith(userHandle: Uint8Array | undefined): {
+    ceremony: PasskeyCeremony;
+    result: PrfResult;
+  } {
+    const result: PrfResult = {
+      credentialId: utf8ToBytes("credential-1"),
+      first: new Uint8Array(32).fill(7),
+      second: new Uint8Array(32).fill(8),
+      ...(userHandle === undefined ? {} : { userHandle }),
+    };
+    return {
+      result,
+      ceremony: {
+        // oxlint-disable-next-line typescript/require-await -- the ceremony contract is async
+        create: async () => result,
+        // oxlint-disable-next-line typescript/require-await -- the ceremony contract is async
+        assert: async () => result,
+      },
+    };
+  }
+
+  async function connectWithCeremony(ceremony: PasskeyCeremony): Promise<{
+    wallet: Awaited<ReturnType<typeof connectKernel>>;
+    kernel: FakeKernel;
+  }> {
+    const kernel = new FakeKernel({ ...unlockedStatus(), vault: "uninitialized" });
+    const wallet = await connectKernel({
+      spawn: () => {
+        const port = new ScriptedPort(kernel);
+        kernel.attach(port);
+        return port;
+      },
+      passkey: PASSKEY,
+      ceremony,
+      setTimer: realtime,
+    });
+    return { wallet, kernel };
+  }
+
+  it("rejects a vault-purpose credential, wipes the PRF and posts nothing", async () => {
+    const handle = new Uint8Array(16);
+    handle[0] = PASSKEY_PURPOSE_VAULT;
+    const { ceremony, result } = ceremonyWith(handle);
+    const { wallet, kernel } = await connectWithCeremony(ceremony);
+    await expect(wallet.wallets.restoreWithPasskey()).rejects.toSatisfy(
+      (e) => walletError(e).code === "wrong-passkey",
+    );
+    expect(kernel.received).not.toContain("wallet.restoreWithPasskey");
+    expect(result.first.every((b) => b === 0)).toBe(true);
+    expect(result.second?.every((b) => b === 0)).toBe(true);
+  });
+
+  it("rejects an assertion without a userHandle", async () => {
+    const { ceremony, result } = ceremonyWith(undefined);
+    const { wallet, kernel } = await connectWithCeremony(ceremony);
+    await expect(wallet.wallets.restoreWithPasskey()).rejects.toSatisfy(
+      (e) => walletError(e).code === "wrong-passkey",
+    );
+    expect(kernel.received).not.toContain("wallet.restoreWithPasskey");
+    expect(result.first.every((b) => b === 0)).toBe(true);
+  });
+
+  it("restores with a wallet-purpose credential", async () => {
+    const handle = new Uint8Array(16);
+    handle[0] = PASSKEY_PURPOSE_WALLET;
+    const { ceremony } = ceremonyWith(handle);
+    const { wallet, kernel } = await connectWithCeremony(ceremony);
+    kernel.handlers.set("wallet.restoreWithPasskey", () => ({
+      ok: {
+        wallet: {
+          walletId: "0123456789abcdef",
+          origin: "passkey",
+          words: 12,
+          backedUp: false,
+          createdAt: 1,
+        },
+        session: "ab".repeat(16),
+      },
+    }));
+    const restored = await wallet.wallets.restoreWithPasskey();
+    expect(restored.walletId).toBe("0123456789abcdef");
+    expect(kernel.received).toContain("wallet.restoreWithPasskey");
+  });
+});
+
+describe("passkey config validation", () => {
+  function connectWithPasskey(patch: Partial<PasskeyConfig>): {
+    attempt: ReturnType<typeof connectKernel>;
+    spawned: ScriptedPort[];
+  } {
+    const kernel = new FakeKernel(unlockedStatus());
+    const spawned: ScriptedPort[] = [];
+    const attempt = connectKernel({
+      spawn: () => {
+        const port = new ScriptedPort(kernel);
+        spawned.push(port);
+        kernel.attach(port);
+        return port;
+      },
+      passkey: { ...PASSKEY, ...patch },
+      ceremony: undefined,
+      setTimer: realtime,
+    });
+    return { attempt, spawned };
+  }
+
+  it.each([
+    { rpId: "" },
+    { rpName: "" },
+    { walletSalt: "" },
+    { vaultSalt: "" },
+    { vaultSalt: PASSKEY.walletSalt },
+  ])("rejects %o with invalid-input before spawning", async (patch) => {
+    const { attempt, spawned } = connectWithPasskey(patch);
+    await expect(attempt).rejects.toSatisfy((e) => walletError(e).code === "invalid-input");
+    expect(spawned).toHaveLength(0);
   });
 });

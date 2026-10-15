@@ -8,6 +8,7 @@
 import { Channel } from "./channel.ts";
 import type { MainPort, SetTimer } from "./channel.ts";
 import {
+  PASSKEY_PURPOSE_WALLET,
   passkeyName,
   requireCeremony,
   resolveFactor,
@@ -338,6 +339,13 @@ export class KernelWallet implements Wallet {
             second: vaultSaltBytes(this.factorSource),
           },
         });
+        // The asserted credential must be a wallet-purpose passkey: a vault-purpose credential
+        // would silently derive a different wallet. Rejected assertions never reach the kernel.
+        if (result.userHandle?.[0] !== PASSKEY_PURPOSE_WALLET) {
+          result.first.fill(0);
+          result.second?.fill(0);
+          throw new WalletError("wrong-passkey", "the passkey is not a wallet credential");
+        }
         let factor: Factor | undefined;
         if (this.initialized()) {
           if (options?.factor !== undefined) {
@@ -441,9 +449,31 @@ export class KernelWallet implements Wallet {
 }
 
 /**
+ * Validates the passkey configuration: the RP identity and both PRF salts are permanent
+ * identifiers, so an empty or colliding value is rejected here rather than producing unrecoverable
+ * credentials later.
+ */
+function checkPasskeyConfig(passkey: PasskeyConfig): void {
+  const { rpId, rpName, walletSalt, vaultSalt } = passkey;
+  if (
+    rpId.length === 0 ||
+    rpName.length === 0 ||
+    walletSalt.length === 0 ||
+    vaultSalt.length === 0 ||
+    walletSalt === vaultSalt
+  ) {
+    throw new WalletError(
+      "invalid-input",
+      "passkey config requires a non-empty rpId, rpName and two different salts",
+    );
+  }
+}
+
+/**
  * Connects a kernel spawned by the host package and returns the host-facing `Wallet`. The first
  * spawn must deliver a status event before this resolves.
  */
 export async function connectKernel(options: ConnectOptions): Promise<Wallet> {
+  checkPasskeyConfig(options.passkey);
   return KernelWallet.connect(options);
 }

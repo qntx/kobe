@@ -1,6 +1,7 @@
 import type { NostrKeyInfo } from "@qntx/wallet/types";
 
 import {
+  asBoolean,
   asCreatedAt,
   asGroupIndex,
   asPublicKey,
@@ -14,6 +15,11 @@ import type { StoredRecord } from "../../vault/store.ts";
 /** The record kind this module owns: one sealed nostr secret key per record, keyed by public key. */
 export const NOSTR_KEY_KIND = "nostr-key";
 
+/**
+ * `backedUp` exists only on standalone keys (nsec/ncryptsec/generated): they have no parent wallet
+ * to recover from, so the header tracks whether the user has exported the key. Derived and
+ * nip46-client headers must not carry it.
+ */
 export type NostrKeyHeader =
   | {
       readonly publicKey: string; // 64 lowercase hex
@@ -24,22 +30,36 @@ export type NostrKeyHeader =
     }
   | {
       readonly publicKey: string;
-      readonly origin: "nsec" | "ncryptsec" | "generated" | "nip46-client";
+      readonly origin: "nsec" | "ncryptsec" | "generated";
+      readonly backedUp: boolean;
+      readonly createdAt: number;
+    }
+  | {
+      readonly publicKey: string;
+      readonly origin: "nip46-client";
       readonly createdAt: number;
     };
 
 export function encodeNostrKeyHeader(header: NostrKeyHeader): string {
-  return header.origin === "derived"
+  if (header.origin === "derived") {
+    return JSON.stringify({
+      publicKey: header.publicKey,
+      origin: header.origin,
+      walletId: header.walletId,
+      groupIndex: header.groupIndex,
+      createdAt: header.createdAt,
+    });
+  }
+  return header.origin === "nip46-client"
     ? JSON.stringify({
         publicKey: header.publicKey,
         origin: header.origin,
-        walletId: header.walletId,
-        groupIndex: header.groupIndex,
         createdAt: header.createdAt,
       })
     : JSON.stringify({
         publicKey: header.publicKey,
         origin: header.origin,
+        backedUp: header.backedUp,
         createdAt: header.createdAt,
       });
 }
@@ -58,21 +78,21 @@ export function parseNostrKeyHeader(text: string): NostrKeyHeader {
       createdAt,
     };
   }
-  expectKeys(object, ["publicKey", "origin", "createdAt"]);
+  if (object["origin"] === "nip46-client") {
+    expectKeys(object, ["publicKey", "origin", "createdAt"]);
+    return { publicKey, origin: "nip46-client", createdAt };
+  }
+  expectKeys(object, ["publicKey", "origin", "backedUp", "createdAt"]);
   const { origin } = object;
-  if (
-    origin !== "nsec" &&
-    origin !== "ncryptsec" &&
-    origin !== "generated" &&
-    origin !== "nip46-client"
-  ) {
+  if (origin !== "nsec" && origin !== "ncryptsec" && origin !== "generated") {
     throw headerFailure();
   }
-  return { publicKey, origin, createdAt };
+  return { publicKey, origin, backedUp: asBoolean(object["backedUp"]), createdAt };
 }
 
 /** The `NostrKeyInfo` a nostr-key record's public header reports. */
 export function nostrKeyInfo(header: NostrKeyHeader): NostrKeyInfo {
+  const standalone = header.origin !== "derived" && header.origin !== "nip46-client";
   return {
     ref:
       header.origin === "derived"
@@ -82,6 +102,7 @@ export function nostrKeyInfo(header: NostrKeyHeader): NostrKeyInfo {
           : { kind: "standalone", id: header.publicKey },
     publicKey: header.publicKey,
     origin: header.origin,
+    ...(standalone ? { backedUp: header.backedUp } : {}),
     createdAt: header.createdAt,
   };
 }

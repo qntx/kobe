@@ -27,7 +27,7 @@ import {
   parseNostrKeyHeader,
 } from "./record.ts";
 
-type StandaloneOrigin = "nsec" | "ncryptsec" | "generated" | "nip46-client";
+type StandaloneOrigin = "nsec" | "ncryptsec" | "generated";
 
 function keyRecord(
   ctx: KernelContext,
@@ -61,13 +61,19 @@ async function addKey(
   ctx: KernelContext,
   secretKey: Uint8Array,
   origin: StandaloneOrigin,
+  backedUp: boolean,
   factor: Factor | undefined,
   requestSession: string | undefined,
 ): Promise<{ key: NostrKeyInfo; session: string }> {
   const gated = gate(ctx, factor, requestSession);
   const publicKey = getPublicKey(secretKey);
   ensureNewKey(ctx, publicKey);
-  const header: NostrKeyHeader = { publicKey, origin, createdAt: ctx.platform.now() };
+  const header: NostrKeyHeader = {
+    publicKey,
+    origin,
+    backedUp,
+    createdAt: ctx.platform.now(),
+  };
   const record = keyRecord(ctx, gated.dek, secretKey, header);
   const session = await commitRecords(ctx, gated, factor, [record]);
   return { key: nostrKeyInfo(header), session };
@@ -82,9 +88,14 @@ export async function importKey(
   const secretKey =
     input.kind === "nsec"
       ? secretKeyFromNsec(input.nsec)
-      : await secretKeyFromNcryptsec(input.ncryptsec, input.password);
+      : await secretKeyFromNcryptsec(
+          input.ncryptsec,
+          input.password,
+          ctx.platform.policy.maxScryptLogN,
+        );
   try {
-    return await addKey(ctx, secretKey, input.kind, params.factor, requestSession);
+    // An imported key is already backed up — the caller holds the source material.
+    return await addKey(ctx, secretKey, input.kind, true, params.factor, requestSession);
   } finally {
     wipe(secretKey);
   }
@@ -97,7 +108,7 @@ export async function generateKey(
 ): Promise<{ key: NostrKeyInfo; session: string }> {
   const secretKey = generateSecretKey(ctx.platform.random);
   try {
-    return await addKey(ctx, secretKey, "generated", params.factor, requestSession);
+    return await addKey(ctx, secretKey, "generated", false, params.factor, requestSession);
   } finally {
     wipe(secretKey);
   }
@@ -215,13 +226,22 @@ export async function exportKey(
   const header = parseNostrKeyHeader(record.header);
   const secretKey = openRecord(dek, record);
   try {
-    if (params.format.kind === "nsec") {
-      return nsecFromSecretKey(secretKey);
+    const exported =
+      params.format.kind === "nsec"
+        ? nsecFromSecretKey(secretKey)
+        : await ncryptsecFromSecretKey(secretKey, params.format.password);
+    // A successful export is the backup: re-seal the standalone record with backedUp: true.
+    // The guarded commit makes a concurrent write conflict rather than silently lose the flag.
+    if (header.origin !== "derived" && header.origin !== "nip46-client" && !header.backedUp) {
+      const updated: NostrKeyHeader = { ...header, backedUp: true };
+      await ctx.commit([
+        {
+          op: "put-record",
+          record: keyRecord(ctx, dek, secretKey, updated),
+        },
+      ]);
     }
-    // Key security byte: 0x01 for keys recoverable from the wallet (derived, generated),
-    // 0x02 for keys that exist only here (imported, nip46-client).
-    const ksb = header.origin === "derived" || header.origin === "generated" ? 0x01 : 0x02;
-    return await ncryptsecFromSecretKey(secretKey, params.format.password, ksb);
+    return exported;
   } finally {
     wipe(secretKey);
   }

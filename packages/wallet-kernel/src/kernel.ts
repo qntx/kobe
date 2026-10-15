@@ -1,6 +1,13 @@
 import { equalBytes } from "@noble/ciphers/utils.js";
 
-import { isProtocolValue, METHODS, PROTOCOL_VERSION, UNATTRIBUTED_ID } from "@qntx/wallet/protocol";
+import {
+  isProtocolValue,
+  MAX_REQUEST_BYTES,
+  METHODS,
+  PROTOCOL_VERSION,
+  requestBytes,
+  UNATTRIBUTED_ID,
+} from "@qntx/wallet/protocol";
 import type {
   ErrorPayload,
   KernelEvent,
@@ -372,6 +379,12 @@ export function startKernel(platform: KernelPlatform, port: Port): void {
         throw new KernelError("integrity", "malformed params");
       }
       const params: ProtocolValue = candidate;
+      // The size cap covers the whole raw request, not just params — a hostile peer could pad
+      // any envelope field. 1 MiB is the documented ceiling for a structured-clone message.
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- every field was narrowed to a protocol value above
+      if (requestBytes(request as ProtocolValue) > MAX_REQUEST_BYTES) {
+        throw new KernelError("invalid-input", "request exceeds the size limit");
+      }
       // A vault that is not healthy cannot serve requests honestly: only status (answers from
       // the image in memory) and vault.reset (the recovery path) get through. A transient
       // failure retries one load before answering — a successful reload clears it.

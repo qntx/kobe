@@ -1,7 +1,14 @@
+import { bech32 } from "@scure/base";
+
 import { Keys, KeysSigner } from "@qntx/nostr";
 import type { Event, UnsignedEvent } from "@qntx/nostr";
-import { decode as nip19Decode, nsecEncode } from "@qntx/nostr/nips/nip19";
-import { decrypt as nip49Decrypt, encrypt as nip49Encrypt } from "@qntx/nostr/nips/nip49";
+import { Bech32MaxSize, decode as nip19Decode, nsecEncode } from "@qntx/nostr/nips/nip19";
+import {
+  decrypt as nip49Decrypt,
+  encrypt as nip49Encrypt,
+  Nip49Error,
+} from "@qntx/nostr/nips/nip49";
+import type { Scrypt } from "@qntx/nostr/nips/nip49";
 import { isGiftWrapKind, unwrap as nip59Unwrap } from "@qntx/nostr/nips/nip59";
 import type { Rumor } from "@qntx/nostr/nips/nip59";
 import type { UnwrapResult } from "@qntx/wallet/protocol";
@@ -89,19 +96,47 @@ export function secretKeyFromNsec(nsec: Uint8Array): Uint8Array {
 }
 
 /**
- * Decrypts an `ncryptsec` with the UTF-8 `password` bytes (wiped after use). `maxLogN` 20 caps the
- * scrypt memory a crafted payload can demand.
+ * Decrypts an `ncryptsec` with the UTF-8 `password` bytes (wiped after use). The payload is decoded
+ * and shape-checked before scrypt ever runs: malformed input is `invalid-input`, a logN above
+ * `maxLogN` (the kernel policy's cap) is `unsupported`, a scrypt allocation failure (`RangeError`
+ * cause) is `unavailable`, and every other decrypt failure is `wrong-password`. `scrypt` is a
+ * kernel-internal test seam — hosts never inject it.
  */
 export async function secretKeyFromNcryptsec(
   ncryptsec: string,
   password: Uint8Array,
+  maxLogN: number,
+  scrypt?: Scrypt,
 ): Promise<Uint8Array> {
   const text = decodeUtf8Secret(password); // wipes `password`
+  let payload: Uint8Array;
+  try {
+    const decoded = bech32.decode(ncryptsec, Bech32MaxSize);
+    payload = new Uint8Array(bech32.fromWords(decoded.words));
+    if (decoded.prefix !== "ncryptsec" || payload.length !== 91 || payload.at(0) !== 0x02) {
+      throw new KernelError("invalid-input", "malformed ncryptsec");
+    }
+  } catch (error) {
+    if (error instanceof KernelError) {
+      throw error;
+    }
+    throw new KernelError("invalid-input", "malformed ncryptsec");
+  }
+  const logN = payload.at(1) ?? 0;
+  if (logN > maxLogN) {
+    throw new KernelError("unsupported", "ncryptsec scrypt logN exceeds the policy limit");
+  }
   try {
     // nip49 derives with NFKC internally; the salt nonce comes from the library's own RNG.
-    return await nip49Decrypt(ncryptsec, text, { maxLogN: 20 });
-  } catch {
-    throw new KernelError("invalid-input", "invalid ncryptsec or wrong password");
+    return await nip49Decrypt(ncryptsec, text, {
+      maxLogN,
+      ...(scrypt === undefined ? {} : { scrypt }),
+    });
+  } catch (error) {
+    if (error instanceof Nip49Error && error.cause instanceof RangeError) {
+      throw new KernelError("unavailable", "ncryptsec scrypt allocation failed");
+    }
+    throw new KernelError("wrong-password", "invalid ncryptsec or wrong password");
   }
 }
 
@@ -109,15 +144,18 @@ export function nsecFromSecretKey(secretKey: Uint8Array): Uint8Array {
   return new TextEncoder().encode(nsecEncode(secretKey));
 }
 
-/** Export `ncryptsec` at logN 16; `ksb` is the NIP-49 key security byte chosen by the caller. */
+/**
+ * Export `ncryptsec` at logN 16 with key security byte 0x02 ("the client does not track this" in
+ * NIP-49's terms): the kernel does not track a key's handling history and any key can be exported
+ * as plaintext nsec, so 0x01 would never be honest. Salt and nonce come from the library's RNG
+ * (noble randomBytes); not injectable in 0.14.
+ */
 export async function ncryptsecFromSecretKey(
   secretKey: Uint8Array,
   password: Uint8Array,
-  ksb: 0x01 | 0x02,
 ): Promise<Uint8Array> {
   const text = decodeUtf8Secret(password); // wipes `password`
-  // salt and nonce come from the library's RNG (noble randomBytes); not injectable in 0.13.
-  const encoded = await nip49Encrypt(secretKey, text, { logn: 16, ksb });
+  const encoded = await nip49Encrypt(secretKey, text, { logn: 16, ksb: 0x02 });
   return new TextEncoder().encode(encoded);
 }
 

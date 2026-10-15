@@ -241,6 +241,26 @@ describe("node host end to end", () => {
     await second.wallet.destroy();
   }, 60_000);
 
+  it("rejects restoring with a vault-purpose credential before any kernel call", async () => {
+    const passkey = createSoftwarePasskey(hexToBytes("ee".repeat(32)));
+    const first = await nodeWallet(passkey);
+    await first.wallet.wallets.createWithPasskey({ name: "Node Test Wallet" });
+    // Register a vault-purpose credential — it becomes the newest credential on the
+    // authenticator, so the next bare assertion resolves to it.
+    await first.wallet.vault.addFactor({ kind: "passkey", name: "vault" }, { kind: "passkey" });
+    await first.wallet.destroy();
+
+    const second = await nodeWallet(passkey);
+    const spawnedAfter = second.workers.length;
+    await expect(second.wallet.wallets.restoreWithPasskey()).rejects.toSatisfy(
+      (e) => walletError(e).code === "wrong-passkey",
+    );
+    // Rejected in the host: the request never reached the kernel, no respawn happened.
+    expect(second.workers).toHaveLength(spawnedAfter);
+    expect(second.wallet.getSnapshot().vault).toBe("uninitialized");
+    await second.wallet.destroy();
+  }, 60_000);
+
   it("rejects the native autoLock policy on Node", async () => {
     const passkey = createSoftwarePasskey(hexToBytes("cc".repeat(32)));
     const workers: Worker[] = [];
