@@ -11,10 +11,16 @@ import type { FactorInfo, InitialFactor, PasskeyConfig, UnlockFactor } from "./t
 
 export type PrfSalts = { readonly first: Uint8Array; readonly second?: Uint8Array };
 
+/** Purpose bytes stamped into the first byte of a credential's WebAuthn user handle. */
+export const PASSKEY_PURPOSE_WALLET = 0x01;
+export const PASSKEY_PURPOSE_VAULT = 0x02;
+
 export type PrfResult = {
   readonly credentialId: Uint8Array;
   readonly first: Uint8Array;
   readonly second?: Uint8Array;
+  /** The assertion's `userHandle` — its first byte declares the credential's purpose. */
+  readonly userHandle?: Uint8Array;
 };
 
 /**

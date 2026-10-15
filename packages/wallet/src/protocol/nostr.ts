@@ -23,7 +23,7 @@ import {
 import type { Factor } from "./core.ts";
 import type { MethodSpec, NullValue } from "./index.ts";
 import type { Validator } from "./validate.ts";
-import { arr, bytes, int, literal, nullValue, obj, opt, str, union } from "./validate.ts";
+import { arr, bool, bytes, int, literal, nullValue, obj, opt, str, union } from "./validate.ts";
 
 /**
  * The unsigned event input the kernel signs. `pubkey` is optional: callers may omit it and the
@@ -79,18 +79,23 @@ const nostrKeyRef = union(
   obj({ kind: literal("nip46-client"), id: publicKey }),
 );
 
-export const nostrKeyInfo: Validator<NostrKeyInfo> = obj({
-  ref: nostrKeyRef,
-  publicKey,
-  origin: union(
-    literal("derived"),
-    literal("nsec"),
-    literal("ncryptsec"),
-    literal("generated"),
-    literal("nip46-client"),
-  ),
-  createdAt: safeTime,
-});
+// `backedUp` exists only on the standalone origins — the kernel never emits it for derived or
+// nip46-client keys, and a peer that does is untrustworthy.
+export const nostrKeyInfo: Validator<NostrKeyInfo> = union(
+  obj({
+    ref: nostrKeyRef,
+    publicKey,
+    origin: union(literal("nsec"), literal("ncryptsec"), literal("generated")),
+    backedUp: bool,
+    createdAt: safeTime,
+  }),
+  obj({
+    ref: nostrKeyRef,
+    publicKey,
+    origin: union(literal("derived"), literal("nip46-client")),
+    createdAt: safeTime,
+  }),
+);
 
 /** The nostr section of the status payload, composed by protocol/index.ts. */
 export const nostrStatus: Validator<{ readonly keys: ReadonlyArray<NostrKeyInfo> }> = obj({

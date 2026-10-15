@@ -7,3 +7,4 @@ export { connectKernel } from "./wallet.ts";
 export type { ConnectOptions } from "./wallet.ts";
 export type { MainPort, SetTimer } from "./channel.ts";
 export type { PasskeyCeremony, PrfResult, PrfSalts } from "./factors.ts";
+export { PASSKEY_PURPOSE_VAULT, PASSKEY_PURPOSE_WALLET } from "./factors.ts";

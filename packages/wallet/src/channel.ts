@@ -6,8 +6,10 @@
 import {
   isProtocolValue,
   kernelEvent,
+  MAX_REQUEST_BYTES,
   METHODS,
   PROTOCOL_VERSION,
+  requestBytes,
   responseError,
   ValidationError,
 } from "./protocol/index.ts";
@@ -347,6 +349,10 @@ export class Channel {
     // in the table because the rule is dynamic (required exactly when the vault is initialized).
     if (this.session !== undefined) {
       message["session"] = this.session;
+    }
+    // The whole envelope counts against the cap — an oversized request never reaches the port.
+    if (requestBytes(message) > MAX_REQUEST_BYTES) {
+      throw new WalletError("invalid-input", "request exceeds the size limit");
     }
     const result = await new Promise<unknown>((resolve, reject) => {
       const cancelTimer = this.setTimer(CALL_TIMEOUT_MS, () => {

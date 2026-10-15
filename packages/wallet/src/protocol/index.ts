@@ -66,6 +66,50 @@ export type KernelEvent =
   | { readonly v: 1; readonly event: "status"; readonly status: StatusPayload }
   | { readonly v: 1; readonly event: "locked"; readonly reason: LockReason };
 
+/**
+ * The worst-case encoded size of one request, enforced by both sides: the host refuses to post a
+ * request over the cap and the kernel answers an oversized raw request with `invalid-input`.
+ * Responses are not capped.
+ */
+export const MAX_REQUEST_BYTES = 1_048_576;
+
+/**
+ * Upper-bound byte weight of a protocol value: a string costs `length * 3` (worst-case UTF-8), a
+ * Uint8Array its `byteLength`, every scalar and every array element 8, and every object key
+ * `key.length * 3 + 8` plus its value. Iterative — a deeply nested value cannot overflow the
+ * stack.
+ */
+export function requestBytes(value: ProtocolValue): number {
+  let total = 0;
+  const stack: ProtocolValue[] = [value];
+  while (stack.length > 0) {
+    const item = stack.pop();
+    if (item === undefined) {
+      continue;
+    }
+    if (typeof item === "string") {
+      total += item.length * 3;
+    } else if (item instanceof Uint8Array) {
+      total += item.byteLength;
+    } else if (item === null || typeof item === "boolean" || typeof item === "number") {
+      total += 8;
+    } else if (Array.isArray(item)) {
+      // Array.isArray widens the readonly member to any[] — re-annotate the element domain.
+      const elements: ReadonlyArray<ProtocolValue> = item;
+      total += elements.length * 8;
+      for (const element of elements) {
+        stack.push(element);
+      }
+    } else {
+      for (const [key, child] of Object.entries(item)) {
+        total += key.length * 3 + 8;
+        stack.push(child);
+      }
+    }
+  }
+  return total;
+}
+
 /** Deep check that a structured-cloned value is a strict ProtocolValue (no cycles detected). */
 export function isProtocolValue(value: unknown): value is ProtocolValue {
   switch (typeof value) {

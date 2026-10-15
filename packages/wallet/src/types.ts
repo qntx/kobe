@@ -36,6 +36,11 @@ export type NostrKeyInfo = {
   readonly ref: NostrKeyRef;
   readonly publicKey: string; // 64 lowercase hex
   readonly origin: "derived" | "nsec" | "ncryptsec" | "generated" | "nip46-client";
+  /**
+   * Only standalone keys carry it: derived keys recover from the wallet, nip46-client keys are
+   * ephemeral.
+   */
+  readonly backedUp?: boolean;
   readonly createdAt: number;
 };
 
@@ -112,7 +117,13 @@ export type InitialFactor =
   | { readonly kind: "passkey"; readonly name: string }
   | { readonly kind: "password"; readonly password: string };
 
-/** WebAuthn RP identity + PRF salt labels the host configures once (distinct strings). */
+/**
+ * WebAuthn RP identity + PRF salt labels the host configures once. `rpId`, `walletSalt` and
+ * `vaultSalt` are permanent identifiers: changing any of them makes every existing passkey factor
+ * and passkey-derived wallet unrecoverable, and the two salts must differ. Moving a wallet to a
+ * different domain requires WebAuthn related origins (`/.well-known/webauthn`); hosts should offer
+ * `exportMnemonic` for passkey-derived wallets so they survive an RP migration.
+ */
 export type PasskeyConfig = {
   /** RP id — the origin's effective domain or a registrable parent of it (e.g. meowl.social). */
   readonly rpId: string;

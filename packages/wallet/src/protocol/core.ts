@@ -19,8 +19,8 @@ export type MethodSpec<P, R> = {
   readonly result: Validator<R>;
 };
 
-// Size caps (UTF-16 units for strings, bytes for Uint8Array). A whole message is capped at 1 MiB
-// by the host; these bound individual fields.
+// Size caps (UTF-16 units for strings, bytes for Uint8Array). These bound individual fields; the
+// whole-request cap MAX_REQUEST_BYTES (protocol/index.ts) is enforced by host and kernel.
 export const MAX_TEXT = 262_144;
 export const MAX_TAGS = 1024;
 export const MAX_TAG_ITEMS = 64;

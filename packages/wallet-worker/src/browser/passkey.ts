@@ -6,6 +6,7 @@
  * never reaches the kernel.
  */
 import { WalletError } from "@qntx/wallet";
+import { PASSKEY_PURPOSE_VAULT, PASSKEY_PURPOSE_WALLET } from "@qntx/wallet/host";
 import type { PasskeyCeremony, PrfResult, PrfSalts } from "@qntx/wallet/host";
 
 export type WebAuthnRp = {
@@ -14,8 +15,6 @@ export type WebAuthnRp = {
   readonly name: string;
 };
 
-const PURPOSE_WALLET = 0x01;
-const PURPOSE_VAULT = 0x02;
 const UV_FLAG = 0x04; // authenticator-data flags byte (offset 32), bit 2 = user verified
 
 function factorUnavailable(message: string): WalletError {
@@ -69,6 +68,7 @@ function readPrfResult(
   credential: PublicKeyCredential,
   results: AuthenticationExtensionsPRFValues | undefined,
   wantSecond: boolean,
+  userHandle?: ArrayBuffer,
 ): PrfResult {
   const first = results?.first;
   const second = results?.second;
@@ -80,6 +80,7 @@ function readPrfResult(
     credentialId: copyBufferSource(credential.rawId),
     first: copyBufferSource(first),
     ...(second === undefined ? {} : { second: copyBufferSource(second) }),
+    ...(userHandle === undefined ? {} : { userHandle: copyBufferSource(userHandle) }),
   };
 }
 
@@ -134,13 +135,14 @@ export function createWebAuthnPasskey(rp: WebAuthnRp): PasskeyCeremony {
       credential,
       credential.getClientExtensionResults().prf?.results,
       input.salts.second !== undefined,
+      response.userHandle ?? undefined,
     );
   }
 
   return {
     create: async (input) => {
       const userId = new Uint8Array(16);
-      userId[0] = input.purpose === "wallet" ? PURPOSE_WALLET : PURPOSE_VAULT;
+      userId[0] = input.purpose === "wallet" ? PASSKEY_PURPOSE_WALLET : PASSKEY_PURPOSE_VAULT;
       crypto.getRandomValues(userId.subarray(1));
       let credential: PublicKeyCredential;
       try {

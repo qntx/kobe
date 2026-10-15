@@ -29,7 +29,7 @@ export function headerObject(text: string): Record<string, unknown> {
 /** Exact key set: every expected key present, nothing else. */
 export function expectKeys(object: Record<string, unknown>, keys: ReadonlyArray<string>): void {
   const actual = Object.keys(object);
-  if (actual.length !== keys.length || !keys.every((key) => key in object)) {
+  if (actual.length !== keys.length || !keys.every((key) => Object.hasOwn(object, key))) {
     throw headerFailure();
   }
 }
@@ -55,6 +55,13 @@ export function asGroupIndex(value: unknown): number {
     value < 0 ||
     value > 0x7fffffff
   ) {
+    throw headerFailure();
+  }
+  return value;
+}
+
+export function asBoolean(value: unknown): boolean {
+  if (typeof value !== "boolean") {
     throw headerFailure();
   }
   return value;

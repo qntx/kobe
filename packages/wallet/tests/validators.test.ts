@@ -7,15 +7,18 @@ import {
   int,
   isProtocolValue,
   literal,
+  MAX_REQUEST_BYTES,
   METHODS,
   nullValue,
   obj,
   opt,
+  requestBytes,
   str,
   union,
   ValidationError,
   validate,
 } from "../src/protocol/index.ts";
+import type { ProtocolValue } from "../src/protocol/index.ts";
 
 function fails(validator: (v: unknown) => unknown, value: unknown): boolean {
   try {
@@ -82,6 +85,26 @@ describe("structural validators", () => {
     expect(fails(v, "x")).toBe(true);
   });
 
+  it("obj rejects own keys named after Object.prototype members", () => {
+    const v = obj({ a: str(8) });
+    for (const name of ["constructor", "toString", "hasOwnProperty", "valueOf"]) {
+      // An own enumerable key must never match the shape's prototype chain lookup.
+      const input = JSON.parse(`{"a":"x","${name}":1}`) as unknown;
+      expect(fails(v, input)).toBe(true);
+    }
+    // JSON.parse defines __proto__ as an own enumerable key — it is still unknown.
+    const withProto = JSON.parse('{"a":"x","__proto__":1}') as unknown;
+    expect(fails(v, withProto)).toBe(true);
+  });
+
+  it("obj reports a missing required key named after a prototype member", () => {
+    // "toString" exists on Object.prototype — a shape key by that name must not be
+    // satisfied by the inherited method.
+    const v = obj({ a: str(8), toString: str(8) });
+    expect(fails(v, { a: "x" })).toBe(true);
+    expect(v({ a: "x", toString: "y" })).toStrictEqual({ a: "x", toString: "y" });
+  });
+
   it("arr enforces item shape and bounds", () => {
     const v = arr(int(0, 9), 3, 1);
     expect(v([1, 2])).toStrictEqual([1, 2]);
@@ -124,6 +147,44 @@ describe("isProtocolValue", () => {
     expect(isProtocolValue({ a: undefined })).toBe(false);
     expect(isProtocolValue(Object.create(null))).toBe(false);
     expect(isProtocolValue({ __proto__: { polluted: true } })).toBe(false);
+  });
+});
+
+describe("requestBytes", () => {
+  it("measures the documented worst-case byte weight", () => {
+    expect(requestBytes(null)).toBe(8);
+    expect(requestBytes(true)).toBe(8);
+    expect(requestBytes(42)).toBe(8);
+    expect(requestBytes("abcd")).toBe(12); // length * 3
+    expect(requestBytes(new Uint8Array(9))).toBe(9);
+    // Array: 8 per element plus each element's own size.
+    expect(requestBytes([1, "ab"])).toBe(8 + 8 + 8 + 6);
+    // Object: each key costs key.length * 3 + 8 plus its value.
+    expect(requestBytes({ a: 1 })).toBe(3 + 8 + 8);
+    expect(requestBytes({ list: [null] })).toBe(4 * 3 + 8 + 8 + 8);
+  });
+
+  it("measures deep values iteratively without overflowing the stack", () => {
+    let value: ProtocolValue = null;
+    for (let i = 0; i < 50_000; i++) {
+      value = [value];
+    }
+    expect(requestBytes(value)).toBe(50_001 * 8);
+  });
+
+  it("flags an over-cap and accepts a just-under-cap request", () => {
+    const event = (content: string): ProtocolValue => ({
+      v: 1,
+      id: 1,
+      method: "nostr.signEvent",
+      session: "ab".repeat(16),
+      params: {
+        publicKey: "cd".repeat(32),
+        event: { kind: 1, created_at: 1, tags: [], content, pubkey: "cd".repeat(32) },
+      },
+    });
+    expect(requestBytes(event("x".repeat(400_000)))).toBeGreaterThan(MAX_REQUEST_BYTES);
+    expect(requestBytes(event("x".repeat(262_144)))).toBeLessThan(MAX_REQUEST_BYTES);
   });
 });
 

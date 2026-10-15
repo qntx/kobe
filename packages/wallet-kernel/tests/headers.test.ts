@@ -36,6 +36,13 @@ const nostrDerived: NostrKeyHeader = {
 const nostrStandalone: NostrKeyHeader = {
   publicKey: nostrDerived.publicKey,
   origin: "generated",
+  backedUp: false,
+  createdAt: 1_767_225_600_000,
+};
+
+const nostrNip46: NostrKeyHeader = {
+  publicKey: nostrDerived.publicKey,
+  origin: "nip46-client",
   createdAt: 1_767_225_600_000,
 };
 
@@ -59,11 +66,12 @@ describe("header round trip", () => {
     expect(parseEntropyHeader(encodeHeader(entropy))).toStrictEqual(entropy);
   });
 
-  it("nostr-key derived and standalone", () => {
+  it("nostr-key derived, standalone and nip46-client", () => {
     expect(parseNostrKeyHeader(encodeNostrKeyHeader(nostrDerived))).toStrictEqual(nostrDerived);
     expect(parseNostrKeyHeader(encodeNostrKeyHeader(nostrStandalone))).toStrictEqual(
       nostrStandalone,
     );
+    expect(parseNostrKeyHeader(encodeNostrKeyHeader(nostrNip46))).toStrictEqual(nostrNip46);
   });
 
   it("data-key", () => {
@@ -128,6 +136,63 @@ describe("header rejection", () => {
     expect(
       kernelError(() => parseNostrKeyHeader(JSON.stringify({ ...nostrStandalone, groupIndex: 0 }))),
     ).toBe("integrity");
+  });
+
+  it("backedUp is required on standalone keys and forbidden elsewhere", () => {
+    const { backedUp: _omitted, ...withoutBackedUp } = nostrStandalone;
+    expect(kernelError(() => parseNostrKeyHeader(JSON.stringify(withoutBackedUp)))).toBe(
+      "integrity",
+    );
+    expect(
+      kernelError(() =>
+        parseNostrKeyHeader(JSON.stringify({ ...nostrStandalone, backedUp: "yes" })),
+      ),
+    ).toBe("integrity");
+    // Derived and nip46-client headers have an exact key set: backedUp is an unknown key.
+    expect(
+      kernelError(() => parseNostrKeyHeader(JSON.stringify({ ...nostrDerived, backedUp: true }))),
+    ).toBe("integrity");
+    expect(
+      kernelError(() => parseNostrKeyHeader(JSON.stringify({ ...nostrNip46, backedUp: true }))),
+    ).toBe("integrity");
+  });
+
+  it("an own key named after an Object.prototype member is still unknown", () => {
+    // JSON.parse defines "__proto__" as an own enumerable key; every parser must reject it.
+    const protoKeys = '{"__proto__":1,"constructor":1,"hasOwnProperty":1,"valueOf":1}';
+    for (const parser of [
+      parseEntropyHeader,
+      parseDataKeyHeader,
+      parsePasswordFactorHeader,
+      parsePasskeyFactorHeader,
+      parseNostrKeyHeader,
+    ]) {
+      expect(kernelError(() => parser(protoKeys))).toBe("integrity");
+    }
+    // The same own keys smuggled into an otherwise-valid header are rejected by the key count.
+    for (const valid of [
+      encodeHeader(entropy),
+      encodeHeader(dataKey),
+      encodeHeader(passwordFactor),
+      encodeHeader(passkeyFactor),
+      encodeNostrKeyHeader(nostrStandalone),
+      encodeNostrKeyHeader(nostrDerived),
+      encodeNostrKeyHeader(nostrNip46),
+    ]) {
+      const object = JSON.parse(valid) as Record<string, unknown>;
+      const withProto = JSON.parse(protoKeys) as Record<string, unknown>;
+      for (const parser of [
+        parseEntropyHeader,
+        parseDataKeyHeader,
+        parsePasswordFactorHeader,
+        parsePasskeyFactorHeader,
+        parseNostrKeyHeader,
+      ]) {
+        expect(kernelError(() => parser(JSON.stringify({ ...object, ...withProto })))).toBe(
+          "integrity",
+        );
+      }
+    }
   });
 
   it("derived nostr key missing groupIndex", () => {

@@ -1,5 +1,5 @@
 import { bytesToHex, hexToBytes, utf8ToBytes } from "@noble/hashes/utils.js";
-import { base64urlnopad } from "@scure/base";
+import { base64urlnopad, bech32 } from "@scure/base";
 import { describe, expect, it } from "vite-plus/test";
 
 import { Keys, KeysSigner, npubEncode, verifyEvent } from "@qntx/nostr";
@@ -46,6 +46,27 @@ const PRF_VAULT = hexToBytes("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca4
 const CREDENTIAL_ID = utf8ToBytes("credential-1");
 const PASSWORD = utf8ToBytes("correct horse battery");
 
+// NIP-49 spec vector: password "nostr", logN 16.
+const NIP49_NCRYPTSEC =
+  "ncryptsec1qgg9947rlpvqu76pj5ecreduf9jxhselq2nae2kghhvd5g7dgjtcxfqtd67p9m0w57lspw8gsq6yphnm8623nsl8xn9j4jdzz84zm3frztj3z7s35vpzmqf6ksu8r89qk5z2zxfmu5gv8th8wclt0h4p";
+
+function ncryptsecPayload(encoded: string): Uint8Array {
+  return new Uint8Array(bech32.fromWords(bech32.decode(encoded, 5000).words));
+}
+
+/** Re-encodes a mutated NIP-49 payload — builds malformed or over-limit import inputs. */
+function ncryptsecWith(payload: Uint8Array): string {
+  return bech32.encode("ncryptsec", bech32.toWords(payload), 5000);
+}
+
+/** The NIP-49 key security byte of an exported `ncryptsec` (offset 42 of the 91-byte payload). */
+function exportedKsb(ncryptsecBytes: ProtocolValue): number {
+  if (!(ncryptsecBytes instanceof Uint8Array)) {
+    throw new TypeError("expected bytes");
+  }
+  return must(ncryptsecPayload(new TextDecoder().decode(ncryptsecBytes)).at(42));
+}
+
 function ok(response: KernelResponse): ProtocolValue {
   if ("err" in response) {
     throw new Error(`expected ok, got ${JSON.stringify(response.err)}`);
@@ -84,6 +105,14 @@ function field(value: ProtocolValue, key: string): ProtocolValue {
     throw new Error(`missing field ${key}`);
   }
   return v;
+}
+
+/** Whether a plain-object protocol value carries `key` as an own property. */
+function hasOwn(value: ProtocolValue, key: string): boolean {
+  if (typeof value !== "object" || value === null || Symbol.iterator in value) {
+    throw new Error("expected object");
+  }
+  return Object.hasOwn(value, key);
 }
 
 function strField(value: ProtocolValue, key: string): string {
@@ -327,13 +356,12 @@ describe("create / import", () => {
     );
     expect(strField(field(imported, "key"), "publicKey")).toBe(nip06.vectors[0]!.publicKey);
 
-    // NIP-49 spec vector: password "nostr", logN 16.
-    const ncryptsec =
-      "ncryptsec1qgg9947rlpvqu76pj5ecreduf9jxhselq2nae2kghhvd5g7dgjtcxfqtd67p9m0w57lspw8gsq6yphnm8623nsl8xn9j4jdzz84zm3frztj3z7s35vpzmqf6ksu8r89qk5z2zxfmu5gv8th8wclt0h4p";
     const imported2 = ok(
       await h.call(
         "nostr.importKey",
-        { input: { kind: "ncryptsec", ncryptsec, password: utf8ToBytes("nostr") } },
+        {
+          input: { kind: "ncryptsec", ncryptsec: NIP49_NCRYPTSEC, password: utf8ToBytes("nostr") },
+        },
         session,
       ),
     );
@@ -1867,5 +1895,223 @@ describe("live-state reconciliation across kernels", () => {
     } finally {
       dek.wipe();
     }
+  });
+});
+
+describe("request size cap", () => {
+  it("answers an over-cap raw request with invalid-input", async () => {
+    const h = createHarness();
+    await h.settle();
+    const res = await h.sendRaw({
+      v: 1,
+      id: 7,
+      method: "nostr.signEvent",
+      params: {
+        publicKey: "ab".repeat(32),
+        event: { kind: 1, created_at: 1, tags: [], content: "x".repeat(400_000) },
+      },
+    });
+    expect(errCode(res)).toBe("invalid-input");
+  });
+
+  it("serves a request just under the cap", async () => {
+    const h = createHarness();
+    await h.settle();
+    const { session, walletId } = await createPasskeyWallet(h);
+    const publicKey = await deriveKey(h, session, walletId);
+    const res = await h.sendRaw({
+      v: 1,
+      id: 8,
+      method: "nostr.signEvent",
+      session,
+      params: {
+        publicKey,
+        event: { kind: 1, created_at: 1, tags: [], content: "x".repeat(262_144) },
+      },
+    });
+    expect("ok" in res).toBe(true);
+  });
+});
+
+describe("nostr backup state", () => {
+  const verify = passkeyFactor;
+
+  async function exportKey(
+    h: ReturnType<typeof createHarness>,
+    session: string,
+    publicKey: string,
+    format: ProtocolValue,
+  ): Promise<ProtocolValue> {
+    return ok(await h.call("nostr.exportKey", { verify: verify(), publicKey, format }, session));
+  }
+
+  function statusBackedUp(h: ReturnType<typeof createHarness>, publicKey: string): unknown {
+    return lastStatus(h).nostr.keys.find((k) => k.publicKey === publicKey)?.backedUp;
+  }
+
+  it("generated keys start unbacked; export in either format marks them backed up", async () => {
+    const h = createHarness();
+    await h.settle();
+    const { session } = await createPasskeyWallet(h);
+
+    const key = field(ok(await h.call("nostr.generateKey", {}, session)), "key");
+    const publicKey = strField(key, "publicKey");
+    expect(field(key, "backedUp")).toBe(false);
+    expect(statusBackedUp(h, publicKey)).toBe(false);
+
+    await exportKey(h, session, publicKey, { kind: "nsec" });
+    expect(statusBackedUp(h, publicKey)).toBe(true);
+    const record = must(recordOf(await h.store.load(), "nostr-key", publicKey));
+    expect(record.header).toContain('"backedUp":true');
+
+    const key2 = field(ok(await h.call("nostr.generateKey", {}, session)), "key");
+    const publicKey2 = strField(key2, "publicKey");
+    await exportKey(h, session, publicKey2, {
+      kind: "ncryptsec",
+      password: utf8ToBytes("export-pw"),
+    });
+    expect(statusBackedUp(h, publicKey2)).toBe(true);
+
+    // The flag is in the public header: it shows in the locked snapshot and survives a re-unlock.
+    const h2 = respawn(h);
+    await h2.settle();
+    expect(lastStatus(h2).vault).toBe("locked");
+    expect(statusBackedUp(h2, publicKey)).toBe(true);
+    expect(statusBackedUp(h2, publicKey2)).toBe(true);
+    ok(
+      await h2.call("vault.unlock", {
+        factor: { kind: "passkey", credentialId: CREDENTIAL_ID, prf: new Uint8Array(PRF_VAULT) },
+      }),
+    );
+    expect(statusBackedUp(h2, publicKey)).toBe(true);
+  });
+
+  it("imported keys report backedUp immediately; derived and nip46 keys omit it", async () => {
+    const h = createHarness();
+    await h.settle();
+    const { session, walletId } = await createPasskeyWallet(h);
+
+    const nsecKey = field(
+      ok(
+        await h.call(
+          "nostr.importKey",
+          { input: { kind: "nsec", nsec: utf8ToBytes(nip06.vectors[0]!.nsec) } },
+          session,
+        ),
+      ),
+      "key",
+    );
+    expect(field(nsecKey, "backedUp")).toBe(true);
+
+    const ncryptKey = field(
+      ok(
+        await h.call(
+          "nostr.importKey",
+          {
+            input: {
+              kind: "ncryptsec",
+              ncryptsec: NIP49_NCRYPTSEC,
+              password: utf8ToBytes("nostr"),
+            },
+          },
+          session,
+        ),
+      ),
+      "key",
+    );
+    expect(field(ncryptKey, "backedUp")).toBe(true);
+
+    const derived = ok(await h.call("nostr.deriveKey", { walletId, groupIndex: 0 }, session));
+    expect(hasOwn(derived, "backedUp")).toBe(false);
+    const nip46 = ok(await h.call("nostr.createNip46ClientKey", null, session));
+    expect(hasOwn(nip46, "backedUp")).toBe(false);
+  });
+
+  it("exports ncryptsec with key security byte 0x02 for every origin", async () => {
+    const h = createHarness();
+    await h.settle();
+    const { session, walletId } = await createPasskeyWallet(h);
+
+    const derived = await deriveKey(h, session, walletId);
+    const generated = strField(
+      field(ok(await h.call("nostr.generateKey", {}, session)), "key"),
+      "publicKey",
+    );
+    const imported = strField(
+      field(
+        ok(
+          await h.call(
+            "nostr.importKey",
+            { input: { kind: "nsec", nsec: utf8ToBytes(nip06.vectors[0]!.nsec) } },
+            session,
+          ),
+        ),
+        "key",
+      ),
+      "publicKey",
+    );
+    const nip46 = strField(
+      ok(await h.call("nostr.createNip46ClientKey", null, session)),
+      "publicKey",
+    );
+    for (const publicKey of [derived, generated, imported, nip46]) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- sequential exports through one kernel
+      const encoded = await exportKey(h, session, publicKey, {
+        kind: "ncryptsec",
+        password: utf8ToBytes("export-pw"),
+      });
+      expect(exportedKsb(encoded)).toBe(0x02);
+    }
+  });
+});
+
+describe("ncryptsec import hardening", () => {
+  async function importNcryptsec(
+    h: ReturnType<typeof createHarness>,
+    session: string,
+    ncryptsec: string,
+    password = "nostr",
+  ): Promise<KernelResponse> {
+    return h.call(
+      "nostr.importKey",
+      { input: { kind: "ncryptsec", ncryptsec, password: utf8ToBytes(password) } },
+      session,
+    );
+  }
+
+  it("rejects malformed payloads with invalid-input before decrypting", async () => {
+    const h = createHarness();
+    await h.settle();
+    const { session } = await createPasskeyWallet(h);
+    // Not bech32 at all, a truncated payload, and the wrong version byte all fail shape checks.
+    expect(errCode(await importNcryptsec(h, session, "ncryptsec1!!"))).toBe("invalid-input");
+    expect(errCode(await importNcryptsec(h, session, ncryptsecWith(new Uint8Array(10))))).toBe(
+      "invalid-input",
+    );
+    const badVersion = ncryptsecPayload(NIP49_NCRYPTSEC);
+    badVersion[0] = 0x03;
+    expect(errCode(await importNcryptsec(h, session, ncryptsecWith(badVersion)))).toBe(
+      "invalid-input",
+    );
+  });
+
+  it("rejects a logN above the policy maximum with unsupported, before scrypt runs", async () => {
+    const h = createHarness(); // maxScryptLogN 20
+    await h.settle();
+    const { session } = await createPasskeyWallet(h);
+    const overLimit = ncryptsecPayload(NIP49_NCRYPTSEC);
+    overLimit[1] = 21;
+    expect(errCode(await importNcryptsec(h, session, ncryptsecWith(overLimit)))).toBe(
+      "unsupported",
+    );
+  });
+
+  it("maps a wrong password to wrong-password", async () => {
+    const h = createHarness();
+    await h.settle();
+    const { session } = await createPasskeyWallet(h);
+    expect(errCode(await importNcryptsec(h, session, NIP49_NCRYPTSEC, "nope"))).toBe(
+      "wrong-password",
+    );
   });
 });
