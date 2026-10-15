@@ -15,7 +15,7 @@ import { entropyFromMnemonic, mnemonicFromEntropy } from "../seed/mnemonic.ts";
 import { entropyFromPrf } from "../seed/passkey.ts";
 import { seedFromEntropy } from "../seed/seed.ts";
 import type { PendingFactor } from "../session/session.ts";
-import { wrapDek } from "../vault/factors.ts";
+import { factorPublicKey, wrapDek } from "../vault/factors.ts";
 import { encodeHeader } from "../vault/headers.ts";
 import type { EntropyHeader } from "../vault/headers.ts";
 import type { StoredFactor, StoredRecord } from "../vault/store.ts";
@@ -30,6 +30,7 @@ import {
   walletInfo,
 } from "../vault/vault.ts";
 import type { KernelContext } from "./context.ts";
+import { openSession } from "./vault.ts";
 
 async function deriveWalletMaterial(
   platform: KernelPlatform,
@@ -148,7 +149,7 @@ export async function commitRecords(
       gated.dek.wipe();
       throw error;
     }
-    return ctx.session.open(gated.dek, keyId);
+    return openSession(ctx, gated.dek, keyId);
   }
   await ctx.commit(records.map((record) => ({ op: "put-record" as const, record })));
   return ctx.session.current().id;
@@ -223,17 +224,19 @@ export async function createMnemonic(
   return { draft: id, words: utf8ToBytes(mnemonic), quiz };
 }
 
-/** Turns a draft's pending factor into its stored record once the DEK exists. */
+/**
+ * Turns a draft's pending factor into its stored record once the DEK exists: the header gets the
+ * public key derived from the held KEK, and the DEK wraps to that key.
+ */
 function storedFactorForPending(
   ctx: KernelContext,
   pending: PendingFactor,
   dek: Secret,
 ): StoredFactor {
   const id = bytesToHex(ctx.platform.random(16));
-  const header = factorHeader(pending, ctx.platform.now());
-  const sealed = pending.kek.use((kek) =>
-    wrapDek(kek, dek, { kind: pending.kind, id, header }, ctx.platform.random),
-  );
+  const publicKey = pending.kek.use((kek) => factorPublicKey(kek));
+  const header = factorHeader(pending, publicKey, ctx.platform.now());
+  const sealed = wrapDek(dek, publicKey, { kind: pending.kind, id, header }, ctx.platform.random);
   return { kind: pending.kind, id, header, sealed };
 }
 
@@ -274,7 +277,7 @@ export async function confirmMnemonic(
           dek.wipe();
           throw error;
         }
-        const session = ctx.session.open(dek, keyId);
+        const session = openSession(ctx, dek, keyId);
         return { wallet: walletInfoOf(material, true, createdAt), session };
       }
       const session = ctx.session.current();
@@ -364,14 +367,10 @@ export async function deleteWallet(
   await verifyFactor(ctx.platform, ctx.image, params.verify, dek);
   findRecord(ctx.image, "entropy", params.walletId);
   // The entropy row and every module record derived from this wallet go in ONE commit —
-  // a partial deletion can never land.
-  const extras = ctx.modules.map((module) => module.walletDeleteOps(ctx.image, params.walletId));
-  await ctx.commit([
-    { op: "delete-record", kind: "entropy", id: params.walletId },
-    ...extras.flatMap((extra) => extra.ops),
-  ]);
-  for (const extra of extras) {
-    extra.after();
-  }
+  // a partial deletion can never land. Reconciliation forgets the evicted live state.
+  const extras = ctx.modules.flatMap((module) =>
+    module.walletDeleteOps(ctx.image, params.walletId),
+  );
+  await ctx.commit([{ op: "delete-record", kind: "entropy", id: params.walletId }, ...extras]);
   return null;
 }

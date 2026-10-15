@@ -1,7 +1,7 @@
 /**
  * The nostr module: the nostr-key record kind, its signer pool, and every nostr.* command. Wired
- * once in kernel.ts — the VaultHooks give the core the four explicit seams (record ownership,
- * unlock claim, lock dispose, wallet-delete ops) without the core knowing what a nostr key is;
+ * once in kernel.ts — the VaultHooks give the core the explicit seams (record ownership, reconcile
+ * claim/forget, lock dispose, wallet-delete ops) without the core knowing what a nostr key is;
  * `status` produces the module's snapshot section, called from status.ts.
  */
 import type { MethodName, NOSTR_METHODS } from "@qntx/wallet/protocol";
@@ -47,46 +47,39 @@ export function createNostrModule(): NostrModule {
       return unclaimed;
     },
 
+    forget: (kind, id) => {
+      if (kind === NOSTR_KEY_KIND) {
+        pool.remove(id);
+      }
+    },
+
     lock: () => {
       pool.dispose();
     },
 
     walletDeleteOps: (image, walletId) => {
-      const ids: string[] = [];
+      const ops: StoreOp[] = [];
       for (const record of image.records) {
         if (record.kind !== NOSTR_KEY_KIND) {
           continue;
         }
         const header = parseNostrKeyHeader(record.header);
         if (header.origin === "derived" && header.walletId === walletId) {
-          ids.push(record.id);
+          ops.push({ op: "delete-record", kind: NOSTR_KEY_KIND, id: record.id });
         }
       }
-      const ops: StoreOp[] = ids.map((id) => ({
-        op: "delete-record" as const,
-        kind: NOSTR_KEY_KIND,
-        id,
-      }));
-      return {
-        ops,
-        after: () => {
-          for (const id of ids) {
-            pool.remove(id);
-          }
-        },
-      };
+      return ops;
     },
   };
 
   const handlers: { [M in keyof typeof NOSTR_METHODS & MethodName]: Handler<M> } = {
     "nostr.discover": async (ctx, params, session) => keys.discover(ctx, params, session),
-    "nostr.deriveKey": async (ctx, params, session) => keys.deriveKey(ctx, pool, params, session),
-    "nostr.importKey": async (ctx, params, session) => keys.importKey(ctx, pool, params, session),
-    "nostr.generateKey": async (ctx, params, session) =>
-      keys.generateKey(ctx, pool, params, session),
+    "nostr.deriveKey": async (ctx, params, session) => keys.deriveKey(ctx, params, session),
+    "nostr.importKey": async (ctx, params, session) => keys.importKey(ctx, params, session),
+    "nostr.generateKey": async (ctx, params, session) => keys.generateKey(ctx, params, session),
     "nostr.createNip46ClientKey": async (ctx, _params, session) =>
-      keys.createNip46ClientKey(ctx, pool, session),
-    "nostr.removeKey": async (ctx, params, session) => keys.removeKey(ctx, pool, params, session),
+      keys.createNip46ClientKey(ctx, session),
+    "nostr.removeKey": async (ctx, params, session) => keys.removeKey(ctx, params, session),
     "nostr.exportKey": async (ctx, params, session) => keys.exportKey(ctx, params, session),
     "nostr.signEvent": async (ctx, params, session) => ops.sign(ctx, pool, params, session),
     "nostr.nip04Encrypt": async (ctx, params, session) =>

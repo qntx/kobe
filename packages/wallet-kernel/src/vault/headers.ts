@@ -28,11 +28,13 @@ export type DataKeyHeader = {
 export type PasswordFactorHeader = {
   readonly salt: string; // base64url (no padding), decodes to 16 bytes
   readonly iterations: 600000;
+  readonly publicKey: string; // base64url (no padding) X25519 wrapping key, 32 bytes
   readonly createdAt: number;
 };
 
 export type PasskeyFactorHeader = {
   readonly credentialId: string; // base64url (no padding), decodes to 1–1023 bytes
+  readonly publicKey: string; // base64url (no padding) X25519 wrapping key, 32 bytes
   readonly createdAt: number;
 };
 
@@ -43,12 +45,17 @@ const PASSWORD_ITERATIONS = 600000;
 
 export function encodeHeader(header: CoreHeader): string {
   if ("credentialId" in header) {
-    return JSON.stringify({ credentialId: header.credentialId, createdAt: header.createdAt });
+    return JSON.stringify({
+      credentialId: header.credentialId,
+      publicKey: header.publicKey,
+      createdAt: header.createdAt,
+    });
   }
   if ("salt" in header) {
     return JSON.stringify({
       salt: header.salt,
       iterations: header.iterations,
+      publicKey: header.publicKey,
       createdAt: header.createdAt,
     });
   }
@@ -106,7 +113,7 @@ export function parseDataKeyHeader(text: string): DataKeyHeader {
 
 export function parsePasswordFactorHeader(text: string): PasswordFactorHeader {
   const object = headerObject(text);
-  expectKeys(object, ["salt", "iterations", "createdAt"]);
+  expectKeys(object, ["salt", "iterations", "publicKey", "createdAt"]);
   const { iterations } = object;
   if (typeof iterations !== "number" || !Number.isSafeInteger(iterations)) {
     throw headerFailure();
@@ -118,15 +125,17 @@ export function parsePasswordFactorHeader(text: string): PasswordFactorHeader {
   return {
     salt: asBase64url(object["salt"], 16, 16),
     iterations: PASSWORD_ITERATIONS,
+    publicKey: asBase64url(object["publicKey"], 32, 32),
     createdAt: asCreatedAt(object["createdAt"]),
   };
 }
 
 export function parsePasskeyFactorHeader(text: string): PasskeyFactorHeader {
   const object = headerObject(text);
-  expectKeys(object, ["credentialId", "createdAt"]);
+  expectKeys(object, ["credentialId", "publicKey", "createdAt"]);
   return {
     credentialId: asBase64url(object["credentialId"], 1, 1023),
+    publicKey: asBase64url(object["publicKey"], 32, 32),
     createdAt: asCreatedAt(object["createdAt"]),
   };
 }

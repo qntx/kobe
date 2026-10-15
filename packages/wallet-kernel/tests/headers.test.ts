@@ -44,11 +44,13 @@ const dataKey: DataKeyHeader = { purpose: "meowl-messages", createdAt: 0 };
 const passwordFactor: PasswordFactorHeader = {
   salt: "ABEiM0RVZneImaq7zN3u_w",
   iterations: 600_000,
+  publicKey: "PxLfxal_e43m4jpaNusYyCfYFXOkFoQAQ1lQI1s0HUM",
   createdAt: 1_767_225_600_000,
 };
 
 const passkeyFactor: PasskeyFactorHeader = {
   credentialId: "3q2-78r-",
+  publicKey: "JqRYFT66Kmogg041szL7sSC6lKDj6VPKh-5HsP3DbAE",
   createdAt: 1_767_225_600_000,
 };
 
@@ -157,6 +159,24 @@ describe("header rejection", () => {
         parsePasswordFactorHeader(JSON.stringify({ ...passwordFactor, iterations: "600000" })),
       ),
     ).toBe("integrity");
+  });
+
+  it("bad factor publicKey and bad purpose", () => {
+    // A factor publicKey must decode to exactly 32 bytes.
+    expect(
+      kernelError(() =>
+        parsePasswordFactorHeader(JSON.stringify({ ...passwordFactor, publicKey: "AA" })),
+      ),
+    ).toBe("integrity");
+    expect(
+      kernelError(() =>
+        parsePasskeyFactorHeader(JSON.stringify({ ...passkeyFactor, publicKey: "AA==" })),
+      ),
+    ).toBe("integrity");
+    const { publicKey: _omitted, ...withoutPublicKey } = passkeyFactor;
+    expect(kernelError(() => parsePasskeyFactorHeader(JSON.stringify(withoutPublicKey)))).toBe(
+      "integrity",
+    );
   });
 
   it("bad salt length and bad purpose", () => {

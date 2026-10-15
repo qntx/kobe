@@ -1,3 +1,5 @@
+import { equalBytes } from "@noble/ciphers/utils.js";
+
 import { isProtocolValue, METHODS, PROTOCOL_VERSION, UNATTRIBUTED_ID } from "@qntx/wallet/protocol";
 import type {
   ErrorPayload,
@@ -15,9 +17,13 @@ import { CORE_HANDLERS } from "./commands/index.ts";
 import { KernelError } from "./errors.ts";
 import { createNostrModule } from "./modules/nostr/index.ts";
 import type { KernelPlatform, Port } from "./platform.ts";
+import { wipe } from "./secret/secret.ts";
 import { Session } from "./session/session.ts";
 import { statusContents, statusPayload } from "./status.ts";
-import type { StoreOp, VaultImage } from "./vault/store.ts";
+import { factorBindingOk } from "./vault/factors.ts";
+import type { StoredRecord, StoreOp, VaultImage } from "./vault/store.ts";
+import { openRecord } from "./vault/vault.ts";
+import type { OpenedRecord } from "./vault/vault.ts";
 
 const EMPTY_IMAGE: VaultImage = { meta: undefined, records: [], factors: [] };
 
@@ -101,10 +107,91 @@ export function startKernel(platform: KernelPlatform, port: Port): void {
   };
 
   /**
+   * Reconciles live module state from `prev` to `ctx.image` under the unlocked session (S6):
+   * records are diffed by (kind, id) — removals go to the owning module's `forget`, additions and
+   * changes are opened with the session DEK and claimed (unclaimed plaintexts are wiped); changed
+   * factor rows are verified against the session DEK's binding tag. A keyId mismatch or any
+   * authentication failure latches `corrupted` and invalidates the session. No-op while locked.
+   */
+  const reconcile = (prev: VaultImage): void => {
+    if (!ctx.session.unlocked) {
+      return;
+    }
+    const { dek, keyId } = ctx.session.current();
+    const next = ctx.image;
+    if (next.meta === undefined || next.meta.keyId !== keyId) {
+      // The vault rotated elsewhere: this session's DEK is stale — lock it.
+      ctx.session.lock("invalidated");
+      return;
+    }
+    const opened: OpenedRecord[] = [];
+    let handedOff = false;
+    try {
+      const before = new Map<string, StoredRecord>();
+      for (const record of prev.records) {
+        before.set(`${record.kind}/${record.id}`, record);
+      }
+      for (const record of next.records) {
+        const prior = before.get(`${record.kind}/${record.id}`);
+        if (prior === undefined) {
+          opened.push({ kind: record.kind, id: record.id, plaintext: openRecord(dek, record) });
+        } else {
+          before.delete(`${record.kind}/${record.id}`);
+          if (prior.header !== record.header || !equalBytes(prior.sealed, record.sealed)) {
+            opened.push({ kind: record.kind, id: record.id, plaintext: openRecord(dek, record) });
+          }
+        }
+      }
+      for (const removed of before.values()) {
+        for (const module of ctx.modules) {
+          if (module.ownsRecord(removed.kind)) {
+            module.forget(removed.kind, removed.id);
+          }
+        }
+      }
+      let unclaimed: ReadonlyArray<OpenedRecord> = opened;
+      for (const module of ctx.modules) {
+        unclaimed = module.claimUnlocked(unclaimed);
+      }
+      handedOff = true;
+      for (const record of unclaimed) {
+        wipe(record.plaintext);
+      }
+      const priorFactors = new Map(prev.factors.map((factor) => [factor.id, factor]));
+      for (const factor of next.factors) {
+        const prior = priorFactors.get(factor.id);
+        const changed =
+          prior === undefined ||
+          prior.header !== factor.header ||
+          !equalBytes(prior.sealed, factor.sealed);
+        if (changed && !factorBindingOk(dek, factor)) {
+          throw new KernelError(
+            "integrity",
+            "factor binding does not match the vault",
+            undefined,
+            true,
+          );
+        }
+      }
+    } catch {
+      if (!handedOff) {
+        for (const record of opened) {
+          wipe(record.plaintext);
+        }
+      }
+      integrityFailure = true;
+      setHealth("corrupted");
+    }
+  };
+
+  /**
    * Installs a freshly loaded image and recomputes health from it. The integrity latch wins over a
-   * clean structural read until the vault is gone; `unsupported` wins over everything.
+   * clean structural read until the vault is gone; `unsupported` wins over everything. While the
+   * session is unlocked the live module state reconciles against the new image — a corrupted or
+   * rotated vault locks it.
    */
   const applyImage = (image: VaultImage): void => {
+    const prev = ctx.image;
     ctx.image = image;
     ctx.session.setInitialized(image.meta !== undefined);
     if (image.meta === undefined) {
@@ -112,6 +199,7 @@ export function startKernel(platform: KernelPlatform, port: Port): void {
     }
     const assessed = statusContents(image, ctx.modules, nostr).health;
     setHealth(assessed === "ok" && integrityFailure ? "corrupted" : assessed);
+    reconcile(prev);
   };
 
   const post = (message: ProtocolValue): void => {
@@ -191,6 +279,7 @@ export function startKernel(platform: KernelPlatform, port: Port): void {
       await reload();
     },
     reload,
+    reconcile,
   };
 
   const dispatch = async <M extends MethodName>(

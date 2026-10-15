@@ -145,12 +145,12 @@ export class Session {
   }
 
   /** The live session without a request-id check (drafts prove same-process provenance). */
-  current(): { id: string; dek: Secret } {
+  current(): { id: string; dek: Secret; keyId: string } {
     const { state } = this;
     if (state.status !== "unlocked") {
       throw new KernelError("locked", "session is not unlocked");
     }
-    return { id: state.id, dek: state.dek };
+    return { id: state.id, dek: state.dek, keyId: state.keyId };
   }
 
   putDraft(id: string, draft: MnemonicDraft): void {

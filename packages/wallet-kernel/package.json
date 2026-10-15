@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@noble/ciphers": "^2.4.0",
+    "@noble/curves": "2.4.0",
     "@noble/hashes": "^2.4.0",
     "@qntx/nostr": "^0.14.0",
     "@qntx/wallet": "0.2.0",
@@ -29,7 +30,6 @@
     "@scure/bip39": "^2.4.0"
   },
   "devDependencies": {
-    "@noble/curves": "2.4.0",
     "@qntx/tsconfig": "1.0.1",
     "@types/node": "26.6.4",
     "typescript": "7.0.2",
