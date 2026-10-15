@@ -1,0 +1,15 @@
+node_modules/
+.expo/
+dist/
+
+# Expo CNG
+ios/
+android/
+
+# Native build products
+modules/v1-probe/cpp/generated/
+modules/v1-probe/android/.cxx/
+modules/v1-probe/android/build/
+
+results/
+*.log

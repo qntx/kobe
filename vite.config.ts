@@ -151,7 +151,15 @@ const config: UserConfig = defineConfig({
     // merge() concatenates arrays onto the preset's own ignorePatterns.
     // crates/, target/ and .vite-hooks/ are ignored leftovers from the
     // pre-reset repository.
-    ignorePatterns: ["crates/**", "target/**", ".vite-hooks/**", "vectors/**"],
+    ignorePatterns: [
+      "crates/**",
+      "target/**",
+      ".vite-hooks/**",
+      "vectors/**",
+      // apps/harness is a standalone Expo project with its own toolchain and
+      // RN types; it is deliberately outside the root lint/typecheck gates.
+      "apps/harness/**",
+    ],
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
     rules: {
       "vite-plus/prefer-vite-plus-imports": "error",
@@ -350,6 +358,8 @@ const config: UserConfig = defineConfig({
       "**/*.toml",
       // Generated vectors stay byte-frozen.
       "vectors/**",
+      // Standalone Expo app (own toolchain), see the lint ignore above.
+      "apps/harness/**",
     ],
   },
   run: { cache: process.env["CI"] === undefined || process.env["CI"] === "" },

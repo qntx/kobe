@@ -18,6 +18,7 @@
     "test": "vp run -r test",
     "test:browser": "vp run @qntx/wallet-worker#test:browser",
     "smoke:hermes": "bun run --cwd packages/wallet-worker smoke:hermes",
+    "harness:bundles": "bun scripts/harness-bundles.ts",
     "release": "bumpp",
     "prepare": "vp config"
   },

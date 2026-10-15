@@ -1,0 +1,27 @@
+{
+  "name": "@qntx/wallet-harness",
+  "version": "0.0.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start --dev-client",
+    "prebuild": "expo prebuild --clean",
+    "ios": "expo run:ios",
+    "android": "expo run:android",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@qntx/nostr-native": "0.14.0",
+    "@qntx/v1-probe": "file:./modules/v1-probe",
+    "expo": "57.0.26",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-nitro-modules": "0.37.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "babel-preset-expo": "57.0.13",
+    "nitrogen": "0.37.1",
+    "typescript": "5.9.3"
+  }
+}
