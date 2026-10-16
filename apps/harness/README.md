@@ -75,9 +75,3 @@ process. Requires `pod install` in `ios/` first.
 Simulator/emulator runs are smoke verification. The required gate measurement
 is a release run on the iPhone Air (physical device); the pass budgets are
 defined for that device.
-
-## Known issues
-
-- expo-modules-jsi 57.1.2's generated `.swiftinterface` fails to compile under
-  Xcode 27.1 (`__ObjC::expo` scope error) — upstream incompatibility, not a
-  harness bug.

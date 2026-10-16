@@ -15,8 +15,8 @@ jobs:
     permissions:
       contents: read
     with:
-      # Must track the commit pinned in react-native/sdks/.hermesv1version for the
-      # React Native version meowl targets (RN 0.86 → hermes-v250829098.0.17).
-      hermes-commit: 3477757eb2475555cf8d8df24bfb1deb0613880d
+      # Must track the Hermes version bundled with the React Native version the
+      # harness and meowl target (RN 0.88 → hermes-v260318099.0.4).
+      hermes-commit: d412d3bd851278712c20cca25d094e32641a0465
       script: smoke:hermes
       working-directory: packages/wallet-worker

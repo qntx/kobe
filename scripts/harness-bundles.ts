@@ -5,8 +5,8 @@
  * byte arrays consumed by the V1Probe module.
  *
  * Hermesc is resolved from apps/harness/node_modules — hermes-compiler is a react-native dependency
- * there, so the bytecode always matches the app's Hermes runtime (hermesc 250829098.0.17 for RN
- * 0.86.3). The script fails early if `bun install` has not run inside apps/harness.
+ * there, so the bytecode always matches the app's Hermes runtime (hermesc 260318099.0.4 for RN
+ * 0.88). The script fails early if `bun install` has not run inside apps/harness.
  *
  * Helpers without a top-level effect (share.ts) and type-only files (*.d.ts) are inputs, not
  * probes: probe files are every other *.ts under probes/.
@@ -159,7 +159,7 @@ const compileBytecode = (source: string, workDir: string): Uint8Array => {
   writeFileSync(jsPath, source);
   // -emit-async-break-check lets KernelRuntime.destroy() interrupt running JS
   // via IHermes::asyncTriggerTimeout; without it bytecode busy-loops cannot be
-  // stopped (hermesc 250829098 supports the flag).
+  // stopped (supported since hermesc 250829098).
   const proc = Bun.spawnSync(
     [hermesc, "-emit-binary", "-emit-async-break-check", "-out", hbcPath, jsPath],
     {

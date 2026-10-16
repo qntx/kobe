@@ -72,7 +72,8 @@ struct KernelGlobalsState {
 //   globalThis.__qntx   frozen { random, now, elapsed, setTimer, pbkdf2, post,
 //                              setMessageHandler }
 //   globalThis.crypto   frozen { getRandomValues }
-//   globalThis.TextDecoder   UTF-8 only, WHATWG fatal/replacement semantics
+//   globalThis.TextDecoder   the native Hermes decoder (260318099+), frozen
+//                            and rebound hidden
 //   globalThis.setTimeout / clearTimeout   id-based, kernel-thread timers —
 //     Hermes' bundled promise rejection tracker resolves these literals at
 //     call time to defer onUnhandled; Promise.then/async use the engine queue
@@ -81,7 +82,7 @@ struct KernelGlobalsState {
 // non-configurable and non-enumerable.
 //
 // Also evaluates the kernel prelude — a function expression invoked once with
-// a private `natives` object { setTimer, decodeUtf8, reportUnhandled }. Private
+// a private `natives` object { setTimer, reportUnhandled }. Private
 // natives are never reachable from globalThis.
 void installKernelGlobals(
     facebook::jsi::Runtime& runtime,

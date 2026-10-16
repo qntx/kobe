@@ -75,10 +75,11 @@ install("crypto", {});
   }
 }
 
-// TextDecoder — production: Expo ships a UTF-8 TextDecoder on native (Hermes itself ships
-// TextEncoder only). The kernel decodes user secrets with { fatal: true }, so unlike the
-// nostr.js harness this shim implements fatal mode: malformed input throws TypeError instead
-// of silently producing U+FFFD.
+// TextDecoder — Hermes ships a native decoder as of 260318099 (RN 0.88); this
+// shim only installs on older Hermes versions that lack it. The kernel decodes
+// user secrets with { fatal: true }, so unlike the nostr.js harness this shim
+// implements fatal mode: malformed input throws TypeError instead of silently
+// producing U+FFFD.
 const decodeFail = (): never => {
   throw new TypeError("The encoded data was not valid");
 };
