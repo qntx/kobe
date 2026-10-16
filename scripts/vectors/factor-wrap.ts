@@ -4,12 +4,19 @@
  * spelled out byte by byte so this stays an independent implementation of the spec.
  *
  * FactorSk = HKDF-SHA256(ikm = KEK, salt = empty, info = "qntx-wallet/vault/v2/factor-key", 32)
- * factorPk = X25519(factorSk) — stored in the header as base64url (no padding) wrapKey =
- * HKDF-SHA256(ikm = X25519(eph, factorPk), salt = ephPk ‖ factorPk, info =
- * "qntx-wallet/vault/v2/wrap", 32) binding = HMAC-SHA256(key = DEK, msg =
- * UTF-8("qntx-wallet/vault/v2/binding") ‖ aad) sealed = 0x02 ‖ ephPk(32) ‖ binding(32) ‖ 0x01 ‖
- * nonce(24) ‖ XChaCha20-Poly1305(wrapKey, DEK) aad = 0x01 ‖ u16be(len(UTF-8(context))) ‖
- * UTF-8(context) ‖ UTF-8(header) context = "qntx-wallet/vault/v1/factor/" ‖ kind ‖ "/" ‖ id
+ *
+ * FactorPk = X25519(factorSk), stored in the header as base64url (no padding)
+ *
+ * WrapKey = HKDF-SHA256(ikm = X25519(eph, factorPk), salt = ephPk ‖ factorPk, info =
+ * "qntx-wallet/vault/v2/wrap", 32)
+ *
+ * Binding = HMAC-SHA256(key = DEK, msg = UTF-8("qntx-wallet/vault/v2/binding") ‖ aad)
+ *
+ * Sealed = 0x02 ‖ ephPk(32) ‖ binding(32) ‖ 0x01 ‖ nonce(24) ‖ XChaCha20-Poly1305(wrapKey, DEK)
+ *
+ * Aad = 0x01 ‖ u16be(len(UTF-8(context))) ‖ UTF-8(context) ‖ UTF-8(header)
+ *
+ * Context = "qntx-wallet/vault/v1/factor/" ‖ kind ‖ "/" ‖ id
  *
  * Run from the repo root: bun scripts/vectors/factor-wrap.ts
  */

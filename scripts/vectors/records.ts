@@ -4,12 +4,16 @@
  * VAULT_FORMAT-2 store persists as a record/factor public header (or the vault meta object),
  * written out key by key in the documented order. `input` is the field set the parser returns.
  *
- * Header key orders (must match the encoders): entropy: walletId, origin, words, backedUp,
- * createdAt data-key: purpose, createdAt nostr derived: publicKey, origin, walletId, groupIndex,
- * createdAt nostr standalone: publicKey, origin, backedUp, createdAt (nsec | ncryptsec | generated)
- * nostr nip46-client: publicKey, origin, createdAt (never carries backedUp) password factor: salt,
- * iterations, publicKey, createdAt passkey factor: credentialId, publicKey, createdAt vault meta:
- * format, revision, keyId, failedAttempts, lastFailureAt
+ * Key orders (must match the encoders):
+ *
+ * - Entropy: walletId, origin, words, backedUp, createdAt
+ * - Data-key: purpose, createdAt
+ * - Nostr derived: publicKey, origin, walletId, groupIndex, createdAt
+ * - Nostr standalone (nsec, ncryptsec, generated): publicKey, origin, backedUp, createdAt
+ * - Nostr nip46-client: publicKey, origin, createdAt (never carries backedUp)
+ * - Password factor: salt, iterations, publicKey, createdAt
+ * - Passkey factor: credentialId, publicKey, createdAt
+ * - Vault meta: format, revision, keyId, failedAttempts, lastFailureAt
  *
  * Run from the repo root: bun scripts/vectors/records.ts
  */

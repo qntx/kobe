@@ -3,13 +3,18 @@
  * Regenerates vectors/protocol.json without importing kernel or @qntx/wallet code: representative
  * wire messages for PROTOCOL_VERSION 1. Uint8Array fields are written as `{ "$bytes": "<hex>" }`.
  *
- * Message shapes: request: { v: 1, id, method, session?, params } response: { v: 1, id, ok } | { v:
- * 1, id, err: { code, retryAt? } } event: { v: 1, event: "status", status } | { v: 1, event:
- * "locked", reason }
+ * Message shapes:
  *
- * `check` tells the validator which contract the sample exercises: request — envelope rules +
- * METHODS[method].params response:<method> — METHODS[method].result on `ok` responseError — the
- * `err` payload validator event — the kernelEvent validator
+ * - Request: `{ v: 1, id, method, session?, params }`
+ * - Response: `{ v: 1, id, ok }` or `{ v: 1, id, err: { code, retryAt? } }`
+ * - Event: `{ v: 1, event: "status", status }` or `{ v: 1, event: "locked", reason }`
+ *
+ * `check` names the contract a sample exercises:
+ *
+ * - `request`: the envelope rules plus `METHODS[method].params`
+ * - `response:<method>`: `METHODS[method].result` on `ok`
+ * - `responseError`: the `err` payload validator
+ * - `event`: the `kernelEvent` validator
  *
  * Run from the repo root: bun scripts/vectors/protocol.ts
  */
