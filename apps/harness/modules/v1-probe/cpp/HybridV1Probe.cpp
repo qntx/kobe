@@ -15,26 +15,75 @@
 #include <cmath>
 #include <condition_variable>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <deque>
 #include <mutex>
+#include <numeric>
 #include <optional>
 #include <stdexcept>
 #include <thread>
 #include <vector>
 
 #if defined(__APPLE__)
+#include <TargetConditionals.h>
 #include <mach/mach.h>
+#include <sys/sysctl.h>
 #elif defined(__ANDROID__)
 #include <android/log.h>
+#include <sys/system_properties.h>
 #include <unistd.h>
 #endif
 
 namespace margelo::nitro::v1probe {
 
-namespace {
-
 using Clock = std::chrono::steady_clock;
+
+// One open kernel driven by openKernel/send/closeKernel. The session owns the
+// runtime; hooks capture the session (not the HybridObject) so the kernel thread
+// never dereferences a destroyed probe. Kernel posts resolve pending sends FIFO;
+// posts that arrive with no pending send queue in inbox for the next send.
+struct KernelSession {
+  std::mutex mutex;
+  std::condition_variable cv;
+  std::deque<std::vector<uint8_t>> inbox;
+  std::deque<std::shared_ptr<Promise<std::shared_ptr<ArrayBuffer>>>> pending;
+  std::optional<std::string> error;
+  std::shared_ptr<qntx::KernelRuntime> rt;
+
+  void onPost(std::vector<uint8_t> bytes) {
+    std::shared_ptr<Promise<std::shared_ptr<ArrayBuffer>>> next;
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      if (!pending.empty()) {
+        next = std::move(pending.front());
+        pending.pop_front();
+      } else {
+        inbox.push_back(std::move(bytes));
+      }
+    }
+    cv.notify_all();
+    if (next) {
+      next->resolve(ArrayBuffer::copy(bytes));
+    }
+  }
+
+  void onError(std::string message) {
+    std::deque<std::shared_ptr<Promise<std::shared_ptr<ArrayBuffer>>>> failed;
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      error = message;
+      failed.swap(pending);
+    }
+    cv.notify_all();
+    auto exception = std::make_exception_ptr(std::runtime_error(std::move(message)));
+    for (const auto& promise : failed) {
+      promise->reject(exception);
+    }
+  }
+};
+
+namespace {
 
 // Mailbox between a KernelRuntime's hooks and the probe orchestrator thread.
 struct Channel {
@@ -42,6 +91,7 @@ struct Channel {
   std::condition_variable cv;
   std::deque<std::vector<uint8_t>> inbox;
   std::optional<std::string> error;
+  Clock::time_point errorAt{};
 
   void push(std::vector<uint8_t> bytes) {
     {
@@ -54,6 +104,7 @@ struct Channel {
     {
       std::lock_guard<std::mutex> lock(mutex);
       error = std::move(message);
+      errorAt = Clock::now();
     }
     cv.notify_all();
   }
@@ -128,18 +179,20 @@ double percentile(std::vector<double> values, double p) {
   return values[std::min(index, values.size() - 1)];
 }
 
-double residentBytes() {
+// Physical footprint on Apple (TASK_VM_INFO phys_footprint — the number jetsam
+// and Xcode report); resident set from /proc/self/statm on Android.
+double footprintBytes() {
 #if defined(__APPLE__)
-  task_basic_info_64 info;
-  mach_msg_type_number_t count = TASK_BASIC_INFO_64_COUNT;
+  task_vm_info_data_t info;
+  mach_msg_type_number_t count = TASK_VM_INFO_COUNT;
   if (task_info(
           mach_task_self(),
-          TASK_BASIC_INFO_64,
+          TASK_VM_INFO,
           reinterpret_cast<task_info_t>(&info),
           &count) != KERN_SUCCESS) {
     return -1;
   }
-  return static_cast<double>(info.resident_size);
+  return static_cast<double>(info.phys_footprint);
 #elif defined(__ANDROID__)
   if (FILE* statm = std::fopen("/proc/self/statm", "r")) {
     long pages = 0;
@@ -190,15 +243,89 @@ std::string escapeJson(const std::string& in) {
 }
 
 std::string statsJson(const std::vector<double>& samples) {
-  char buf[128];
+  const auto sorted = [&] {
+    auto v = samples;
+    std::sort(v.begin(), v.end());
+    return v;
+  }();
+  char buf[192];
   std::snprintf(
       buf,
       sizeof(buf),
-      "{\"n\":%zu,\"median\":%.3f,\"p95\":%.3f}",
+      "{\"n\":%zu,\"median\":%.3f,\"p95\":%.3f,\"min\":%.3f,\"max\":%.3f}",
       samples.size(),
       percentile(samples, 50),
-      percentile(samples, 95));
+      percentile(samples, 95),
+      sorted.empty() ? 0.0 : sorted.front(),
+      sorted.empty() ? 0.0 : sorted.back());
   return buf;
+}
+
+#if defined(__APPLE__)
+std::string sysctlString(const char* name) {
+  size_t size = 0;
+  if (sysctlbyname(name, nullptr, &size, nullptr, 0) != 0 || size == 0) {
+    return "unknown";
+  }
+  std::string value(size, '\0');
+  if (sysctlbyname(name, value.data(), &size, nullptr, 0) != 0) {
+    return "unknown";
+  }
+  if (!value.empty() && value.back() == '\0') {
+    value.pop_back();
+  }
+  return value;
+}
+#elif defined(__ANDROID__)
+std::string systemProperty(const char* name) {
+  char value[PROP_VALUE_MAX] = {0};
+  if (__system_property_get(name, value) <= 0) {
+    return "unknown";
+  }
+  return value;
+}
+#endif
+
+// Provenance attached to every V1_RESULT line: build-time constants baked into
+// generated/probes.hpp plus platform fields collected here.
+std::string provenanceJson() {
+#if defined(__ANDROID__)
+  const char* platform = "android";
+  const std::string osVersion =
+      systemProperty("ro.build.version.release") + " (SDK " +
+      systemProperty("ro.build.version.sdk") + ")";
+  const std::string device = systemProperty("ro.product.model");
+  const bool simulator =
+      systemProperty("ro.kernel.qemu") == "1" || systemProperty("ro.boot.qemu") == "1";
+#elif defined(__APPLE__) && TARGET_OS_SIMULATOR
+  const char* platform = "ios";
+  const std::string osVersion = sysctlString("kern.osproductversion");
+  const char* model = std::getenv("SIMULATOR_MODEL_IDENTIFIER");
+  const std::string device = model != nullptr ? model : sysctlString("hw.machine");
+  const bool simulator = true;
+#elif defined(__APPLE__)
+  const char* platform = "ios";
+  const std::string osVersion = sysctlString("kern.osproductversion");
+  const std::string device = sysctlString("hw.machine");
+  const bool simulator = false;
+#else
+  const char* platform = "unknown";
+  const std::string osVersion = "unknown";
+  const std::string device = "unknown";
+  const bool simulator = false;
+#endif
+#ifdef NDEBUG
+  const char* buildConfig = "release";
+#else
+  const char* buildConfig = "debug";
+#endif
+  using namespace qntx::harness::probes;
+  return std::string("{\"commit\":\"") + kCommit + "\",\"dirty\":" + (kDirty ? "true" : "false") +
+      ",\"buildConfig\":\"" + buildConfig + "\",\"platform\":\"" + platform +
+      "\",\"osVersion\":\"" + escapeJson(osVersion) + "\",\"device\":\"" + escapeJson(device) +
+      "\",\"simulator\":" + (simulator ? "true" : "false") + ",\"nitroVersion\":\"" +
+      kNitroVersion + "\",\"nitroPatchSha256\":\"" + kNitroPatchSha256 + "\",\"hermesc\":\"" +
+      escapeJson(kHermesc) + "\"}";
 }
 
 // Embedded probe scripts (generated/probes.hpp).
@@ -211,8 +338,8 @@ qntx::harness::probes::Script scriptFor(const std::string& name) {
   if (name == "echo") {
     return kEcho;
   }
-  if (name == "startup") {
-    return kStartup;
+  if (name == "busy") {
+    return kBusy;
   }
   if (name == "crash-sync") {
     return kCrashSync;
@@ -261,11 +388,12 @@ std::string runPosted(
 std::string runTwoPosts(
     const qntx::harness::probes::Script& script,
     bool bytecode,
-    bool installNitro) {
+    bool installNitro,
+    qntx::KernelProfile profile = qntx::KernelProfile::standard) {
   auto channel = std::make_shared<Channel>();
   const auto t0 = Clock::now();
   auto rt = startKernel(
-      qntx::KernelProfile::standard,
+      profile,
       script.source,
       script.sourceSize,
       script.bytecode,
@@ -291,10 +419,11 @@ std::string runTwoPosts(
   }
 }
 
+// Q2: 20 create → kernel-ready startups of the REAL kernel bundle per mode.
 std::string runStartup(bool bytecode) {
   std::vector<double> samples;
   samples.reserve(20);
-  const auto script = scriptFor("startup");
+  const auto script = scriptFor("kernel");
   for (int i = 0; i < 20; i++) {
     auto channel = std::make_shared<Channel>();
     const auto t0 = Clock::now();
@@ -311,7 +440,7 @@ std::string runStartup(bool bytecode) {
     rt->destroy();
     samples.push_back(std::chrono::duration<double, std::milli>(t1 - t0).count());
   }
-  return std::string("{\"createToReadyMs\":") + statsJson(samples) + "}";
+  return std::string("{\"kernelReadyMs\":") + statsJson(samples) + "}";
 }
 
 std::string runRoundtrip(bool bytecode) {
@@ -356,35 +485,126 @@ std::string runRoundtrip(bool bytecode) {
   }
 }
 
-std::string runLifecycle(bool bytecode) {
-  const auto script = scriptFor("startup");
-  const double before = residentBytes();
-  int cycles = 0;
-  for (int i = 0; i < 100; i++) {
-    auto channel = std::make_shared<Channel>();
-    auto rt = startKernel(
-        qntx::KernelProfile::standard,
-        script.source,
-        script.sourceSize,
-        script.bytecode,
-        script.bytecodeSize,
-        bytecode,
-        channel);
-    channel->take(deadlineAfter(std::chrono::seconds(30)));
-    rt->destroy();
-    cycles++;
+// Least-squares slope (bytes/cycle) over footprint samples taken at cycles
+// `from`..100 step 10; `footprints` holds samples at 0,10,...,100.
+double slopeBytesPerCycle(const std::vector<double>& footprints, int from) {
+  std::vector<double> xs;
+  std::vector<double> ys;
+  for (size_t i = 0; i < footprints.size(); i++) {
+    const int cycle = static_cast<int>(i) * 10;
+    if (cycle >= from) {
+      xs.push_back(cycle);
+      ys.push_back(footprints[i]);
+    }
   }
-  const double after = residentBytes();
-  char buf[256];
-  std::snprintf(
-      buf,
-      sizeof(buf),
-      "{\"cycles\":%d,\"rssBeforeBytes\":%.0f,\"rssAfterBytes\":%.0f,\"rssDeltaBytes\":%.0f}",
-      cycles,
-      before,
-      after,
-      after - before);
-  return buf;
+  if (xs.size() < 2) {
+    return 0;
+  }
+  const double xMean = std::accumulate(xs.begin(), xs.end(), 0.0) / xs.size();
+  const double yMean = std::accumulate(ys.begin(), ys.end(), 0.0) / ys.size();
+  double num = 0;
+  double den = 0;
+  for (size_t i = 0; i < xs.size(); i++) {
+    num += (xs[i] - xMean) * (ys[i] - yMean);
+    den += (xs[i] - xMean) * (xs[i] - xMean);
+  }
+  return den == 0 ? 0 : num / den;
+}
+
+std::string lifecycleSeriesJson(int cycles, const std::vector<double>& footprints) {
+  std::string out = "{\"cycles\":" + std::to_string(cycles) + ",\"footprints\":[";
+  for (size_t i = 0; i < footprints.size(); i++) {
+    if (i > 0) {
+      out += ",";
+    }
+    char buf[24];
+    std::snprintf(buf, sizeof(buf), "%.0f", footprints[i]);
+    out += buf;
+  }
+  char slope[32];
+  std::snprintf(slope, sizeof(slope), "%.1f", slopeBytesPerCycle(footprints, 20));
+  out += "],\"slopeBytesPerCycle\":" + std::string(slope) + "}";
+  return out;
+}
+
+// One create → first post → destroy → waitUntilStopped cycle.
+void lifecycleCycle(
+    const qntx::harness::probes::Script& script,
+    bool bytecode,
+    bool installNitro) {
+  auto channel = std::make_shared<Channel>();
+  auto rt = startKernel(
+      qntx::KernelProfile::standard,
+      script.source,
+      script.sourceSize,
+      script.bytecode,
+      script.bytecodeSize,
+      bytecode,
+      channel,
+      installNitro);
+  channel->take(deadlineAfter(std::chrono::seconds(30)));
+  rt->destroy();
+  rt->waitUntilStopped(std::chrono::seconds(30));
+}
+
+// crash-sync tears itself down on the fatal error; waitUntilStopped proves it.
+void lifecycleCrashCycle(const qntx::harness::probes::Script& script, bool bytecode) {
+  auto channel = std::make_shared<Channel>();
+  auto rt = startKernel(
+      qntx::KernelProfile::standard,
+      script.source,
+      script.sourceSize,
+      script.bytecode,
+      script.bytecodeSize,
+      bytecode,
+      channel);
+  channel->takeError(deadlineAfter(std::chrono::seconds(30)));
+  rt->waitUntilStopped(std::chrono::seconds(30));
+  rt->destroy();
+}
+
+// Q6: 100 create/destroy cycles for the real kernel bundle, the Nitro-installed
+// probe, and the crash path; footprint sampled every 10 cycles.
+std::string runLifecycle(bool bytecode) {
+  const auto kernelScript = scriptFor("kernel");
+  const auto nitroScript = scriptFor("nitro-ping");
+  const auto crashScript = scriptFor("crash-sync");
+
+  auto runSeries = [&](const char* name, const auto& cycle) {
+    std::vector<double> footprints;
+    footprints.reserve(11);
+    int cycles = 0;
+    std::optional<std::string> error;
+    try {
+      for (int i = 0; i <= 100; i++) {
+        if (i % 10 == 0) {
+          footprints.push_back(footprintBytes());
+        }
+        if (i == 100) {
+          break;
+        }
+        cycle();
+        cycles++;
+      }
+    } catch (const std::exception& e) {
+      error = e.what();
+    }
+    std::string out = std::string("\"") + name + "\":";
+    if (error.has_value()) {
+      out += "{\"error\":\"" + escapeJson(*error) + "\"}";
+    } else {
+      out += lifecycleSeriesJson(cycles, footprints);
+    }
+    return out;
+  };
+
+  const std::string kernel =
+      runSeries("kernel", [&] { lifecycleCycle(kernelScript, bytecode, false); });
+  const std::string nitro =
+      runSeries("nitro", [&] { lifecycleCycle(nitroScript, bytecode, true); });
+  const std::string crash =
+      runSeries("crash", [&] { lifecycleCrashCycle(crashScript, bytecode); });
+  return "{" + kernel + "," + nitro + "," + crash + "}";
 }
 
 std::string runCrash(const std::string& probe, bool bytecode) {
@@ -402,10 +622,15 @@ std::string runCrash(const std::string& probe, bool bytecode) {
     auto error = channel->takeError(deadlineAfter(std::chrono::seconds(30)));
     // The kernel must tear itself down after a fatal error, without destroy().
     const bool stopped = rt->waitUntilStopped(std::chrono::seconds(1)) && !rt->running();
+    const auto stoppedAt = Clock::now();
+    const double stopMs =
+        std::chrono::duration<double, std::milli>(stoppedAt - channel->errorAt).count();
     rt->destroy();
+    char stopBuf[32];
+    std::snprintf(stopBuf, sizeof(stopBuf), "%.3f", stopMs);
     return std::string("{\"surfaced\":\"onError\",\"message\":\"") + escapeJson(error) +
         "\",\"runtimeDestroyed\":" + (stopped ? "true" : "false") +
-        ",\"appAlive\":true}";
+        ",\"stopMs\":" + stopBuf + ",\"appAlive\":true}";
   } catch (...) {
     rt->destroy();
     throw;
@@ -458,15 +683,18 @@ std::string runEchoCheck(bool bytecode) {
   }
 }
 
-std::string execute(const std::string& probe, const std::string& mode) {
-  bool bytecode;
+bool parseBytecode(const std::string& mode) {
   if (mode == "source") {
-    bytecode = false;
-  } else if (mode == "bytecode") {
-    bytecode = true;
-  } else {
-    throw std::invalid_argument("mode must be \"source\" or \"bytecode\", got: " + mode);
+    return false;
   }
+  if (mode == "bytecode") {
+    return true;
+  }
+  throw std::invalid_argument("mode must be \"source\" or \"bytecode\", got: " + mode);
+}
+
+std::string execute(const std::string& probe, const std::string& mode) {
+  const bool bytecode = parseBytecode(mode);
 
   if (probe == "runtime") {
     return runPosted(scriptFor("runtime"), bytecode);
@@ -492,6 +720,9 @@ std::string execute(const std::string& probe, const std::string& mode) {
   if (probe == "kernel") {
     return runTwoPosts(scriptFor("kernel"), bytecode, false);
   }
+  if (probe == "kernel-hardened") {
+    return runTwoPosts(scriptFor("kernel"), bytecode, false, qntx::KernelProfile::hardened);
+  }
   if (probe == "nitro" || probe == "nitro-ping") {
     return runTwoPosts(scriptFor(probe), bytecode, true);
   }
@@ -501,7 +732,27 @@ std::string execute(const std::string& probe, const std::string& mode) {
 void printResultLine(const std::string& line) {
   std::string out = "V1_RESULT " + line;
 #if defined(__ANDROID__)
-  __android_log_print(ANDROID_LOG_INFO, "V1Probe", "%s", out.c_str());
+  // logd cuts messages at ~1 KiB; chunk long lines with V1_CONT continuations
+  // and a V1_END terminator so capture can reassemble.
+  static std::mutex printMutex;
+  std::lock_guard<std::mutex> lock(printMutex);
+  constexpr size_t kChunk = 900;
+  size_t offset = 0;
+  bool fragmented = false;
+  while (offset < out.size()) {
+    const auto piece = out.substr(offset, kChunk);
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        "V1Probe",
+        "%s%s",
+        fragmented ? "V1_CONT " : "",
+        piece.c_str());
+    fragmented = true;
+    offset += piece.size();
+  }
+  if (fragmented && out.size() > kChunk) {
+    __android_log_print(ANDROID_LOG_INFO, "V1Probe", "V1_END");
+  }
 #else
   std::fprintf(stderr, "%s\n", out.c_str());
   std::fflush(stderr);
@@ -512,7 +763,8 @@ void emitResult(const std::string& probe, const std::string& mode, bool ok, cons
   // payload is either the probe JSON verbatim or an escaped error string.
   std::string line = std::string("{\"probe\":\"") + probe + "\",\"mode\":\"" + mode +
       "\",\"ok\":" + (ok ? "true" : "false") + "," +
-      (ok ? "\"result\":" + payload : "\"error\":\"" + escapeJson(payload) + "\"") + "}";
+      (ok ? "\"result\":" + payload : "\"error\":\"" + escapeJson(payload) + "\"") +
+      ",\"provenance\":" + provenanceJson() + "}";
   printResultLine(line);
 }
 
@@ -539,8 +791,123 @@ std::shared_ptr<Promise<std::string>> HybridV1Probe::run(
   return promise;
 }
 
-void HybridV1Probe::emit(const std::string& line) {
-  printResultLine(line);
+std::shared_ptr<Promise<void>> HybridV1Probe::openKernel(
+    const std::string& probe,
+    const std::string& mode) {
+  auto promise = Promise<void>::create();
+  std::shared_ptr<KernelSession> session;
+  try {
+    const auto script = scriptFor(probe);
+    const bool bytecode = parseBytecode(mode);
+    session = std::make_shared<KernelSession>();
+    qntx::KernelScript kernelScript{
+        bytecode ? qntx::KernelScript::Kind::bytecode : qntx::KernelScript::Kind::source,
+        bytecode
+            ? std::make_shared<const std::vector<uint8_t>>(
+                  script.bytecode, script.bytecode + script.bytecodeSize)
+            : std::make_shared<const std::vector<uint8_t>>(
+                  script.source, script.source + script.sourceSize)};
+    qntx::KernelRuntime::Hooks hooks;
+    hooks.onPost = [session](std::vector<uint8_t> bytes) {
+      session->onPost(std::move(bytes));
+    };
+    hooks.onError = [session](std::string message) {
+      session->onError(std::move(message));
+    };
+    session->rt = qntx::KernelRuntime::start(std::move(kernelScript), std::move(hooks));
+    {
+      std::lock_guard<std::mutex> lock(sessionMutex_);
+      if (session_) {
+        session->rt->destroy();
+        throw std::runtime_error("a kernel is already open");
+      }
+      session_ = session;
+    }
+  } catch (const std::exception& e) {
+    promise->reject(std::make_exception_ptr(std::runtime_error(e.what())));
+    return promise;
+  }
+  // Resolve once the kernel's first post (the ready marker) arrives.
+  std::thread([session, promise]() {
+    std::optional<std::string> failure;
+    {
+      std::unique_lock<std::mutex> lock(session->mutex);
+      const bool ready = session->cv.wait_until(
+          lock,
+          Clock::now() + std::chrono::seconds(30),
+          [&] { return !session->inbox.empty() || session->error.has_value(); });
+      if (!ready) {
+        failure = "openKernel timed out waiting for the first post";
+      } else if (session->error.has_value()) {
+        failure = *session->error;
+      } else {
+        session->inbox.pop_front();
+      }
+    }
+    if (failure.has_value()) {
+      promise->reject(std::make_exception_ptr(std::runtime_error(*failure)));
+    } else {
+      promise->resolve();
+    }
+  }).detach();
+  return promise;
+}
+
+std::shared_ptr<Promise<std::shared_ptr<ArrayBuffer>>> HybridV1Probe::send(
+    const std::shared_ptr<ArrayBuffer>& message) {
+  auto promise = Promise<std::shared_ptr<ArrayBuffer>>::create();
+  // Copy on the calling (JS) thread — the buffer's data is only valid here.
+  std::vector<uint8_t> bytes(message->data(), message->data() + message->size());
+  std::shared_ptr<KernelSession> session;
+  {
+    std::lock_guard<std::mutex> lock(sessionMutex_);
+    session = session_;
+  }
+  if (!session) {
+    promise->reject(
+        std::make_exception_ptr(std::runtime_error("send: no kernel open")));
+    return promise;
+  }
+  std::shared_ptr<ArrayBuffer> buffered;
+  {
+    std::lock_guard<std::mutex> lock(session->mutex);
+    if (session->error.has_value()) {
+      promise->reject(std::make_exception_ptr(std::runtime_error(*session->error)));
+      return promise;
+    }
+    if (!session->inbox.empty()) {
+      buffered = ArrayBuffer::copy(session->inbox.front());
+      session->inbox.pop_front();
+    } else {
+      session->pending.push_back(promise);
+    }
+  }
+  session->rt->post(std::move(bytes));
+  if (buffered) {
+    promise->resolve(std::move(buffered));
+  }
+  return promise;
+}
+
+void HybridV1Probe::closeKernel() {
+  std::shared_ptr<KernelSession> session;
+  {
+    std::lock_guard<std::mutex> lock(sessionMutex_);
+    session = std::move(session_);
+    session_.reset();
+  }
+  if (session) {
+    session->onError("kernel closed");
+    session->rt->destroy();
+  }
+}
+
+void HybridV1Probe::report(
+    const std::string& probe,
+    const std::string& mode,
+    bool ok,
+    const std::string& payload) {
+  emitResult(probe, mode, ok, payload);
 }
 
 } // namespace margelo::nitro::v1probe

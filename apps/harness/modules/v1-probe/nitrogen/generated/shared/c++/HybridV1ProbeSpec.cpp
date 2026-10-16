@@ -15,7 +15,10 @@ namespace margelo::nitro::v1probe {
     // load custom methods/properties
     registerHybrids(this, [](Prototype& prototype) {
       prototype.registerHybridMethod("run", &HybridV1ProbeSpec::run);
-      prototype.registerHybridMethod("emit", &HybridV1ProbeSpec::emit);
+      prototype.registerHybridMethod("openKernel", &HybridV1ProbeSpec::openKernel);
+      prototype.registerHybridMethod("send", &HybridV1ProbeSpec::send);
+      prototype.registerHybridMethod("closeKernel", &HybridV1ProbeSpec::closeKernel);
+      prototype.registerHybridMethod("report", &HybridV1ProbeSpec::report);
     });
   }
 

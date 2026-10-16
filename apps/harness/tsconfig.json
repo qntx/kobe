@@ -4,7 +4,9 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true
   },
   "include": ["**/*.ts", "**/*.tsx", "index.ts", "app.config.ts"]
 }

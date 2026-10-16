@@ -150,8 +150,27 @@ const nativePbkdf2: Pbkdf2 = (hash, password, salt, iterations, length) =>
 const noblePbkdf2: Pbkdf2 = (hash, password, salt, iterations, length) =>
   pbkdf2Async(hash === "sha256" ? sha256 : sha512, password, salt, { c: iterations, dkLen: length });
 
-async function pbkdf2Vectors(): Promise<Record<string, number>> {
-  const timings: Record<string, number> = {};
+// Batches `n` iterations of `op` and reports total + per-op milliseconds on
+// __qntx.elapsed (fractional ms — a single signature is far below now()'s 1 ms).
+async function batch(
+  n: number,
+  op: (index: number) => Promise<void>,
+): Promise<{ readonly n: number; readonly totalMs: number; readonly perOpMs: number }> {
+  const t0 = __qntx.elapsed();
+  for (let i = 0; i < n; i++) {
+    await op(i);
+  }
+  const totalMs = __qntx.elapsed() - t0;
+  return { n, totalMs, perOpMs: totalMs / n };
+}
+
+const median = (xs: number[]): number => {
+  const s = [...xs].sort((a, b) => a - b);
+  return s.length === 0 ? 0 : (s[Math.floor((s.length - 1) / 2)] ?? 0);
+};
+
+async function pbkdf2Vectors(): Promise<Record<string, unknown>> {
+  const timings: Record<string, unknown> = {};
 
   // RFC PBKDF2-HMAC-SHA256 reference vector: "passwd"/"salt"/1/64.
   const rfc = await nativePbkdf2("sha256", utf8ToBytes("passwd"), utf8ToBytes("salt"), 1, 64);
@@ -173,32 +192,34 @@ async function pbkdf2Vectors(): Promise<Record<string, number>> {
     eq(bytesToHex(native), bytesToHex(js), `pbkdf2 vector ${v.hash}/${v.c}`);
   }
 
-  // BIP-39 seed shape: sha512, 2048 rounds, 64 bytes — native vs pure-JS timing.
+  // BIP-39 seed shape: sha512, 2048 rounds, 64 bytes — native vs pure-JS timing, 10 each.
   const seedPassword = utf8ToBytes(`${MNEMONIC} `.normalize("NFKD"));
   const seedSalt = utf8ToBytes("mnemonic".normalize("NFKD"));
-  let t0 = __qntx.now();
   const jsSeed = await noblePbkdf2("sha512", seedPassword, seedSalt, 2048, 64);
-  timings["pbkdf2-bip39-js"] = __qntx.now() - t0;
-  t0 = __qntx.now();
   const nativeSeed = await nativePbkdf2("sha512", seedPassword, seedSalt, 2048, 64);
-  timings["pbkdf2-bip39-native"] = __qntx.now() - t0;
   eq(bytesToHex(nativeSeed), bytesToHex(jsSeed), "pbkdf2 bip39 seed");
+  timings["pbkdf2-bip39-js"] = await batch(10, async () => {
+    await noblePbkdf2("sha512", seedPassword, seedSalt, 2048, 64);
+  });
+  timings["pbkdf2-bip39-native"] = await batch(10, async () => {
+    await nativePbkdf2("sha512", seedPassword, seedSalt, 2048, 64);
+  });
 
   // Unlock-scale benchmark: the password factor KEK is 600k PBKDF2-SHA256.
-  t0 = __qntx.now();
+  const t0 = __qntx.elapsed();
   await nativePbkdf2("sha256", utf8ToBytes(PASSWORD), utf8ToBytes("v1-bench"), 600_000, 32);
-  timings["pbkdf2-600k-sha256"] = __qntx.now() - t0;
+  timings["pbkdf2-600k-sha256"] = __qntx.elapsed() - t0;
   return timings;
 }
 
 async function main(): Promise<void> {
-  const timings: Record<string, number> = {};
+  const timings: Record<string, unknown> = {};
   Object.assign(timings, await pbkdf2Vectors());
 
   const kernel = boot(nativePbkdf2);
 
   // Mnemonic import (password factor → vault + session), NIP-06 derive, first signature.
-  let t0 = __qntx.now();
+  let t0 = __qntx.elapsed();
   const imported = ok(
     await kernel.call("wallet.importMnemonic", {
       mnemonic: utf8ToBytes(MNEMONIC),
@@ -215,65 +236,102 @@ async function main(): Promise<void> {
     "nostr.deriveKey",
   );
   eq(field(derived, "publicKey"), EXPECTED_PUBLIC_KEY, "deriveKey public key");
+  const signParams = {
+    publicKey: EXPECTED_PUBLIC_KEY,
+    event: {
+      kind: 1,
+      created_at: Math.floor(__qntx.now() / 1000),
+      tags: [["t", "hermes"]],
+      content: "hello from v1 kernel",
+    },
+  };
   const signed = ok(
-    await kernel.call(
-      "nostr.signEvent",
-      {
-        publicKey: EXPECTED_PUBLIC_KEY,
-        event: {
-          kind: 1,
-          created_at: Math.floor(__qntx.now() / 1000),
-          tags: [["t", "hermes"]],
-          content: "hello from v1 kernel",
-        },
-      },
-      session,
-    ),
+    await kernel.call("nostr.signEvent", signParams, session),
     "nostr.signEvent",
   );
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- result validator guarantees Event
   const event = signed as Event;
   eq(event.pubkey, EXPECTED_PUBLIC_KEY, "signEvent pubkey");
   assert(verifyEvent(event), "signEvent verifies");
-  timings["import-to-first-sign"] = __qntx.now() - t0;
+  timings["import-to-first-sign"] = __qntx.elapsed() - t0;
 
-  // Password factor unlock — 600k PBKDF2-SHA256 through the native KDF.
-  t0 = __qntx.now();
-  const unlocked = ok(
-    await kernel.call("vault.unlock", {
-      factor: { kind: "password", password: utf8ToBytes(PASSWORD) },
-    }),
-    "vault.unlock",
-  );
-  const unlockSession = field(unlocked, "session");
-  assert(typeof unlockSession === "string" && unlockSession.length === 32, "unlock session");
-  session = unlockSession;
-  timings["password-unlock"] = __qntx.now() - t0;
+  // 100 schnorr signatures through the kernel — sub-ms ops only register on elapsed().
+  timings["sign-event-100"] = await batch(100, async (i) => {
+    const again = ok(
+      await kernel.call(
+        "nostr.signEvent",
+        { ...signParams, event: { ...signParams.event, content: `v1 kernel sign ${i}` } },
+        session,
+      ),
+      "nostr.signEvent batch",
+    );
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- result validator guarantees Event
+    assert(verifyEvent(again as Event), "signEvent batch verifies");
+  });
 
-  // NIP-44 round trip against a fixed peer.
-  t0 = __qntx.now();
-  const ciphertext = ok(
-    await kernel.call(
-      "nostr.nip44Encrypt",
-      { publicKey: EXPECTED_PUBLIC_KEY, peer: PEER_PUBLIC_KEY, text: "v1 kernel nip44" },
-      session,
-    ),
+  // Password factor unlock — 600k PBKDF2-SHA256 through the native KDF. First unlock is
+  // reported alone; three repeats give min/median for the steady-state number.
+  t0 = __qntx.elapsed();
+  const unlockCalls = async (): Promise<void> => {
+    const unlocked = ok(
+      await kernel.call("vault.unlock", {
+        factor: { kind: "password", password: utf8ToBytes(PASSWORD) },
+      }),
+      "vault.unlock",
+    );
+    const unlockSession = field(unlocked, "session");
+    assert(typeof unlockSession === "string" && unlockSession.length === 32, "unlock session");
+    session = unlockSession;
+  };
+  await unlockCalls();
+  timings["password-unlock"] = __qntx.elapsed() - t0;
+  const unlockRepeats: number[] = [];
+  for (let i = 0; i < 3; i++) {
+    const t = __qntx.elapsed();
+    await unlockCalls();
+    unlockRepeats.push(__qntx.elapsed() - t);
+  }
+  timings["password-unlock-repeats"] = {
+    n: unlockRepeats.length,
+    min: Math.min(...unlockRepeats),
+    median: median(unlockRepeats),
+  };
+
+  // 100 NIP-44 encrypt+decrypt round trips against a fixed peer.
+  const nip44Peer = { publicKey: EXPECTED_PUBLIC_KEY, peer: PEER_PUBLIC_KEY };
+  const firstCipher = ok(
+    await kernel.call("nostr.nip44Encrypt", { ...nip44Peer, text: "v1 kernel nip44" }, session),
     "nostr.nip44Encrypt",
   );
-  assert(typeof ciphertext === "string" && ciphertext.length > 0, "nip44Encrypt payload");
-  const plaintext = ok(
+  assert(typeof firstCipher === "string" && firstCipher.length > 0, "nip44Encrypt payload");
+  timings["nip44-round-trip-100"] = await batch(100, async (i) => {
+    const text = `v1 kernel nip44 ${i}`;
+    const ciphertext = ok(
+      await kernel.call("nostr.nip44Encrypt", { ...nip44Peer, text }, session),
+      "nostr.nip44Encrypt batch",
+    );
+    const plaintext = ok(
+      await kernel.call(
+        "nostr.nip44Decrypt",
+        { ...nip44Peer, text: ciphertext },
+        session,
+      ),
+      "nostr.nip44Decrypt batch",
+    );
+    eq(plaintext, text, "nip44 batch round trip");
+  });
+  const finalCheck = ok(
     await kernel.call(
       "nostr.nip44Decrypt",
-      { publicKey: EXPECTED_PUBLIC_KEY, peer: PEER_PUBLIC_KEY, text: ciphertext },
+      { ...nip44Peer, text: firstCipher },
       session,
     ),
     "nostr.nip44Decrypt",
   );
-  eq(plaintext, "v1 kernel nip44", "nip44 round trip");
-  timings["nip44-round-trip"] = __qntx.now() - t0;
+  eq(finalCheck, "v1 kernel nip44", "nip44 round trip");
 
   // nsec export — re-verifies with the password factor (another 600k native PBKDF2).
-  t0 = __qntx.now();
+  t0 = __qntx.elapsed();
   const nsecBytes = ok(
     await kernel.call(
       "nostr.exportKey",
@@ -288,7 +346,7 @@ async function main(): Promise<void> {
   );
   assert(nsecBytes instanceof Uint8Array, "nostr.exportKey bytes");
   eq(new TextDecoder().decode(nsecBytes), EXPECTED_NSEC, "nostr.exportKey nsec");
-  timings["export-nsec"] = __qntx.now() - t0;
+  timings["export-nsec"] = __qntx.elapsed() - t0;
 
   const statusEvents = kernel.posted.filter(
     (m) => typeof m === "object" && m !== null && !Array.isArray(m) && "event" in m,
