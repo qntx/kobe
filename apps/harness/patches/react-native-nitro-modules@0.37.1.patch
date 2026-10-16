@@ -1,6 +1,9 @@
 diff --git a/node_modules/react-native-nitro-modules/.bun-tag-514dcf9de8fced12 b/.bun-tag-514dcf9de8fced12
 new file mode 100644
 index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/node_modules/react-native-nitro-modules/.bun-tag-e79653232d7e242f b/.bun-tag-e79653232d7e242f
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/cpp/jsi/JSICache.cpp b/cpp/jsi/JSICache.cpp
 index 45739e3e8f084a2e5fb2dcc05801095a85bb5567..ea6792f2328a12daea0d63ba85955a5cf058aaf3 100644
 --- a/cpp/jsi/JSICache.cpp
@@ -198,15 +201,16 @@ index e238bd7e5ad8039a418371685c0646a97c3aa389..8d799eab71224677e9a6beb83fde729d
    if (cachedName != cache.end()) {
 diff --git a/node_modules/react-native-nitro-modules/cpp/utils/RuntimeCacheMutex.hpp b/cpp/utils/RuntimeCacheMutex.hpp
 new file mode 100644
-index 0000000000000000000000000000000000000000..849cebe5013e1fb425af59cc3169770790935fc2
+index 0000000000000000000000000000000000000000..3173fade3e4cd79acfb3ca15dacdfb4f69f21185
 --- /dev/null
 +++ b/cpp/utils/RuntimeCacheMutex.hpp
-@@ -0,0 +1,30 @@
+@@ -0,0 +1,31 @@
 +//
 +//  RuntimeCacheMutex.hpp
 +//  NitroModules
 +//
-+//  Local patch, pending an upstream fix in mrousavy/nitro (not filed yet):
++//  Local patch, pending an upstream fix in mrousavy/nitro
++//  (https://github.com/margelo/nitro/issues/1705):
 +//  Nitro's process-wide caches — PropNameIDCache::_cache,
 +//  HybridObjectPrototype::_prototypeCache, JSICache::_globalCache,
 +//  CommonGlobals::_cache, Prototype::_prototypesCache, NitroTypeInfo's regex

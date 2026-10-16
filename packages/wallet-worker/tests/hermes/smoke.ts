@@ -1,6 +1,6 @@
 /**
  * Hermes smoke test for the wallet kernel: bundled to a single classic script and run on the bare
- * Hermes CLI that RN 0.86 ships (hermes-v250829098.0.17). Everything the kernel needs from its host
+ * Hermes CLI that RN 0.88 ships (hermes-v260318099.0.4). Everything the kernel needs from its host
  * is injected — deterministic random, fake clock, pure-JS PBKDF2, a never-firing setTimer stub, an
  * in-memory store, and an in-memory port — so the only ambient requirements left are the globals
  * globals.ts reports and shims.

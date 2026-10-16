@@ -5,8 +5,9 @@
  * verifySerialized, times native vs pure-JS, then keeps signing in setTimer batches until
  * `NITRO_LOOP_MS` total elapsed — the JS side hammers the main-runtime NostrNative meanwhile.
  */
-// globals.ts MUST evaluate first: it installs the TextDecoder shim that @qntx/nostr
-// (serializeEvent/getEventHash internals) touches inside the bare kernel runtime.
+// globals.ts MUST evaluate first: on Hermes versions without a native decoder it
+// installs the TextDecoder shim that @qntx/nostr (serializeEvent/getEventHash
+// internals) touches inside the bare kernel runtime.
 // Reference an export — wallet-worker is `sideEffects: false`, a bare import is tree-shaken.
 import { hermesGlobalsInstalled } from "../../../packages/wallet-worker/tests/hermes/globals.ts";
 

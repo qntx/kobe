@@ -37,7 +37,6 @@ namespace qntx {
 struct KernelIntrinsics {
   jsi::Function defineProperty;
   jsi::Function freeze;
-  jsi::Function typeError;
   jsi::Function uint8Array;
   // The real %TypedArray%.prototype accessors. Calling them reads internal
   // slots, so forged objects throw and redefined prototype getters cannot lie.
@@ -113,7 +112,7 @@ struct ByteView {
 };
 
 // The shared extractor for every byte input (pbkdf2 password/salt,
-// decodeUtf8, getRandomValues). Accepts a real ArrayBuffer or a genuine
+// getRandomValues). Accepts a real ArrayBuffer or a genuine
 // TypedArray — identified by calling the captured %TypedArray%.prototype
 // getters, which read internal slots: forged plain objects throw TypeError and
 // a redefined Uint8Array.prototype getter cannot lie.
@@ -154,98 +153,6 @@ ByteView byteViewFromValue(
     throw jsi::JSError(rt, std::string(name) + " view exceeds its ArrayBuffer");
   }
   return {std::move(buffer), data + static_cast<size_t>(offset), static_cast<size_t>(length)};
-}
-
-[[noreturn]] void throwTypeError(
-    jsi::Runtime& rt,
-    const KernelIntrinsics& intrinsics,
-    const char* message) {
-  auto error = intrinsics.typeError.callAsConstructor(
-      rt, jsi::Value(rt, jsi::String::createFromAscii(rt, message)));
-  throw jsi::JSError(rt, jsi::Value(std::move(error)));
-}
-
-// WHATWG UTF-8 decode: valid sequences are copied verbatim; with fatal=false
-// each maximal subpart of an ill-formed sequence becomes one U+FFFD; fatal=true
-// throws TypeError. A leading BOM is stripped unless ignoreBOM.
-std::vector<uint8_t> decodeUtf8Bytes(
-    jsi::Runtime& rt,
-    const KernelIntrinsics& intrinsics,
-    const uint8_t* data,
-    size_t size,
-    bool fatal,
-    bool ignoreBOM) {
-  if (!ignoreBOM && size >= 3 && data[0] == 0xef && data[1] == 0xbb && data[2] == 0xbf) {
-    data += 3;
-    size -= 3;
-  }
-  std::vector<uint8_t> out;
-  out.reserve(size);
-  size_t i = 0;
-  while (i < size) {
-    const uint8_t b0 = data[i];
-    if (b0 < 0x80) {
-      out.push_back(b0);
-      i += 1;
-      continue;
-    }
-    size_t expected;
-    uint8_t lo = 0x80;
-    uint8_t hi = 0xbf;
-    if (b0 >= 0xc2 && b0 <= 0xdf) {
-      expected = 2;
-    } else if (b0 == 0xe0) {
-      expected = 3;
-      lo = 0xa0;
-    } else if (b0 == 0xed) {
-      expected = 3;
-      hi = 0x9f;
-    } else if (b0 >= 0xe1 && b0 <= 0xef) {
-      expected = 3;
-    } else if (b0 == 0xf0) {
-      expected = 4;
-      lo = 0x90;
-    } else if (b0 == 0xf4) {
-      expected = 4;
-      hi = 0x8f;
-    } else if (b0 >= 0xf1 && b0 <= 0xf3) {
-      expected = 4;
-    } else {
-      if (fatal) {
-        throwTypeError(rt, intrinsics, "TextDecoder: input is not valid UTF-8");
-      }
-      out.push_back(0xef);
-      out.push_back(0xbf);
-      out.push_back(0xbd);
-      i += 1;
-      continue;
-    }
-    // Maximal subpart: consume the lead byte plus the longest valid prefix of
-    // continuation bytes (the second byte carries the overlong/surrogate range
-    // restriction; later bytes accept 80..BF).
-    size_t consumed = 1;
-    if (i + 1 < size && data[i + 1] >= lo && data[i + 1] <= hi) {
-      consumed = 2;
-      while (consumed < expected && i + consumed < size &&
-             data[i + consumed] >= 0x80 && data[i + consumed] <= 0xbf) {
-        consumed += 1;
-      }
-    }
-    if (consumed == expected) {
-      for (size_t k = 0; k < expected; k++) {
-        out.push_back(data[i + k]);
-      }
-    } else {
-      if (fatal) {
-        throwTypeError(rt, intrinsics, "TextDecoder: input is not valid UTF-8");
-      }
-      out.push_back(0xef);
-      out.push_back(0xbf);
-      out.push_back(0xbd);
-    }
-    i += consumed;
-  }
-  return out;
 }
 
 jsi::ArrayBuffer arrayBufferFromBytes(
@@ -300,7 +207,6 @@ std::shared_ptr<KernelIntrinsics> captureIntrinsics(jsi::Runtime& rt) {
   return std::shared_ptr<KernelIntrinsics>(new KernelIntrinsics{
       objectCtor.getPropertyAsFunction(rt, "defineProperty"),
       objectCtor.getPropertyAsFunction(rt, "freeze"),
-      global.getPropertyAsFunction(rt, "TypeError"),
       std::move(uint8Array),
       requireGetter("buffer", typedArrayProto, nameKey("buffer")),
       requireGetter("byteOffset", typedArrayProto, nameKey("byteOffset")),
@@ -507,10 +413,11 @@ void installPbkdf2(
       }));
 }
 
-// Runs once before the kernel script: defines TextDecoder, installs the
-// setTimeout/clearTimeout globals Hermes' bundled rejection tracker defers
-// through, and wires that tracker to the private reportUnhandled native. The
-// expression evaluates to the function object; C++ invokes it with `natives`.
+// Runs once before the kernel script: locks down the native TextDecoder,
+// installs the setTimeout/clearTimeout globals Hermes' bundled rejection
+// tracker defers through, and wires that tracker to the private reportUnhandled
+// native. The expression evaluates to the function object; C++ invokes it with
+// `natives`.
 const char kKernelPrelude[] = R"JS((function (natives) {
   var defineHidden = function (name, value) {
     Object.defineProperty(globalThis, name, {
@@ -521,35 +428,17 @@ const char kKernelPrelude[] = R"JS((function (natives) {
     });
   };
 
-  function TextDecoder(label, options) {
-    var encoding = label === undefined ? "utf-8" : String(label);
-    encoding = encoding.replace(/^\s+|\s+$/g, "").toLowerCase();
-    if (
-      encoding !== "utf-8" &&
-      encoding !== "utf8" &&
-      encoding !== "unicode-1-1-utf-8"
-    ) {
-      throw new RangeError("TextDecoder: unsupported label " + encoding);
-    }
-    options = options == null ? {} : options;
-    this.encoding = "utf-8";
-    this.fatal = options.fatal === true;
-    this.ignoreBOM = options.ignoreBOM === true;
+  // Hermes 260318099+ (RN 0.88) ships a native TextDecoder — verified against
+  // the host vectors: WHATWG fatal/replacement semantics, BOM strip/ignoreBOM,
+  // streaming, RangeError on unknown labels. Adopt it instead of a shell:
+  // freeze and rebind it hidden so a script cannot swap or tamper with it. The
+  // prelude runs before any script, so Object.freeze is still pristine here.
+  if (typeof TextDecoder !== "function") {
+    throw new Error("kernel prelude: TextDecoder missing");
   }
-  TextDecoder.prototype.decode = function (input, options) {
-    if (input === undefined) {
-      return "";
-    }
-    if (options != null && options.stream === true) {
-      throw new TypeError("TextDecoder: stream is not supported");
-    }
-    return natives.decodeUtf8(input, this.fatal, this.ignoreBOM);
-  };
-  defineHidden("TextDecoder", TextDecoder);
-  // The prelude runs before any script, so these intrinsics are still
-  // pristine; a tampered prototype must not be able to replace decode.
   Object.freeze(TextDecoder.prototype);
   Object.freeze(TextDecoder);
+  defineHidden("TextDecoder", TextDecoder);
 
   // Hermes' bundled rejection tracker defers onUnhandled through the literal
   // globals setTimeout/clearTimeout resolved at call time — Promise.then and
@@ -739,20 +628,6 @@ void installKernelGlobals(
 
   auto natives = jsi::Object(rt);
   natives.setProperty(rt, "setTimer", makeSetTimer(rt));
-  natives.setProperty(
-      rt,
-      "decodeUtf8",
-      hostFn(rt, "decodeUtf8", 3, [state](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 3 || !args[1].isBool() || !args[2].isBool()) {
-          throw jsi::JSError(rt, "decodeUtf8 expects (bytes, fatal, ignoreBOM)");
-        }
-        const auto& intrinsics = *state->intrinsics;
-        auto view = byteViewFromValue(rt, args[0], "decodeUtf8 input", intrinsics);
-        auto decoded = decodeUtf8Bytes(
-            rt, intrinsics, view.data, view.size, args[1].getBool(), args[2].getBool());
-        return jsi::Value(
-            rt, jsi::String::createFromUtf8(rt, decoded.data(), decoded.size()));
-      }));
   natives.setProperty(
       rt,
       "reportUnhandled",
