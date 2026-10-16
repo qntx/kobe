@@ -36,13 +36,6 @@ namespace {
 
 using Clock = std::chrono::steady_clock;
 
-::hermes::vm::RuntimeConfig defaultConfig() {
-  return ::hermes::vm::RuntimeConfig::Builder()
-      .withMicrotaskQueue(true)
-      .withEnableEval(false)
-      .build();
-}
-
 // Mailbox between a KernelRuntime's hooks and the probe orchestrator thread.
 struct Channel {
   std::mutex mutex;
@@ -93,7 +86,7 @@ struct Channel {
 };
 
 std::shared_ptr<qntx::KernelRuntime> startKernel(
-    const ::hermes::vm::RuntimeConfig& config,
+    qntx::KernelProfile profile,
     const uint8_t* source,
     size_t sourceSize,
     const uint8_t* bytecode,
@@ -115,7 +108,7 @@ std::shared_ptr<qntx::KernelRuntime> startKernel(
   }
   hooks.onPost = [channel](std::vector<uint8_t> bytes) { channel->push(std::move(bytes)); };
   hooks.onError = [channel](std::string message) { channel->fail(std::move(message)); };
-  return qntx::KernelRuntime::start(config, std::move(script), std::move(hooks));
+  return qntx::KernelRuntime::start(std::move(script), std::move(hooks), profile);
 }
 
 std::string toString(const std::vector<uint8_t>& bytes) {
@@ -243,10 +236,10 @@ qntx::harness::probes::Script scriptFor(const std::string& name) {
 std::string runPosted(
     const qntx::harness::probes::Script& script,
     bool bytecode,
-    const ::hermes::vm::RuntimeConfig& config) {
+    qntx::KernelProfile profile = qntx::KernelProfile::standard) {
   auto channel = std::make_shared<Channel>();
   auto rt = startKernel(
-      config,
+      profile,
       script.source,
       script.sourceSize,
       script.bytecode,
@@ -272,7 +265,7 @@ std::string runTwoPosts(
   auto channel = std::make_shared<Channel>();
   const auto t0 = Clock::now();
   auto rt = startKernel(
-      defaultConfig(),
+      qntx::KernelProfile::standard,
       script.source,
       script.sourceSize,
       script.bytecode,
@@ -306,7 +299,7 @@ std::string runStartup(bool bytecode) {
     auto channel = std::make_shared<Channel>();
     const auto t0 = Clock::now();
     auto rt = startKernel(
-        defaultConfig(),
+        qntx::KernelProfile::standard,
         script.source,
         script.sourceSize,
         script.bytecode,
@@ -325,7 +318,7 @@ std::string runRoundtrip(bool bytecode) {
   const auto script = scriptFor("echo");
   auto channel = std::make_shared<Channel>();
   auto rt = startKernel(
-      defaultConfig(),
+      qntx::KernelProfile::standard,
       script.source,
       script.sourceSize,
       script.bytecode,
@@ -370,7 +363,7 @@ std::string runLifecycle(bool bytecode) {
   for (int i = 0; i < 100; i++) {
     auto channel = std::make_shared<Channel>();
     auto rt = startKernel(
-        defaultConfig(),
+        qntx::KernelProfile::standard,
         script.source,
         script.sourceSize,
         script.bytecode,
@@ -398,7 +391,7 @@ std::string runCrash(const std::string& probe, bool bytecode) {
   const auto script = scriptFor(probe);
   auto channel = std::make_shared<Channel>();
   auto rt = startKernel(
-      defaultConfig(),
+      qntx::KernelProfile::standard,
       script.source,
       script.sourceSize,
       script.bytecode,
@@ -407,10 +400,11 @@ std::string runCrash(const std::string& probe, bool bytecode) {
       channel);
   try {
     auto error = channel->takeError(deadlineAfter(std::chrono::seconds(30)));
+    // The kernel must tear itself down after a fatal error, without destroy().
+    const bool stopped = rt->waitUntilStopped(std::chrono::seconds(1)) && !rt->running();
     rt->destroy();
-    const bool destroyed = !rt->running();
     return std::string("{\"surfaced\":\"onError\",\"message\":\"") + escapeJson(error) +
-        "\",\"runtimeDestroyed\":" + (destroyed ? "true" : "false") +
+        "\",\"runtimeDestroyed\":" + (stopped ? "true" : "false") +
         ",\"appAlive\":true}";
   } catch (...) {
     rt->destroy();
@@ -419,11 +413,10 @@ std::string runCrash(const std::string& probe, bool bytecode) {
 }
 
 std::string runHardened(bool bytecode) {
-  auto config = facebook::hermes::hardenedHermesRuntimeConfig();
   const auto script = scriptFor("runtime");
   auto channel = std::make_shared<Channel>();
   auto rt = startKernel(
-      config,
+      qntx::KernelProfile::hardened,
       script.source,
       script.sourceSize,
       script.bytecode,
@@ -444,7 +437,7 @@ std::string runEchoCheck(bool bytecode) {
   const auto script = scriptFor("echo");
   auto channel = std::make_shared<Channel>();
   auto rt = startKernel(
-      defaultConfig(),
+      qntx::KernelProfile::standard,
       script.source,
       script.sourceSize,
       script.bytecode,
@@ -476,7 +469,7 @@ std::string execute(const std::string& probe, const std::string& mode) {
   }
 
   if (probe == "runtime") {
-    return runPosted(scriptFor("runtime"), bytecode, defaultConfig());
+    return runPosted(scriptFor("runtime"), bytecode);
   }
   if (probe == "echo") {
     return runEchoCheck(bytecode);

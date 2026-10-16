@@ -112,10 +112,16 @@ const compileBytecode = (source: string, workDir: string): Uint8Array => {
   const jsPath = resolve(workDir, `probe-${process.hrtime.bigint()}.js`);
   const hbcPath = jsPath.replace(/\.js$/, ".hbc");
   writeFileSync(jsPath, source);
-  const proc = Bun.spawnSync([hermesc, "-emit-binary", "-out", hbcPath, jsPath], {
-    stdout: "pipe",
-    stderr: "pipe",
-  });
+  // -emit-async-break-check lets KernelRuntime.destroy() interrupt running JS
+  // via IHermes::asyncTriggerTimeout; without it bytecode busy-loops cannot be
+  // stopped (hermesc 250829098 supports the flag).
+  const proc = Bun.spawnSync(
+    [hermesc, "-emit-binary", "-emit-async-break-check", "-out", hbcPath, jsPath],
+    {
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+  );
   if (proc.exitCode !== 0) {
     throw new Error(`hermesc failed (${proc.exitCode}): ${proc.stderr.toString()}`);
   }
