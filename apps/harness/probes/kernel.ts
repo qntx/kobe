@@ -1,17 +1,10 @@
 /**
  * Phase C kernel probe: run the wallet-worker Hermes smoke flow inside the kernel runtime with the
- * real native platform — __qntx.random/now/setTimer and native pbkdf2 off the kernel thread — plus
- * a memory store and an in-memory port. Reports per-step timings (mnemonic import → first
- * signature, password lock/unlock at 600k PBKDF2-SHA256, BIP-39 seed native vs noble, schnorr sign,
- * NIP-44 round trip) and pass/fail.
+ * real native platform — __qntx.random/now/elapsed/setTimer, native crypto.getRandomValues and
+ * TextDecoder, and pbkdf2 on the KDF worker thread — plus a memory store and an in-memory port.
+ * Reports per-step timings (mnemonic import → first signature, password lock/unlock at 600k
+ * PBKDF2-SHA256, BIP-39 seed native vs noble, schnorr sign, NIP-44 round trip) and pass/fail.
  */
-// globals.ts MUST evaluate before every other module: it installs TextDecoder and a crypto shim
-// that the kernel and noble touch at module scope or first use. Keep this import first.
-import {
-  hermesGlobalsInstalled,
-  missingGlobals,
-  shimmedGlobals,
-} from "../../../packages/wallet-worker/tests/hermes/globals.ts";
 
 import { pbkdf2Async } from "@noble/hashes/pbkdf2.js";
 import { sha256, sha512 } from "@noble/hashes/sha2.js";
@@ -95,13 +88,14 @@ function boot(pbkdf2: Pbkdf2): Kernel {
       };
     },
   };
+  const store = createMemoryStore();
   const platform: KernelPlatform = {
     random: (n) => __qntx.random(n),
     now: () => __qntx.now(),
-    elapsed: () => __qntx.now(),
+    elapsed: () => __qntx.elapsed(),
     setTimer: (ms, fn) => __qntx.setTimer(ms, fn),
     pbkdf2,
-    store: createMemoryStore(),
+    store,
     policy: { idleMs: 15 * 60_000, maxSessionMs: 12 * 3_600_000, maxScryptLogN: 18 },
   };
   startKernel(platform, port);
@@ -118,12 +112,12 @@ function boot(pbkdf2: Pbkdf2): Kernel {
   };
 }
 
-function ok(value: Reply): ProtocolValue {
+function ok(value: Reply, name: string): ProtocolValue {
   if (value.err !== undefined) {
-    throw new Error(`kernel: call failed ${value.err.code}`);
+    throw new Error(`kernel: ${name} failed ${value.err.code}`);
   }
   if (value.ok === undefined) {
-    throw new Error("kernel: response carried neither ok nor err");
+    throw new Error(`kernel: ${name} response carried neither ok nor err`);
   }
   return value.ok;
 }
@@ -198,16 +192,6 @@ async function pbkdf2Vectors(): Promise<Record<string, number>> {
 }
 
 async function main(): Promise<void> {
-  if (!hermesGlobalsInstalled) {
-    throw new Error("globals module did not evaluate first");
-  }
-  // The shimmed crypto.getRandomValues is test-grade xorshift — upgrade it to the real native
-  // entropy source now that __qntx is available.
-  crypto.getRandomValues = <T extends { length: number; [k: number]: number }>(arr: T): T => {
-    arr.set(__qntx.random(arr.length).subarray(0, arr.length) as never);
-    return arr;
-  };
-
   const timings: Record<string, number> = {};
   Object.assign(timings, await pbkdf2Vectors());
 
@@ -220,12 +204,16 @@ async function main(): Promise<void> {
       mnemonic: utf8ToBytes(MNEMONIC),
       factor: { kind: "password", password: utf8ToBytes(PASSWORD) },
     }),
+    "importMnemonic",
   );
   const walletId = field(field(imported, "wallet"), "walletId");
   const sessionValue = field(imported, "session");
   assert(typeof sessionValue === "string" && sessionValue.length === 32, "importMnemonic session");
   let session = sessionValue;
-  const derived = ok(await kernel.call("nostr.deriveKey", { walletId, groupIndex: 0 }, session));
+  const derived = ok(
+    await kernel.call("nostr.deriveKey", { walletId, groupIndex: 0 }, session),
+    "nostr.deriveKey",
+  );
   eq(field(derived, "publicKey"), EXPECTED_PUBLIC_KEY, "deriveKey public key");
   const signed = ok(
     await kernel.call(
@@ -241,6 +229,7 @@ async function main(): Promise<void> {
       },
       session,
     ),
+    "nostr.signEvent",
   );
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- result validator guarantees Event
   const event = signed as Event;
@@ -254,6 +243,7 @@ async function main(): Promise<void> {
     await kernel.call("vault.unlock", {
       factor: { kind: "password", password: utf8ToBytes(PASSWORD) },
     }),
+    "vault.unlock",
   );
   const unlockSession = field(unlocked, "session");
   assert(typeof unlockSession === "string" && unlockSession.length === 32, "unlock session");
@@ -268,6 +258,7 @@ async function main(): Promise<void> {
       { publicKey: EXPECTED_PUBLIC_KEY, peer: PEER_PUBLIC_KEY, text: "v1 kernel nip44" },
       session,
     ),
+    "nostr.nip44Encrypt",
   );
   assert(typeof ciphertext === "string" && ciphertext.length > 0, "nip44Encrypt payload");
   const plaintext = ok(
@@ -276,6 +267,7 @@ async function main(): Promise<void> {
       { publicKey: EXPECTED_PUBLIC_KEY, peer: PEER_PUBLIC_KEY, text: ciphertext },
       session,
     ),
+    "nostr.nip44Decrypt",
   );
   eq(plaintext, "v1 kernel nip44", "nip44 round trip");
   timings["nip44-round-trip"] = __qntx.now() - t0;
@@ -292,6 +284,7 @@ async function main(): Promise<void> {
       },
       session,
     ),
+    "nostr.exportKey",
   );
   assert(nsecBytes instanceof Uint8Array, "nostr.exportKey bytes");
   eq(new TextDecoder().decode(nsecBytes), EXPECTED_NSEC, "nostr.exportKey nsec");
@@ -306,8 +299,6 @@ async function main(): Promise<void> {
     kind: "done",
     pass: true,
     pbkdf2: "native",
-    missingGlobals: [...missingGlobals],
-    shimmedGlobals: [...shimmedGlobals],
     timings,
   });
 }

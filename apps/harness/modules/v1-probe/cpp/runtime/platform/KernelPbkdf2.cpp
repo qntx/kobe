@@ -8,28 +8,17 @@
 #include <CommonCrypto/CommonKeyDerivation.h>
 #endif
 
-void qntx::kernelWipe(uint8_t* data, size_t size) {
-  volatile uint8_t* p = data;
-  for (size_t i = 0; i < size; i++) {
-    p[i] = 0;
-  }
-}
-
-void qntx::kernelWipe(std::vector<uint8_t>& bytes) {
-  kernelWipe(bytes.data(), bytes.size());
-}
-
 #if defined(__APPLE__)
 
-std::vector<uint8_t> qntx::kernelPbkdf2(
+qntx::SecretBytes qntx::kernelPbkdf2(
     KernelPbkdf2Hash hash,
-    const std::vector<uint8_t>& password,
-    const std::vector<uint8_t>& salt,
+    const SecretBytes& password,
+    const SecretBytes& salt,
     uint32_t iterations,
     size_t length) {
   const CCPseudoRandomAlgorithm algorithm =
       hash == KernelPbkdf2Hash::sha256 ? kCCPRFHmacAlgSHA256 : kCCPRFHmacAlgSHA512;
-  std::vector<uint8_t> out(length);
+  SecretBytes out(length);
   const int status = CCKeyDerivationPBKDF(
       kCCPBKDF2,
       reinterpret_cast<const char*>(password.data()),
@@ -81,12 +70,12 @@ struct JniScope {
 
 class JniByteArray {
  public:
-  JniByteArray(JNIEnv* env, const std::vector<uint8_t>& bytes) : env_(env) {
+  JniByteArray(JNIEnv* env, const qntx::SecretBytes& bytes) : env_(env) {
     array_ = env->NewByteArray(static_cast<jsize>(bytes.size()));
     if (array_ == nullptr) {
       throw std::runtime_error("NewByteArray failed");
     }
-    if (!bytes.empty()) {
+    if (bytes.size() > 0) {
       env->SetByteArrayRegion(
           array_, 0, static_cast<jsize>(bytes.size()),
           reinterpret_cast<const jbyte*>(bytes.data()));
@@ -160,17 +149,17 @@ void qntx::kernelPbkdf2OnLoad(JNIEnv* env, const char* className) {
   }
 }
 
-std::vector<uint8_t> qntx::kernelPbkdf2(
+qntx::SecretBytes qntx::kernelPbkdf2(
     KernelPbkdf2Hash hash,
-    const std::vector<uint8_t>& password,
-    const std::vector<uint8_t>& salt,
+    const SecretBytes& password,
+    const SecretBytes& salt,
     uint32_t iterations,
     size_t length) {
   JniScope scope;
   JNIEnv* env = scope.env;
 
   jstring algorithm = env->NewStringUTF(
-      hash == KernelPbkdf2Hash::sha256 ? "PBKDF2WithHmacSHA256" : "PBKDF2WithHmacSHA512");
+      hash == KernelPbkdf2Hash::sha256 ? "HmacSHA256" : "HmacSHA512");
   JniByteArray passwordArray(env, password);
   JniByteArray saltArray(env, salt);
 
@@ -187,7 +176,7 @@ std::vector<uint8_t> qntx::kernelPbkdf2(
     throw std::runtime_error("pbkdf2 failed: " + describeJavaException(env));
   }
   const jsize size = env->GetArrayLength(result);
-  std::vector<uint8_t> out(static_cast<size_t>(size));
+  SecretBytes out(static_cast<size_t>(size));
   env->GetByteArrayRegion(result, 0, size, reinterpret_cast<jbyte*>(out.data()));
   std::vector<jbyte> zeros(size, 0);
   env->SetByteArrayRegion(result, 0, size, zeros.data());
@@ -197,10 +186,10 @@ std::vector<uint8_t> qntx::kernelPbkdf2(
 
 #else
 
-std::vector<uint8_t> qntx::kernelPbkdf2(
+qntx::SecretBytes qntx::kernelPbkdf2(
     KernelPbkdf2Hash,
-    const std::vector<uint8_t>&,
-    const std::vector<uint8_t>&,
+    const SecretBytes&,
+    const SecretBytes&,
     uint32_t,
     size_t) {
   throw std::runtime_error("kernelPbkdf2: unsupported platform");

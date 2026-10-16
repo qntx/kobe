@@ -1,6 +1,7 @@
 declare const __qntx: {
   readonly random: (length: number) => Uint8Array;
   readonly now: () => number;
+  readonly elapsed: () => number;
   readonly setTimer: (delayMs: number, fn: () => void) => () => void;
   readonly post: (message: ArrayBuffer) => void;
   readonly setMessageHandler: (fn: (message: ArrayBuffer) => void) => void;

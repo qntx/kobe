@@ -3,12 +3,15 @@
 #include "KernelBuffer.hpp"
 #include "KernelGlobals.hpp"
 
+#include <jsi/hermes-interfaces.h>
+
 #if defined(__ANDROID__)
 #include "platform/KernelPbkdf2.hpp"
 #include <fbjni/fbjni.h>
 #include <jni.h>
 #endif
 
+#include <atomic>
 #include <condition_variable>
 #include <deque>
 #include <map>
@@ -16,6 +19,8 @@
 #include <optional>
 #include <stdexcept>
 #include <thread>
+#include <unordered_map>
+#include <utility>
 
 #if defined(__APPLE__) || defined(__ANDROID__)
 #include <pthread.h>
@@ -27,6 +32,9 @@ namespace jsi = facebook::jsi;
 
 namespace {
 
+// Turns the current exception into a description. Called only inside catch
+// blocks so the exception_ptr — and any jsi values a JSError holds — die
+// while the runtime that owns them is still alive.
 std::string describe(const std::exception_ptr& error) {
   try {
     std::rethrow_exception(error);
@@ -36,20 +44,22 @@ std::string describe(const std::exception_ptr& error) {
     if (!stack.empty()) {
       message += "\n" + stack;
     }
-    // The jsi::Value inside JSError references a Hermes PointerValue whose
-    // scope ended while the exception unwound out of evaluateJavaScript;
-    // running ~JSError would call PointerValue::invalidate() on freed
-    // memory. Retain the exception for the process lifetime: this path is
-    // terminal for the runtime, so the leak is bounded to one JSError per
-    // crashed kernel.
-    static auto* retained = new std::vector<std::exception_ptr>();
-    retained->push_back(error);
     return "jsi::JSError: " + message;
   } catch (const std::exception& e) {
     return std::string(e.what());
   } catch (...) {
     return "unknown error";
   }
+}
+
+hermes::vm::RuntimeConfig runtimeConfigFor(KernelProfile profile) {
+  auto builder = profile == KernelProfile::hardened
+      ? facebook::hermes::hardenedHermesRuntimeConfig().rebuild()
+      : hermes::vm::RuntimeConfig::Builder();
+  return builder.withMicrotaskQueue(true)
+      .withEnableEval(false)
+      .withAsyncBreakCheckInEval(true)
+      .build();
 }
 
 void nameKernelThread() {
@@ -65,24 +75,44 @@ void nameKernelThread() {
 struct KernelRuntime::Impl {
   KernelScript script;
   Hooks hooks;
-  hermes::vm::RuntimeConfig config;
+  KernelProfile profile = KernelProfile::standard;
   std::shared_ptr<KernelGlobalsState> globals;
 
+  // Guards `immediate`, and the `stopping` store in destroy() so the loop's
+  // cv predicate can never miss a wakeup.
   std::mutex mutex;
   std::condition_variable cv;
-  bool stopping = false;
   std::deque<std::function<void()>> immediate;
-  struct Timed {
-    std::shared_ptr<std::atomic_bool> cancelled;
-    jsi::Function fn;
-  };
-  std::multimap<std::chrono::steady_clock::time_point, Timed> timed;
+
+  std::atomic_bool stopping{false};
+
+  // Publishes the live runtime's IHermes so destroy() can interrupt running
+  // JS. The kernel thread sets it after makeHermesRuntime and withdraws it
+  // under the same mutex BEFORE rt.reset(), so asyncTriggerTimeout can never
+  // touch a destroyed runtime.
+  std::mutex interruptMutex;
+  facebook::hermes::IHermes* interruptable = nullptr;
+
+  std::mutex stoppedMutex;
+  std::condition_variable stoppedCv;
+  bool stopped = false;
 
   // Kernel thread only.
   std::unique_ptr<jsi::Runtime> rt;
   std::optional<std::string> fatal;
+  struct Timer {
+    uint64_t id;
+    jsi::Function fn;
+  };
+  using TimedMap = std::multimap<std::chrono::steady_clock::time_point, Timer>;
+  TimedMap timed;
+  std::unordered_map<uint64_t, TimedMap::iterator> timerIndex;
+  uint64_t nextTimerId = 0;
 
-  std::thread thread;
+  // Read and written only under `mutex`: enqueue() may run on the KDF worker
+  // thread while teardown() runs on the kernel thread.
+  bool tornDown = false;
+
   std::atomic_bool running{false};
 
   void run();
@@ -109,18 +139,19 @@ KernelRuntime::~KernelRuntime() {
 }
 
 std::shared_ptr<KernelRuntime> KernelRuntime::start(
-    const hermes::vm::RuntimeConfig& config,
     KernelScript script,
-    Hooks hooks) {
+    Hooks hooks,
+    KernelProfile profile) {
   if (script.bytes == nullptr || script.bytes->empty()) {
     throw std::invalid_argument("KernelRuntime::start: empty script");
   }
   auto self = std::shared_ptr<KernelRuntime>(new KernelRuntime());
   auto& impl = *self->impl_;
-  impl.config = config;
+  impl.profile = profile;
   impl.script = std::move(script);
   impl.hooks = std::move(hooks);
   impl.globals = std::make_shared<KernelGlobalsState>();
+  impl.globals->active = std::make_shared<std::atomic_bool>(true);
   impl.globals->postToHost = impl.hooks.onPost;
   impl.globals->reportFatal = [&impl](std::string message) {
     impl.fatal = std::move(message);
@@ -139,10 +170,10 @@ std::shared_ptr<KernelRuntime> KernelRuntime::start(
         }
       };
   impl.running.store(true, std::memory_order_release);
-  impl.thread = std::thread([self]() mutable {
-    self->impl_->run();
-    self.reset();
-  });
+  // The detached thread holds the Impl, not the KernelRuntime: dropping the
+  // last public handle just requests shutdown through ~KernelRuntime →
+  // destroy(), and the kernel thread finishes teardown on its own.
+  std::thread([impl = self->impl_]() { impl->run(); }).detach();
   return self;
 }
 
@@ -150,11 +181,18 @@ bool KernelRuntime::running() const noexcept {
   return impl_->running.load(std::memory_order_acquire);
 }
 
+bool KernelRuntime::waitUntilStopped(std::chrono::milliseconds timeout) const {
+  auto& impl = *impl_;
+  std::unique_lock<std::mutex> lock(impl.stoppedMutex);
+  return impl.stoppedCv.wait_for(lock, timeout, [&] { return impl.stopped; });
+}
+
 void KernelRuntime::post(std::vector<uint8_t> bytes) {
   auto& impl = *impl_;
   {
     std::lock_guard<std::mutex> lock(impl.mutex);
-    if (impl.stopping || !impl.running.load(std::memory_order_acquire)) {
+    if (impl.stopping.load(std::memory_order_acquire) ||
+        !impl.running.load(std::memory_order_acquire)) {
       return;
     }
     impl.immediate.push_back(
@@ -163,34 +201,46 @@ void KernelRuntime::post(std::vector<uint8_t> bytes) {
   impl.cv.notify_one();
 }
 
-void KernelRuntime::destroy() {
+void KernelRuntime::destroy() noexcept {
   auto& impl = *impl_;
   {
     std::lock_guard<std::mutex> lock(impl.mutex);
-    impl.stopping = true;
+    if (impl.stopping.load(std::memory_order_acquire)) {
+      return;
+    }
+    impl.stopping.store(true, std::memory_order_release);
   }
   impl.cv.notify_all();
-  if (!impl.thread.joinable()) {
-    return;
+  {
+    std::lock_guard<std::mutex> lock(impl.interruptMutex);
+    if (impl.interruptable != nullptr) {
+      impl.interruptable->asyncTriggerTimeout();
+    }
   }
-  if (std::this_thread::get_id() == impl.thread.get_id()) {
-    // Called from the kernel thread (e.g. inside a hook): let the loop tear
-    // down on its own; the thread owns the last shared_ptr until it exits.
-    impl.thread.detach();
-    return;
-  }
-  impl.thread.join();
 }
 
 void KernelRuntime::Impl::run() {
   nameKernelThread();
   auto work = [this] {
+    std::optional<std::string> error;
     try {
       initRuntime();
       loop();
     } catch (...) {
-      fail("kernel thread failed: " + describe(std::current_exception()));
+      // describe() runs inside the catch so a JSError (and the jsi values it
+      // holds) is destroyed while the runtime still exists.
+      try {
+        error = describe(std::current_exception());
+      } catch (...) {
+        error = "undescribable kernel error";
+      }
     }
+    // An exception raised after a destroy() request — the async interrupt or
+    // anything racing it — is a normal stop, not a kernel failure.
+    if (error.has_value() && !stopping.load(std::memory_order_acquire)) {
+      fail(std::move(*error));
+    }
+    teardown();
   };
 #if defined(__ANDROID__)
   // Run the kernel body inside a Java call frame via fbjni. A plain
@@ -208,66 +258,21 @@ void KernelRuntime::Impl::run() {
 }
 
 void KernelRuntime::Impl::initRuntime() {
-  rt = facebook::hermes::makeHermesRuntime(config);
-  installKernelGlobals(*rt, globals);
+  rt = facebook::hermes::makeHermesRuntime(runtimeConfigFor(profile));
+  {
+    std::lock_guard<std::mutex> lock(interruptMutex);
+    interruptable = jsi::castInterface<facebook::hermes::IHermes>(rt.get());
+  }
+  if (interruptable == nullptr) {
+    throw std::runtime_error("hermes runtime does not expose IHermes");
+  }
+  if (stopping.load(std::memory_order_acquire)) {
+    // destroy() won the race before the script ran: skip globals and
+    // evaluation; run() then returns from loop() at once into teardown.
+    return;
+  }
 
-  // Hermes' InternalBytecode promise machinery defers internal work through
-  // the host's setImmediate/setTimeout (or the engine job queue) and the
-  // rejection tracker surfaces unhandled rejections via the same deferral.
-  // A bare runtime has neither, so provide minimal versions backed by the
-  // kernel task queue. Without them Promise rejection tracking (and, under
-  // the hardened config, Promise itself) throws ReferenceError.
-  static const char* kKernelPrelude =
-      "(function () {\n"
-      "  var timers = {};\n"
-      "  var nextId = 0;\n"
-      "  function schedule(fn, ms) {\n"
-      "    var id = ++nextId;\n"
-      "    timers[id] = __qntx.setTimer(ms > 0 ? ms : 0, fn);\n"
-      "    return id;\n"
-      "  }\n"
-      "  function cancel(id) {\n"
-      "    var c = timers[id];\n"
-      "    if (c !== undefined) {\n"
-      "      delete timers[id];\n"
-      "      c();\n"
-      "    }\n"
-      "  }\n"
-      "  if (typeof globalThis.setImmediate !== 'function') {\n"
-      "    globalThis.setImmediate = function (fn) {\n"
-      "      return schedule(fn, 0);\n"
-      "    };\n"
-      "    globalThis.clearImmediate = cancel;\n"
-      "  }\n"
-      "  if (typeof globalThis.setTimeout !== 'function') {\n"
-      "    globalThis.setTimeout = function (fn, ms) {\n"
-      "      return schedule(fn, ms);\n"
-      "    };\n"
-      "    globalThis.clearTimeout = cancel;\n"
-      "  }\n"
-      "  if (typeof globalThis.queueMicrotask !== 'function') {\n"
-      "    globalThis.queueMicrotask = function (fn) {\n"
-      "      Promise.resolve().then(fn);\n"
-      "    };\n"
-      "  }\n"
-      "})();\n"
-      "if (typeof HermesInternal === 'object' && HermesInternal !== null && "
-      "typeof HermesInternal.enablePromiseRejectionTracker === 'function') {\n"
-      "  HermesInternal.enablePromiseRejectionTracker({\n"
-      "    allRejections: true,\n"
-      "    onHandled: function () {},\n"
-      "    onUnhandled: function (id, reason) {\n"
-      "      __qntxUnhandledRejection(\n"
-      "        id,\n"
-      "        reason == null\n"
-      "          ? 'unknown'\n"
-      "          : String(reason && reason.stack ? reason.stack : reason)\n"
-      "      );\n"
-      "    },\n"
-      "  });\n"
-      "}\n";
-  rt->evaluateJavaScript(
-      std::make_shared<jsi::StringBuffer>(kKernelPrelude), "<kernel-init>");
+  installKernelGlobals(*rt, globals);
 
   if (hooks.beforeEvaluate) {
     hooks.beforeEvaluate(*rt);
@@ -310,18 +315,20 @@ void KernelRuntime::Impl::evaluate() {
 void KernelRuntime::Impl::loop() {
   for (;;) {
     std::function<void()> task;
-    std::optional<Timed> due;
+    std::optional<Timer> due;
     {
       std::unique_lock<std::mutex> lock(mutex);
       for (;;) {
-        if (stopping) {
-          lock.unlock();
-          teardown();
+        if (stopping.load(std::memory_order_acquire)) {
           return;
         }
         const auto now = std::chrono::steady_clock::now();
+        // Timers live on the kernel thread only; the mutex here just happens
+        // to be held while picking the next piece of work.
         if (!timed.empty() && timed.begin()->first <= now) {
-          due = std::move(timed.extract(timed.begin()).mapped());
+          auto node = timed.extract(timed.begin());
+          timerIndex.erase(node.mapped().id);
+          due = std::move(node.mapped());
           break;
         }
         if (!immediate.empty()) {
@@ -337,24 +344,30 @@ void KernelRuntime::Impl::loop() {
       }
     }
 
+    std::optional<std::string> error;
     try {
       if (task) {
         task();
-      } else if (due.has_value() && !due->cancelled->load(std::memory_order_relaxed)) {
+      } else if (due.has_value()) {
         due->fn.call(*rt);
       }
       rt->drainMicrotasks();
     } catch (...) {
-      // Drop jsi values before teardown destroys the runtime they belong to.
-      due.reset();
-      task = nullptr;
-      fail("kernel task failed: " + describe(std::current_exception()));
+      error = describe(std::current_exception());
+    }
+    // Drop jsi values while the runtime is alive, whichever way we exit.
+    due.reset();
+    task = nullptr;
+    if (error.has_value()) {
+      if (stopping.load(std::memory_order_acquire)) {
+        // The destroy() interrupt surfaced as an exception — a normal stop.
+        return;
+      }
+      fail("kernel task failed: " + std::move(*error));
       return;
     }
     if (fatal.has_value()) {
-      due.reset();
-      task = nullptr;
-      fail(*fatal);
+      fail(std::move(*fatal));
       return;
     }
   }
@@ -371,6 +384,11 @@ void KernelRuntime::Impl::deliver(std::vector<uint8_t> bytes) {
 void KernelRuntime::Impl::enqueue(std::function<void(jsi::Runtime&)> task) {
   {
     std::lock_guard<std::mutex> lock(mutex);
+    if (tornDown) {
+      // The loop is gone and teardown already ran: drop the task here so its
+      // captures (wiping buffers, dead pending calls) release immediately.
+      return;
+    }
     immediate.push_back(
         [this, task = std::move(task)]() mutable { task(*rt); });
   }
@@ -380,25 +398,27 @@ void KernelRuntime::Impl::enqueue(std::function<void(jsi::Runtime&)> task) {
 KernelGlobalsState::TimerCancel KernelRuntime::Impl::scheduleTimer(
     std::chrono::steady_clock::time_point deadline,
     jsi::Function fn) {
-  auto cancelled = std::make_shared<std::atomic_bool>(false);
-  {
-    std::lock_guard<std::mutex> lock(mutex);
-    if (stopping) {
-      cancelled->store(true, std::memory_order_relaxed);
-    } else {
-      timed.emplace(deadline, Timed{cancelled, std::move(fn)});
+  // Kernel thread only — host functions and the loop run there, so no lock.
+  const uint64_t id = nextTimerId++;
+  auto it = timed.emplace(deadline, Timer{id, std::move(fn)});
+  timerIndex.emplace(id, it);
+  return [this, id] {
+    if (tornDown) {
+      return;
     }
-  }
-  cv.notify_one();
-  return cancelled;
+    auto found = timerIndex.find(id);
+    if (found != timerIndex.end()) {
+      // Erasing releases the stored jsi::Function immediately instead of
+      // parking it until the deadline.
+      timed.erase(found->second);
+      timerIndex.erase(found);
+    }
+  };
 }
 
 void KernelRuntime::Impl::fail(std::string message) {
   // Kernel thread only.
-  {
-    std::lock_guard<std::mutex> lock(mutex);
-    stopping = true;
-  }
+  stopping.store(true, std::memory_order_release);
   if (hooks.onError) {
     try {
       hooks.onError(std::move(message));
@@ -409,19 +429,42 @@ void KernelRuntime::Impl::fail(std::string message) {
 }
 
 void KernelRuntime::Impl::teardown() {
-  // Kernel thread only: drop every jsi value before the runtime itself.
+  // Kernel thread only; tornDown is shared with enqueue() on other threads,
+  // so it is set under the same mutex that guards the queue.
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    if (tornDown) {
+      return;
+    }
+    tornDown = true;
+    // Queued-but-unrun tasks die here, on the kernel thread, while the
+    // runtime is alive; enqueue() drops anything that arrives after this.
+    immediate.clear();
+  }
+  // Drop every jsi value before the runtime itself.
+  globals->intrinsics.reset();
   globals->messageHandler.reset();
   for (const auto& call : globals->pending) {
     call->done.reset();
   }
   globals->pending.clear();
+  // A KDF worker that sees inactive drops its job — safe only because `done`
+  // was already cleared above, on this thread, while the runtime was alive.
+  globals->active->store(false, std::memory_order_release);
+  // Timed/timerIndex are kernel-thread-only state.
+  timed.clear();
+  timerIndex.clear();
   {
-    std::lock_guard<std::mutex> lock(mutex);
-    timed.clear();
-    immediate.clear();
+    std::lock_guard<std::mutex> lock(interruptMutex);
+    interruptable = nullptr;
   }
   rt.reset();
   running.store(false, std::memory_order_release);
+  {
+    std::lock_guard<std::mutex> lock(stoppedMutex);
+    stopped = true;
+  }
+  stoppedCv.notify_all();
 }
 
 } // namespace qntx
