@@ -606,8 +606,8 @@ int globalInventory(KernelProfile profile) {
     }
   }
   // Hermes 260318099+ (RN 0.88) ships a native TextDecoder, so it is part of
-  // the bare set; the kernel still installs its own frozen strict decoder on
-  // top, which makes the descriptor identical and keeps it out of this diff.
+  // the bare set; the kernel only freezes it and rebinds it hidden, which keeps
+  // the name out of this diff.
   const std::set<std::string> expected =
       {"__qntx", "crypto", "setTimeout", "clearTimeout"};
   CHECK(
