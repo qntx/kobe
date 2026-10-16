@@ -21,6 +21,7 @@
     "check:pkg": "vp run @qntx/wallet#check:pkg && vp run @qntx/wallet-worker#check:pkg",
     "smoke:hermes": "bun run --cwd packages/wallet-worker smoke:hermes",
     "harness:bundles": "bun scripts/harness-bundles.ts",
+    "harness:runtime-test": "bun scripts/harness-runtime-test.ts",
     "release": "bumpp",
     "prepare": "vp config"
   },
