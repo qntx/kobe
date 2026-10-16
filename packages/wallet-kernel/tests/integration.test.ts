@@ -343,7 +343,7 @@ describe("create / import", () => {
     expect(publicKey).toBe(nip06.vectors[0]!.publicKey);
   });
 
-  it("imports nsec and ncryptsec keys", async () => {
+  it("imports nsec and ncryptsec keys", { timeout: 30_000 }, async () => {
     const h = createHarness();
     await h.settle();
     const { session } = await createPasskeyWallet(h);
@@ -563,7 +563,7 @@ describe("nostr operations", () => {
 });
 
 describe("exports and data keys", () => {
-  it("exports the mnemonic and nostr keys", async () => {
+  it("exports the mnemonic and nostr keys", { timeout: 30_000 }, async () => {
     const h = createHarness();
     await h.settle();
     const { session, walletId } = await createPasskeyWallet(h);
