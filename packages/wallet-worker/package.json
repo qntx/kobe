@@ -57,7 +57,7 @@
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
     "@noble/hashes": "2.4.0",
-    "@playwright/test": "1.63.0",
+    "@playwright/test": "1.64.0",
     "@qntx/nostr": "0.14.0",
     "@qntx/tsconfig": "1.0.1",
     "@qntx/wallet": "0.2.0",
@@ -65,7 +65,7 @@
     "@types/node": "26.6.4",
     "publint": "0.3.25",
     "typescript": "7.0.2",
-    "vite-plus": "1.0.0"
+    "vite-plus": "1.1.0"
   },
   "peerDependencies": {
     "@qntx/wallet": "0.2.0"
