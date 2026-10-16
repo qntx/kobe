@@ -15,6 +15,8 @@ import { arr, bool, bytes, int, literal, nullValue, obj, opt, str, union } from 
 
 export type MethodSpec<P, R> = {
   readonly session: boolean;
+  /** Whether a successful call refreshes the idle timer — presence-bearing methods only. */
+  readonly presence: boolean;
   readonly params: Validator<P>;
   readonly result: Validator<R>;
 };
@@ -25,7 +27,7 @@ export const MAX_TEXT = 262_144;
 export const MAX_TAGS = 1024;
 export const MAX_TAG_ITEMS = 64;
 export const MAX_TAG_ITEM = 4096;
-export const MAX_BATCH = 256;
+export const MAX_BATCH = 64;
 export const MAX_SNAPSHOT_ITEMS = 4096;
 
 export const sessionId: Validator<string> = str(32, /^[0-9a-f]{32}$/);
@@ -60,7 +62,7 @@ export const walletInfo: Validator<WalletInfo> = obj({
   walletId,
   origin: union(literal("passkey"), literal("mnemonic")),
   words: union(literal(12), literal(15), literal(18), literal(21), literal(24)),
-  backedUp: bool,
+  backup: union(literal("none"), literal("passkey"), literal("mnemonic")),
   createdAt: safeTime,
 });
 
@@ -106,10 +108,12 @@ export const CORE_METHODS: {
     { readonly verify: Factor; readonly id: string },
     NullValue
   >;
+  readonly "session.touch": MethodSpec<NullValue, NullValue>;
   readonly "wallet.createWithPasskey": MethodSpec<
     {
       readonly credentialId: Uint8Array;
       readonly prfWallet: Uint8Array;
+      readonly synced: boolean;
       readonly factor?: Factor;
     },
     CreatedResult
@@ -118,6 +122,7 @@ export const CORE_METHODS: {
     {
       readonly credentialId: Uint8Array;
       readonly prfWallet: Uint8Array;
+      readonly synced: boolean;
       readonly factor?: Factor;
     },
     CreatedResult
@@ -145,34 +150,56 @@ export const CORE_METHODS: {
   >;
   readonly "dataKeys.get": MethodSpec<{ readonly purpose: string }, Uint8Array>;
 } = {
+  "session.touch": {
+    session: true,
+    presence: true,
+    params: nullValue,
+    result: nullValue,
+  },
   "vault.unlock": {
     session: false,
+    presence: true,
     params: obj({ factor }),
     result: obj({ session: sessionId }),
   },
-  "vault.reset": { session: false, params: nullValue, result: nullValue },
+  "vault.reset": { session: false, presence: false, params: nullValue, result: nullValue },
   "vault.addFactor": {
     session: true,
+    presence: true,
     params: obj({ verify: factor, factor }),
     result: factorInfo,
   },
   "vault.removeFactor": {
     session: true,
+    presence: true,
     params: obj({ verify: factor, id: sessionId }),
     result: nullValue,
   },
   "wallet.createWithPasskey": {
     session: false,
-    params: obj({ credentialId: bytes(1, 1023), prfWallet: bytes(32), factor: opt(factor) }),
+    presence: true,
+    params: obj({
+      credentialId: bytes(1, 1023),
+      prfWallet: bytes(32),
+      synced: bool,
+      factor: opt(factor),
+    }),
     result: createdResult,
   },
   "wallet.restoreWithPasskey": {
     session: false,
-    params: obj({ credentialId: bytes(1, 1023), prfWallet: bytes(32), factor: opt(factor) }),
+    presence: true,
+    params: obj({
+      credentialId: bytes(1, 1023),
+      prfWallet: bytes(32),
+      synced: bool,
+      factor: opt(factor),
+    }),
     result: createdResult,
   },
   "wallet.createMnemonic": {
     session: false,
+    presence: true,
     params: obj({ words: union(literal(12), literal(24)), factor: opt(factor) }),
     result: obj({
       draft: draftId,
@@ -182,31 +209,37 @@ export const CORE_METHODS: {
   },
   "wallet.confirmMnemonic": {
     session: false,
+    presence: true,
     params: obj({ draft: draftId, answers: arr(bytes(1, 64), 3, 3) }),
     result: createdResult,
   },
   "wallet.discardMnemonic": {
     session: false,
+    presence: false,
     params: obj({ draft: draftId }),
     result: nullValue,
   },
   "wallet.importMnemonic": {
     session: false,
+    presence: true,
     params: obj({ mnemonic: bytes(1, 1024), factor: opt(factor) }),
     result: createdResult,
   },
   "wallet.exportMnemonic": {
     session: true,
+    presence: true,
     params: obj({ verify: factor, walletId }),
     result: bytes(16, 1024),
   },
   "wallet.delete": {
     session: true,
+    presence: true,
     params: obj({ verify: factor, walletId }),
     result: nullValue,
   },
   "dataKeys.get": {
     session: true,
+    presence: false,
     params: obj({ purpose: str(32, /^[a-z0-9-]{1,32}$/) }),
     result: bytes(32),
   },

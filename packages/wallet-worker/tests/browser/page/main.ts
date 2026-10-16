@@ -78,8 +78,8 @@ async function requestResult<T>(request: IDBRequest): Promise<T> {
   });
 }
 
-/** Flips `backedUp` on the first entropy record's header, then pokes the store watch channel. */
-async function tamperBackedUp(): Promise<{ readonly flipped: boolean }> {
+/** Flips `backup` on the first entropy record's header, then pokes the store watch channel. */
+async function tamperBackup(): Promise<{ readonly flipped: boolean }> {
   const db = await requestResult<IDBDatabase>(indexedDB.open("qntx-wallet", 1));
   const tx = db.transaction("records", "readwrite");
   const rows = await requestResult<StoredRow[]>(tx.objectStore("records").getAll());
@@ -88,8 +88,8 @@ async function tamperBackedUp(): Promise<{ readonly flipped: boolean }> {
     return { flipped: false };
   }
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- JSON.parse is untyped
-  const header = JSON.parse(entropy.header) as { backedUp?: boolean };
-  header.backedUp = !(header.backedUp ?? false);
+  const header = JSON.parse(entropy.header) as { backup?: string };
+  header.backup = header.backup === "none" ? "passkey" : "none";
   await requestResult(
     tx.objectStore("records").put({ ...entropy, header: JSON.stringify(header) }),
   );
@@ -208,7 +208,7 @@ const api = {
   async sign(ref: NostrKeyRef, event: UnsignedEvent): Promise<unknown> {
     return attempt(async () => nostr(current()).signer(ref).signEvent(event));
   },
-  tamperBackedUp,
+  tamperBackup,
   tamperSealed,
   openNewerDb,
 };

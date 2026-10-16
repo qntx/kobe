@@ -134,6 +134,15 @@ describe("node host end to end", () => {
     await wallet.destroy();
   }, 60_000);
 
+  it("a device-bound software passkey (synced: false) reports backup 'none'", async () => {
+    const passkey = createSoftwarePasskey(SEED, { synced: false });
+    const { wallet } = await nodeWallet(passkey);
+    const created = await wallet.wallets.createWithPasskey({ name: "Node Test Wallet" });
+    expect(created.backup).toBe("none");
+    expect(wallet.getSnapshot().wallets[0]?.backup).toBe("none");
+    await wallet.destroy();
+  }, 60_000);
+
   it("password vault: mnemonic ceremony, change password, unlock", async () => {
     const passkey = createSoftwarePasskey(hexToBytes("aa".repeat(32)));
     const { wallet, workers } = await nodeWallet(passkey);

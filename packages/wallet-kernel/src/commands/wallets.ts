@@ -67,12 +67,16 @@ async function walletMaterial(
   }
 }
 
-function walletInfoOf(material: WalletMaterial, backedUp: boolean, createdAt: number): WalletInfo {
+function walletInfoOf(
+  material: WalletMaterial,
+  backup: WalletInfo["backup"],
+  createdAt: number,
+): WalletInfo {
   return walletInfo({
     walletId: material.walletId,
     origin: material.origin,
     words: material.words,
-    backedUp,
+    backup,
     createdAt,
   });
 }
@@ -82,14 +86,14 @@ function walletRecord(
   ctx: KernelContext,
   dek: Secret,
   material: WalletMaterial,
-  backedUp: boolean,
+  backup: WalletInfo["backup"],
   createdAt: number,
 ): StoredRecord {
   const header = encodeHeader({
     walletId: material.walletId,
     origin: material.origin,
     words: material.words,
-    backedUp,
+    backup,
     createdAt,
   });
   return sealRecord(
@@ -269,7 +273,7 @@ export async function confirmMnemonic(
       if (taken.pendingFactor !== undefined) {
         const dek = Secret.take(ctx.platform.random(32));
         const storedFactor = storedFactorForPending(ctx, taken.pendingFactor, dek);
-        const record = walletRecord(ctx, dek, material, true, createdAt);
+        const record = walletRecord(ctx, dek, material, "mnemonic", createdAt);
         const { ops, keyId } = establishOps(ctx.platform, storedFactor, [record]);
         try {
           await ctx.commit(ops);
@@ -278,12 +282,12 @@ export async function confirmMnemonic(
           throw error;
         }
         const session = openSession(ctx, dek, keyId);
-        return { wallet: walletInfoOf(material, true, createdAt), session };
+        return { wallet: walletInfoOf(material, "mnemonic", createdAt), session };
       }
       const session = ctx.session.current();
-      const record = walletRecord(ctx, session.dek, material, true, createdAt);
+      const record = walletRecord(ctx, session.dek, material, "mnemonic", createdAt);
       await ctx.commit([{ op: "put-record", record }]);
-      return { wallet: walletInfoOf(material, true, createdAt), session: session.id };
+      return { wallet: walletInfoOf(material, "mnemonic", createdAt), session: session.id };
     } finally {
       wipe(entropy);
     }
@@ -328,10 +332,10 @@ export async function importMnemonic(
   try {
     ensureNewWallet(ctx, material);
     const createdAt = ctx.platform.now();
-    // An imported mnemonic is already written down somewhere: backedUp is true.
-    const record = walletRecord(ctx, gated.dek, material, true, createdAt);
+    // An imported mnemonic is already written down somewhere: backup is "mnemonic".
+    const record = walletRecord(ctx, gated.dek, material, "mnemonic", createdAt);
     const session = await commitRecords(ctx, gated, params.factor, [record]);
-    return { wallet: walletInfoOf(material, true, createdAt), session };
+    return { wallet: walletInfoOf(material, "mnemonic", createdAt), session };
   } finally {
     wipe(entropy);
   }
@@ -339,7 +343,7 @@ export async function importMnemonic(
 
 export async function createWithPasskey(
   ctx: KernelContext,
-  params: { credentialId: Uint8Array; prfWallet: Uint8Array; factor?: Factor },
+  params: { credentialId: Uint8Array; prfWallet: Uint8Array; synced: boolean; factor?: Factor },
   requestSession: string | undefined,
 ): Promise<{ wallet: WalletInfo; session: string }> {
   const gated = gate(ctx, params.factor, requestSession);
@@ -348,11 +352,11 @@ export async function createWithPasskey(
   try {
     ensureNewWallet(ctx, material);
     const createdAt = ctx.platform.now();
-    // Passkey wallets are backed up by definition: the credential is synced by the platform's
-    // password manager and the entropy is re-derivable.
-    const record = walletRecord(ctx, gated.dek, material, true, createdAt);
+    // Only a synced passkey backs the wallet up; a device-bound credential dies with the device.
+    const backup = params.synced ? "passkey" : "none";
+    const record = walletRecord(ctx, gated.dek, material, backup, createdAt);
     const session = await commitRecords(ctx, gated, params.factor, [record]);
-    return { wallet: walletInfoOf(material, true, createdAt), session };
+    return { wallet: walletInfoOf(material, backup, createdAt), session };
   } finally {
     wipe(entropy);
   }

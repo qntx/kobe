@@ -16,6 +16,8 @@ export type WebAuthnRp = {
 };
 
 const UV_FLAG = 0x04; // authenticator-data flags byte (offset 32), bit 2 = user verified
+const BE_FLAG = 0x08; // bit 3 = credential is backup-eligible (multi-device capable)
+const BS_FLAG = 0x10; // bit 4 = credential is currently backed up (synced)
 
 function factorUnavailable(message: string): WalletError {
   return new WalletError("factor-unavailable", message);
@@ -47,6 +49,18 @@ function userVerified(authenticatorData: ArrayBuffer): boolean {
   );
 }
 
+/**
+ * Whether the credential is backed up off-device (flags byte at offset 32): synced requires both BE
+ * (the credential is eligible for backup) and BS (the authenticator actually backs it up).
+ */
+function credentialSynced(authenticatorData: ArrayBuffer): boolean {
+  return (
+    authenticatorData.byteLength > 32 &&
+    // oxlint-disable-next-line eslint/no-bitwise -- flags bit test
+    (new DataView(authenticatorData).getUint8(32) & (BE_FLAG | BS_FLAG)) === (BE_FLAG | BS_FLAG)
+  );
+}
+
 function prfEval(salts: PrfSalts): AuthenticationExtensionsPRFValues {
   // The constructor copy narrows Uint8Array<ArrayBufferLike> to Uint8Array<ArrayBuffer> —
   // the DOM BufferSource does not admit shared-array-buffer views.
@@ -68,6 +82,7 @@ function readPrfResult(
   credential: PublicKeyCredential,
   results: AuthenticationExtensionsPRFValues | undefined,
   wantSecond: boolean,
+  synced: boolean,
   userHandle?: ArrayBuffer,
 ): PrfResult {
   const first = results?.first;
@@ -81,6 +96,7 @@ function readPrfResult(
     first: copyBufferSource(first),
     ...(second === undefined ? {} : { second: copyBufferSource(second) }),
     ...(userHandle === undefined ? {} : { userHandle: copyBufferSource(userHandle) }),
+    synced,
   };
 }
 
@@ -135,6 +151,7 @@ export function createWebAuthnPasskey(rp: WebAuthnRp): PasskeyCeremony {
       credential,
       credential.getClientExtensionResults().prf?.results,
       input.salts.second !== undefined,
+      credentialSynced(response.authenticatorData),
       response.userHandle ?? undefined,
     );
   }
@@ -181,16 +198,22 @@ export function createWebAuthnPasskey(rp: WebAuthnRp): PasskeyCeremony {
       }
       if (extensions.prf.results === undefined) {
         // Some authenticators omit creation-time PRF outputs: one assertion over the new
-        // credential produces them (and it is that response whose UV flag must be checked).
+        // credential produces them (it is that response whose UV and BE/BS flags get read).
         return assert({
           credentialIds: [copyBufferSource(credential.rawId)],
           salts: input.salts,
         });
       }
-      if (!userVerified(response.getAuthenticatorData())) {
+      const authenticatorData = response.getAuthenticatorData();
+      if (!userVerified(authenticatorData)) {
         throw factorUnavailable("the passkey creation was not user-verified");
       }
-      return readPrfResult(credential, extensions.prf.results, input.salts.second !== undefined);
+      return readPrfResult(
+        credential,
+        extensions.prf.results,
+        input.salts.second !== undefined,
+        credentialSynced(authenticatorData),
+      );
     },
     assert,
   };

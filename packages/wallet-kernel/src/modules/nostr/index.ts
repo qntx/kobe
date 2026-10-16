@@ -8,6 +8,7 @@ import type { MethodName, NOSTR_METHODS } from "@qntx/wallet/protocol";
 import type { NostrKeyInfo } from "@qntx/wallet/types";
 
 import type { Handler, VaultHooks } from "../../commands/context.ts";
+import { KernelError } from "../../errors.ts";
 import type { StoreOp, StoredRecord } from "../../vault/store.ts";
 import type { OpenedRecord } from "../../vault/vault.ts";
 import * as keys from "./keys.ts";
@@ -39,7 +40,17 @@ export function createNostrModule(): NostrModule {
       for (const record of records) {
         if (record.kind === NOSTR_KEY_KIND) {
           // Ownership transfers here: pool.add wipes the plaintext into the signer.
-          pool.add(record.plaintext);
+          const claimed = pool.add(record.plaintext);
+          // Defense in depth past the AEAD id binding: the key's public key must equal the
+          // record id it was stored under — a mismatch latches the vault corrupted.
+          if (claimed !== record.id) {
+            throw new KernelError(
+              "integrity",
+              "nostr key does not match its record",
+              undefined,
+              true,
+            );
+          }
         } else {
           unclaimed.push(record);
         }

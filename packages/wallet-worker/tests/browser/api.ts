@@ -29,7 +29,7 @@ export type QntxApi = {
   readonly unlockPasskey: () => Promise<EvalResult>;
   readonly deriveKey: (walletId: string, groupIndex: number) => Promise<EvalResult<NostrKeyInfo>>;
   readonly sign: (ref: NostrKeyRef, event: UnsignedEvent) => Promise<EvalResult<Event>>;
-  readonly tamperBackedUp: () => Promise<{ readonly flipped: boolean }>;
+  readonly tamperBackup: () => Promise<{ readonly flipped: boolean }>;
   readonly tamperSealed: () => Promise<{ readonly written: boolean }>;
   readonly openNewerDb: () => Promise<{
     readonly upgraded: boolean;

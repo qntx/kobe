@@ -9,6 +9,7 @@ import type { UnsignedEvent } from "@qntx/nostr";
 
 import { integrity } from "../channel.ts";
 import type { WalletInternals } from "../internal.ts";
+import { MAX_BATCH } from "../protocol/core.ts";
 import type { UnsignedEventInput } from "../protocol/index.ts";
 import { WalletError } from "../types.ts";
 import type { NostrKeyInfo, NostrKeyRef } from "../types.ts";
@@ -102,11 +103,22 @@ export function proxySigner(ref: NostrKeyRef, internals: WalletInternals): Walle
         text: payload,
       }),
     unwrapGiftWraps: async (events): Promise<ReadonlyArray<NostrUnwrapResult>> => {
-      const result = await internals.call("nostr.unwrapGiftWraps", {
-        publicKey: resolvePublicKey(),
-        events: [...events],
-      });
-      return result.results;
+      if (events.length === 0) {
+        return [];
+      }
+      const publicKey = resolvePublicKey();
+      const results: NostrUnwrapResult[] = [];
+      // The wire caps one batch at MAX_BATCH; chunk sequentially and concatenate in order —
+      // other requests can interleave between chunks.
+      for (let start = 0; start < events.length; start += MAX_BATCH) {
+        // oxlint-disable-next-line eslint/no-await-in-loop -- sequential on purpose: chunks round-trip in order
+        const batch = await internals.call("nostr.unwrapGiftWraps", {
+          publicKey,
+          events: events.slice(start, start + MAX_BATCH),
+        });
+        results.push(...batch.results);
+      }
+      return results;
     },
   };
 }

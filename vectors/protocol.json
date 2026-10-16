@@ -12,6 +12,17 @@
       }
     },
     {
+      "name": "request-session.touch",
+      "check": "request",
+      "message": {
+        "v": 1,
+        "id": 24,
+        "method": "session.touch",
+        "session": "00112233445566778899aabbccddeeff",
+        "params": null
+      }
+    },
+    {
       "name": "request-vault.unlock",
       "check": "request",
       "message": {
@@ -98,7 +109,8 @@
           },
           "prfWallet": {
             "$bytes": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
-          }
+          },
+          "synced": true
         }
       }
     },
@@ -116,6 +128,7 @@
           "prfWallet": {
             "$bytes": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
           },
+          "synced": false,
           "factor": {
             "kind": "password",
             "password": {
@@ -404,7 +417,7 @@
               "walletId": "0011223344556677",
               "origin": "mnemonic",
               "words": 12,
-              "backedUp": true,
+              "backup": "mnemonic",
               "createdAt": 1767225600000
             }
           ],
@@ -499,7 +512,7 @@
             "walletId": "0011223344556677",
             "origin": "mnemonic",
             "words": 12,
-            "backedUp": true,
+            "backup": "mnemonic",
             "createdAt": 1767225600000
           },
           "session": "00112233445566778899aabbccddeeff"
@@ -611,7 +624,7 @@
               "walletId": "0011223344556677",
               "origin": "mnemonic",
               "words": 12,
-              "backedUp": true,
+              "backup": "mnemonic",
               "createdAt": 1767225600000
             }
           ],

@@ -8,22 +8,34 @@
         "walletId": "0011223344556677",
         "origin": "mnemonic",
         "words": 12,
-        "backedUp": true,
+        "backup": "mnemonic",
         "createdAt": 1767225600000
       },
-      "text": "{\"walletId\":\"0011223344556677\",\"origin\":\"mnemonic\",\"words\":12,\"backedUp\":true,\"createdAt\":1767225600000}"
+      "text": "{\"walletId\":\"0011223344556677\",\"origin\":\"mnemonic\",\"words\":12,\"backup\":\"mnemonic\",\"createdAt\":1767225600000}"
     },
     {
-      "name": "entropy-passkey",
+      "name": "entropy-passkey-synced",
       "kind": "entropy",
       "input": {
         "walletId": "0011223344556677",
         "origin": "passkey",
         "words": 12,
-        "backedUp": false,
+        "backup": "passkey",
         "createdAt": 1767225600000
       },
-      "text": "{\"walletId\":\"0011223344556677\",\"origin\":\"passkey\",\"words\":12,\"backedUp\":false,\"createdAt\":1767225600000}"
+      "text": "{\"walletId\":\"0011223344556677\",\"origin\":\"passkey\",\"words\":12,\"backup\":\"passkey\",\"createdAt\":1767225600000}"
+    },
+    {
+      "name": "entropy-passkey-device-bound",
+      "kind": "entropy",
+      "input": {
+        "walletId": "0011223344556677",
+        "origin": "passkey",
+        "words": 12,
+        "backup": "none",
+        "createdAt": 1767225600000
+      },
+      "text": "{\"walletId\":\"0011223344556677\",\"origin\":\"passkey\",\"words\":12,\"backup\":\"none\",\"createdAt\":1767225600000}"
     },
     {
       "name": "data-key",

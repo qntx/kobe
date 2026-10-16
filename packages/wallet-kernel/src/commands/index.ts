@@ -13,6 +13,10 @@ import * as walletCommands from "./wallets.ts";
 export const CORE_HANDLERS: {
   [M in keyof typeof CORE_METHODS & MethodName]: Handler<M>;
 } = {
+  "session.touch": (ctx, _params, session) => {
+    ctx.session.require(session);
+    return null;
+  },
   "vault.unlock": async (ctx, params) => vaultCommands.unlockVault(ctx, params),
   "vault.reset": async (ctx) => vaultCommands.resetVault(ctx),
   "vault.addFactor": async (ctx, params, session) => vaultCommands.addFactor(ctx, params, session),

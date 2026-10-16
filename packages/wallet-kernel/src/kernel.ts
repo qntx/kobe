@@ -407,6 +407,15 @@ export function startKernel(platform: KernelPlatform, port: Port): void {
         params,
         typeof sessionField === "string" ? sessionField : undefined,
       );
+      // Only a successful request refreshes activity — errors never touch. Presence-marked
+      // methods always count; under the "request" policy every ok does. The session may have
+      // locked inside the handler (timeout, invalidation): touch() is a no-op then.
+      if (
+        ctx.session.unlocked &&
+        (METHODS[method].presence || platform.policy.activity === "request")
+      ) {
+        ctx.session.touch();
+      }
       return { v: PROTOCOL_VERSION, id, ok: result };
     } catch (error) {
       // A corruption-marked error (a sealed record that failed authentication after the DEK

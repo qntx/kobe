@@ -35,7 +35,7 @@ type State =
       /** The vault keyId the DEK belongs to — a keyId change elsewhere invalidates the session. */
       readonly keyId: string;
       readonly unlockedAt: number; // elapsed clock
-      lastRequestAt: number; // elapsed clock
+      lastActivityAt: number; // elapsed clock
     };
 
 function wipePendingFactor(pending: PendingFactor): void {
@@ -98,7 +98,7 @@ export class Session {
     this.wipeUnlocked();
     const id = bytesToHex(this.platform.random(16));
     const at = this.platform.elapsed();
-    this.state = { status: "unlocked", id, dek, keyId, unlockedAt: at, lastRequestAt: at };
+    this.state = { status: "unlocked", id, dek, keyId, unlockedAt: at, lastActivityAt: at };
     this.schedule();
     return id;
   }
@@ -115,8 +115,8 @@ export class Session {
 
   /**
    * Enforces idle and max-session deadlines on the monotonic elapsed clock. Returns the lock reason
-   * when the session expired; the caller locks before handling the request. Otherwise stamps the
-   * request time.
+   * when the session expired; the caller locks before handling the request. Pure check — activity
+   * is stamped by `touch()` on a successful request, never here.
    */
   checkTimeouts(): LockReason | undefined {
     const { state } = this;
@@ -127,12 +127,23 @@ export class Session {
     if (now - state.unlockedAt > this.platform.policy.maxSessionMs) {
       return "expired";
     }
-    if (now - state.lastRequestAt > this.platform.policy.idleMs) {
+    if (now - state.lastActivityAt > this.platform.policy.idleMs) {
       return "idle";
     }
-    state.lastRequestAt = now;
-    this.schedule(); // the idle deadline moved forward
     return undefined;
+  }
+
+  /**
+   * Stamps user activity: the idle deadline moves forward and the timer re-arms. The max-session
+   * deadline never moves — `schedule()` still clamps to it.
+   */
+  touch(): void {
+    const { state } = this;
+    if (state.status !== "unlocked") {
+      return;
+    }
+    state.lastActivityAt = this.platform.elapsed();
+    this.schedule();
   }
 
   /** The live session for a request that carries `session`; throws `locked` on any mismatch. */
@@ -217,7 +228,7 @@ export class Session {
     const now = this.platform.elapsed();
     const deadline = Math.min(
       this.state.unlockedAt + this.platform.policy.maxSessionMs,
-      this.state.lastRequestAt + this.platform.policy.idleMs,
+      this.state.lastActivityAt + this.platform.policy.idleMs,
     );
     const delay = Math.max(0, deadline - now);
     if (this.cancelTimer !== undefined) {

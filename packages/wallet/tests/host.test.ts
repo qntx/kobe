@@ -2,7 +2,7 @@ import { hexToBytes, utf8ToBytes } from "@noble/hashes/utils.js";
 import { describe, expect, it } from "vite-plus/test";
 
 import { getPublicKey, KeysSigner } from "@qntx/nostr";
-import type { UnsignedEvent } from "@qntx/nostr";
+import type { Event, UnsignedEvent } from "@qntx/nostr";
 
 import type { MainPort, SetTimer } from "../src/channel.ts";
 import { PASSKEY_PURPOSE_VAULT, PASSKEY_PURPOSE_WALLET } from "../src/factors.ts";
@@ -186,6 +186,17 @@ class FakeTimers {
     };
   };
 
+  /** How many timers are armed right now (the channel keeps at most one watchdog). */
+  get armed(): number {
+    let count = 0;
+    for (const entry of this.timers.values()) {
+      if (!entry.cancelled) {
+        count++;
+      }
+    }
+    return count;
+  }
+
   fireAll(): void {
     const pending = [...this.timers.values()];
     this.timers.clear();
@@ -207,6 +218,7 @@ const realtime: SetTimer = (delayMs, fn) => {
 async function connectFake(
   status: StatusPayload,
   setTimer: SetTimer = realtime,
+  presence?: (onActivity: () => void) => () => void,
 ): Promise<{
   wallet: Awaited<ReturnType<typeof connectKernel>>;
   kernel: FakeKernel;
@@ -224,6 +236,7 @@ async function connectFake(
     passkey: PASSKEY,
     ceremony: undefined,
     setTimer,
+    ...(presence === undefined ? {} : { presence }),
   });
   return { wallet, kernel, spawned };
 }
@@ -667,6 +680,7 @@ describe("passkey restore purpose", () => {
       credentialId: utf8ToBytes("credential-1"),
       first: new Uint8Array(32).fill(7),
       second: new Uint8Array(32).fill(8),
+      synced: true,
       ...(userHandle === undefined ? {} : { userHandle }),
     };
     return {
@@ -732,7 +746,7 @@ describe("passkey restore purpose", () => {
           walletId: "0123456789abcdef",
           origin: "passkey",
           words: 12,
-          backedUp: false,
+          backup: "passkey",
           createdAt: 1,
         },
         session: "ab".repeat(16),
@@ -775,5 +789,178 @@ describe("passkey config validation", () => {
     const { attempt, spawned } = connectWithPasskey(patch);
     await expect(attempt).rejects.toSatisfy((e) => walletError(e).code === "invalid-input");
     expect(spawned).toHaveLength(0);
+  });
+});
+
+describe("queue-head watchdog", () => {
+  it("times only the head — a request queued behind a slow head gets a fresh clock", async () => {
+    const timers = new FakeTimers();
+    const { wallet, kernel } = await connectFake(unlockedStatus(), timers.setTimer);
+    // The kernel answers in order: both calls wait on the test — "tail" must still be pending
+    // when "head" settles, which is what being queued behind it means.
+    const gates = new Map<string, () => void>();
+    kernel.handlers.set("dataKeys.get", async (request) => {
+      const params = request.params as { purpose: string };
+      await new Promise<void>((resolve) => {
+        gates.set(params.purpose, resolve);
+      });
+      return { ok: new Uint8Array(32) };
+    });
+    const head = wallet.dataKeys.get("head");
+    const queued = wallet.dataKeys.get("tail");
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve);
+    });
+    // Both requests reached the kernel, but only the earliest pending one is timed.
+    expect(timers.armed).toBe(1);
+    gates.get("head")?.(); // the head answers at the edge of its window
+    await expect(head).resolves.toBeInstanceOf(Uint8Array);
+    // The watchdog moved to the queued request, now the head — its clock started now.
+    expect(timers.armed).toBe(1);
+    gates.get("tail")?.();
+    await expect(queued).resolves.toBeInstanceOf(Uint8Array);
+    expect(timers.armed).toBe(0);
+  });
+});
+
+describe("presence activity", () => {
+  const unlockPassword = { kind: "password" as const, password: "long enough password" };
+
+  function presenceKernel(kernel: FakeKernel): void {
+    kernel.handlers.set("vault.unlock", () => ({ ok: { session: "ab".repeat(16) } }));
+    kernel.handlers.set("session.touch", () => ({ ok: null }));
+  }
+
+  const flush = async (): Promise<void> => {
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve);
+    });
+  };
+
+  it("throttles to one session.touch per interval and only while a session exists", async () => {
+    const timers = new FakeTimers();
+    let activity: (() => void) | undefined;
+    const { wallet, kernel } = await connectFake(
+      unlockedStatus(),
+      timers.setTimer,
+      (onActivity) => {
+        activity = onActivity;
+        return () => {
+          activity = undefined;
+        };
+      },
+    );
+    presenceKernel(kernel);
+
+    // No session yet: the signal is ignored — nothing reaches the kernel.
+    activity?.();
+    await flush();
+    expect(kernel.received).toHaveLength(0);
+
+    await wallet.vault.unlock(unlockPassword);
+    activity?.();
+    await flush();
+    expect(kernel.received.filter((m) => m === "session.touch")).toHaveLength(1);
+
+    // Cooling: further signals inside the interval send nothing.
+    activity?.();
+    activity?.();
+    await flush();
+    expect(kernel.received.filter((m) => m === "session.touch")).toHaveLength(1);
+
+    // The interval elapsed: the next signal touches again.
+    timers.fireAll();
+    activity?.();
+    await flush();
+    expect(kernel.received.filter((m) => m === "session.touch")).toHaveLength(2);
+  });
+
+  it("destroy removes the subscription and the pending cooldown timer", async () => {
+    const timers = new FakeTimers();
+    let activity: (() => void) | undefined;
+    let unsubscribed = false;
+    const { wallet, kernel } = await connectFake(
+      unlockedStatus(),
+      timers.setTimer,
+      (onActivity) => {
+        activity = onActivity;
+        return () => {
+          unsubscribed = true;
+        };
+      },
+    );
+    presenceKernel(kernel);
+    await wallet.vault.unlock(unlockPassword);
+    activity?.();
+    await flush();
+    expect(kernel.received).toContain("session.touch");
+    expect(timers.armed).toBe(1); // the cooldown window
+    await wallet.destroy();
+    expect(unsubscribed).toBe(true);
+    expect(timers.armed).toBe(0);
+    // A stray signal after destroy sends nothing.
+    activity?.();
+    await flush();
+    expect(kernel.received.filter((m) => m === "session.touch")).toHaveLength(1);
+  });
+});
+
+describe("unwrapGiftWraps chunking", () => {
+  const giftWrap = (index: number): Event => ({
+    id: index.toString(16).padStart(64, "0"),
+    pubkey: PUBLIC_KEY,
+    sig: "0".repeat(128),
+    kind: 1059,
+    created_at: 1,
+    tags: [],
+    content: "wrapped",
+  });
+
+  it("splits oversized batches into MAX_BATCH chunks and concatenates in order", async () => {
+    const { wallet, kernel } = await connectFake(unlockedStatus());
+    const sizes: number[] = [];
+    kernel.handlers.set("nostr.unwrapGiftWraps", (request) => {
+      const params = request.params as { events: Array<{ id: string }> };
+      sizes.push(params.events.length);
+      return {
+        ok: {
+          results: params.events.map((event) => ({
+            ok: {
+              id: event.id,
+              pubkey: PUBLIC_KEY,
+              kind: 1,
+              created_at: 1,
+              tags: [],
+              content: "rumor",
+            },
+          })),
+        },
+      };
+    });
+    const signer = nostr(wallet).signer(NOSTR_KEY.ref);
+    const results = await signer.unwrapGiftWraps(
+      Array.from({ length: 130 }, (_, i) => giftWrap(i)),
+    );
+    expect(sizes).toStrictEqual([64, 64, 2]);
+    // Concatenated in order: result i answers request event i.
+    expect(results).toStrictEqual(
+      Array.from({ length: 130 }, (_, i) => ({
+        ok: {
+          id: i.toString(16).padStart(64, "0"),
+          pubkey: PUBLIC_KEY,
+          kind: 1,
+          created_at: 1,
+          tags: [],
+          content: "rumor",
+        },
+      })),
+    );
+  });
+
+  it("an empty input resolves [] without a kernel call", async () => {
+    const { wallet, kernel } = await connectFake(unlockedStatus());
+    const signer = nostr(wallet).signer(NOSTR_KEY.ref);
+    await expect(signer.unwrapGiftWraps([])).resolves.toStrictEqual([]);
+    expect(kernel.received).not.toContain("nostr.unwrapGiftWraps");
   });
 });

@@ -44,8 +44,8 @@ async function walletCount(page: Page): Promise<number> {
   return page.evaluate(() => qntx.snapshot().wallets.length);
 }
 
-async function backedUp(page: Page): Promise<boolean | undefined> {
-  return page.evaluate(() => qntx.snapshot().wallets[0]?.backedUp);
+async function backup(page: Page): Promise<string | undefined> {
+  return page.evaluate(() => qntx.snapshot().wallets[0]?.backup);
 }
 
 async function spawned(page: Page): Promise<number> {
@@ -176,13 +176,15 @@ test.describe("web host", () => {
     await page.evaluate(async () => qntx.create());
     const made = await page.evaluate(async () => qntx.createPasskey());
     expect(made.ok).toBe(true);
-    expect(await backedUp(page)).toBe(true);
+    // The CDP virtual authenticator never sets the BE/BS flags, so its credentials are
+    // device-bound: backup reports "none".
+    expect(await backup(page)).toBe("none");
 
-    // Flip backedUp in the entropy record's header and poke the store watch channel: the kernel
+    // Flip backup in the entropy record's header and poke the store watch channel: the kernel
     // reloads the tampered image into the live worker, so the next unlock re-authenticates it.
-    const tampered = await page.evaluate(async () => qntx.tamperBackedUp());
+    const tampered = await page.evaluate(async () => qntx.tamperBackup());
     expect(tampered.flipped).toBe(true);
-    await expect.poll(async () => backedUp(page)).toBe(false);
+    await expect.poll(async () => backup(page)).toBe("passkey");
     const unlocked = await page.evaluate(async () => qntx.unlockPasskey());
     expect(unlocked).toEqual({ ok: false, code: "integrity" });
 

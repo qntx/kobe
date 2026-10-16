@@ -121,7 +121,12 @@ function boot(store: ReturnType<typeof createMemoryStore>): Kernel {
     setTimer: () => () => undefined,
     pbkdf2: noblePbkdf2,
     store,
-    policy: { idleMs: 15 * 60_000, maxSessionMs: 12 * 3_600_000, maxScryptLogN: 20 },
+    policy: {
+      idleMs: 15 * 60_000,
+      maxSessionMs: 12 * 3_600_000,
+      maxScryptLogN: 20,
+      activity: "request",
+    },
   };
   startKernel(platform, port);
 

@@ -47,7 +47,7 @@ const walletInfo = {
   walletId: WALLET_ID,
   origin: "mnemonic",
   words: 12,
-  backedUp: true,
+  backup: "mnemonic",
   createdAt: CREATED_AT,
 };
 const passwordFactorInfo = { kind: "password", id: FACTOR_ID, createdAt: CREATED_AT };
@@ -84,6 +84,10 @@ const signedEvent = {
 const requests: Array<{ name: string; message: Record<string, unknown> }> = [
   { name: "status", message: { v: 1, id: 1, method: "status", params: null } },
   {
+    name: "session.touch",
+    message: { v: 1, id: 24, method: "session.touch", session: SESSION, params: null },
+  },
+  {
     name: "vault.unlock",
     message: { v: 1, id: 2, method: "vault.unlock", params: { factor: passwordFactor } },
   },
@@ -117,7 +121,7 @@ const requests: Array<{ name: string; message: Record<string, unknown> }> = [
       v: 1,
       id: 6,
       method: "wallet.createWithPasskey",
-      params: { credentialId: $b("deadbeefcafe"), prfWallet: $b(PRF) },
+      params: { credentialId: $b("deadbeefcafe"), prfWallet: $b(PRF), synced: true },
     },
   },
   {
@@ -129,6 +133,7 @@ const requests: Array<{ name: string; message: Record<string, unknown> }> = [
       params: {
         credentialId: $b("deadbeefcafe"),
         prfWallet: $b(PRF),
+        synced: false,
         factor: passwordFactor,
       },
     },

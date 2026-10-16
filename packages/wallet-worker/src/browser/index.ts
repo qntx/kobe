@@ -1,8 +1,9 @@
 /**
  * The Web host: `createWebWallet` spawns the bundled kernel worker (dist/kernel.worker.js) whose
  * vault lives in the worker's own IndexedDB. Lock destroys the worker; the vault survives in
- * IndexedDB, so the respawned worker reloads it. Page lifecycle locks: 5 minutes hidden or
- * `pagehide`. The WebAuthn ceremony runs on the main thread.
+ * IndexedDB, so the respawned worker reloads it. `pagehide` locks immediately; the idle timer is
+ * refreshed by user-presence signals, not request traffic. The WebAuthn ceremony runs on the main
+ * thread.
  */
 import { WalletError } from "@qntx/wallet";
 import type { Wallet, WalletOptions } from "@qntx/wallet";
@@ -13,7 +14,31 @@ import type { ProtocolValue } from "@qntx/wallet/protocol";
 import type { BrowserWorkerInit } from "../shared.ts";
 import { createWebAuthnPasskey } from "./passkey.ts";
 
-const HIDDEN_LOCK_MS = 5 * 60_000; // lock after the page has been hidden for 5 minutes
+const LISTENER_OPTIONS = { capture: true, passive: true };
+const ACTIVITY_EVENTS = ["pointerdown", "pointermove", "keydown", "wheel", "touchstart"];
+
+/**
+ * The browser's user-presence source: direct input on the page, or returning to a visible tab.
+ * Capture-phase passive listeners do a single boolean check per event — high-frequency signals
+ * (scroll, pointermove) cost nothing. Returns the unsubscribe the wallet owns.
+ */
+function subscribePresence(onActivity: () => void): () => void {
+  for (const type of ACTIVITY_EVENTS) {
+    globalThis.addEventListener(type, onActivity, LISTENER_OPTIONS);
+  }
+  const onVisible = (): void => {
+    if (document.visibilityState === "visible") {
+      onActivity();
+    }
+  };
+  document.addEventListener("visibilitychange", onVisible);
+  return () => {
+    for (const type of ACTIVITY_EVENTS) {
+      globalThis.removeEventListener(type, onActivity, LISTENER_OPTIONS);
+    }
+    document.removeEventListener("visibilitychange", onVisible);
+  };
+}
 
 async function bestEffort(task: () => Promise<unknown>): Promise<void> {
   try {
@@ -81,31 +106,18 @@ export async function createWebWallet(options: WalletOptions): Promise<Wallet> {
         globalThis.clearTimeout(timer);
       };
     },
+    presence: subscribePresence,
     onDestroy: () => {
-      document.removeEventListener("visibilitychange", onVisibility);
       globalThis.removeEventListener("pagehide", onPageHide);
-      globalThis.clearTimeout(hiddenTimer);
     },
   });
 
-  // Page lifecycle: lock when the page has been hidden for 5 minutes, and on pagehide. A
-  // BFCache-frozen page still runs the queued locked-event handler on restore, so the wallet
-  // respawns then — terminating the worker directly would leave the wallet pointing at a dead
-  // port.
-  let hiddenTimer = 0;
-  const onVisibility = (): void => {
-    if (document.visibilityState === "hidden") {
-      hiddenTimer = globalThis.setTimeout(() => {
-        void bestEffort(async () => wallet.vault.lock());
-      }, HIDDEN_LOCK_MS);
-    } else {
-      globalThis.clearTimeout(hiddenTimer);
-    }
-  };
+  // Page lifecycle: lock on pagehide. A BFCache-frozen page still runs the queued locked-event
+  // handler on restore, so the wallet respawns then — terminating the worker directly would
+  // leave the wallet pointing at a dead port.
   const onPageHide = (): void => {
     void bestEffort(async () => wallet.vault.lock());
   };
-  document.addEventListener("visibilitychange", onVisibility);
   globalThis.addEventListener("pagehide", onPageHide);
 
   // Ask the browser to persist the vault once it exists — a denied request is fine.

@@ -23,6 +23,12 @@ export type KernelPolicy = {
   readonly maxSessionMs: number;
   /** Upper bound for ncryptsec imports; enforced by the nostr module. */
   readonly maxScryptLogN: number;
+  /**
+   * What refreshes the idle timer: "presence" counts only user-presence-bearing methods (web —
+   * background traffic must not hold a session open); "request" counts every successful request
+   * (node — there is no human user to observe).
+   */
+  readonly activity: "presence" | "request";
 };
 
 /**

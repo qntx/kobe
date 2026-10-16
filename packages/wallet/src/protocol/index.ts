@@ -160,6 +160,7 @@ export const METHODS: {
   typeof NOSTR_METHODS = {
   status: {
     session: false,
+    presence: false,
     params: nullValue,
     result: statusPayload,
   },

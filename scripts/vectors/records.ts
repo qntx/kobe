@@ -6,7 +6,7 @@
  *
  * Key orders (must match the encoders):
  *
- * - Entropy: walletId, origin, words, backedUp, createdAt
+ * - Entropy: walletId, origin, words, backup, createdAt
  * - Data-key: purpose, createdAt
  * - Nostr derived: publicKey, origin, walletId, groupIndex, createdAt
  * - Nostr standalone (nsec, ncryptsec, generated): publicKey, origin, backedUp, createdAt
@@ -34,7 +34,7 @@ function textOf(kind: string, input: Input): string {
         walletId: i["walletId"],
         origin: i["origin"],
         words: i["words"],
-        backedUp: i["backedUp"],
+        backup: i["backup"],
         createdAt: i["createdAt"],
       });
     case "data-key":
@@ -94,18 +94,29 @@ const cases: Array<{ name: string; kind: string; input: Input }> = [
       walletId: WALLET_ID,
       origin: "mnemonic",
       words: 12,
-      backedUp: true,
+      backup: "mnemonic",
       createdAt: CREATED_AT,
     },
   },
   {
-    name: "entropy-passkey",
+    name: "entropy-passkey-synced",
     kind: "entropy",
     input: {
       walletId: WALLET_ID,
       origin: "passkey",
       words: 12,
-      backedUp: false,
+      backup: "passkey",
+      createdAt: CREATED_AT,
+    },
+  },
+  {
+    name: "entropy-passkey-device-bound",
+    kind: "entropy",
+    input: {
+      walletId: WALLET_ID,
+      origin: "passkey",
+      words: 12,
+      backup: "none",
       createdAt: CREATED_AT,
     },
   },

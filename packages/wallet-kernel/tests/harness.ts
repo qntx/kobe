@@ -121,6 +121,8 @@ export function createHarness(opts?: {
   start?: number;
   idleMs?: number;
   maxSessionMs?: number;
+  /** KernelPolicy.activity; defaults to "presence" (the browser policy). */
+  activity?: "presence" | "request";
   /** Share one store between harnesses (the raw store — each kernel still gets its own view). */
   store?: RecordStore;
   /** Wrap the kernel's store view (e.g. `nonEchoing` so own commits do not self-notify). */
@@ -190,6 +192,7 @@ export function createHarness(opts?: {
       idleMs: opts?.idleMs ?? 15 * 60_000,
       maxSessionMs: opts?.maxSessionMs ?? 12 * 3_600_000,
       maxScryptLogN: 20,
+      activity: opts?.activity ?? "presence",
     },
   };
   startKernel(platform, port);

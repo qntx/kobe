@@ -15,17 +15,30 @@ const config: PlaywrightTestConfig = defineConfig({
     baseURL: "http://localhost:4174",
     headless: true,
   },
-  webServer: {
-    command: "bun ./serve.ts",
-    cwd: new URL(".", import.meta.url).pathname,
-    url: "http://localhost:4174",
-    reuseExistingServer: process.env["CI"] === undefined,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: "bun ./serve.ts",
+      cwd: new URL(".", import.meta.url).pathname,
+      url: "http://localhost:4174",
+      reuseExistingServer: process.env["CI"] === undefined,
+      timeout: 120_000,
+    },
+    {
+      // The production build: same page over `vite build` + `vite preview`.
+      command: "bun ./serve.ts build",
+      cwd: new URL(".", import.meta.url).pathname,
+      url: "http://localhost:4175",
+      // Never reuse: a leftover preview serves a stale bundle that still passes the health check.
+      reuseExistingServer: false,
+      timeout: 300_000,
+    },
+  ],
   // Tests tagged @webauthn drive the CDP virtual authenticator, which only Chromium has; the
   // remaining tests cover IndexedDB, Web Locks and BroadcastChannel on the other engines.
+  // chromium-build replays every spec, @webauthn included, against the production bundle.
   projects: [
     { name: "chromium", use: { browserName: "chromium" } },
+    { name: "chromium-build", use: { browserName: "chromium", baseURL: "http://localhost:4175" } },
     { name: "webkit", use: { browserName: "webkit" }, grepInvert: /@webauthn/ },
     {
       name: "firefox",

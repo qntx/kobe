@@ -19,7 +19,7 @@ const record: StoredRecord = {
   id: "aa",
   sealed: new Uint8Array([1, 2, 3]),
   header:
-    '{"walletId":"6e0d11a50c03aa4f","origin":"mnemonic","words":12,"backedUp":false,"createdAt":0}',
+    '{"walletId":"6e0d11a50c03aa4f","origin":"mnemonic","words":12,"backup":"none","createdAt":0}',
 };
 
 const factor: StoredFactor = {

@@ -21,7 +21,7 @@ const entropy: EntropyHeader = {
   walletId: "6e0d11a50c03aa4f",
   origin: "passkey",
   words: 12,
-  backedUp: false,
+  backup: "none",
   createdAt: 1_767_225_600_000,
 };
 
@@ -102,7 +102,7 @@ describe("header rejection", () => {
     expect(kernelError(() => parseEntropyHeader(JSON.stringify({ ...entropy, words: "12" })))).toBe(
       "integrity",
     );
-    expect(kernelError(() => parseEntropyHeader(JSON.stringify({ ...entropy, backedUp: 0 })))).toBe(
+    expect(kernelError(() => parseEntropyHeader(JSON.stringify({ ...entropy, backup: 0 })))).toBe(
       "integrity",
     );
   });

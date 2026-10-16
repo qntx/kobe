@@ -16,7 +16,11 @@ import { WalletError } from "@qntx/wallet";
 import { PASSKEY_PURPOSE_VAULT, PASSKEY_PURPOSE_WALLET } from "@qntx/wallet/host";
 import type { PasskeyCeremony, PrfResult, PrfSalts } from "@qntx/wallet/host";
 
-export function createSoftwarePasskey(seed: Uint8Array): PasskeyCeremony {
+export function createSoftwarePasskey(
+  seed: Uint8Array,
+  options?: { readonly synced?: boolean },
+): PasskeyCeremony {
+  const synced = options?.synced ?? true; // software credentials pretend to be synced by default
   let counter = 0;
   let lastCreated: Uint8Array | undefined;
   const known = new Map<string, { credentialId: Uint8Array; userHandle: Uint8Array }>();
@@ -36,6 +40,7 @@ export function createSoftwarePasskey(seed: Uint8Array): PasskeyCeremony {
     first: prf(credentialId, salts.first),
     ...(salts.second === undefined ? {} : { second: prf(credentialId, salts.second) }),
     ...(userHandle === undefined ? {} : { userHandle: new Uint8Array(userHandle) }),
+    synced,
   });
 
   return {

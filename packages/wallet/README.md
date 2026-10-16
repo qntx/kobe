@@ -74,16 +74,24 @@ What to do with each vault state:
   against a compromised browser or device.
 - Your CSP must allow the bundled worker: `worker-src 'self'` (the worker loads from your own
   origin — a stricter policy breaks the wallet).
-- Vite users: set `optimizeDeps.exclude: ["@qntx/wallet-worker"]` so the worker URL survives dev.
+- Vite users: set `optimizeDeps.exclude: ["@qntx/wallet-worker"]` so the worker URL survives dev;
+  production builds need nothing — `vite build` emits `kernel.worker.js` as an asset.
 - `@qntx/wallet/host` is reserved for host packages — applications must not use it.
 - `wallet.vault.lock()` resolves immediately and terminates the worker — it never waits on the
-  kernel queue, and every kernel call has a timeout that surfaces `crashed`.
+  kernel queue. A kernel request that stalls at the head of the queue surfaces `crashed` after
+  60 s and the worker respawns; requests still queued behind it are not timed.
 - Password unlock is rate-limited inside the kernel: five counted misses arm a backoff
   (30 s → 60 s → 300 s), a `rate-limited` error carries `retryAt`, and retrying during backoff
   does not push the deadline. Passkey unlocks are never gated by it.
 - Sessions idle-lock after 5, 15 or 60 minutes (`autoLock.idleMinutes`, worker-enforced) with a
   fixed 12-hour maximum, measured on a monotonic clock — a wall-clock jump can neither extend
-  nor shorten a session.
+  nor shorten a session. On the Web only user presence refreshes the idle timer (input events
+  and tab visibility, throttled to one `session.touch` per 30 s); signing and other background
+  traffic cannot hold a session open. On Node every successful request counts.
+- `WalletInfo.backup` tells the UI whether the wallet survives losing this device: `"mnemonic"`
+  (the user passed the quiz, imported a phrase, or exported it at least once — `exportMnemonic`
+  upgrades the record), `"passkey"` (a synced passkey — still lost with the password-manager
+  account, so prompt to export), or `"none"` (a device-bound passkey — lost with the device).
 - Changing the password or removing a factor rotates the vault DEK: sessions in other tabs lock
   with reason `invalidated` and must re-unlock. Adding a passkey factor keeps the current DEK.
 - `passkey.rpId`, `walletSalt` and `vaultSalt` are permanent identifiers — changing any of them

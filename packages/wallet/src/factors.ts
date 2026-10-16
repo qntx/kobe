@@ -21,6 +21,8 @@ export type PrfResult = {
   readonly second?: Uint8Array;
   /** The assertion's `userHandle` — its first byte declares the credential's purpose. */
   readonly userHandle?: Uint8Array;
+  /** The credential survives this device: the authenticator data's BE and BS flags are both set. */
+  readonly synced: boolean;
 };
 
 /**

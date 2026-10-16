@@ -46,9 +46,17 @@ export type ConnectOptions = {
   readonly ceremony: PasskeyCeremony | undefined;
   /** Timer source injected by the host package (globalThis timers on web/node). */
   readonly setTimer: SetTimer;
+  /**
+   * User-presence source: subscribes to activity signals and returns an unsubscribe the wallet
+   * owns. Absent means the host has no presence signals (the kernel policy decides what counts).
+   */
+  readonly presence?: (onActivity: () => void) => () => void;
   /** Runs once inside `destroy()` — host-side cleanup (page listeners, timers). */
   readonly onDestroy?: () => void;
 };
+
+/** One `session.touch` at most per interval — the idle deadline slips at most this much early. */
+export const PRESENCE_TOUCH_INTERVAL_MS = 30_000;
 
 /** Structural equality over plain snapshot data (validated protocol payloads only). */
 function deepEqual(a: unknown, b: unknown): boolean {
@@ -85,7 +93,11 @@ export class KernelWallet implements Wallet {
   private readonly channel: Channel;
   private readonly passkeyCfg: PasskeyConfig;
   private readonly ceremony: PasskeyCeremony | undefined;
+  private readonly setTimer: SetTimer;
   private readonly onDestroy: (() => void) | undefined;
+  private readonly unsubscribePresence: (() => void) | undefined;
+  private presenceCooling = false;
+  private cancelCooldown: (() => void) | undefined;
   private destroyed = false;
 
   private status: StatusPayload | undefined;
@@ -97,6 +109,7 @@ export class KernelWallet implements Wallet {
   private constructor(options: ConnectOptions) {
     this.passkeyCfg = options.passkey;
     this.ceremony = options.ceremony;
+    this.setTimer = options.setTimer;
     this.onDestroy = options.onDestroy;
     this.snapshotValue = {
       vault: "uninitialized",
@@ -123,6 +136,10 @@ export class KernelWallet implements Wallet {
       },
       options.setTimer,
     );
+    // The wallet owns the subscription it creates: destroy() unsubscribes — no second owner.
+    this.unsubscribePresence = options.presence?.(() => {
+      this.onPresence();
+    });
     registerInternals(this, {
       call: async (method, params, transfer) => this.channel.call(method, params, transfer),
       ready: async () => this.channel.ready,
@@ -140,6 +157,31 @@ export class KernelWallet implements Wallet {
     const wallet = new KernelWallet(options);
     await wallet.channel.start();
     return wallet;
+  }
+
+  /**
+   * Presence refresh, throttled to one touch per interval: once a touch fires, signals are ignored
+   * until the cooldown elapses — no clock reads, just the injected timer. Touches only go out while
+   * a session is held; failures are silent (a lock or respawn needs no handling).
+   */
+  private onPresence(): void {
+    if (this.presenceCooling || this.destroyed || this.channel.session === undefined) {
+      return;
+    }
+    this.presenceCooling = true;
+    this.cancelCooldown = this.setTimer(PRESENCE_TOUCH_INTERVAL_MS, () => {
+      this.presenceCooling = false;
+      this.cancelCooldown = undefined;
+    });
+    void this.touchSession();
+  }
+
+  private async touchSession(): Promise<void> {
+    try {
+      await this.channel.call("session.touch", null);
+    } catch {
+      // A racing lock or respawn needs no handling.
+    }
   }
 
   /**
@@ -320,6 +362,7 @@ export class KernelWallet implements Wallet {
           {
             credentialId: wireBytes(result.credentialId, transfer),
             prfWallet: wireBytes(result.first, transfer, true),
+            synced: result.synced,
             ...(factor === undefined ? {} : { factor }),
           },
           transfer,
@@ -360,6 +403,7 @@ export class KernelWallet implements Wallet {
           {
             credentialId: wireBytes(result.credentialId, transfer),
             prfWallet: wireBytes(result.first, transfer, true),
+            synced: result.synced,
             ...(factor === undefined ? {} : { factor }),
           },
           transfer,
@@ -443,6 +487,8 @@ export class KernelWallet implements Wallet {
       return;
     }
     this.destroyed = true;
+    this.unsubscribePresence?.();
+    this.cancelCooldown?.();
     this.onDestroy?.();
     this.channel.destroy();
   }

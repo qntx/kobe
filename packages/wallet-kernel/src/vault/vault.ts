@@ -205,7 +205,7 @@ export async function unlock(
     const stored = image.factors.find((f) => f.kind === "passkey" && credentialIdOf(f) === wanted);
     if (stored === undefined) {
       wipe(factor.prf);
-      throw new KernelError("integrity", "no passkey factor matches the credential");
+      throw new KernelError("wrong-passkey", "no passkey factor matches the credential");
     }
     const kek = await kekFor(platform, factor, stored);
     try {
@@ -228,9 +228,10 @@ function credentialIdOf(stored: StoredFactor): string | undefined {
 
 /**
  * Re-verifies a factor against the live session DEK: unwrap with the factor KEK and constant-time
- * compare. Password mismatches are `wrong-password`; everything else that fails is `integrity`.
- * Corruption-marked failures (broken structure, binding mismatch) propagate. The verify path never
- * touches the rate limiter.
+ * compare. A public-key miss — `wrong-password`/`wrong-passkey` — tries the next candidate; every
+ * other failure (including corruption-marked integrity) propagates immediately. When no candidate
+ * matched, the miss is reported by factor kind: `wrong-password` (or `invalid-input` when no
+ * password factor exists) or `wrong-passkey`. The verify path never touches the rate limiter.
  */
 export async function verifyFactor(
   platform: KernelPlatform,
@@ -247,7 +248,6 @@ export async function verifyFactor(
       credentialIdOf(stored) === base64urlnopad.encode(factor.credentialId)
     );
   });
-  let sawPasswordFactor = false;
   for (const stored of candidates) {
     // oxlint-disable-next-line eslint/no-await-in-loop -- factors are tried sequentially, not in parallel
     const kek = await kekFor(platform, factor, stored);
@@ -261,24 +261,25 @@ export async function verifyFactor(
       } finally {
         opened.wipe();
       }
-      sawPasswordFactor = stored.kind === "password";
+      // A clean unwrap whose DEK differs is another vault's factor: try the next candidate.
     } catch (error) {
-      // A public-key miss is a definite wrong password; a corrupted row aborts re-verification.
-      if (!(error instanceof KernelError) || error.code !== "integrity" || error.corrupted) {
+      if (
+        !(error instanceof KernelError) ||
+        (error.code !== "wrong-password" && error.code !== "wrong-passkey")
+      ) {
         throw error;
       }
-      sawPasswordFactor = stored.kind === "password";
     } finally {
       wipe(kek);
     }
   }
   if (factor.kind === "password") {
     throw new KernelError(
-      sawPasswordFactor ? "wrong-password" : "invalid-input",
+      candidates.length > 0 ? "wrong-password" : "invalid-input",
       "password did not verify",
     );
   }
-  throw new KernelError("integrity", "factor did not verify");
+  throw new KernelError("wrong-passkey", "passkey did not verify");
 }
 
 /**
@@ -452,7 +453,7 @@ export function walletInfo(header: EntropyHeader): WalletInfo {
     walletId: header.walletId,
     origin: header.origin,
     words: header.words,
-    backedUp: header.backedUp,
+    backup: header.backup,
     createdAt: header.createdAt,
   };
 }

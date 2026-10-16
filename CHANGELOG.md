@@ -21,6 +21,9 @@ request abuse and cross-host stale state.
 - `@qntx/wallet-worker`: `dist/kernel.manifest.json` records the protocol version, vault format, each pinned kernel dependency's bun.lock integrity and the SHA-256 of each worker bundle (#107).
 - `vectors/records.json` and `vectors/protocol.json` fix the public-header/vault-meta layouts and the wire-protocol shapes (#107).
 - CI runs `check:pkg` (publint + attw) and v8 coverage on pull requests; browser tests run on WebKit and Firefox for the specs that do not need the CDP virtual authenticator (#108).
+- `ConnectOptions.presence`: the host injects a user-activity source; the wallet throttles it to one `session.touch` per 30 s and only while a session exists. On the Web the source listens for pointer, key, wheel and touch input plus `visibilitychange` back to `visible`.
+- Browser tests now run against the production `vite build` + `vite preview` output as a `chromium-build` project alongside the dev server.
+- `createSoftwarePasskey(seed, { synced })` — `synced` defaults to `true`; pass `false` to exercise a device-bound credential.
 
 ### Changed
 
@@ -31,6 +34,11 @@ request abuse and cross-host stale state.
 - ncryptsec exports always carry NIP-49 key-security byte `0x02`; imports prevalidate the bech32 payload before scrypt runs, cap `logN` by policy (18 on Web, 20 on Node) and map failures precisely — `invalid-input`, `unsupported`, `unavailable` or `wrong-password` (#106).
 - Requests are capped at 1 MiB, measured on the whole message envelope and enforced on both sides of the channel (#104).
 - Every `@qntx/wallet-kernel` runtime dependency is an exact pin; `scripts/check-version.ts` fails unless each pin equals what `bun.lock` resolves (#107).
+- **BREAKING:** `WalletInfo.backedUp` is replaced by `WalletInfo.backup` — `"mnemonic"`, `"passkey"` or `"none"`. Passkey wallets report the credential's real sync state (WebAuthn BE/BS flags on the Web); `exportMnemonic` upgrades the record to `"mnemonic"`. Standalone Nostr keys keep `backedUp`.
+- **BREAKING:** `PrfResult` gains `synced`, and `wallet.createWithPasskey`/`wallet.restoreWithPasskey` carry it into the kernel.
+- **BREAKING:** the kernel's idle model is presence-based on the Web (`KernelPolicy.activity`): signing and background requests no longer refresh the idle timer — user presence, `session.touch` and factor/user-facing operations do; the 12 h maximum is unchanged. Node keeps request-based activity. Failed requests never count as activity.
+- **BREAKING:** the channel watchdog times only the queue head — a request queued behind a slow head is no longer timed while it waits; the head gets 60 s before the port is replaced. `MAX_BATCH` drops from 256 to 64 and `nostr.unwrapGiftWraps` accepts any number of events, chunking internally.
+- **BREAKING:** the hidden-page 5-minute lock is removed; `pagehide` still locks and the idle timer is presence-driven.
 
 ### Fixed
 
@@ -42,6 +50,9 @@ request abuse and cross-host stale state.
 - IndexedDB `versionchange` closes the worker's connection so a newer-version open is never `blocked`; once the database is newer than the schema the vault reports `unsupported` (#105).
 - The Node store's precondition failures surface `conflict` and RPC failures `unavailable` — never a hang.
 - Shape validators and header parsers check own properties only — inherited names cannot satisfy or forge a field, and a missing required key is still reported missing (#103).
+- A wrong passkey now consistently reports `wrong-passkey` — unlock, factor verification, and credential mismatches — instead of `integrity`.
+- A stored Nostr key record whose authenticated plaintext does not match its record id latches the vault `corrupted`.
+- `dataKeys.get` documentation corrected: the data key is random per vault — created on first use, stable across lock/unlock and DEK rotation, lost on reset or restore to another device; callers must be able to rebuild from it.
 
 ## [0.2.0] - 2026-10-15
 

@@ -192,8 +192,8 @@ const corruptError = (message: string): KernelError =>
 /**
  * Opens a stored factor's wrapped DEK. A KEK that does not belong to this factor fails the cheap
  * public-key check before any AEAD runs — `wrong-password` for password factors (the counter
- * decides what it means), `integrity` for passkeys. A row whose structure, ciphertext or binding is
- * broken reports `integrity` marked corrupted.
+ * decides what it means), `wrong-passkey` for passkeys. A row whose structure, ciphertext or
+ * binding is broken reports `integrity` marked corrupted.
  */
 export function unwrapDek(kek: Uint8Array, stored: StoredFactor): Secret {
   const factorSk = hkdf(sha256, kek, new Uint8Array(0), FACTOR_KEY_INFO, 32);
@@ -202,7 +202,7 @@ export function unwrapDek(kek: Uint8Array, stored: StoredFactor): Secret {
     if (!equalBytes(factorPk, factorHeaderPublicKey(stored))) {
       throw stored.kind === "password"
         ? new KernelError("wrong-password", "password did not open the vault")
-        : new KernelError("integrity", "passkey does not match the factor");
+        : new KernelError("wrong-passkey", "passkey does not match the factor");
     }
     const { sealed } = stored;
     if (sealed.length !== WRAPPED_DEK_LENGTH || sealed[0] !== WRAP_VERSION) {

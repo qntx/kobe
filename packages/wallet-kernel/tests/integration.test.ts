@@ -11,8 +11,16 @@ import type { KernelEvent, ProtocolValue, WalletErrorCode } from "@qntx/wallet/p
 import type { FactorInfo, StatusPayload as StatusT } from "@qntx/wallet/types";
 
 import { KernelError } from "../src/errors.ts";
+import { NOSTR_KEY_KIND, encodeNostrKeyHeader } from "../src/modules/nostr/record.ts";
 import { Secret, wipe } from "../src/secret/secret.ts";
-import { factorPublicKey, passwordKek, unwrapDek, wrapDek } from "../src/vault/factors.ts";
+import { recordContext, seal } from "../src/vault/envelope.ts";
+import {
+  factorPublicKey,
+  passkeyKek,
+  passwordKek,
+  unwrapDek,
+  wrapDek,
+} from "../src/vault/factors.ts";
 import { encodeHeader, parsePasswordFactorHeader } from "../src/vault/headers.ts";
 import { createMemoryStore } from "../src/vault/memory.ts";
 import type {
@@ -25,7 +33,7 @@ import type {
 import { VAULT_FORMAT } from "../src/vault/store.ts";
 import { openRecord } from "../src/vault/vault.ts";
 import type { Harness, KernelResponse } from "./harness.ts";
-import { createHarness, nonEchoing } from "./harness.ts";
+import { createHarness, nonEchoing, seededRandom } from "./harness.ts";
 import { kernelError, loadVectors, subtlePbkdf2 } from "./helpers.ts";
 
 const passkeyVector = loadVectors("passkey.json") as {
@@ -272,6 +280,7 @@ async function createPasskeyWallet(h: ReturnType<typeof createHarness>) {
     await h.call("wallet.createWithPasskey", {
       credentialId: CREDENTIAL_ID,
       prfWallet: new Uint8Array(PRF_WALLET),
+      synced: true,
       factor: { kind: "passkey", credentialId: CREDENTIAL_ID, prf: new Uint8Array(PRF_VAULT) },
     }),
   );
@@ -308,7 +317,7 @@ describe("create / import", () => {
     const status = lastStatus(h);
     expect(status.vault).toBe("unlocked");
     expect(status.wallets[0]?.walletId).toBe(passkeyVector.vector.walletId);
-    expect(status.wallets[0]?.backedUp).toBe(true);
+    expect(status.wallets[0]?.backup).toBe("passkey");
     expect(status.nostr.keys[0]?.publicKey).toBe(publicKey);
     expect(status.factors).toHaveLength(1);
   });
@@ -321,7 +330,7 @@ describe("create / import", () => {
       errCode(
         await h.call(
           "wallet.restoreWithPasskey",
-          { credentialId: CREDENTIAL_ID, prfWallet: new Uint8Array(PRF_WALLET) },
+          { credentialId: CREDENTIAL_ID, prfWallet: new Uint8Array(PRF_WALLET), synced: true },
           session,
         ),
       ),
@@ -371,6 +380,220 @@ describe("create / import", () => {
   });
 });
 
+describe("wallet backup state", () => {
+  it("a synced passkey wallet reports 'passkey', a device-bound one 'none'", async () => {
+    const synced = createHarness();
+    await synced.settle();
+    const { session } = await createPasskeyWallet(synced); // synced: true
+    expect(lastStatus(synced).wallets[0]?.backup).toBe("passkey");
+    ok(await synced.call("vault.reset", null, session));
+
+    const res = ok(
+      await synced.call("wallet.createWithPasskey", {
+        credentialId: CREDENTIAL_ID,
+        prfWallet: new Uint8Array(PRF_WALLET),
+        synced: false,
+        factor: { kind: "passkey", credentialId: CREDENTIAL_ID, prf: new Uint8Array(PRF_VAULT) },
+      }),
+    );
+    expect(strField(field(res, "wallet"), "backup")).toBe("none");
+    expect(lastStatus(synced).wallets[0]?.backup).toBe("none");
+  });
+
+  it("restore reports the credential's sync state", async () => {
+    const h = createHarness();
+    await h.settle();
+    const res = ok(
+      await h.call("wallet.restoreWithPasskey", {
+        credentialId: CREDENTIAL_ID,
+        prfWallet: new Uint8Array(PRF_WALLET),
+        synced: false,
+        factor: { kind: "passkey", credentialId: CREDENTIAL_ID, prf: new Uint8Array(PRF_VAULT) },
+      }),
+    );
+    expect(strField(field(res, "wallet"), "backup")).toBe("none");
+  });
+
+  it("mnemonic creation and import report 'mnemonic'", async () => {
+    const h = createHarness();
+    await h.settle();
+    const imported = ok(
+      await h.call("wallet.importMnemonic", {
+        mnemonic: utf8ToBytes(nip06.vectors[0]!.mnemonic),
+        factor: { kind: "passkey", credentialId: CREDENTIAL_ID, prf: new Uint8Array(PRF_VAULT) },
+      }),
+    );
+    expect(strField(field(imported, "wallet"), "backup")).toBe("mnemonic");
+  });
+
+  it("exportMnemonic upgrades backup to 'mnemonic'; a second export commits nothing", async () => {
+    const h = createHarness();
+    await h.settle();
+    const res = ok(
+      await h.call("wallet.createWithPasskey", {
+        credentialId: CREDENTIAL_ID,
+        prfWallet: new Uint8Array(PRF_WALLET),
+        synced: false,
+        factor: { kind: "passkey", credentialId: CREDENTIAL_ID, prf: new Uint8Array(PRF_VAULT) },
+      }),
+    );
+    const session = strField(res, "session");
+    const walletId = strField(field(res, "wallet"), "walletId");
+    expect(strField(field(res, "wallet"), "backup")).toBe("none");
+    // kek derivation wipes `prf` — a verify factor is single-use, build one per call.
+    const verify = () => ({
+      kind: "passkey" as const,
+      credentialId: CREDENTIAL_ID,
+      prf: new Uint8Array(PRF_VAULT),
+    });
+
+    const metaBefore = await storedMeta(h.store);
+    const exported = ok(
+      await h.call("wallet.exportMnemonic", { verify: verify(), walletId }, session),
+    );
+    expect(new TextDecoder().decode(exported as Uint8Array)).toBe(passkeyVector.vector.mnemonic);
+    await h.settle();
+    expect(lastStatus(h).wallets[0]?.backup).toBe("mnemonic");
+    const metaAfter = await storedMeta(h.store);
+    expect(metaAfter.revision).toBe(metaBefore.revision + 1);
+
+    // Already "mnemonic": the second export answers from the same record without a commit.
+    ok(await h.call("wallet.exportMnemonic", { verify: verify(), walletId }, session));
+    const metaFinal = await storedMeta(h.store);
+    expect(metaFinal.revision).toBe(metaBefore.revision + 1);
+
+    // The re-sealed record still opens after a respawn.
+    const h2 = respawn(h);
+    await h2.settle();
+    const unlocked = ok(
+      await h2.call("vault.unlock", {
+        factor: { kind: "passkey", credentialId: CREDENTIAL_ID, prf: new Uint8Array(PRF_VAULT) },
+      }),
+    );
+    const session2 = strField(unlocked, "session");
+    expect(lastStatus(h2).wallets[0]?.backup).toBe("mnemonic");
+    const again = ok(
+      await h2.call("wallet.exportMnemonic", { verify: verify(), walletId }, session2),
+    );
+    expect(new TextDecoder().decode(again as Uint8Array)).toBe(passkeyVector.vector.mnemonic);
+  });
+});
+
+describe("wrong passkey errors", () => {
+  it("unlock with an unknown credential id is wrong-passkey, not integrity", async () => {
+    const h = createHarness();
+    await h.settle();
+    await createPasskeyWallet(h);
+    const h2 = respawn(h);
+    await h2.settle();
+    expect(
+      errCode(
+        await h2.call("vault.unlock", {
+          factor: {
+            kind: "passkey",
+            credentialId: utf8ToBytes("another-credential"),
+            prf: new Uint8Array(32),
+          },
+        }),
+      ),
+    ).toBe("wrong-passkey");
+  });
+
+  it("unlock with a credential whose PRF misses the factor is wrong-passkey", async () => {
+    const h = createHarness();
+    await h.settle();
+    await createPasskeyWallet(h);
+    const h2 = respawn(h);
+    await h2.settle();
+    expect(
+      errCode(
+        await h2.call("vault.unlock", {
+          factor: {
+            kind: "passkey",
+            credentialId: CREDENTIAL_ID,
+            prf: new Uint8Array(32).fill(9),
+          },
+        }),
+      ),
+    ).toBe("wrong-passkey");
+    // The vault is intact: the right credential still unlocks it.
+    const unlocked = ok(
+      await h2.call("vault.unlock", {
+        factor: { kind: "passkey", credentialId: CREDENTIAL_ID, prf: new Uint8Array(PRF_VAULT) },
+      }),
+    );
+    expect(strField(unlocked, "session")).toMatch(/^[0-9a-f]{32}$/);
+  });
+
+  it("verifyFactor with a wrong passkey is wrong-passkey", async () => {
+    const h = createHarness();
+    await h.settle();
+    const { session, walletId } = await createPasskeyWallet(h);
+    expect(
+      errCode(
+        await h.call(
+          "wallet.exportMnemonic",
+          {
+            verify: {
+              kind: "passkey",
+              credentialId: CREDENTIAL_ID,
+              prf: new Uint8Array(32).fill(9),
+            },
+            walletId,
+          },
+          session,
+        ),
+      ),
+    ).toBe("wrong-passkey");
+    expect(lastStatus(h).vault).toBe("unlocked"); // a wrong factor is not corruption
+  });
+});
+
+describe("nostr record integrity", () => {
+  it("a record whose key does not match its id latches the vault corrupted", async () => {
+    const h = createHarness();
+    await h.settle();
+    const { session } = await createPasskeyWallet(h);
+    // Rebuild the DEK through the stored passkey factor, then seal a standalone-key record
+    // under an id that is not the key's public key. The seal authenticates fine — only the
+    // id/public-key check can catch it.
+    const image = await h.store.load();
+    const stored = must(image.factors.find((f) => f.kind === "passkey"));
+    const kek = passkeyKek(new Uint8Array(PRF_VAULT), CREDENTIAL_ID);
+    const dek = unwrapDek(kek, stored);
+    wipe(kek);
+    try {
+      const secretKey = hexToBytes("ab".repeat(32));
+      const { publicKey } = Keys.fromSecretKey(secretKey);
+      const wrongId = "cd".repeat(32);
+      expect(publicKey).not.toBe(wrongId);
+      const header = encodeNostrKeyHeader({
+        publicKey,
+        origin: "generated",
+        backedUp: false,
+        createdAt: 1,
+      });
+      const sealed = dek.use((bytes) =>
+        seal(
+          bytes,
+          secretKey,
+          recordContext(NOSTR_KEY_KIND, wrongId),
+          header,
+          seededRandom(7).random,
+        ),
+      );
+      await h.store.commit([
+        { op: "put-record", record: { kind: NOSTR_KEY_KIND, id: wrongId, header, sealed } },
+      ]);
+      await h.settle();
+      expect(lastStatus(h).vault).toBe("corrupted");
+      expect(errCode(await h.call("nostr.createNip46ClientKey", null, session))).toBe("integrity");
+    } finally {
+      dek.wipe();
+    }
+  });
+});
+
 describe("mnemonic draft", () => {
   it("keeps the draft on wrong answers and completes on right answers", async () => {
     const h = createHarness();
@@ -396,7 +619,7 @@ describe("mnemonic draft", () => {
     const res = ok(await h.call("wallet.confirmMnemonic", { draft, answers: right }));
     expect(strField(res, "session")).toMatch(/^[0-9a-f]{32}$/);
     expect(lastStatus(h).vault).toBe("unlocked");
-    expect(lastStatus(h).wallets[0]?.backedUp).toBe(true);
+    expect(lastStatus(h).wallets[0]?.backup).toBe("mnemonic");
   });
 
   it("discards the draft", async () => {
@@ -920,6 +1143,130 @@ describe("session expiry and rate limiting", () => {
   });
 });
 
+describe("presence activity", () => {
+  it("signing traffic does not extend the idle deadline", async () => {
+    const h = createHarness({ idleMs: 60_000 });
+    await h.settle();
+    const { session, walletId } = await createPasskeyWallet(h);
+    const publicKey = await deriveKey(h, session, walletId);
+    h.advance(59_000);
+    // A sign at t=59 s succeeds — but it is not presence, so the 60 s deadline stands.
+    expect(
+      "ok" in
+        (await h.call(
+          "nostr.signEvent",
+          { publicKey, event: { kind: 1, created_at: 1, tags: [], content: "x" } },
+          session,
+        )),
+    ).toBe(true);
+    h.advance(2000);
+    await h.settle();
+    expect(lastStatus(h).vault).toBe("locked");
+    expect(lockReasons(h.events)).toContain("idle");
+  });
+
+  it("session.touch extends the idle deadline", async () => {
+    const h = createHarness({ idleMs: 60_000 });
+    await h.settle();
+    const { session } = await createPasskeyWallet(h);
+    h.advance(59_000);
+    expect(ok(await h.call("session.touch", null, session))).toBeNull();
+    // The deadline moved to t=119 s: still unlocked at 110 s, idle-locked after.
+    h.advance(51_000);
+    expect("ok" in (await h.call("nostr.createNip46ClientKey", null, session))).toBe(true);
+    h.advance(10_000);
+    await h.settle();
+    expect(lastStatus(h).vault).toBe("locked");
+    expect(lockReasons(h.events)).toContain("idle");
+  });
+
+  it("a presence-bearing request extends the idle deadline", async () => {
+    const h = createHarness({ idleMs: 60_000 });
+    await h.settle();
+    const { session, walletId } = await createPasskeyWallet(h);
+    h.advance(59_000);
+    // exportMnemonic carries presence: the idle deadline moves to t=119 s.
+    ok(
+      await h.call(
+        "wallet.exportMnemonic",
+        {
+          verify: { kind: "passkey", credentialId: CREDENTIAL_ID, prf: new Uint8Array(PRF_VAULT) },
+          walletId,
+        },
+        session,
+      ),
+    );
+    h.advance(51_000);
+    expect("ok" in (await h.call("nostr.createNip46ClientKey", null, session))).toBe(true);
+    h.advance(10_000);
+    await h.settle();
+    expect(lastStatus(h).vault).toBe("locked");
+  });
+
+  it("a failed request does not extend the idle deadline", async () => {
+    const h = createHarness({ idleMs: 60_000 });
+    await h.settle();
+    const { session } = await createPasskeyWallet(h);
+    h.advance(59_000);
+    // The miss arrives at t=59 s — an error is not activity.
+    expect(
+      errCode(
+        await h.call(
+          "nostr.signEvent",
+          {
+            publicKey: "00".repeat(32),
+            event: { kind: 1, created_at: 1, tags: [], content: "x" },
+          },
+          session,
+        ),
+      ),
+    ).toBe("not-found");
+    h.advance(2000);
+    await h.settle();
+    expect(lastStatus(h).vault).toBe("locked");
+    expect(lockReasons(h.events)).toContain("idle");
+  });
+
+  it("request activity mode refreshes on every successful request", async () => {
+    const h = createHarness({ idleMs: 60_000, activity: "request" });
+    await h.settle();
+    const { session, walletId } = await createPasskeyWallet(h);
+    const publicKey = await deriveKey(h, session, walletId);
+    h.advance(59_000);
+    expect(
+      "ok" in
+        (await h.call(
+          "nostr.signEvent",
+          { publicKey, event: { kind: 1, created_at: 1, tags: [], content: "x" } },
+          session,
+        )),
+    ).toBe(true);
+    // The successful sign moved the deadline to t=119 s — and this probe (also a successful
+    // request, as every request counts in request mode) moved it again to t=170 s.
+    h.advance(51_000);
+    expect("ok" in (await h.call("nostr.createNip46ClientKey", null, session))).toBe(true);
+    h.advance(61_000);
+    await h.settle();
+    expect(lastStatus(h).vault).toBe("locked");
+  });
+
+  it("max session expires regardless of touches", async () => {
+    const h = createHarness({ idleMs: 10 * 3_600_000, maxSessionMs: 3_600_000 });
+    await h.settle();
+    const { session } = await createPasskeyWallet(h);
+    h.advance(1_800_000);
+    expect(ok(await h.call("session.touch", null, session))).toBeNull();
+    h.advance(1_500_000);
+    expect(ok(await h.call("session.touch", null, session))).toBeNull();
+    // t=3.3 h on a 1 h cap: touches keep idle away but the maximum still lands.
+    h.advance(400_000);
+    await h.settle();
+    expect(lastStatus(h).vault).toBe("locked");
+    expect(lockReasons(h.events)).toContain("expired");
+    expect(errCode(await h.call("session.touch", null, session))).toBe("locked");
+  });
+});
+
 describe("password rate limiting", () => {
   /** A vault whose only factor is a password, created on `h`. */
   async function createPasswordVault(h: Harness): Promise<void> {
@@ -1089,7 +1436,7 @@ describe("integrity", () => {
     const image = await h.store.load();
     const record = must(image.records.find((r) => r.kind === "entropy"));
     const header = JSON.parse(record.header) as Record<string, unknown>;
-    header["backedUp"] = false;
+    header["backup"] = "none";
     await h.store.commit([
       { op: "put-record", record: { ...record, header: JSON.stringify(header) } },
     ]);
@@ -1742,7 +2089,10 @@ describe("public-key factor wrapping and DEK rotation", () => {
     expect("ok" in (await h2.call("vault.unlock", { factor: passwordFactor() }))).toBe(true);
     const h3 = respawn(h);
     await h3.settle();
-    expect(errCode(await h3.call("vault.unlock", { factor: passkeyFactor() }))).toBe("integrity");
+    // The removed factor's credential matches nothing: a plain miss, not corruption.
+    expect(errCode(await h3.call("vault.unlock", { factor: passkeyFactor() }))).toBe(
+      "wrong-passkey",
+    );
   });
 });
 

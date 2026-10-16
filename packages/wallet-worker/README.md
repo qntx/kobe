@@ -59,7 +59,14 @@ const wallet = await createNodeWallet({
 - Secrets exist only inside the kernel Worker; `vault.lock()` resolves immediately on the host
   and destroys the worker — the vault image (ciphertext + public headers) persists in the store.
 - Session limits belong to the worker, not the page: `idleMinutes` accepts 5, 15 or 60 and the
-  absolute session cap is a fixed 12 hours, measured on a monotonic clock.
+  absolute session cap is a fixed 12 hours, measured on a monotonic clock. On the Web only user
+  presence (input events, a tab becoming visible) refreshes the idle timer — background request
+  traffic does not; on Node every successful request does.
+- `WalletInfo.backup` is `"mnemonic"`, `"passkey"` (a synced passkey — prompt the user to export)
+  or `"none"` (a device-bound passkey — survives only on this device). `exportMnemonic` upgrades
+  the record to `"mnemonic"`.
+- `createSoftwarePasskey(seed, { synced })` — `synced` defaults to `true` and lands in every
+  `PrfResult`; pass `{ synced: false }` to exercise the device-bound path.
 - `passkey.rpId` and the two salts are permanent identifiers: changing them makes existing
   passkey factors and passkey-derived wallets unrecoverable. Moving domains needs WebAuthn
   related origins (`/.well-known/webauthn`); offer `exportMnemonic` for passkey-derived wallets.
@@ -68,8 +75,8 @@ const wallet = await createNodeWallet({
   update the app, do not reset.
 - The Node store's RPC failures surface as `unavailable` and precondition failures as
   `conflict` — neither hangs a kernel call.
-- The Web host is a **hot wallet**. CSP needs `worker-src 'self'`; Vite needs
-  `optimizeDeps.exclude: ["@qntx/wallet-worker"]`.
+- The Web host is a **hot wallet**. CSP needs `worker-src 'self'`; Vite dev needs
+  `optimizeDeps.exclude: ["@qntx/wallet-worker"]` — `vite build` needs nothing.
 - `@qntx/wallet/host` is for host packages only — not application API.
 
 ## License

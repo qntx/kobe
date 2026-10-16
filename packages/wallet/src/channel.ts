@@ -32,14 +32,17 @@ export function integrity(message: string): WalletError {
 /** Schedules `fn` after `delayMs` and returns a cancel function — injected by the host package. */
 export type SetTimer = (delayMs: number, fn: () => void) => () => void;
 
-/** A silent kernel is a wedged kernel: every call gets this long before the port is replaced. */
+/**
+ * A silent kernel is a wedged kernel: the request at the head of the kernel's serial queue gets
+ * this long before the port is replaced. Requests still queued behind it are not timed — the kernel
+ * answers in order, so only the head can wedge.
+ */
 const CALL_TIMEOUT_MS = 60_000;
 
 type Pending = {
   readonly method: MethodName;
   readonly resolve: (value: unknown) => void;
   readonly reject: (error: WalletError) => void;
-  readonly cancelTimer: () => void;
 };
 
 /**
@@ -63,6 +66,8 @@ export class Channel {
   private generation = 0;
 
   private readonly pending = new Map<number, Pending>();
+  /** Times the earliest pending request — the one the kernel is working on. */
+  private watchdog: { readonly id: number; readonly cancel: () => void } | undefined;
   private nextId = 1;
   private destroyed = false;
   /** Terminal state: the kernel peer proved untrustworthy; every later call fails with it. */
@@ -111,6 +116,8 @@ export class Channel {
     this.port?.terminate();
     this.port = undefined;
     this.session = undefined;
+    this.watchdog?.cancel();
+    this.watchdog = undefined;
     this.portReady = false;
 
     const generation = ++this.generation;
@@ -186,19 +193,37 @@ export class Channel {
   }
 
   private failPending(error: WalletError): void {
+    this.watchdog?.cancel();
+    this.watchdog = undefined;
     for (const [, pending] of this.pending) {
-      pending.cancelTimer();
       pending.reject(error);
     }
     this.pending.clear();
   }
 
-  /** Removes the pending entry (cancelling its timeout) and runs `fn` on it. */
+  /** (Re)arms the watchdog on `pending`'s insertion-ordered head, or clears it when empty. */
+  private armWatchdog(): void {
+    this.watchdog?.cancel();
+    const head = this.pending.keys().next().value;
+    this.watchdog =
+      head === undefined
+        ? undefined
+        : {
+            id: head,
+            cancel: this.setTimer(CALL_TIMEOUT_MS, () => {
+              this.onCallTimeout();
+            }),
+          };
+  }
+
+  /** Removes the pending entry, re-timing the watchdog when the head settled, then runs `fn`. */
   private settle(id: number, fn: (pending: Pending) => void): void {
     const pending = this.pending.get(id);
     if (pending !== undefined) {
-      pending.cancelTimer();
       this.pending.delete(id);
+      if (this.watchdog?.id === id) {
+        this.armWatchdog();
+      }
       fn(pending);
     }
   }
@@ -355,15 +380,18 @@ export class Channel {
       throw new WalletError("invalid-input", "request exceeds the size limit");
     }
     const result = await new Promise<unknown>((resolve, reject) => {
-      const cancelTimer = this.setTimer(CALL_TIMEOUT_MS, () => {
-        this.onCallTimeout();
-      });
-      this.pending.set(id, { method, resolve, reject, cancelTimer });
+      this.pending.set(id, { method, resolve, reject });
+      if (this.watchdog === undefined) {
+        // Pending went empty → non-empty: this request is the head the kernel works on next.
+        this.armWatchdog();
+      }
       try {
         port.post(message, transfer);
       } catch {
-        cancelTimer();
         this.pending.delete(id);
+        if (this.watchdog?.id === id) {
+          this.armWatchdog();
+        }
         reject(integrity("the kernel port refused the message"));
       }
     });

@@ -82,7 +82,7 @@ describe("vault meta vector", () => {
       setTimer: () => () => {},
       pbkdf2: subtlePbkdf2,
       store: createMemoryStore(),
-      policy: { idleMs: 0, maxSessionMs: 0, maxScryptLogN: 20 },
+      policy: { idleMs: 0, maxSessionMs: 0, maxScryptLogN: 20, activity: "presence" },
     };
     const factor: StoredFactor = {
       kind: "password",

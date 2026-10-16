@@ -98,6 +98,7 @@ describe("leak check", () => {
       await h.call("wallet.createWithPasskey", {
         credentialId: CREDENTIAL_ID,
         prfWallet: new Uint8Array(PRF_WALLET),
+        synced: true,
         factor: { kind: "passkey", credentialId: CREDENTIAL_ID, prf: new Uint8Array(PRF_VAULT) },
       }),
     );

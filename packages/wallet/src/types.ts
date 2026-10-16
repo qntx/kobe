@@ -23,7 +23,13 @@ export type WalletInfo = {
   readonly walletId: string;
   readonly origin: "passkey" | "mnemonic";
   readonly words: 12 | 15 | 18 | 21 | 24;
-  readonly backedUp: boolean;
+  /**
+   * Mnemonic: the user holds the phrase (passed the writing-down quiz, imported it, or exported at
+   * least once). passkey: protected only by a synced passkey — still lost when the password manager
+   * or account is lost, so the UI should prompt to export. none: exists only on this device (a
+   * device-bound passkey).
+   */
+  readonly backup: "none" | "passkey" | "mnemonic";
   readonly createdAt: number;
 };
 

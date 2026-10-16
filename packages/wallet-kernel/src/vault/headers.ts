@@ -16,7 +16,8 @@ export type EntropyHeader = {
   readonly walletId: string; // 16 lowercase hex
   readonly origin: "passkey" | "mnemonic";
   readonly words: 12 | 15 | 18 | 21 | 24;
-  readonly backedUp: boolean;
+  /** How the entropy survives this device: nothing, a synced passkey, or a written-down mnemonic. */
+  readonly backup: "none" | "passkey" | "mnemonic";
   readonly createdAt: number; // non-negative safe integer
 };
 
@@ -66,7 +67,7 @@ export function encodeHeader(header: CoreHeader): string {
     walletId: header.walletId,
     origin: header.origin,
     words: header.words,
-    backedUp: header.backedUp,
+    backup: header.backup,
     createdAt: header.createdAt,
   });
 }
@@ -87,16 +88,16 @@ function asWords(value: unknown): 12 | 15 | 18 | 21 | 24 {
 
 export function parseEntropyHeader(text: string): EntropyHeader {
   const object = headerObject(text);
-  expectKeys(object, ["walletId", "origin", "words", "backedUp", "createdAt"]);
-  const { backedUp } = object;
-  if (typeof backedUp !== "boolean") {
+  expectKeys(object, ["walletId", "origin", "words", "backup", "createdAt"]);
+  const { backup } = object;
+  if (backup !== "none" && backup !== "passkey" && backup !== "mnemonic") {
     throw headerFailure();
   }
   return {
     walletId: asWalletId(object["walletId"]),
     origin: asEntropyOrigin(object["origin"]),
     words: asWords(object["words"]),
-    backedUp,
+    backup,
     createdAt: asCreatedAt(object["createdAt"]),
   };
 }
