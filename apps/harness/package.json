@@ -23,5 +23,8 @@
     "babel-preset-expo": "57.0.13",
     "nitrogen": "0.37.1",
     "typescript": "5.9.3"
+  },
+  "patchedDependencies": {
+    "react-native-nitro-modules@0.37.1": "patches/react-native-nitro-modules@0.37.1.patch"
   }
 }

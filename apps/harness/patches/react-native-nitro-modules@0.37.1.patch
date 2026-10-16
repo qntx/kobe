@@ -1,0 +1,234 @@
+diff --git a/node_modules/react-native-nitro-modules/.bun-tag-514dcf9de8fced12 b/.bun-tag-514dcf9de8fced12
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/cpp/jsi/JSICache.cpp b/cpp/jsi/JSICache.cpp
+index 45739e3e8f084a2e5fb2dcc05801095a85bb5567..ea6792f2328a12daea0d63ba85955a5cf058aaf3 100644
+--- a/cpp/jsi/JSICache.cpp
++++ b/cpp/jsi/JSICache.cpp
+@@ -9,6 +9,7 @@
+ #include "CommonGlobals.hpp"
+ #include "JSIHelpers.hpp"
+ #include "NitroDefines.hpp"
++#include "../utils/RuntimeCacheMutex.hpp"
+ 
+ namespace margelo::nitro {
+ 
+@@ -36,6 +37,7 @@ JSICache::~JSICache() {
+ }
+ 
+ JSICacheReference JSICache::getOrCreateCache(jsi::Runtime& runtime) {
++  std::lock_guard<std::recursive_mutex> lock(runtimeCacheMutex());
+   auto found = _globalCache.find(&runtime);
+   if (found != _globalCache.end()) [[likely]] {
+     // Fast path: get weak_ptr to JSICache from our global list.
+diff --git a/cpp/prototype/HybridObjectPrototype.cpp b/cpp/prototype/HybridObjectPrototype.cpp
+index 62ab82a6a9797d374409565fae8834f11cd88bcc..9c0ba5a3d991d66a4de13cd7f1d1a221f213f36a 100644
+--- a/cpp/prototype/HybridObjectPrototype.cpp
++++ b/cpp/prototype/HybridObjectPrototype.cpp
+@@ -10,12 +10,14 @@
+ #include "NitroDefines.hpp"
+ #include "NitroLogger.hpp"
+ #include "NitroTypeInfo.hpp"
++#include "../utils/RuntimeCacheMutex.hpp"
+ 
+ namespace margelo::nitro {
+ 
+ std::unordered_map<jsi::Runtime*, HybridObjectPrototype::PrototypeCache> HybridObjectPrototype::_prototypeCache;
+ 
+ jsi::Value HybridObjectPrototype::createPrototype(jsi::Runtime& runtime, const std::shared_ptr<Prototype>& prototype) {
++  std::lock_guard<std::recursive_mutex> lock(runtimeCacheMutex());
+   // 0. Check if we're at the highest level of our prototype chain
+   if (prototype == nullptr) {
+     // There is no prototype - we just have an empty Object base - so `Object.create({})`
+diff --git a/cpp/prototype/Prototype.hpp b/cpp/prototype/Prototype.hpp
+index 4bc81f6ff6378a670941f16f9fedd279ed58d691..abce4c32b49313abb44cfc94198340be2638c616 100644
+--- a/cpp/prototype/Prototype.hpp
++++ b/cpp/prototype/Prototype.hpp
+@@ -8,6 +8,7 @@
+ #pragma once
+ 
+ #include "HybridFunction.hpp"
++#include "RuntimeCacheMutex.hpp"
+ #include <memory>
+ #include <string>
+ #include <typeindex>
+@@ -59,6 +60,7 @@ public:
+    */
+   static std::shared_ptr<Prototype> get(const NativeInstanceId& typeId, const std::shared_ptr<Prototype>& base = nullptr) {
+     static std::unordered_map<NativeInstanceId, std::shared_ptr<Prototype>> _prototypesCache;
++    std::lock_guard<std::recursive_mutex> lock(runtimeCacheMutex());
+ 
+     auto [it, inserted] = _prototypesCache.try_emplace(typeId);
+     if (inserted) {
+diff --git a/cpp/registry/HybridObjectRegistry.cpp b/cpp/registry/HybridObjectRegistry.cpp
+index 1002ae0b98e478067efde13900a6f795aa0bc29d..657161e1452254eb9483bc9c3710b48ffaee995d 100644
+--- a/cpp/registry/HybridObjectRegistry.cpp
++++ b/cpp/registry/HybridObjectRegistry.cpp
+@@ -8,6 +8,7 @@
+ #include "HybridObjectRegistry.hpp"
+ #include "NitroDefines.hpp"
+ #include "NitroLogger.hpp"
++#include "../utils/RuntimeCacheMutex.hpp"
+ #include <numeric>
+ 
+ namespace margelo::nitro {
+@@ -18,10 +19,12 @@ std::unordered_map<std::string, HybridObjectRegistry::HybridObjectConstructorFn>
+ }
+ 
+ bool HybridObjectRegistry::hasHybridObject(const std::string& name) {
++  std::lock_guard<std::recursive_mutex> lock(runtimeCacheMutex());
+   return getRegistry().contains(name);
+ }
+ 
+ std::vector<std::string> HybridObjectRegistry::getAllHybridObjectNames() {
++  std::lock_guard<std::recursive_mutex> lock(runtimeCacheMutex());
+   std::vector<std::string> keys;
+   keys.reserve(getRegistry().size());
+   for (const auto& entry : getRegistry()) {
+@@ -39,6 +42,7 @@ std::string HybridObjectRegistry::getAllRegisteredHybridObjectNamesToString() {
+ }
+ 
+ void HybridObjectRegistry::registerHybridObjectConstructor(const std::string& hybridObjectName, HybridObjectConstructorFn&& constructorFn) {
++  std::lock_guard<std::recursive_mutex> lock(runtimeCacheMutex());
+   Logger::log(LogLevel::Info, TAG, "Registering HybridObject \"%s\"...", hybridObjectName.c_str());
+   auto& map = HybridObjectRegistry::getRegistry();
+ #ifdef NITRO_DEBUG
+@@ -60,12 +64,14 @@ void HybridObjectRegistry::registerHybridObjectConstructor(const std::string& hy
+ }
+ 
+ void HybridObjectRegistry::unregisterHybridObjectConstructor(const std::string& hybridObjectName) {
++  std::lock_guard<std::recursive_mutex> lock(runtimeCacheMutex());
+   Logger::log(LogLevel::Info, TAG, "Unregistering HybridObject \"%s\"...", hybridObjectName.c_str());
+   auto& map = HybridObjectRegistry::getRegistry();
+   map.erase(hybridObjectName);
+ }
+ 
+ std::shared_ptr<HybridObject> HybridObjectRegistry::createHybridObject(const std::string& hybridObjectName) {
++  std::lock_guard<std::recursive_mutex> lock(runtimeCacheMutex());
+   auto& map = HybridObjectRegistry::getRegistry();
+   auto fn = map.find(hybridObjectName);
+   if (fn == map.end()) [[unlikely]] {
+diff --git a/cpp/threading/Dispatcher.cpp b/cpp/threading/Dispatcher.cpp
+index 84fc2bb33c40dadd77c030d74c45883c47840247..caf002f72da0c1059d7eecdfda35dd555a4f7807 100644
+--- a/cpp/threading/Dispatcher.cpp
++++ b/cpp/threading/Dispatcher.cpp
+@@ -11,6 +11,7 @@
+ #include "JSIHelpers.hpp"
+ #include "NitroDefines.hpp"
+ #include "NitroLogger.hpp"
++#include "RuntimeCacheMutex.hpp"
+ 
+ namespace margelo::nitro {
+ 
+@@ -26,6 +27,7 @@ void Dispatcher::installRuntimeGlobalDispatcher(jsi::Runtime& runtime, std::shar
+   Logger::log(LogLevel::Info, TAG, "Installing global Dispatcher Holder into Runtime \"%s\"...", getRuntimeId(runtime).c_str());
+ 
+   // Store a weak reference in global cache
++  std::lock_guard<std::recursive_mutex> lock(runtimeCacheMutex());
+   _globalCache[&runtime] = dispatcher;
+ 
+   // Inject the dispatcher into Runtime global (runtime will hold a strong reference)
+@@ -34,6 +36,7 @@ void Dispatcher::installRuntimeGlobalDispatcher(jsi::Runtime& runtime, std::shar
+ }
+ 
+ std::shared_ptr<Dispatcher> Dispatcher::getRuntimeGlobalDispatcher(jsi::Runtime& runtime) {
++  std::lock_guard<std::recursive_mutex> lock(runtimeCacheMutex());
+   auto found = _globalCache.find(&runtime);
+   if (found != _globalCache.end()) [[likely]] {
+     // the runtime is known - we have something in cache
+diff --git a/cpp/utils/CommonGlobals.cpp b/cpp/utils/CommonGlobals.cpp
+index 126fe49becd059e4e3986ffbbed01c00dd8c40a0..59afdf5496d1400b1c1028306bb71549c1a92375 100644
+--- a/cpp/utils/CommonGlobals.cpp
++++ b/cpp/utils/CommonGlobals.cpp
+@@ -10,6 +10,7 @@
+ #include "JSIHelpers.hpp"
+ #include "NitroDefines.hpp"
+ #include "PropNameIDCache.hpp"
++#include "RuntimeCacheMutex.hpp"
+ 
+ #if __has_include(<cxxreact/ReactNativeVersion.h>)
+ #include <cxxreact/ReactNativeVersion.h>
+@@ -187,6 +188,7 @@ const jsi::PropNameID& CommonGlobals::getKnownGlobalPropertyName(jsi::Runtime& r
+ 
+ const jsi::Function& CommonGlobals::getGlobalFunction(jsi::Runtime& runtime, const char* key,
+                                                       std::function<jsi::Function(jsi::Runtime&)> getFunction) {
++  std::lock_guard<std::recursive_mutex> lock(runtimeCacheMutex());
+   // Let's try to find the function in cache
+   FunctionCache& functionCache = _cache[&runtime];
+   std::string stringKey = key;
+diff --git a/cpp/utils/NitroTypeInfo.cpp b/cpp/utils/NitroTypeInfo.cpp
+index 85c711a31fd816129a9e25e898abbe8cd4b5d553..178f6bf0474e14f67a04025d8a27d4fc3730a798 100644
+--- a/cpp/utils/NitroTypeInfo.cpp
++++ b/cpp/utils/NitroTypeInfo.cpp
+@@ -6,6 +6,7 @@
+ //
+ 
+ #include "NitroTypeInfo.hpp"
++#include "RuntimeCacheMutex.hpp"
+ 
+ #if __has_include(<cxxabi.h>)
+ #include <cxxabi.h>
+@@ -24,6 +25,7 @@ std::string TypeInfo::getCurrentExceptionName() {
+ 
+ std::string TypeInfo::replaceRegex(const std::string& original, const std::string& pattern, const std::string& replacement) {
+   static std::unordered_map<std::string, std::regex> cache;
++  std::lock_guard<std::recursive_mutex> lock(runtimeCacheMutex());
+ 
+   auto found = cache.find(pattern);
+   if (found != cache.end()) {
+diff --git a/cpp/utils/PropNameIDCache.cpp b/cpp/utils/PropNameIDCache.cpp
+index e238bd7e5ad8039a418371685c0646a97c3aa389..8d799eab71224677e9a6beb83fde729d901e1fa4 100644
+--- a/cpp/utils/PropNameIDCache.cpp
++++ b/cpp/utils/PropNameIDCache.cpp
+@@ -7,6 +7,7 @@
+ 
+ #include "PropNameIDCache.hpp"
+ #include "JSICache.hpp"
++#include "RuntimeCacheMutex.hpp"
+ 
+ namespace margelo::nitro {
+ 
+@@ -15,6 +16,7 @@ using namespace facebook;
+ std::unordered_map<jsi::Runtime*, PropNameIDCache::CacheMap> PropNameIDCache::_cache;
+ 
+ const jsi::PropNameID& PropNameIDCache::get(jsi::Runtime& runtime, const std::string& value) {
++  std::lock_guard<std::recursive_mutex> lock(runtimeCacheMutex());
+   CacheMap& cache = _cache[&runtime];
+   const auto& cachedName = cache.find(value);
+   if (cachedName != cache.end()) {
+diff --git a/node_modules/react-native-nitro-modules/cpp/utils/RuntimeCacheMutex.hpp b/cpp/utils/RuntimeCacheMutex.hpp
+new file mode 100644
+index 0000000000000000000000000000000000000000..849cebe5013e1fb425af59cc3169770790935fc2
+--- /dev/null
++++ b/cpp/utils/RuntimeCacheMutex.hpp
+@@ -0,0 +1,30 @@
++//
++//  RuntimeCacheMutex.hpp
++//  NitroModules
++//
++//  Local patch, pending an upstream fix in mrousavy/nitro (not filed yet):
++//  Nitro's process-wide caches — PropNameIDCache::_cache,
++//  HybridObjectPrototype::_prototypeCache, JSICache::_globalCache,
++//  CommonGlobals::_cache, Prototype::_prototypesCache, NitroTypeInfo's regex
++//  cache, HybridObjectRegistry's constructor map (all accessors) and
++//  Dispatcher::_globalCache —
++//  are unsynchronized, so touching them from a second jsi::Runtime on another
++//  thread races with the main runtime and corrupts the unordered_maps
++//  (observed: SIGSEGV inside unordered_map::emplace during nitro::install).
++//  One recursive mutex covers all of them: they call into each other
++//  (createPrototype → JSICache::getOrCreateCache → PropNameIDCache::get)
++//  while holding it.
++//
++
++#pragma once
++
++#include <mutex>
++
++namespace margelo::nitro {
++
++inline std::recursive_mutex& runtimeCacheMutex() {
++  static std::recursive_mutex mutex;
++  return mutex;
++}
++
++} // namespace margelo::nitro
