@@ -11,6 +11,7 @@
  * Helpers without a top-level effect (share.ts) and type-only files (*.d.ts) are inputs, not
  * probes: probe files are every other *.ts under probes/.
  */
+import { createHash } from "node:crypto";
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
@@ -61,6 +62,50 @@ const hermesc = (() => {
     process.platform === "win32" ? "hermesc.exe" : "hermesc",
   );
   return binary;
+})();
+
+// Provenance for V1_RESULT lines: commit/dirty from git, Nitro version from the installed
+// package, the sha256 of the local bun patch, and the hermes-compiler version + `hermesc
+// -version` banner.
+const run = (cmd: string[]): string => {
+  const proc = Bun.spawnSync(cmd, { stdout: "pipe", stderr: "pipe" });
+  if (proc.exitCode !== 0) {
+    throw new Error(`${cmd.join(" ")} failed (${proc.exitCode}): ${proc.stderr.toString()}`);
+  }
+  return proc.stdout.toString().trim();
+};
+
+const packageVersion = (require: NodeJS.Require, name: string): string => {
+  const parsed: unknown = JSON.parse(readFileSync(require.resolve(`${name}/package.json`), "utf8"));
+  if (
+    typeof parsed === "object" &&
+    parsed !== null &&
+    "version" in parsed &&
+    typeof parsed.version === "string"
+  ) {
+    return parsed.version;
+  }
+  throw new Error(`${name}/package.json carries no version`);
+};
+
+const provenance = (() => {
+  const require = createRequire(resolve(harness, "package.json"));
+  const nitroVersion = packageVersion(require, "react-native-nitro-modules");
+  const hermescVersion = packageVersion(require, "hermes-compiler");
+  const hermescBanner =
+    run([hermesc, "-version"])
+      .split("\n")
+      .map((line) => line.trim())
+      .find((line) => line.startsWith("Hermes")) ?? "unknown";
+  const patchPath = resolve(harness, `patches/react-native-nitro-modules@${nitroVersion}.patch`);
+  const nitroPatchSha256 = createHash("sha256").update(readFileSync(patchPath)).digest("hex");
+  return {
+    commit: run(["git", "-C", root, "rev-parse", "HEAD"]),
+    dirty: run(["git", "-C", root, "status", "--porcelain"]).length > 0,
+    nitroVersion,
+    nitroPatchSha256,
+    hermesc: `${hermescVersion} (${hermescBanner})`,
+  };
 })();
 
 const probeFiles = readdirSync(probesDir)
@@ -145,6 +190,13 @@ async function main(): Promise<number> {
     "  const uint8_t* bytecode;",
     "  size_t bytecodeSize;",
     "};",
+    "",
+    "// Provenance attached to every V1_RESULT line (HybridV1Probe.cpp).",
+    `inline constexpr char kCommit[] = "${provenance.commit}";`,
+    `inline constexpr bool kDirty = ${provenance.dirty ? "true" : "false"};`,
+    `inline constexpr char kNitroVersion[] = "${provenance.nitroVersion}";`,
+    `inline constexpr char kNitroPatchSha256[] = "${provenance.nitroPatchSha256}";`,
+    `inline constexpr char kHermesc[] = "${provenance.hermesc}";`,
     "",
   ];
   const workDir = resolve(tmpdir(), `qntx-harness-bundles-${process.pid}`);

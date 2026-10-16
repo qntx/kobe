@@ -8,5 +8,17 @@ const probe = NitroModules.createHybridObject<V1Probe>("V1Probe");
 export const runProbe = (probeName: string, mode: string): Promise<string> =>
   probe.run(probeName, mode);
 
-/** Print `V1_RESULT <line>` on the native probe channel (stderr / logcat V1Probe). */
-export const emitResultLine = (line: string): void => probe.emit(line);
+/** Start a long-lived kernel running `probe`; resolves on its first post (ready). */
+export const openKernel = (probeName: string, mode: string): Promise<void> =>
+  probe.openKernel(probeName, mode);
+
+/** Post to the open kernel; resolves with the kernel's next post. Serialized FIFO. */
+export const sendToKernel = (message: ArrayBuffer): Promise<ArrayBuffer> =>
+  probe.send(message);
+
+/** Destroy the open kernel. Idempotent. */
+export const closeKernel = (): void => probe.closeKernel();
+
+/** Print `V1_RESULT {probe, mode, ok, result|error, provenance}` on the native probe channel. */
+export const report = (probeName: string, mode: string, ok: boolean, payload: string): void =>
+  probe.report(probeName, mode, ok, payload);

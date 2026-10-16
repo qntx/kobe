@@ -14,7 +14,6 @@ const config = (): ExpoConfig => ({
   android: {
     package: "org.qntx.wallet.harness",
   },
-  jsEngine: "hermes",
 });
 
 export default config;

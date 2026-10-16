@@ -28,11 +28,11 @@ const asBuffer = (view: Uint8Array): ArrayBuffer =>
 
 const median = (xs: number[]): number => {
   const s = [...xs].sort((a, b) => a - b);
-  return s.length === 0 ? 0 : s[Math.floor((s.length - 1) / 2)];
+  return s.length === 0 ? 0 : (s[Math.floor((s.length - 1) / 2)] ?? 0);
 };
 const p95 = (xs: number[]): number => {
   const s = [...xs].sort((a, b) => a - b);
-  return s.length === 0 ? 0 : s[Math.min(s.length - 1, Math.ceil(0.95 * s.length) - 1)];
+  return s.length === 0 ? 0 : (s[Math.min(s.length - 1, Math.ceil(0.95 * s.length) - 1)] ?? 0);
 };
 
 async function main(): Promise<void> {
@@ -71,11 +71,14 @@ async function main(): Promise<void> {
   for (let i = 0; i < ACCURACY_ITERATIONS; i++) {
     const auxRand = __qntx.random(32);
 
-    unsigned.content = `v1 nitro probe ${i}`;
-    unsigned.created_at = 1_700_000_000 + i;
-    const serialized = utf8ToBytes(serializeEvent(unsigned));
+    const draft: UnsignedEvent = {
+      ...unsigned,
+      content: `v1 nitro probe ${i}`,
+      created_at: 1_700_000_000 + i,
+    };
+    const serialized = utf8ToBytes(serializeEvent(draft));
     const id = sha256(serialized);
-    if (bytesToHex(id) !== getEventHash(unsigned)) {
+    if (bytesToHex(id) !== getEventHash(draft)) {
       throw new Error("sha256(serialized) != getEventHash");
     }
 
@@ -100,7 +103,7 @@ async function main(): Promise<void> {
     if (!okNative) verifyFailures += 1;
 
     if (i % 10 === 0) {
-      const event = { ...unsigned, id: bytesToHex(id), sig: bytesToHex(nativeSig) } as Event;
+      const event = { ...draft, id: bytesToHex(id), sig: bytesToHex(nativeSig) } as Event;
       const t5 = __qntx.now();
       const okJs = verifyEvent(event);
       verifyJsMs.push(__qntx.now() - t5);

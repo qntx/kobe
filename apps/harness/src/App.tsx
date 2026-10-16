@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { NitroModules } from "react-native-nitro-modules";
+import type { HybridObject } from "react-native-nitro-modules";
 
-import { emitResultLine, runProbe } from "@qntx/v1-probe";
+import { closeKernel, openKernel, report, runProbe, sendToKernel } from "@qntx/v1-probe";
 
 type ProbeResult = {
   probe: string;
@@ -26,12 +27,14 @@ const PROBES: ReadonlyArray<readonly [string, string]> = [
   ["hardened", "source"],
   ["kernel", "source"],
   ["kernel", "bytecode"],
+  ["kernel-hardened", "source"],
+  ["kernel-hardened", "bytecode"],
 ];
 
-type MainNostr = {
+interface MainNostr extends HybridObject<{ ios: "c++"; android: "c++" }> {
   readonly publicKey: (secretKey: ArrayBuffer) => ArrayBuffer;
   readonly sign: (id: ArrayBuffer, secretKey: ArrayBuffer, auxRand: ArrayBuffer) => ArrayBuffer;
-};
+}
 
 // Hammers the main runtime's own NostrNative while the kernel-side nitro probe loops on its
 // thread; yields between batches so other JS work (churn runs) interleaves. Runs until
@@ -81,55 +84,160 @@ const churnKernels = async (mode: string, done: () => boolean): Promise<Record<s
   return { churnCycles: cycles, churnErrors: errors };
 };
 
-// Emits one extra V1_RESULT line that merges the kernel-side nitro result with main-runtime
-// hammer and create/destroy churn stats. The hammer and churn run until the kernel nitro
-// probe resolves, so the kernel's stress window overlaps real Nitro traffic from this runtime.
+// Emits one V1_RESULT line via report() that merges the kernel-side nitro result with
+// main-runtime hammer and create/destroy churn stats. The hammer and churn run until the
+// kernel nitro probe resolves, so the kernel's stress window overlaps real Nitro traffic
+// from this runtime.
 const runNitroStress = async (mode: string): Promise<ProbeResult> => {
-  const trace = (step: string): void => {
-    emitResultLine(JSON.stringify({ probe: "nitro-stress-trace", mode, step }));
-  };
-  trace("start");
   let kernelDone = false;
   const kernel = runProbe("nitro", mode)
     .then((json) => ({ ok: true as const, json }))
     .catch((e) => ({ ok: false as const, json: String(e) }))
     .finally(() => {
       kernelDone = true;
-      trace("kernel-settled");
     });
   const [kernelResult, hammer, churn] = await Promise.all([
-    kernel.then((r) => (trace("kernel-await"), r)),
+    kernel,
     mainRuntimeHammer(() => kernelDone).then(
-      (r) => (trace("hammer-done"), r),
-      (e) => (trace(`hammer-error:${String(e)}`), { mainRuntimeSignCalls: -1, mainRuntimeSignErrors: -1 }),
+      (r) => r,
+      () => ({ mainRuntimeSignCalls: -1, mainRuntimeSignErrors: -1 }),
     ),
     churnKernels(mode, () => kernelDone).then(
-      (r) => (trace("churn-done"), r),
-      (e) => (trace(`churn-error:${String(e)}`), { churnCycles: -1, churnErrors: -1 }),
+      (r) => r,
+      () => ({ churnCycles: -1, churnErrors: -1 }),
     ),
   ]);
-  trace("all-resolved");
-  const merged = JSON.stringify({
-    probe: "nitro-stress",
-    mode,
-    ok: kernelResult.ok,
+  const payload = JSON.stringify({
     kernel: kernelResult.json,
     ...hammer,
     ...churn,
   });
-  try {
-    emitResultLine(merged);
-  } catch (e) {
-    emitResultLine(
-      JSON.stringify({ probe: "nitro-stress", mode, ok: false, error: `emit failed: ${String(e)}` }),
-    );
-  }
+  report("nitro-stress", mode, kernelResult.ok, kernelResult.ok ? payload : String(kernelResult.json));
   return {
     probe: "nitro-stress",
     mode,
     ok: kernelResult.ok,
     summary: `${hammer.mainRuntimeSignCalls} main calls, ${churn.churnCycles} churn cycles`,
   };
+};
+
+const percentile = (values: number[], p: number): number => {
+  if (values.length === 0) {
+    return 0;
+  }
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1)] ?? 0;
+};
+
+type Stats = {
+  n: number;
+  p50: number;
+  p95: number;
+  min: number;
+  max: number;
+};
+
+const stats = (values: number[]): Stats => ({
+  n: values.length,
+  p50: percentile(values, 50),
+  p95: percentile(values, 95),
+  min: values.length === 0 ? 0 : Math.min(...values),
+  max: values.length === 0 ? 0 : Math.max(...values),
+});
+
+// Samples main-thread event-loop lag (actual − expected) with a self-rescheduling
+// setTimeout(16) chain until `done()` reports the work finished.
+const sampleLag = async (done: () => boolean): Promise<number[]> => {
+  const lags: number[] = [];
+  let expected = performance.now() + 16;
+  while (!done()) {
+    await new Promise((resolve) => setTimeout(resolve, 16));
+    const now = performance.now();
+    lags.push(now - expected);
+    expected = now + 16;
+  }
+  return lags;
+};
+
+const sampleLagFor = async (ms: number): Promise<number[]> => {
+  const end = performance.now() + ms;
+  return sampleLag(() => performance.now() >= end);
+};
+
+// Q5: JS-side round-trip timing over openKernel/send (includes the JSI call and the
+// CallInvoker hop back) at 1 KiB and 64 KiB, plus main-thread lag while the kernel
+// runs a 600k PBKDF2 and a 2 s busy loop vs a 3 s idle baseline.
+const runQ5 = async (mode: string): Promise<ProbeResult> => {
+  const encoder = new TextEncoder();
+  try {
+    await openKernel("echo", mode);
+    const roundTrips = async (size: number): Promise<Stats> => {
+      const message = new Uint8Array(size);
+      for (let i = 0; i < size; i++) {
+        message[i] = i & 0xff;
+      }
+      const samples: number[] = [];
+      for (let i = 0; i < 200; i++) {
+        const t0 = performance.now();
+        const reply = await sendToKernel(message.buffer as ArrayBuffer);
+        samples.push(performance.now() - t0);
+        if (reply.byteLength !== size) {
+          throw new Error(`echo returned ${reply.byteLength} bytes for a ${size}-byte message`);
+        }
+      }
+      return stats(samples);
+    };
+    const rtt1KiB = await roundTrips(1024);
+    const rtt64KiB = await roundTrips(64 * 1024);
+
+    const lagIdle = stats(await sampleLagFor(3000));
+
+    closeKernel();
+    await openKernel("busy", mode);
+    const lagDuring = async (work: "kdf" | "spin"): Promise<Stats> => {
+      let finished = false;
+      let failure: unknown;
+      const workDone = sendToKernel(encoder.encode(work).buffer as ArrayBuffer).then(
+        () => {
+          finished = true;
+        },
+        (e: unknown) => {
+          finished = true;
+          failure = e;
+        },
+      );
+      const lags = await sampleLag(() => finished);
+      await workDone;
+      if (failure !== undefined) {
+        throw failure instanceof Error ? failure : new Error(String(failure));
+      }
+      return stats(lags);
+    };
+    const lagKdf = await lagDuring("kdf");
+    const lagSpin = await lagDuring("spin");
+    closeKernel();
+
+    const payload = JSON.stringify({
+      rtt1KiB,
+      rtt64KiB,
+      lagIdleMs: { p50: lagIdle.p50, p95: lagIdle.p95, max: lagIdle.max },
+      lagKdfMs: { p50: lagKdf.p50, p95: lagKdf.p95, max: lagKdf.max },
+      lagSpinMs: { p50: lagSpin.p50, p95: lagSpin.p95, max: lagSpin.max },
+    });
+    report("q5", mode, true, payload);
+    return {
+      probe: "q5",
+      mode,
+      ok: true,
+      summary: `rtt1KiB p50 ${rtt1KiB.p50.toFixed(2)}ms, lag spin p95 ${lagSpin.p95.toFixed(1)}ms`,
+    };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    report("q5", mode, false, message);
+    return { probe: "q5", mode, ok: false, summary: message };
+  } finally {
+    closeKernel();
+  }
 };
 
 const summarize = (json: string): string => {
@@ -152,7 +260,7 @@ export const App = (): React.JSX.Element => {
   useEffect(() => {
     let cancelled = false;
     const run = async (): Promise<void> => {
-      emitResultLine(JSON.stringify({ probe: "emit-selftest", mode: "source", ok: true }));
+      report("selftest", "source", true, "{}");
       for (const [probe, mode] of PROBES) {
         if (cancelled) {
           return;
@@ -169,6 +277,16 @@ export const App = (): React.JSX.Element => {
           setResults((prev) => [...prev, entry]);
         }
       }
+      for (const mode of ["source", "bytecode"]) {
+        if (cancelled) {
+          return;
+        }
+        setRunning(`q5:${mode}`);
+        const entry = await runQ5(mode);
+        if (!cancelled) {
+          setResults((prev) => [...prev, entry]);
+        }
+      }
       if (!cancelled) {
         setRunning("nitro-stress");
         const entry = await runNitroStress("source");
@@ -180,12 +298,11 @@ export const App = (): React.JSX.Element => {
       }
     };
     run().catch((e: unknown) => {
-      emitResultLine(
-        JSON.stringify({ probe: "run-failed", mode: "source", ok: false, error: String(e) }),
-      );
+      report("run-failed", "source", false, e instanceof Error ? e.message : String(e));
     });
     return () => {
       cancelled = true;
+      closeKernel();
     };
   }, []);
 

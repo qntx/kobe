@@ -17,6 +17,7 @@
 
 #include <string>
 #include <NitroModules/Promise.hpp>
+#include <NitroModules/ArrayBuffer.hpp>
 
 namespace margelo::nitro::v1probe {
 
@@ -50,7 +51,10 @@ namespace margelo::nitro::v1probe {
     public:
       // Methods
       virtual std::shared_ptr<Promise<std::string>> run(const std::string& probe, const std::string& mode) = 0;
-      virtual void emit(const std::string& line) = 0;
+      virtual std::shared_ptr<Promise<void>> openKernel(const std::string& probe, const std::string& mode) = 0;
+      virtual std::shared_ptr<Promise<std::shared_ptr<ArrayBuffer>>> send(const std::shared_ptr<ArrayBuffer>& message) = 0;
+      virtual void closeKernel() = 0;
+      virtual void report(const std::string& probe, const std::string& mode, bool ok, const std::string& payload) = 0;
 
     protected:
       // Hybrid Setup
