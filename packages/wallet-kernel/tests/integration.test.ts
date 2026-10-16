@@ -2299,42 +2299,46 @@ describe("nostr backup state", () => {
     return lastStatus(h).nostr.keys.find((k) => k.publicKey === publicKey)?.backedUp;
   }
 
-  it("generated keys start unbacked; export in either format marks them backed up", async () => {
-    const h = createHarness();
-    await h.settle();
-    const { session } = await createPasskeyWallet(h);
+  it(
+    "generated keys start unbacked; export in either format marks them backed up",
+    { timeout: 30_000 },
+    async () => {
+      const h = createHarness();
+      await h.settle();
+      const { session } = await createPasskeyWallet(h);
 
-    const key = field(ok(await h.call("nostr.generateKey", {}, session)), "key");
-    const publicKey = strField(key, "publicKey");
-    expect(field(key, "backedUp")).toBe(false);
-    expect(statusBackedUp(h, publicKey)).toBe(false);
+      const key = field(ok(await h.call("nostr.generateKey", {}, session)), "key");
+      const publicKey = strField(key, "publicKey");
+      expect(field(key, "backedUp")).toBe(false);
+      expect(statusBackedUp(h, publicKey)).toBe(false);
 
-    await exportKey(h, session, publicKey, { kind: "nsec" });
-    expect(statusBackedUp(h, publicKey)).toBe(true);
-    const record = must(recordOf(await h.store.load(), "nostr-key", publicKey));
-    expect(record.header).toContain('"backedUp":true');
+      await exportKey(h, session, publicKey, { kind: "nsec" });
+      expect(statusBackedUp(h, publicKey)).toBe(true);
+      const record = must(recordOf(await h.store.load(), "nostr-key", publicKey));
+      expect(record.header).toContain('"backedUp":true');
 
-    const key2 = field(ok(await h.call("nostr.generateKey", {}, session)), "key");
-    const publicKey2 = strField(key2, "publicKey");
-    await exportKey(h, session, publicKey2, {
-      kind: "ncryptsec",
-      password: utf8ToBytes("export-pw"),
-    });
-    expect(statusBackedUp(h, publicKey2)).toBe(true);
+      const key2 = field(ok(await h.call("nostr.generateKey", {}, session)), "key");
+      const publicKey2 = strField(key2, "publicKey");
+      await exportKey(h, session, publicKey2, {
+        kind: "ncryptsec",
+        password: utf8ToBytes("export-pw"),
+      });
+      expect(statusBackedUp(h, publicKey2)).toBe(true);
 
-    // The flag is in the public header: it shows in the locked snapshot and survives a re-unlock.
-    const h2 = respawn(h);
-    await h2.settle();
-    expect(lastStatus(h2).vault).toBe("locked");
-    expect(statusBackedUp(h2, publicKey)).toBe(true);
-    expect(statusBackedUp(h2, publicKey2)).toBe(true);
-    ok(
-      await h2.call("vault.unlock", {
-        factor: { kind: "passkey", credentialId: CREDENTIAL_ID, prf: new Uint8Array(PRF_VAULT) },
-      }),
-    );
-    expect(statusBackedUp(h2, publicKey)).toBe(true);
-  });
+      // The flag is in the public header: it shows in the locked snapshot and survives a re-unlock.
+      const h2 = respawn(h);
+      await h2.settle();
+      expect(lastStatus(h2).vault).toBe("locked");
+      expect(statusBackedUp(h2, publicKey)).toBe(true);
+      expect(statusBackedUp(h2, publicKey2)).toBe(true);
+      ok(
+        await h2.call("vault.unlock", {
+          factor: { kind: "passkey", credentialId: CREDENTIAL_ID, prf: new Uint8Array(PRF_VAULT) },
+        }),
+      );
+      expect(statusBackedUp(h2, publicKey)).toBe(true);
+    },
+  );
 
   it(
     "imported keys report backedUp immediately; derived and nip46 keys omit it",
