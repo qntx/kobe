@@ -1,0 +1,38 @@
+{
+  "name": "kobe-vectors",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "bun run generate.ts"
+  },
+  "dependencies": {
+    "@aptos-labs/ts-sdk": "7.5.0",
+    "@bitauth/libauth": "3.0.0",
+    "@buildonspark/spark-sdk": "0.13.0",
+    "@cosmjs/amino": "0.39.0",
+    "@cosmjs/crypto": "0.39.0",
+    "@cosmjs/proto-signing": "0.39.0",
+    "@emurgo/cardano-serialization-lib-nodejs": "17.0.0",
+    "@glif/filecoin-address": "4.0.0",
+    "@mysten/sui": "2.35.0",
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0",
+    "@scure/base": "2.4.0",
+    "@scure/bip32": "2.4.0",
+    "@scure/bip39": "2.4.0",
+    "@scure/btc-signer": "2.4.1",
+    "@solana/web3.js": "1.99.0",
+    "@stellar/stellar-sdk": "17.2.1",
+    "@ton/core": "0.63.1",
+    "@ton/ton": "16.3.0",
+    "bs58": "6.0.0",
+    "casper-js-sdk": "5.1.1",
+    "micro-key-producer": "0.10.2",
+    "near-seed-phrase": "0.2.1",
+    "nostr-tools": "2.25.2",
+    "ripple-address-codec": "5.0.1",
+    "tronweb": "6.5.1",
+    "viem": "2.57.4",
+    "xrpl": "5.3.0"
+  }
+}

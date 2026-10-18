@@ -1,0 +1,190 @@
+{
+  "schema": 1,
+  "source": {
+    "kind": "reference",
+    "name": "doge",
+    "version": "@scure/bip32 2.4.0 + @scure/btc-signer 2.4.1 (DOGE params)"
+  },
+  "cases": [
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "standard",
+      "index": 0,
+      "path": "m/44'/3'/0'/0/0",
+      "address": "DBus3bamQjgJULBJtYXpEzDWQRwF5iwxgC",
+      "public_key": "02cc6b0dc33aabcf3a23643e5e2919a80c50fb3dd2129ce409bbc5f0d4643d05e0",
+      "private_key": "QPkeC1ZfHx3c9g7WTj9cQ8gnvk2iSAfAcbq1aVAWjNTwDAKfZUzx"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "standard",
+      "index": 1,
+      "path": "m/44'/3'/0'/0/1",
+      "address": "DAcDAtJRztxBHyA6D6h8du1HguyTR43Mas",
+      "public_key": "025a8ad8881f6facdc949c4a4d03257414153faea67e96acf57344660080610788",
+      "private_key": "QP3j5SpiwZk9k8z9kaV2S6gbrVkoPaWyfW1Wy4x1WUQoyTab9VfH"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "standard",
+      "index": 2,
+      "path": "m/44'/3'/0'/0/2",
+      "address": "D8K3KyDQ9FXeC3ADCuWW7cnWC7RvjHjV8H",
+      "public_key": "03fe19b65ecafe39cc63894f23991a97c0a7f416080cb85da583ed49c5c4cf14ba",
+      "private_key": "QSnP9ZrYTcs3iu5x2uft3mGsnFMMisgshuhAMxYLaES6cndEdopn"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "account",
+      "index": 0,
+      "path": "m/44'/3'/0'/0/0",
+      "address": "DBus3bamQjgJULBJtYXpEzDWQRwF5iwxgC",
+      "public_key": "02cc6b0dc33aabcf3a23643e5e2919a80c50fb3dd2129ce409bbc5f0d4643d05e0",
+      "private_key": "QPkeC1ZfHx3c9g7WTj9cQ8gnvk2iSAfAcbq1aVAWjNTwDAKfZUzx"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "account",
+      "index": 1,
+      "path": "m/44'/3'/1'/0/0",
+      "address": "DEiUcV7xvCRdpQmsW3i8T9EVsb7zeiUQRt",
+      "public_key": "031c2d0c31468c97dc9dbbc69f9905eba2b321c3b21b995463d578f905df5bc3c4",
+      "private_key": "QV7p1Y46bQD9i3CGGEkaREqxyqzQrHBFV7fQ4btt9Ykrm5vfkmKQ"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "account",
+      "index": 2,
+      "path": "m/44'/3'/2'/0/0",
+      "address": "D9NBWKR2NrcD71vm36AvG2Vx5DwCDXgLiz",
+      "public_key": "0335494e1ca737879ac8c4643033ee4a2b60af8d39fd091d3d3c34e03f93da3ecd",
+      "private_key": "QQEHCa1hxhfvKJp9szdzRA8eZCXxsgKX3shv8BqbK5uxvf7huFju"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "standard",
+      "index": 0,
+      "path": "m/44'/3'/0'/0/0",
+      "address": "DL1DoPj4HvpnRT9n3YfCkhHXe5287wMyWD",
+      "public_key": "029520547438895ca83df9b3db942b662bf437da6e74d4bec59487f8987cbc3804",
+      "private_key": "QSMmFVLHzpT2i4L8rUHZNZUyq2y9gLVbX2CtqTn3wqknJJwAJtRu"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "standard",
+      "index": 1,
+      "path": "m/44'/3'/0'/0/1",
+      "address": "D8gBwoJgm9erunjFqKyAckNno9gov2k1Wz",
+      "public_key": "039c79d8decdfd0f6f0c8c923b682238a560c651b57758a241935336e3979b205b",
+      "private_key": "QS6WS4oKu2gScCZTmtTpTEptMGbaN9q6mXcW9qzeiBM7rjXNRYou"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "standard",
+      "index": 2,
+      "path": "m/44'/3'/0'/0/2",
+      "address": "D7RmTBo3tcECkWjhSReP6Y5kSA8m1rAcib",
+      "public_key": "02ea271aeb109e945775eab75540594bdd64d745a90f8d36eef09174958b5c429b",
+      "private_key": "QTmPsQAWMztZjjqybvvdRCVDqRh9buy929vHyproWPEFL6pmEuqK"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "account",
+      "index": 0,
+      "path": "m/44'/3'/0'/0/0",
+      "address": "DL1DoPj4HvpnRT9n3YfCkhHXe5287wMyWD",
+      "public_key": "029520547438895ca83df9b3db942b662bf437da6e74d4bec59487f8987cbc3804",
+      "private_key": "QSMmFVLHzpT2i4L8rUHZNZUyq2y9gLVbX2CtqTn3wqknJJwAJtRu"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "account",
+      "index": 1,
+      "path": "m/44'/3'/1'/0/0",
+      "address": "D7o8sny63xx3yB2pGTnez7tFvWkP3qsnmX",
+      "public_key": "023383e345932152b0e0b01700e91aaa049d5c7d79cdc0edb2e8db598fabd5eb35",
+      "private_key": "QU7jki1ewk5m4tNx8nqEsU5t7fXncLcRXJX3cDJNUERoQL8ogL9o"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "account",
+      "index": 2,
+      "path": "m/44'/3'/2'/0/0",
+      "address": "DJan5kEM716MDuFi7NxTkqwdqFddFjubaQ",
+      "public_key": "03bfa2e64f100a210e4b77df6c8aeb522a9d35032f305c3bcb05a91df640b397a9",
+      "private_key": "QQsw9ptrJzyGPZ4ZCwCibsBhHQxKZxhdMPBTwf8QhQEPNwdNkCci"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "standard",
+      "index": 0,
+      "path": "m/44'/3'/0'/0/0",
+      "address": "DMn7J63QSZUR9XNxsUJtvsttZVzV9Am4qM",
+      "public_key": "029c8654f657a5a926900a33b75afc53af2cc6829fb2cc8c5c265b1878771937db",
+      "private_key": "QQkqETGtg4f7Fy47tM4TRfmnFaeqdaTVt3s69AR88VdJmvr3sVfF"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "standard",
+      "index": 1,
+      "path": "m/44'/3'/0'/0/1",
+      "address": "D8r3y9XmpJswSd3Sgk1ZQ2QfWaw41NSLt8",
+      "public_key": "035c5956690c49e12bfaa147aceb082352056050aa1a374a3733206835d52b72e0",
+      "private_key": "QSz4zyLsQ12kbGdmuEgG9FpvjEXpgRS5z3Fw5P2dkFSEbNRzYSkL"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "standard",
+      "index": 2,
+      "path": "m/44'/3'/0'/0/2",
+      "address": "DCHvGyMt8hd5diJugxHYJr1dF5phFnTUoc",
+      "public_key": "02b93dcdc38a308b9a5de6c6cd90c73cd899ff89c152d38d65045537af163bd3a4",
+      "private_key": "QPv3PaBNwczoY7PB6W2v5Bgea6P8NbYudD5Cp17KvhhsZSQUAYE2"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "account",
+      "index": 0,
+      "path": "m/44'/3'/0'/0/0",
+      "address": "DMn7J63QSZUR9XNxsUJtvsttZVzV9Am4qM",
+      "public_key": "029c8654f657a5a926900a33b75afc53af2cc6829fb2cc8c5c265b1878771937db",
+      "private_key": "QQkqETGtg4f7Fy47tM4TRfmnFaeqdaTVt3s69AR88VdJmvr3sVfF"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "account",
+      "index": 1,
+      "path": "m/44'/3'/1'/0/0",
+      "address": "DTeXz95Un9ZK3L4BpGXACXuTHhuZqjkUem",
+      "public_key": "0387221ae429c87f36c6985694b28dadda892dfb0e90557a475e0061fd75005433",
+      "private_key": "QQY9V4b37xozvAHnjqw7XzcpGKW7gEdwvVyEWsiy4UXkQThK6d5C"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "account",
+      "index": 2,
+      "path": "m/44'/3'/2'/0/0",
+      "address": "DC3m2SaqU7yLVDjEu141U2iX3DgugYM1uG",
+      "public_key": "03c05f0ebd64f3b33b810bddbfe023b7d6a3b1b8457e3868da40d6de1d1f6557e9",
+      "private_key": "QV7ZnVoCXJ9aruuaQfr2Q7geys4uGDc5AtMPFMJdsC5DcPekuiSQ"
+    }
+  ]
+}

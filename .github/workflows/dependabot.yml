@@ -1,0 +1,25 @@
+# Caller owns on:. Pin at @v2.
+# schedule / workflow_dispatch squash-merge green Dependabot PRs.
+# Daily cron 0 4 * * * (04:00 UTC).
+# Do not checkout the PR. Does not approve.
+name: Dependabot
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+  actions: read
+
+jobs:
+  merge:
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: read
+      actions: read
+    uses: qntx/workflows/.github/workflows/ops-dependabot.yml@v2

@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "source": {
+    "kind": "official",
+    "name": "BIP-0084 test vectors (P2WPKH, mainnet)",
+    "version": "https://github.com/bitcoin/bips/blob/master/bip-0084.mediawiki",
+    "note": "account xpub for m/84'/0'/0' = zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXNfE3EfH1r1ADqtfSdVCToUG868RvUUkgDKf31mGDtKsAYz2oz2AGutZYs"
+  },
+  "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+  "cases": [
+    {
+      "path": "m/84'/0'/0'/0/0",
+      "address": "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu"
+    },
+    {
+      "path": "m/84'/0'/0'/0/1",
+      "address": "bc1qnjg0jd8228aq7egyzacy8cys3knf9xvrerkf9g"
+    },
+    {
+      "path": "m/84'/0'/0'/1/0",
+      "address": "bc1q8c6fshw2dlwun7ekn9qwf37cu2rn755upcp6el"
+    }
+  ]
+}

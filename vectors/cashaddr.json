@@ -1,0 +1,202 @@
+{
+  "schema": 1,
+  "source": {
+    "kind": "official",
+    "name": "cashaddr spec test vectors (bitcoincash.org spec/cashaddr.md); version byte = type*8 + sizebits precomputed",
+    "version": "2020"
+  },
+  "cases": [
+    {
+      "prefix": "bitcoincash",
+      "version": 0,
+      "payload": "f5bf48b397dae70be82b3cca4793f8eb2b6cdac9",
+      "address": "bitcoincash:qr6m7j9njldwwzlg9v7v53unlr4jkmx6eylep8ekg2"
+    },
+    {
+      "prefix": "bchtest",
+      "version": 8,
+      "payload": "f5bf48b397dae70be82b3cca4793f8eb2b6cdac9",
+      "address": "bchtest:pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t"
+    },
+    {
+      "prefix": "pref",
+      "version": 8,
+      "payload": "f5bf48b397dae70be82b3cca4793f8eb2b6cdac9",
+      "address": "pref:pr6m7j9njldwwzlg9v7v53unlr4jkmx6ey65nvtks5"
+    },
+    {
+      "prefix": "prefix",
+      "version": 120,
+      "payload": "f5bf48b397dae70be82b3cca4793f8eb2b6cdac9",
+      "address": "prefix:0r6m7j9njldwwzlg9v7v53unlr4jkmx6ey3qnjwsrf"
+    },
+    {
+      "prefix": "bitcoincash",
+      "version": 1,
+      "payload": "7adbf6c17084bc86c1706827b41a56f5ca32865925e946ea",
+      "address": "bitcoincash:q9adhakpwzztepkpwp5z0dq62m6u5v5xtyj7j3h2ws4mr9g0"
+    },
+    {
+      "prefix": "bchtest",
+      "version": 9,
+      "payload": "7adbf6c17084bc86c1706827b41a56f5ca32865925e946ea",
+      "address": "bchtest:p9adhakpwzztepkpwp5z0dq62m6u5v5xtyj7j3h2u94tsynr"
+    },
+    {
+      "prefix": "pref",
+      "version": 9,
+      "payload": "7adbf6c17084bc86c1706827b41a56f5ca32865925e946ea",
+      "address": "pref:p9adhakpwzztepkpwp5z0dq62m6u5v5xtyj7j3h2khlwwk5v"
+    },
+    {
+      "prefix": "prefix",
+      "version": 121,
+      "payload": "7adbf6c17084bc86c1706827b41a56f5ca32865925e946ea",
+      "address": "prefix:09adhakpwzztepkpwp5z0dq62m6u5v5xtyj7j3h2p29kc2lp"
+    },
+    {
+      "prefix": "bitcoincash",
+      "version": 2,
+      "payload": "3a84f9cf51aae98a3bb3a78bf16a6183790b18719126325bfc0c075b",
+      "address": "bitcoincash:qgagf7w02x4wnz3mkwnchut2vxphjzccwxgjvvjmlsxqwkcw59jxxuz"
+    },
+    {
+      "prefix": "bchtest",
+      "version": 10,
+      "payload": "3a84f9cf51aae98a3bb3a78bf16a6183790b18719126325bfc0c075b",
+      "address": "bchtest:pgagf7w02x4wnz3mkwnchut2vxphjzccwxgjvvjmlsxqwkcvs7md7wt"
+    },
+    {
+      "prefix": "pref",
+      "version": 10,
+      "payload": "3a84f9cf51aae98a3bb3a78bf16a6183790b18719126325bfc0c075b",
+      "address": "pref:pgagf7w02x4wnz3mkwnchut2vxphjzccwxgjvvjmlsxqwkcrsr6gzkn"
+    },
+    {
+      "prefix": "prefix",
+      "version": 122,
+      "payload": "3a84f9cf51aae98a3bb3a78bf16a6183790b18719126325bfc0c075b",
+      "address": "prefix:0gagf7w02x4wnz3mkwnchut2vxphjzccwxgjvvjmlsxqwkc5djw8s9g"
+    },
+    {
+      "prefix": "bitcoincash",
+      "version": 3,
+      "payload": "3173ef6623c6b48ffd1a3dcc0cc6489b0a07bb47a37f47cfef4fe69de825c060",
+      "address": "bitcoincash:qvch8mmxy0rtfrlarg7ucrxxfzds5pamg73h7370aa87d80gyhqxq5nlegake"
+    },
+    {
+      "prefix": "bchtest",
+      "version": 11,
+      "payload": "3173ef6623c6b48ffd1a3dcc0cc6489b0a07bb47a37f47cfef4fe69de825c060",
+      "address": "bchtest:pvch8mmxy0rtfrlarg7ucrxxfzds5pamg73h7370aa87d80gyhqxq7fqng6m6"
+    },
+    {
+      "prefix": "pref",
+      "version": 11,
+      "payload": "3173ef6623c6b48ffd1a3dcc0cc6489b0a07bb47a37f47cfef4fe69de825c060",
+      "address": "pref:pvch8mmxy0rtfrlarg7ucrxxfzds5pamg73h7370aa87d80gyhqxq4k9m7qf9"
+    },
+    {
+      "prefix": "prefix",
+      "version": 123,
+      "payload": "3173ef6623c6b48ffd1a3dcc0cc6489b0a07bb47a37f47cfef4fe69de825c060",
+      "address": "prefix:0vch8mmxy0rtfrlarg7ucrxxfzds5pamg73h7370aa87d80gyhqxqsh6jgp6w"
+    },
+    {
+      "prefix": "bitcoincash",
+      "version": 4,
+      "payload": "c07138323e00fa4fc122d3b85b9628ea810b3f381706385e289b0b25631197d194b5c238beb136fb",
+      "address": "bitcoincash:qnq8zwpj8cq05n7pytfmskuk9r4gzzel8qtsvwz79zdskftrzxtar994cgutavfklv39gr3uvz"
+    },
+    {
+      "prefix": "bchtest",
+      "version": 12,
+      "payload": "c07138323e00fa4fc122d3b85b9628ea810b3f381706385e289b0b25631197d194b5c238beb136fb",
+      "address": "bchtest:pnq8zwpj8cq05n7pytfmskuk9r4gzzel8qtsvwz79zdskftrzxtar994cgutavfklvmgm6ynej"
+    },
+    {
+      "prefix": "pref",
+      "version": 12,
+      "payload": "c07138323e00fa4fc122d3b85b9628ea810b3f381706385e289b0b25631197d194b5c238beb136fb",
+      "address": "pref:pnq8zwpj8cq05n7pytfmskuk9r4gzzel8qtsvwz79zdskftrzxtar994cgutavfklv0vx5z0w3"
+    },
+    {
+      "prefix": "prefix",
+      "version": 124,
+      "payload": "c07138323e00fa4fc122d3b85b9628ea810b3f381706385e289b0b25631197d194b5c238beb136fb",
+      "address": "prefix:0nq8zwpj8cq05n7pytfmskuk9r4gzzel8qtsvwz79zdskftrzxtar994cgutavfklvwsvctzqy"
+    },
+    {
+      "prefix": "bitcoincash",
+      "version": 5,
+      "payload": "e361ca9a7f99107c17a622e047e3745d3e19cf804ed63c5c40c6ba763696b98241223d8ce62ad48d863f4cb18c930e4c",
+      "address": "bitcoincash:qh3krj5607v3qlqh5c3wq3lrw3wnuxw0sp8dv0zugrrt5a3kj6ucysfz8kxwv2k53krr7n933jfsunqex2w82sl"
+    },
+    {
+      "prefix": "bchtest",
+      "version": 13,
+      "payload": "e361ca9a7f99107c17a622e047e3745d3e19cf804ed63c5c40c6ba763696b98241223d8ce62ad48d863f4cb18c930e4c",
+      "address": "bchtest:ph3krj5607v3qlqh5c3wq3lrw3wnuxw0sp8dv0zugrrt5a3kj6ucysfz8kxwv2k53krr7n933jfsunqnzf7mt6x"
+    },
+    {
+      "prefix": "pref",
+      "version": 13,
+      "payload": "e361ca9a7f99107c17a622e047e3745d3e19cf804ed63c5c40c6ba763696b98241223d8ce62ad48d863f4cb18c930e4c",
+      "address": "pref:ph3krj5607v3qlqh5c3wq3lrw3wnuxw0sp8dv0zugrrt5a3kj6ucysfz8kxwv2k53krr7n933jfsunqjntdfcwg"
+    },
+    {
+      "prefix": "prefix",
+      "version": 125,
+      "payload": "e361ca9a7f99107c17a622e047e3745d3e19cf804ed63c5c40c6ba763696b98241223d8ce62ad48d863f4cb18c930e4c",
+      "address": "prefix:0h3krj5607v3qlqh5c3wq3lrw3wnuxw0sp8dv0zugrrt5a3kj6ucysfz8kxwv2k53krr7n933jfsunqakcssnmn"
+    },
+    {
+      "prefix": "bitcoincash",
+      "version": 6,
+      "payload": "d9fa7c4c6ef56dc4ff423baae6d495dbff663d034a72d1dc7d52cbfe7d1e6858f9d523ac0a7a5c34077638e4dd1a701bd017842789982041",
+      "address": "bitcoincash:qmvl5lzvdm6km38lgga64ek5jhdl7e3aqd9895wu04fvhlnare5937w4ywkq57juxsrhvw8ym5d8qx7sz7zz0zvcypqscw8jd03f"
+    },
+    {
+      "prefix": "bchtest",
+      "version": 14,
+      "payload": "d9fa7c4c6ef56dc4ff423baae6d495dbff663d034a72d1dc7d52cbfe7d1e6858f9d523ac0a7a5c34077638e4dd1a701bd017842789982041",
+      "address": "bchtest:pmvl5lzvdm6km38lgga64ek5jhdl7e3aqd9895wu04fvhlnare5937w4ywkq57juxsrhvw8ym5d8qx7sz7zz0zvcypqs6kgdsg2g"
+    },
+    {
+      "prefix": "pref",
+      "version": 14,
+      "payload": "d9fa7c4c6ef56dc4ff423baae6d495dbff663d034a72d1dc7d52cbfe7d1e6858f9d523ac0a7a5c34077638e4dd1a701bd017842789982041",
+      "address": "pref:pmvl5lzvdm6km38lgga64ek5jhdl7e3aqd9895wu04fvhlnare5937w4ywkq57juxsrhvw8ym5d8qx7sz7zz0zvcypqsammyqffl"
+    },
+    {
+      "prefix": "prefix",
+      "version": 126,
+      "payload": "d9fa7c4c6ef56dc4ff423baae6d495dbff663d034a72d1dc7d52cbfe7d1e6858f9d523ac0a7a5c34077638e4dd1a701bd017842789982041",
+      "address": "prefix:0mvl5lzvdm6km38lgga64ek5jhdl7e3aqd9895wu04fvhlnare5937w4ywkq57juxsrhvw8ym5d8qx7sz7zz0zvcypqsgjrqpnw8"
+    },
+    {
+      "prefix": "bitcoincash",
+      "version": 7,
+      "payload": "d0f346310d5513d9e01e299978624ba883e6bda8f4c60883c10f28c2967e67ec77ecc7eeeaeafc6da89fad72d11ac961e164678b868aeeec5f2c1da08884175b",
+      "address": "bitcoincash:qlg0x333p4238k0qrc5ej7rzfw5g8e4a4r6vvzyrcy8j3s5k0en7calvclhw46hudk5flttj6ydvjc0pv3nchp52amk97tqa5zygg96mtky5sv5w"
+    },
+    {
+      "prefix": "bchtest",
+      "version": 15,
+      "payload": "d0f346310d5513d9e01e299978624ba883e6bda8f4c60883c10f28c2967e67ec77ecc7eeeaeafc6da89fad72d11ac961e164678b868aeeec5f2c1da08884175b",
+      "address": "bchtest:plg0x333p4238k0qrc5ej7rzfw5g8e4a4r6vvzyrcy8j3s5k0en7calvclhw46hudk5flttj6ydvjc0pv3nchp52amk97tqa5zygg96mc773cwez"
+    },
+    {
+      "prefix": "pref",
+      "version": 15,
+      "payload": "d0f346310d5513d9e01e299978624ba883e6bda8f4c60883c10f28c2967e67ec77ecc7eeeaeafc6da89fad72d11ac961e164678b868aeeec5f2c1da08884175b",
+      "address": "pref:plg0x333p4238k0qrc5ej7rzfw5g8e4a4r6vvzyrcy8j3s5k0en7calvclhw46hudk5flttj6ydvjc0pv3nchp52amk97tqa5zygg96mg7pj3lh8"
+    },
+    {
+      "prefix": "prefix",
+      "version": 127,
+      "payload": "d0f346310d5513d9e01e299978624ba883e6bda8f4c60883c10f28c2967e67ec77ecc7eeeaeafc6da89fad72d11ac961e164678b868aeeec5f2c1da08884175b",
+      "address": "prefix:0lg0x333p4238k0qrc5ej7rzfw5g8e4a4r6vvzyrcy8j3s5k0en7calvclhw46hudk5flttj6ydvjc0pv3nchp52amk97tqa5zygg96ms92w6845"
+    }
+  ]
+}

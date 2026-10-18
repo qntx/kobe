@@ -1,0 +1,244 @@
+{
+  "schema": 1,
+  "source": {
+    "kind": "reference",
+    "name": "kaspa",
+    "version": "@scure/bip32 2.4.0 key material; addresses encoded per the kaspa cashaddr spec — encoder verified byte-for-byte by vectors/kaspa-address.json (official rusty-kaspa vectors)"
+  },
+  "cases": [
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "options": {
+        "network": "mainnet"
+      },
+      "style": "standard",
+      "index": 0,
+      "path": "m/44'/111111'/0'/0/0",
+      "address": "kaspa:qqd6e65yefepe9wk0m9vuxdufxd80sphy67gwwd0vdaumzdt4tc9s3qt0lqeh",
+      "public_key": "1bacea84ca721c95d67ecace19bc499a77c03726bc8739af637bcd89abaaf058",
+      "private_key": "24cd8d2875e8e17e4f88fbc554834a89b7b3e0c6f9d84fae36883604359ba440"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "options": {
+        "network": "mainnet"
+      },
+      "style": "standard",
+      "index": 1,
+      "path": "m/44'/111111'/0'/0/1",
+      "address": "kaspa:qp6r0d88yj4fazlj057wc35245jfgs87n9jn6nahfg223996dfukvgpgq6pcp",
+      "public_key": "7437b4e724aa9e8bf27d3cec468aad249440fe99653d4fb74a14a894ba6a7966",
+      "private_key": "03c8757528d03aeaa7af44bb90deed1a8aa4263b257f0499c3b12270a7dbe7d1"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "options": {
+        "network": "mainnet"
+      },
+      "style": "standard",
+      "index": 2,
+      "path": "m/44'/111111'/0'/0/2",
+      "address": "kaspa:qrjld004k4aa5m4savjndusd56jk739pl5d90y6j4xuw2dyyjqrx6aqflp9ak",
+      "public_key": "e5f6bdf5b57bda6eb0eb2536f20da6a56f44a1fd1a579352a9b8e5348490066d",
+      "private_key": "08fe94ac0287c013e2699743b32fdcdde799f669a6690d615e2aa7b8b3912c7a"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "options": {
+        "network": "testnet"
+      },
+      "style": "standard",
+      "index": 0,
+      "path": "m/44'/111111'/0'/0/0",
+      "address": "kaspatest:qqd6e65yefepe9wk0m9vuxdufxd80sphy67gwwd0vdaumzdt4tc9ssxd5s7gn",
+      "public_key": "1bacea84ca721c95d67ecace19bc499a77c03726bc8739af637bcd89abaaf058",
+      "private_key": "24cd8d2875e8e17e4f88fbc554834a89b7b3e0c6f9d84fae36883604359ba440"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "options": {
+        "network": "testnet"
+      },
+      "style": "standard",
+      "index": 1,
+      "path": "m/44'/111111'/0'/0/1",
+      "address": "kaspatest:qp6r0d88yj4fazlj057wc35245jfgs87n9jn6nahfg223996dfukvf8wm4lf9",
+      "public_key": "7437b4e724aa9e8bf27d3cec468aad249440fe99653d4fb74a14a894ba6a7966",
+      "private_key": "03c8757528d03aeaa7af44bb90deed1a8aa4263b257f0499c3b12270a7dbe7d1"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "options": {
+        "network": "testnet"
+      },
+      "style": "standard",
+      "index": 2,
+      "path": "m/44'/111111'/0'/0/2",
+      "address": "kaspatest:qrjld004k4aa5m4savjndusd56jk739pl5d90y6j4xuw2dyyjqrx6ux0ywmvj",
+      "public_key": "e5f6bdf5b57bda6eb0eb2536f20da6a56f44a1fd1a579352a9b8e5348490066d",
+      "private_key": "08fe94ac0287c013e2699743b32fdcdde799f669a6690d615e2aa7b8b3912c7a"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "options": {
+        "network": "mainnet"
+      },
+      "style": "standard",
+      "index": 0,
+      "path": "m/44'/111111'/0'/0/0",
+      "address": "kaspa:qz20g2ugrrm629fnnvmfjpsjlx9zu2f2zj828wwpv9gvxcnajl0qs36s8hfkl",
+      "public_key": "94f42b8818f7a515339b36990612f98a2e292a148ea3b9c16150c3627d97de08",
+      "private_key": "0e96dce68713d9596aa8b4279055c140ba66b6997af1f19b1d807f118a75bea2"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "options": {
+        "network": "mainnet"
+      },
+      "style": "standard",
+      "index": 1,
+      "path": "m/44'/111111'/0'/0/1",
+      "address": "kaspa:qpp5c48p4ryt4v7nufd44udfddgn9yt2ddac0sk6w4pprajx8ftjs4x358jsx",
+      "public_key": "434c54e1a8c8bab3d3e25b5af1a96b5132916a6b7b87c2da754211f6463a5728",
+      "private_key": "4118b0bae4e06f3f84a5635a2c490ff3920296632c9d65e8420a6591abe86112"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "options": {
+        "network": "mainnet"
+      },
+      "style": "standard",
+      "index": 2,
+      "path": "m/44'/111111'/0'/0/2",
+      "address": "kaspa:qptqpm3emzmhksmhpd5enzj8r346nzc8j0zr68j8p9lumpdazpflkqvclj8dp",
+      "public_key": "5600ee39d8b77b43770b69998a471c6ba98b0793c43d1e47097fcd85bd1053fb",
+      "private_key": "7277af3512e0e68362e47ff3d54f44029dc5fcbab989525e18861d81a23619ca"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "options": {
+        "network": "testnet"
+      },
+      "style": "standard",
+      "index": 0,
+      "path": "m/44'/111111'/0'/0/0",
+      "address": "kaspatest:qz20g2ugrrm629fnnvmfjpsjlx9zu2f2zj828wwpv9gvxcnajl0qssukuch8m",
+      "public_key": "94f42b8818f7a515339b36990612f98a2e292a148ea3b9c16150c3627d97de08",
+      "private_key": "0e96dce68713d9596aa8b4279055c140ba66b6997af1f19b1d807f118a75bea2"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "options": {
+        "network": "testnet"
+      },
+      "style": "standard",
+      "index": 1,
+      "path": "m/44'/111111'/0'/0/1",
+      "address": "kaspatest:qpp5c48p4ryt4v7nufd44udfddgn9yt2ddac0sk6w4pprajx8ftjs5qh0gvpz",
+      "public_key": "434c54e1a8c8bab3d3e25b5af1a96b5132916a6b7b87c2da754211f6463a5728",
+      "private_key": "4118b0bae4e06f3f84a5635a2c490ff3920296632c9d65e8420a6591abe86112"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "options": {
+        "network": "testnet"
+      },
+      "style": "standard",
+      "index": 2,
+      "path": "m/44'/111111'/0'/0/2",
+      "address": "kaspatest:qptqpm3emzmhksmhpd5enzj8r346nzc8j0zr68j8p9lumpdazpflkp27yaeu9",
+      "public_key": "5600ee39d8b77b43770b69998a471c6ba98b0793c43d1e47097fcd85bd1053fb",
+      "private_key": "7277af3512e0e68362e47ff3d54f44029dc5fcbab989525e18861d81a23619ca"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "options": {
+        "network": "mainnet"
+      },
+      "style": "standard",
+      "index": 0,
+      "path": "m/44'/111111'/0'/0/0",
+      "address": "kaspa:qzmzhr957he0n3tsjs2sev9pa3kcshc9jg2zvslvv82mv559wg2quxs9qrlys",
+      "public_key": "b62b8cb4f5f2f9c57094150cb0a1ec6d885f0592142643ec61d5b6528572140e",
+      "private_key": "a60c584f587d2ca50403025930139be049bdf4efe4dc3046cfaff973d21be5ef"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "options": {
+        "network": "mainnet"
+      },
+      "style": "standard",
+      "index": 1,
+      "path": "m/44'/111111'/0'/0/1",
+      "address": "kaspa:qrnjgandqeulrl9rwp4kt48v4xhjk924yx0jz2sy70e78p0rljyj52lclu38l",
+      "public_key": "e724766d0679f1fca3706b65d4eca9af2b1555219f212a04f3f3e385e3fc892a",
+      "private_key": "0fbfc8c2c6b3e7e6fadf74f614b9cdc6ad71c4179d7ce97de02c65c8ebeb9ec5"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "options": {
+        "network": "mainnet"
+      },
+      "style": "standard",
+      "index": 2,
+      "path": "m/44'/111111'/0'/0/2",
+      "address": "kaspa:qrtxv4acczv6e5tdqw407alt2gcygm4cxzsz4ua0mqx3wen53a5k5q49cfc2v",
+      "public_key": "d66657b8c099acd16d03aaff77eb5230446eb830a02af3afd80d1766748f696a",
+      "private_key": "2a46c7ac520bbb1e7decaf031abfd0f1dff60c076d98896c700a15184449ed47"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "options": {
+        "network": "testnet"
+      },
+      "style": "standard",
+      "index": 0,
+      "path": "m/44'/111111'/0'/0/0",
+      "address": "kaspatest:qzmzhr957he0n3tsjs2sev9pa3kcshc9jg2zvslvv82mv559wg2qu8krmvp45",
+      "public_key": "b62b8cb4f5f2f9c57094150cb0a1ec6d885f0592142643ec61d5b6528572140e",
+      "private_key": "a60c584f587d2ca50403025930139be049bdf4efe4dc3046cfaff973d21be5ef"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "options": {
+        "network": "testnet"
+      },
+      "style": "standard",
+      "index": 1,
+      "path": "m/44'/111111'/0'/0/1",
+      "address": "kaspatest:qrnjgandqeulrl9rwp4kt48v4xhjk924yx0jz2sy70e78p0rljyj5te7yn0km",
+      "public_key": "e724766d0679f1fca3706b65d4eca9af2b1555219f212a04f3f3e385e3fc892a",
+      "private_key": "0fbfc8c2c6b3e7e6fadf74f614b9cdc6ad71c4179d7ce97de02c65c8ebeb9ec5"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "options": {
+        "network": "testnet"
+      },
+      "style": "standard",
+      "index": 2,
+      "path": "m/44'/111111'/0'/0/2",
+      "address": "kaspatest:qrtxv4acczv6e5tdqw407alt2gcygm4cxzsz4ua0mqx3wen53a5k5pnrrxxmg",
+      "public_key": "d66657b8c099acd16d03aaff77eb5230446eb830a02af3afd80d1766748f696a",
+      "private_key": "2a46c7ac520bbb1e7decaf031abfd0f1dff60c076d98896c700a15184449ed47"
+    }
+  ]
+}

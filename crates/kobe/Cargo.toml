@@ -1,0 +1,84 @@
+[package]
+name        = "kobe"
+description = "Pure offline HD wallet generator: BIP-39 mnemonic to keys and addresses"
+version     = { workspace = true }
+edition     = { workspace = true }
+rust-version = { workspace = true }
+license     = { workspace = true }
+repository  = { workspace = true }
+homepage    = { workspace = true }
+authors     = { workspace = true }
+keywords    = { workspace = true }
+categories  = { workspace = true }
+documentation = "https://docs.rs/kobe"
+readme      = "../../README.md"
+
+[lints]
+workspace = true
+
+[features]
+default = ["std"]
+std     = ["bip39/std"]
+os-rng  = ["dep:getrandom"]
+
+hd-bip32  = ["dep:bip32-crate"]
+hd-slip10 = ["dep:hmac", "dep:sha2", "dep:ed25519-dalek"]
+
+btc    = ["hd-bip32", "dep:k256", "dep:sha2", "dep:ripemd", "dep:bech32", "dep:bs58", "dep:hex"]
+ltc    = ["hd-bip32", "dep:sha2", "dep:ripemd", "dep:bech32", "dep:bs58", "dep:hex"]
+doge   = ["hd-bip32", "dep:sha2", "dep:ripemd", "dep:bs58", "dep:hex"]
+bch    = ["hd-bip32", "dep:sha2", "dep:ripemd", "dep:bs58", "dep:hex"]
+evm    = ["hd-bip32", "dep:sha3", "dep:hex"]
+tron   = ["hd-bip32", "dep:sha2", "dep:sha3", "dep:bs58", "dep:hex"]
+cosmos = ["hd-bip32", "dep:sha2", "dep:ripemd", "dep:bech32", "dep:sha3", "dep:hex"]
+xrp    = ["hd-bip32", "dep:sha2", "dep:ripemd", "dep:bs58", "dep:hex"]
+fil    = ["hd-bip32", "dep:blake2", "dep:data-encoding", "dep:base64", "dep:hex"]
+kaspa  = ["hd-bip32", "dep:hex"]
+nostr  = ["hd-bip32", "dep:bech32", "dep:hex"]
+spark  = ["hd-bip32", "dep:bech32", "dep:hex"]
+casper = ["hd-bip32", "dep:blake2", "dep:hex"]
+sol    = ["hd-slip10", "dep:bs58", "dep:hex"]
+sui    = ["hd-slip10", "dep:blake2", "dep:bech32", "dep:hex"]
+aptos  = ["hd-slip10", "dep:sha3", "dep:hex"]
+ton    = ["hd-slip10", "dep:base64", "dep:crc", "dep:hex"]
+xlm    = ["hd-slip10", "dep:data-encoding", "dep:crc", "dep:hex"]
+near   = ["hd-slip10", "dep:bs58", "dep:hex"]
+ada    = ["dep:ed25519-bip32", "dep:pbkdf2", "dep:hmac", "dep:sha2", "dep:bech32", "dep:blake2", "dep:hex"]
+
+all-chains = [
+    "btc", "ltc", "doge", "bch", "evm", "tron", "cosmos", "xrp", "fil", "kaspa",
+    "nostr", "spark", "casper", "sol", "sui", "aptos", "ton", "xlm", "near",
+    "ada",
+]
+
+[dependencies]
+bip39     = { workspace = true }
+rand_core = { workspace = true }
+thiserror = { workspace = true }
+zeroize   = { workspace = true }
+
+bip32-crate    = { workspace = true, optional = true }
+k256           = { workspace = true, optional = true }
+hmac           = { workspace = true, optional = true }
+sha2           = { workspace = true, optional = true }
+sha3           = { workspace = true, optional = true }
+ripemd         = { workspace = true, optional = true }
+bech32         = { workspace = true, optional = true }
+bs58           = { workspace = true, optional = true }
+ed25519-dalek  = { workspace = true, optional = true }
+blake2         = { workspace = true, optional = true }
+data-encoding  = { workspace = true, optional = true }
+base64         = { workspace = true, optional = true }
+crc            = { workspace = true, optional = true }
+ed25519-bip32  = { workspace = true, optional = true }
+pbkdf2         = { workspace = true, optional = true }
+hex            = { workspace = true, optional = true }
+getrandom      = { workspace = true, optional = true }
+
+[dev-dependencies]
+bech32     = { workspace = true }
+hex        = { workspace = true }
+serde_json = { workspace = true }
+
+[package.metadata.docs.rs]
+all-features = true

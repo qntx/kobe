@@ -1,0 +1,28 @@
+[package]
+name        = "kobe-cli"
+description = "Command-line interface for the kobe HD wallet generator"
+version     = { workspace = true }
+edition     = { workspace = true }
+rust-version = { workspace = true }
+license     = { workspace = true }
+repository  = { workspace = true }
+homepage    = { workspace = true }
+authors     = { workspace = true }
+keywords    = { workspace = true }
+categories  = { workspace = true }
+documentation = "https://docs.rs/kobe-cli"
+readme      = "../../README.md"
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "kobe"
+path = "src/main.rs"
+
+[dependencies]
+kobe       = { workspace = true, features = ["std", "os-rng", "all-chains"] }
+bip39      = { workspace = true }
+clap       = { workspace = true }
+serde_json = { workspace = true }
+zeroize    = { workspace = true }

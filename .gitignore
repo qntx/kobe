@@ -1,23 +1,18 @@
-node_modules
-dist
-*.tgz
-*.log
-.DS_Store
-
-# dotenv environment variable files
-.env
-.env.*
-!.env.example
-
 # Rust artifacts
-/target
+/target/
 
-# Local design documents (never committed)
+# scripts/vectors bun project
+node_modules/
+
+# Local-only design documents (never committed)
 /design/
 
-# Playwright artifacts
-test-results/
-playwright-report/
+# dotenv files
+.env
+.env.*
 
-# Hermes smoke bundle (built on demand by scripts/hermes-smoke.ts)
-packages/wallet-worker/.hermes-smoke.iife.js
+# Misc
+.DS_Store
+*.log
+*.tgz
+test-results/

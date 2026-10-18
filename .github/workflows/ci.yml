@@ -14,12 +14,30 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  ci:
-    uses: qntx/workflows/.github/workflows/ci-bun.yml@v2
+  rust:
+    uses: qntx/workflows/.github/workflows/ci-rust.yml@v2
     permissions:
       contents: read
     with:
-      scripts: "check:pkg test:coverage"
-    # bun run lint → vp check + check-version
-    # bun run test → vp run -r test (per-package vp test)
-    # scripts → bun run check:pkg && bun run test:coverage
+      # rust-version omitted: rust-toolchain.toml pins the toolchain.
+      deny: true
+      doc: true
+      package-check: true
+
+  rust-minimal:
+    uses: qntx/workflows/.github/workflows/ci-rust.yml@v2
+    permissions:
+      contents: read
+    with:
+      packages: kobe
+      features: --no-default-features
+
+  portable:
+    uses: qntx/workflows/.github/workflows/ci-rust-cross.yml@v2
+    permissions:
+      contents: read
+    with:
+      targets: thumbv7m-none-eabi wasm32-unknown-unknown aarch64-linux-android x86_64-linux-android aarch64-apple-ios aarch64-apple-ios-sim
+      packages: kobe
+      features: --no-default-features --features all-chains
+      forbid-deps: getrandom

@@ -1,0 +1,190 @@
+{
+  "schema": 1,
+  "source": {
+    "kind": "reference",
+    "name": "near",
+    "version": "near-seed-phrase 0.2.1 parseSeedPhrase (passphrase case: micro-key-producer 0.10.2 slip10 + ed25519: base58 formatting)"
+  },
+  "cases": [
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "standard",
+      "index": 0,
+      "path": "m/44'/397'/0'",
+      "address": "5510e2b44cae6eb807e3e0e45d579dda058c274abcba15e5cb84636f5d1ee412",
+      "public_key": "ed25519:6j4b6zUaty6fD1awqcGCCU9JYGCWYUgdJhQrzfZhqE25",
+      "private_key": "ed25519:F1kPR175szkGxEL52A9H6Z5ocS2BtaipprK2Hiob9DjGzHTkScrBb1yt44baXPZ3LxyHcsTPdBjHmn6zx147txH"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "standard",
+      "index": 1,
+      "path": "m/44'/397'/1'",
+      "address": "3b93b03253b9715213ec314eb50ecc99d25602ccb5b059f91f51d24710d54326",
+      "public_key": "ed25519:51ZftJ8qPN8mJ3oqgQb3fqPbotQVZfTC4mxLgwz34FTK",
+      "private_key": "ed25519:4EueLTJQbc2d7evLxjFEZkjPcbeUkyVfUvsgTqb1dVyiF8pNmVNbVmvDULehpxbjGVv98Ws512xvZDH1hcN9hRKK"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "standard",
+      "index": 2,
+      "path": "m/44'/397'/2'",
+      "address": "06ff7a6fae3da4d225a93da1fac0eb9adc64a33c417dd14a99a373b4bab4047a",
+      "public_key": "ed25519:UKPmEnf4UDrMXn8pq3BaZpCpL4fASUBoXYVfnfsRvEu",
+      "private_key": "ed25519:5oNMir32rYL8UE9PoxkDUYub9CoXpFmqo9jjaXymBNmTE6PE5yEZTgQ2pcXRG7sXkcWbU7UPigFBTuCh9GieZPy3"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "ledger-live",
+      "index": 0,
+      "path": "m/44'/397'/0'/0'/0'",
+      "address": "4e7de0a21d8a20f970c86b6edf407906d7ba9e205979c3268270eef80a286e2d",
+      "public_key": "ed25519:6HQ8NZyW3Zf42KGCEqcrrUynxFRd2zBKxXNCPQUBKVhW",
+      "private_key": "ed25519:2Hnv9e3Ypf2SMr8KiS3WDPADEdytHyWMZC6m2G53h8ESGQu76x71sxENA69Gi3LMPkQteMVFfnLuNCzc7gb1HfQY"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "ledger-live",
+      "index": 1,
+      "path": "m/44'/397'/0'/0'/1'",
+      "address": "c571e33e2e36c2c728d617ea77a88e2320c8697eac8b463adfc0128b96825cbf",
+      "public_key": "ed25519:EHk3HArKPRpX7564aTMD7VJdbQRoWA9JvJaEvbta2iSz",
+      "private_key": "ed25519:5yrPPxbqCnHyxQwS1j8PTzXhji6RkDwauPhVvwequxSgwpm7hJiyCh9WYARThbcGkJirHZ6Yb85NAFFGVch4nhAW"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "ledger-live",
+      "index": 2,
+      "path": "m/44'/397'/0'/0'/2'",
+      "address": "04e44f5c15a091a7604954b3e33afa5c35a31b70d60d9377e4fe01d828016329",
+      "public_key": "ed25519:L6YrtFSdJUYbm5QMhGmV7tNoEGhusE5dAPzghTxdM7n",
+      "private_key": "ed25519:Ed9xz6FeSjhRZCypN437o8JDicBxgxpotLw3NTWpQJezrpsMXBsHaMkEsDX7ASCdsNpADBooDJf7bV9riVVnFvg"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "standard",
+      "index": 0,
+      "path": "m/44'/397'/0'",
+      "address": "5cd11aa446d8db56ace1bd3781673e351af6481b86c4660a8acd424973f9827b",
+      "public_key": "ed25519:7FKSaAUy1QBdM4Q4BwjcBPUDmgHgXz4S4Xb2Ao11bk5x",
+      "private_key": "ed25519:5fmDbxkoeVX3jupdPtUtxXkkYFbB4xY7XaNX5V6nTt4A3zVLVnQE74URP6eRNyo3wD7A38cghu1HD9SGcvQ1cJoL"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "standard",
+      "index": 1,
+      "path": "m/44'/397'/1'",
+      "address": "a0c3dfd547d0f96cd0bdd6d682c164014dd7a60e9eb3ac7a3342d36f641bdc9d",
+      "public_key": "ed25519:BpZTub543TKoNckUDG6mDcCuDYsTpWmHd22J9egHQxje",
+      "private_key": "ed25519:4QBeKyYwwxEpf6xugkz5edijdMCBW81y4ssTUNeCXy5Qvoy8fahmex8RQnUX8xWVDqY7jv62k4ZEGvwN1wZfcLt"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "standard",
+      "index": 2,
+      "path": "m/44'/397'/2'",
+      "address": "a7ae32b07e167d446a225c9c72793e09843f32ba431ebce1482c142595a8464a",
+      "public_key": "ed25519:CHZ9Xvv8u6FRJ2AMi58qY7JGwzA7Rwfc2uB1k4WNPFYm",
+      "private_key": "ed25519:5SLMa345SfpVMeTKUYM4DBzBeFzV5nCQVZMZHAiyg717jDwEPPesSdMMX1Xx2esr9qB6Njf4mJH7yboVZai3JGRP"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "ledger-live",
+      "index": 0,
+      "path": "m/44'/397'/0'/0'/0'",
+      "address": "c5f869f1fa4165f42f2a837376db218644cf0b97dd818b834297e693144695c6",
+      "public_key": "ed25519:EKo1sDE3gwD474wGCEGUXqG4RLnUNa12ygfHCLRX2973",
+      "private_key": "ed25519:YdNWFU1DaKJcd1VXkHppqekuupLfEVzuJCZijTCjKyKXj6vWdsgZx8SA8Ap42UP8ZFLqxiRpn7Y7Yyho3g9ri9j"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "ledger-live",
+      "index": 1,
+      "path": "m/44'/397'/0'/0'/1'",
+      "address": "0850c84e6e17ad459638314971fd89611bf245c4f245ad766afdcc8c06434236",
+      "public_key": "ed25519:ZThwwdqc7cXEVhSFwkj2fEhb5pSrjnrGvph9vngbKem",
+      "private_key": "ed25519:3WXpXm2g2TG14KQnpGCcbmygJthggg4TiSMcfCkFnv3cEvVkG794NtofN8EwhdUUHe9mYpAnsGRqMFkEKL8VFxQu"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "ledger-live",
+      "index": 2,
+      "path": "m/44'/397'/0'/0'/2'",
+      "address": "c62925591efe23a1b0e7ce522b930cd8eb43c554a52a28e17370cc045dca2e44",
+      "public_key": "ed25519:ELY7bo5DmePbpUZVV9Bqv5TboPq47PeShg1jXFrh41hV",
+      "private_key": "ed25519:2AuyDsGJbKV65TKHAeNfoh91NoUSWvcu5sCygY4GACRMHgPjHed3XuySvPEM2aAAnTDNkca3VK73rEk29VC7Zrr7"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "standard",
+      "index": 0,
+      "path": "m/44'/397'/0'",
+      "address": "12bce054414d9a5980a8218b135474a752e8139099b2ff019f29293ae220fa0e",
+      "public_key": "ed25519:2G9P9453x98uF4sPSs4BbFzy6iMg8DXyGVKsQwpCpnL5",
+      "private_key": "ed25519:3mJB9Bc3EMk1Few9WttRYCyX5E4HtruTi8T6mH1AqVR5g6fg8i2DqRptdKXLF1KunzM65q28vk6CscX45ST3mSPF"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "standard",
+      "index": 1,
+      "path": "m/44'/397'/1'",
+      "address": "bb994e8454889a111abcad894806ffdfc89f500c844173712410949e10a4c393",
+      "public_key": "ed25519:DdJpqKobhiDyZ2AFwfxQaaDjF6MLkJL2bEccZayVM6pS",
+      "private_key": "ed25519:3TbiBCWZJX2wSRas3abResAYoSuGPQ8cKo8N3RWoBtZfZTaqr83GCTi5SuwcuJz5uFfpvHmFvwtAvF6rU9WGQg9Y"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "standard",
+      "index": 2,
+      "path": "m/44'/397'/2'",
+      "address": "9a2fd8d5d8ffe917d4671751b1bc0d0ad7efd8cb35a0f3a5d36fddaf2879cca2",
+      "public_key": "ed25519:BNt6tmdF4r6gaekQ3sTmpq2dbzXu4VxDFXgiw1qfgXku",
+      "private_key": "ed25519:3t5CcfxbVdBQuQHaDPV9SUGUJvhvSguUToCgd49AuKEHhkn9RdBihferPK927t866zzNAZXVN1TVwBNA28H5BRKX"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "ledger-live",
+      "index": 0,
+      "path": "m/44'/397'/0'/0'/0'",
+      "address": "5f0d0ae96e10fd2a914001119b7821343b26c8ccf864a81e60c4d2da044a6d50",
+      "public_key": "ed25519:7Q3GSfeoZHHwHE9JMA6mydW7mrkGhQ9y5b5juChi75C3",
+      "private_key": "ed25519:4m8hh9uNYg5fvV9VfqaVxqXVjwV9ygRXGbSQa3V9ZXXY4V1nxV4n6fnnHobSGTGmHBELimnfLLgmC4PkHhdQtSq5"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "ledger-live",
+      "index": 1,
+      "path": "m/44'/397'/0'/0'/1'",
+      "address": "1a6a7dadd16708d3667c9d84a1cce910b390ccc6dc4102f1b09db785ac4ca5cd",
+      "public_key": "ed25519:2n7nKAq9zV16qKyj48MZwHB5VJxZRNz8deWXQqzMxYeQ",
+      "private_key": "ed25519:Mf2cPpmfDeZHarhGubqrJSgpJ9bbwbVvMZjYDSJDZEkdWHp43pQJPiYZMjaxGGDStdFMRy71bgo7sJCDaDhCuGY"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "ledger-live",
+      "index": 2,
+      "path": "m/44'/397'/0'/0'/2'",
+      "address": "afb4cb4b8cf748604f9be31277364d18a0bf9295e04739a256e6527f22e772b8",
+      "public_key": "ed25519:CptF4FakDgAvkZeqL8ko2yU6p3uEb52dyKfpCTMe156w",
+      "private_key": "ed25519:3bcUJVYU2Up4CfE66EYoZdNeZS79y62Ycchzz1CsFzmeLW9HeAmHBFxpMptV5CdwqrLiHJ2ASc63gkaBCpBr6xH5"
+    }
+  ]
+}

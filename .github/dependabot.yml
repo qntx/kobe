@@ -3,8 +3,18 @@
 # majors stay individual PRs and are merged by hand.
 version: 2
 updates:
-  - package-ecosystem: "bun"
+  - package-ecosystem: "cargo"
     directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    groups:
+      cargo-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+  - package-ecosystem: "bun"
+    directory: "/scripts/vectors"
     schedule:
       interval: "weekly"
     cooldown:

@@ -10,23 +10,22 @@
 
 ## Architecture invariants
 
-- qntx/wallet composes qntx/nostr, qntx/spark and qntx/trust. It never reimplements
-  protocol or cryptographic code that belongs to them.
-- @qntx/wallet-kernel is private and only bundled by the host packages. Nothing in the
-  main runtime can import it.
-- Secrets (entropy, seed, private keys, DEK, PRF output) exist only in the enclave
-  (Web Worker, RN kernel runtime). Messages carry no signing secrets, except user exports
-  and the data key.
-- The kernel source never imports -worker or -native packages; backends are injected by the
-  host packages. The engine and @qntx/wallet never import signing implementations.
-- Kernel code uses only the globals allowed in design/enclave.mdx; it must run in a bare
-  Hermes runtime.
-- Native capabilities that hold, produce or unwrap secrets (keystore, passkey, store) are
-  injected into the kernel runtime as JSI host objects and are never registered with Nitro.
-- Protocol library versions are pinned exactly and recorded in the kernel manifest;
-  backends' abiVersion is checked at kernel start.
-- Every vault, backup, template and protocol format has fixed vectors in vectors/.
-- packages/*/src is platform-neutral; all I/O is injected; no ambient singletons.
+- One `kobe` library crate — `#![no_std]` + `alloc`, `#![forbid(unsafe_code)]`,
+  no `panic!`/`unwrap`/`expect`/indexing panics in production code — and one
+  `kobe-cli` binary crate that consumes only `kobe`'s public API.
+- kobe generates keys and addresses only: no signing, no vault, no storage,
+  no network. OS entropy lives behind the `os-rng` feature; `getrandom` must
+  never appear in a `--no-default-features` dependency graph.
+- Secret material (entropy, mnemonic, seed, private keys) lives in
+  `Zeroizing` buffers and is redacted from `Debug`; `String`/`Vec` copies of
+  secret-derived bytes are never produced outside a `Zeroizing` guard.
+- Each chain is a feature-gated module with one `Chain` impl; chain option
+  enums use `option_enum!` and are the single source of truth for CLI choices.
+- Every chain and every style is backed by official or independent reference
+  vectors in `vectors/`, asserted byte-for-byte in `cargo test`.
+- Dependencies are declared once in `[workspace.dependencies]`; `deny.toml`
+  bans the `bitcoin` crate. Reference packages in `scripts/vectors` are
+  exact-pinned and at least 7 days old at adoption time.
 
 `design/` is local-only and never committed.
 
@@ -35,5 +34,27 @@
 Local gate before a pull request:
 
 ```bash
-bun run lint && bun run typecheck && bun run test
+cargo fmt --all --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo clippy -p kobe --no-default-features -- -D warnings
+cargo clippy -p kobe --no-default-features --features all-chains -- -D warnings
+cargo test --workspace --all-features
+RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features
+cargo build -p kobe --no-default-features --features all-chains --target thumbv7m-none-eabi
+cargo build -p kobe --no-default-features --features all-chains --target wasm32-unknown-unknown
+cargo tree -p kobe --no-default-features --features all-chains -e normal | grep getrandom   # must be empty
+cargo deny check
+cargo package --workspace --allow-dirty --no-verify
+```
+
+Each chain feature must also pass alone:
+
+```bash
+cargo clippy -p kobe --no-default-features --features <chain> --all-targets -- -D warnings
+```
+
+Regenerate reference vectors after touching a chain:
+
+```bash
+cd scripts/vectors && bun install && bun run generate
 ```

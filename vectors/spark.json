@@ -1,0 +1,244 @@
+{
+  "schema": 1,
+  "source": {
+    "kind": "reference",
+    "name": "spark",
+    "version": "@scure/bip32 2.4.0 + @buildonspark/spark-sdk 0.13.0 encoder"
+  },
+  "cases": [
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "options": {
+        "network": "mainnet"
+      },
+      "style": "standard",
+      "index": 0,
+      "path": "m/8797555'/0'/0'",
+      "address": "spark1pgssy6vty7krpze82ecm8j39gd35v35aqjjmhftc4culawsavkyh564uc6zmqs",
+      "public_key": "02698b27ac308b275671b3ca25436346469d04a5bba578ae39feba1d65897a6abc",
+      "private_key": "b3161a2a57c1e5797510b48e2c597bbfc76e28b95c80bd77d8b33553222420e4"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "options": {
+        "network": "mainnet"
+      },
+      "style": "standard",
+      "index": 1,
+      "path": "m/8797555'/1'/0'",
+      "address": "spark1pgss9qfk8ygtphqqzkj2yhn43k3s7r3g8z822ffvpcm38ym094800574x5numh",
+      "public_key": "0281363910b0dc0015a4a25e758da30f0e28388ea5252c0e3713936f2d4ef7d3d5",
+      "private_key": "07ede284a8976f380b6922de4b14f3a30d1c09b4e57e12cebad5d37ee2e2e6c1"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "options": {
+        "network": "mainnet"
+      },
+      "style": "standard",
+      "index": 2,
+      "path": "m/8797555'/2'/0'",
+      "address": "spark1pgss9slgupaqqv93fl0rmz82z569dq7ymm04zrlc2zjkjhpqs5s0mqrdtmdyun",
+      "public_key": "02c3e8e07a0030b14fde3d88ea15345683c4dedf510ff850a5695c208520fd806d",
+      "private_key": "2066261a940493ec3d9a51bf6fbcad59d745e3d93ce4d5f66b948ddecc484710"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "options": {
+        "network": "regtest"
+      },
+      "style": "standard",
+      "index": 0,
+      "path": "m/8797555'/0'/0'",
+      "address": "sparkrt1pgssy6vty7krpze82ecm8j39gd35v35aqjjmhftc4culawsavkyh564u2uv8v0",
+      "public_key": "02698b27ac308b275671b3ca25436346469d04a5bba578ae39feba1d65897a6abc",
+      "private_key": "b3161a2a57c1e5797510b48e2c597bbfc76e28b95c80bd77d8b33553222420e4"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "options": {
+        "network": "regtest"
+      },
+      "style": "standard",
+      "index": 1,
+      "path": "m/8797555'/1'/0'",
+      "address": "sparkrt1pgss9qfk8ygtphqqzkj2yhn43k3s7r3g8z822ffvpcm38ym0948005745jaqhg",
+      "public_key": "0281363910b0dc0015a4a25e758da30f0e28388ea5252c0e3713936f2d4ef7d3d5",
+      "private_key": "07ede284a8976f380b6922de4b14f3a30d1c09b4e57e12cebad5d37ee2e2e6c1"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "options": {
+        "network": "regtest"
+      },
+      "style": "standard",
+      "index": 2,
+      "path": "m/8797555'/2'/0'",
+      "address": "sparkrt1pgss9slgupaqqv93fl0rmz82z569dq7ymm04zrlc2zjkjhpqs5s0mqrdearcsv",
+      "public_key": "02c3e8e07a0030b14fde3d88ea15345683c4dedf510ff850a5695c208520fd806d",
+      "private_key": "2066261a940493ec3d9a51bf6fbcad59d745e3d93ce4d5f66b948ddecc484710"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "options": {
+        "network": "mainnet"
+      },
+      "style": "standard",
+      "index": 0,
+      "path": "m/8797555'/0'/0'",
+      "address": "spark1pgss9jszkdj832yzt9jf925pt2sf7vwl576qxmtz4twk8zf38jm02rr43fe99f",
+      "public_key": "02ca02b36478a882596492aa815aa09f31dfa7b4036d62aadd6389313cb6f50c75",
+      "private_key": "f23e1a903d67c0d12dd435180a19f48a0b903d74b12ff520598c592a3cb492f1"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "options": {
+        "network": "mainnet"
+      },
+      "style": "standard",
+      "index": 1,
+      "path": "m/8797555'/1'/0'",
+      "address": "spark1pgss8ru2rxdnvm5kk6n37vs3474l3qvg3cl5kcuk990mz5qvt0zr8xfs5tuwzm",
+      "public_key": "038f8a199b366e96b6a71f3211afabf881888e3f4b6396295fb1500c5bc4339930",
+      "private_key": "b1f72e8e5d6658f8b8efc61c9cf77e6b649deb6f642b66ac8014b7ba78ad7658"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "options": {
+        "network": "mainnet"
+      },
+      "style": "standard",
+      "index": 2,
+      "path": "m/8797555'/2'/0'",
+      "address": "spark1pgss8nu4yfz5kadfn286rlp8g5ggzjvaw3alnxqsjt0qwvkz4249e78t8yt3gt",
+      "public_key": "03cf9522454b75a99a8fa1fc27451081499d747bf9981092de0732c2aaaa5cf8eb",
+      "private_key": "91d397fba6616e2774b6d6ced5da8b69ef5e8819b190143bc5c3c04e3592b770"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "options": {
+        "network": "regtest"
+      },
+      "style": "standard",
+      "index": 0,
+      "path": "m/8797555'/0'/0'",
+      "address": "sparkrt1pgss9jszkdj832yzt9jf925pt2sf7vwl576qxmtz4twk8zf38jm02rr4r0hefk",
+      "public_key": "02ca02b36478a882596492aa815aa09f31dfa7b4036d62aadd6389313cb6f50c75",
+      "private_key": "f23e1a903d67c0d12dd435180a19f48a0b903d74b12ff520598c592a3cb492f1"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "options": {
+        "network": "regtest"
+      },
+      "style": "standard",
+      "index": 1,
+      "path": "m/8797555'/1'/0'",
+      "address": "sparkrt1pgss8ru2rxdnvm5kk6n37vs3474l3qvg3cl5kcuk990mz5qvt0zr8xfsxdjjwy",
+      "public_key": "038f8a199b366e96b6a71f3211afabf881888e3f4b6396295fb1500c5bc4339930",
+      "private_key": "b1f72e8e5d6658f8b8efc61c9cf77e6b649deb6f642b66ac8014b7ba78ad7658"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "options": {
+        "network": "regtest"
+      },
+      "style": "standard",
+      "index": 2,
+      "path": "m/8797555'/2'/0'",
+      "address": "sparkrt1pgss8nu4yfz5kadfn286rlp8g5ggzjvaw3alnxqsjt0qwvkz4249e78t4z9dy5",
+      "public_key": "03cf9522454b75a99a8fa1fc27451081499d747bf9981092de0732c2aaaa5cf8eb",
+      "private_key": "91d397fba6616e2774b6d6ced5da8b69ef5e8819b190143bc5c3c04e3592b770"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "options": {
+        "network": "mainnet"
+      },
+      "style": "standard",
+      "index": 0,
+      "path": "m/8797555'/0'/0'",
+      "address": "spark1pgssxvgmz4mpqucekxs40cqh8myp0zzp2efl4vsnz5jjyczxsvmvuqx54qajxy",
+      "public_key": "03311b1576107319b1a157e0173ec81788415653fab21315252260468336ce00d4",
+      "private_key": "39a2dfd1b9971cb40ab5a211b94802cdf36e1e0c91a6073814f8f3e694fe4f54"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "options": {
+        "network": "mainnet"
+      },
+      "style": "standard",
+      "index": 1,
+      "path": "m/8797555'/1'/0'",
+      "address": "spark1pgss982avmj9r5w2yakmhwxwhu4n403c2we5x4v7wlj67d400xzafcz2wqmjrs",
+      "public_key": "029d5d66e451d1ca276dbbb8cebf2b3abe3853b343559e77e5af36af7985d4e04a",
+      "private_key": "3a72e7a195c011717109f7397b0c11c739438444b26f0e6d5adbb32a8f7b5815"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "options": {
+        "network": "mainnet"
+      },
+      "style": "standard",
+      "index": 2,
+      "path": "m/8797555'/2'/0'",
+      "address": "spark1pgss8w228nycg30p8ktzfkvmln3m0k2tvsjt0ue2gqsfngkfsrys75h4dnzklr",
+      "public_key": "03b94a3cc98445e13d9624d99bfce3b7d94b6424b7f32a402099a2c980c90f52f5",
+      "private_key": "020fda3712ed5914d3de8573a2e8008aa37756d98aa648e192de336089357735"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "options": {
+        "network": "regtest"
+      },
+      "style": "standard",
+      "index": 0,
+      "path": "m/8797555'/0'/0'",
+      "address": "sparkrt1pgssxvgmz4mpqucekxs40cqh8myp0zzp2efl4vsnz5jjyczxsvmvuqx58xnw2m",
+      "public_key": "03311b1576107319b1a157e0173ec81788415653fab21315252260468336ce00d4",
+      "private_key": "39a2dfd1b9971cb40ab5a211b94802cdf36e1e0c91a6073814f8f3e694fe4f54"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "options": {
+        "network": "regtest"
+      },
+      "style": "standard",
+      "index": 1,
+      "path": "m/8797555'/1'/0'",
+      "address": "sparkrt1pgss982avmj9r5w2yakmhwxwhu4n403c2we5x4v7wlj67d400xzafcz2ux4w00",
+      "public_key": "029d5d66e451d1ca276dbbb8cebf2b3abe3853b343559e77e5af36af7985d4e04a",
+      "private_key": "3a72e7a195c011717109f7397b0c11c739438444b26f0e6d5adbb32a8f7b5815"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "options": {
+        "network": "regtest"
+      },
+      "style": "standard",
+      "index": 2,
+      "path": "m/8797555'/2'/0'",
+      "address": "sparkrt1pgss8w228nycg30p8ktzfkvmln3m0k2tvsjt0ue2gqsfngkfsrys75h4l4v2nu",
+      "public_key": "03b94a3cc98445e13d9624d99bfce3b7d94b6424b7f32a402099a2c980c90f52f5",
+      "private_key": "020fda3712ed5914d3de8573a2e8008aa37756d98aa648e192de336089357735"
+    }
+  ]
+}

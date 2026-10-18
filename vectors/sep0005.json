@@ -1,0 +1,118 @@
+{
+  "schema": 1,
+  "source": {
+    "kind": "official",
+    "name": "SEP-0005 test cases (stellar/stellar-protocol sep-0005.md)",
+    "version": "2020-06-16"
+  },
+  "cases": [
+    {
+      "mnemonic": "illness spike retreat truth genius clock brain pass fit cave bargain toe",
+      "passphrase": "",
+      "style": "sep5",
+      "index": 0,
+      "path": "m/44'/148'/0'",
+      "address": "GDRXE2BQUC3AZNPVFSCEZ76NJ3WWL25FYFK6RGZGIEKWE4SOOHSUJUJ6",
+      "private_key": "SBGWSG6BTNCKCOB3DIFBGCVMUPQFYPA2G4O34RMTB343OYPXU5DJDVMN"
+    },
+    {
+      "mnemonic": "illness spike retreat truth genius clock brain pass fit cave bargain toe",
+      "passphrase": "",
+      "style": "sep5",
+      "index": 1,
+      "path": "m/44'/148'/1'",
+      "address": "GBAW5XGWORWVFE2XTJYDTLDHXTY2Q2MO73HYCGB3XMFMQ562Q2W2GJQX",
+      "private_key": "SCEPFFWGAG5P2VX5DHIYK3XEMZYLTYWIPWYEKXFHSK25RVMIUNJ7CTIS"
+    },
+    {
+      "mnemonic": "illness spike retreat truth genius clock brain pass fit cave bargain toe",
+      "passphrase": "",
+      "style": "sep5",
+      "index": 2,
+      "path": "m/44'/148'/2'",
+      "address": "GAY5PRAHJ2HIYBYCLZXTHID6SPVELOOYH2LBPH3LD4RUMXUW3DOYTLXW",
+      "private_key": "SDAILLEZCSA67DUEP3XUPZJ7NYG7KGVRM46XA7K5QWWUIGADUZCZWTJP"
+    },
+    {
+      "mnemonic": "illness spike retreat truth genius clock brain pass fit cave bargain toe",
+      "passphrase": "",
+      "style": "sep5",
+      "index": 9,
+      "path": "m/44'/148'/9'",
+      "address": "GBTVYYDIYWGUQUTKX6ZMLGSZGMTESJYJKJWAATGZGITA25ZB6T5REF44",
+      "private_key": "SCJGVMJ66WAUHQHNLMWDFGY2E72QKSI3XGSBYV6BANDFUFE7VY4XNXXR"
+    },
+    {
+      "mnemonic": "resource asthma orphan phone ice canvas fire useful arch jewel impose vague theory cushion top",
+      "passphrase": "",
+      "style": "sep5",
+      "index": 0,
+      "path": "m/44'/148'/0'",
+      "address": "GAVXVW5MCK7Q66RIBWZZKZEDQTRXWCZUP4DIIFXCCENGW2P6W4OA34RH",
+      "private_key": "SAKS7I2PNDBE5SJSUSU2XLJ7K5XJ3V3K4UDFAHMSBQYPOKE247VHAGDB"
+    },
+    {
+      "mnemonic": "resource asthma orphan phone ice canvas fire useful arch jewel impose vague theory cushion top",
+      "passphrase": "",
+      "style": "sep5",
+      "index": 5,
+      "path": "m/44'/148'/5'",
+      "address": "GDKWYAJE3W6PWCXDZNMFNFQSPTF6BUDANE6OVRYMJKBYNGL62VKKCNCC",
+      "private_key": "SAVS4CDQZI6PSA5DPCC42S5WLKYIPKXPCJSFYY4N3VDK25T2XX2BTGVX"
+    },
+    {
+      "mnemonic": "bench hurt jump file august wise shallow faculty impulse spring exact slush thunder author capable act festival slice deposit sauce coconut afford frown better",
+      "passphrase": "",
+      "style": "sep5",
+      "index": 0,
+      "path": "m/44'/148'/0'",
+      "address": "GC3MMSXBWHL6CPOAVERSJITX7BH76YU252WGLUOM5CJX3E7UCYZBTPJQ",
+      "private_key": "SAEWIVK3VLNEJ3WEJRZXQGDAS5NVG2BYSYDFRSH4GKVTS5RXNVED5AX7"
+    },
+    {
+      "mnemonic": "bench hurt jump file august wise shallow faculty impulse spring exact slush thunder author capable act festival slice deposit sauce coconut afford frown better",
+      "passphrase": "",
+      "style": "sep5",
+      "index": 3,
+      "path": "m/44'/148'/3'",
+      "address": "GAFLH7DGM3VXFVUID7JUKSGOYG52ZRAQPZHQASVCEQERYC5I4PPJUWBD",
+      "private_key": "SBSGSAIKEF7JYQWQSGXKB4SRHNSKDXTEI33WZDRR6UHYQCQ5I6ZGZQPK"
+    },
+    {
+      "mnemonic": "cable spray genius state float twenty onion head street palace net private method loan turn phrase state blanket interest dry amazing dress blast tube",
+      "passphrase": "p4ssphr4se",
+      "style": "sep5",
+      "index": 0,
+      "path": "m/44'/148'/0'",
+      "address": "GDAHPZ2NSYIIHZXM56Y36SBVTV5QKFIZGYMMBHOU53ETUSWTP62B63EQ",
+      "private_key": "SAFWTGXVS7ELMNCXELFWCFZOPMHUZ5LXNBGUVRCY3FHLFPXK4QPXYP2X"
+    },
+    {
+      "mnemonic": "cable spray genius state float twenty onion head street palace net private method loan turn phrase state blanket interest dry amazing dress blast tube",
+      "passphrase": "p4ssphr4se",
+      "style": "sep5",
+      "index": 4,
+      "path": "m/44'/148'/4'",
+      "address": "GA6NHA4KPH5LFYD6LZH35SIX3DU5CWU3GX6GCKPJPPTQCCQPP627E3CB",
+      "private_key": "SA5TRXTO7BG2Z6QTQT3O2LC7A7DLZZ2RBTGUNCTG346PLVSSHXPNDVNT"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "sep5",
+      "index": 0,
+      "path": "m/44'/148'/0'",
+      "address": "GB3JDWCQJCWMJ3IILWIGDTQJJC5567PGVEVXSCVPEQOTDN64VJBDQBYX",
+      "private_key": "SBUV3MRWKNS6AYKZ6E6MOUVF2OYMON3MIUASWL3JLY5E3ISDJFELYBRZ"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "sep5",
+      "index": 2,
+      "path": "m/44'/148'/2'",
+      "address": "GBFPWBTN4AXHPWPTQVQBP4KRZ2YVYYOGRMV2PEYL2OBPPJDP7LECEVHR",
+      "private_key": "SAPLVTLUXSDLFRDGCCFLPDZMTCEVMP3ZXTM74EBJCVKZKM34LGQPF7K3"
+    }
+  ]
+}

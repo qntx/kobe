@@ -1,0 +1,127 @@
+{
+  "schema": 1,
+  "source": {
+    "kind": "reference",
+    "name": "casper",
+    "version": "@scure/bip32 2.4.0 + casper-js-sdk 5.1.1"
+  },
+  "cases": [
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "standard",
+      "index": 0,
+      "path": "m/44'/506'/0'/0/0",
+      "address": "020357f9e27d8125932c5e6fd52babb1a114bc89363f2f56c7860bb594f74523342b",
+      "public_key": "0357f9e27d8125932c5e6fd52babb1a114bc89363f2f56c7860bb594f74523342b",
+      "private_key": "9c72144893c3ca5fa7299e65a7d7d6c41ab6a7add5f9860618324854d3c369d1",
+      "extra": {
+        "account_hash": "account-hash-e699fcd4904aa6617b2930c6d8995a6f301708b6a64621820a5896d92e2457b3"
+      }
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "standard",
+      "index": 1,
+      "path": "m/44'/506'/0'/0/1",
+      "address": "0202e3a5ce338a771c7ef2ecf5374ef829e807fd394270cd82dbec1e026390880ea7",
+      "public_key": "02e3a5ce338a771c7ef2ecf5374ef829e807fd394270cd82dbec1e026390880ea7",
+      "private_key": "0de84d882ef1c3692b7929153ab62352cb55835588a9f17ff6f67086eb8c53c2",
+      "extra": {
+        "account_hash": "account-hash-584179e95d5dcd393e4bffaef86aaaa3d2d0aaab273748ba63e678801dad4fb9"
+      }
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "standard",
+      "index": 2,
+      "path": "m/44'/506'/0'/0/2",
+      "address": "0203f5384fdceb99fbb8e8c6964737aef593fb1ab23ea6ffde23e7f3c5f68e049512",
+      "public_key": "03f5384fdceb99fbb8e8c6964737aef593fb1ab23ea6ffde23e7f3c5f68e049512",
+      "private_key": "d7e610413af07511e438dc73b51874a1df147b5243b3c1b3d2aeb051b97ba20d",
+      "extra": {
+        "account_hash": "account-hash-10f4eb8659d742b52cb561bbc1b17ca50f11b162ada7c272f16a2a156bac650b"
+      }
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "standard",
+      "index": 0,
+      "path": "m/44'/506'/0'/0/0",
+      "address": "0202502ee26b37121a16c65302c0c775bcc964cfdd09db98d1d6eed9795f31550fe6",
+      "public_key": "02502ee26b37121a16c65302c0c775bcc964cfdd09db98d1d6eed9795f31550fe6",
+      "private_key": "3db7a5c92897c899b0c2838d489c1e76f8fa64d61a320d7b515f2a447212f3f0",
+      "extra": {
+        "account_hash": "account-hash-4ac80f9c9f63a7d564ff0f71b981ab938461cd2eac6c870758cc90084ff65f70"
+      }
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "standard",
+      "index": 1,
+      "path": "m/44'/506'/0'/0/1",
+      "address": "0203b060fca17165714b9e118e83836e9ea412087bc55fcf80ab7bea2513096f9449",
+      "public_key": "03b060fca17165714b9e118e83836e9ea412087bc55fcf80ab7bea2513096f9449",
+      "private_key": "aecb2b9f899772fcde6e97474ea8ef3f185e27d5488187483c3ad7b1042db251",
+      "extra": {
+        "account_hash": "account-hash-ea02a47e1cf79d96632c7990aebda7142bed21d88b10bb1b550781591fc4991e"
+      }
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "standard",
+      "index": 2,
+      "path": "m/44'/506'/0'/0/2",
+      "address": "02027294137425d729f0becce8a61b1e056004224933fd5ba8b729d326b6a25efe69",
+      "public_key": "027294137425d729f0becce8a61b1e056004224933fd5ba8b729d326b6a25efe69",
+      "private_key": "a46008212dda356420e05d04d8eaea8de9fd22fc0f75db1274944869114b6506",
+      "extra": {
+        "account_hash": "account-hash-c01428eb5ad8cbebcc96a7b5a190ff4d55145603b43fce1ecf9e70ec9299dc52"
+      }
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "standard",
+      "index": 0,
+      "path": "m/44'/506'/0'/0/0",
+      "address": "020340f11784cb301f8349887d631c8fcd752248c0f0788091b8d89a3bc66c7e9cfd",
+      "public_key": "0340f11784cb301f8349887d631c8fcd752248c0f0788091b8d89a3bc66c7e9cfd",
+      "private_key": "eec583c699e9554e90323bae4f909f1ce22e70250da1460abcd44a48ac8394c4",
+      "extra": {
+        "account_hash": "account-hash-398ab0ea99871887ff598fe9030729e38a739ce630edcc0820e6682d68dd43cf"
+      }
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "standard",
+      "index": 1,
+      "path": "m/44'/506'/0'/0/1",
+      "address": "020263390a7fc9e07531543e715625e91bd991d7ec9da1526c9ec055abcc81bbf253",
+      "public_key": "0263390a7fc9e07531543e715625e91bd991d7ec9da1526c9ec055abcc81bbf253",
+      "private_key": "2b7cf70842b146754cd2c2046e4329a4193ecf14ae4d70558e4ea020875f522f",
+      "extra": {
+        "account_hash": "account-hash-3f38baa7e196ef5b3a26966c85ece432787240bcfd78a725e372a9ccd0fa5259"
+      }
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "standard",
+      "index": 2,
+      "path": "m/44'/506'/0'/0/2",
+      "address": "0203428961cd25ca82494716873df7a76b4f620ba350b74f2fb4637d22835e03e96e",
+      "public_key": "03428961cd25ca82494716873df7a76b4f620ba350b74f2fb4637d22835e03e96e",
+      "private_key": "6a0a322aa29258ba9df124e75f98af94304f97c9541cd48fd2d710e9e810522e",
+      "extra": {
+        "account_hash": "account-hash-9a4fc3f072de382eb887642849096f5055c7eb58bdc5cbd1271aafc003bddc05"
+      }
+    }
+  ]
+}

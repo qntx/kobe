@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "source": {
+    "kind": "official",
+    "name": "rusty-kaspa crypto/addresses test vectors (kaspa Version::PubKey only)",
+    "version": "master 2025"
+  },
+  "cases": [
+    {
+      "prefix": "kaspatest",
+      "version": 0,
+      "public_key": "0000000000000000000000000000000000000000000000000000000000000000",
+      "address": "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqhqrxplya"
+    },
+    {
+      "prefix": "kaspa",
+      "version": 0,
+      "public_key": "0000000000000000000000000000000000000000000000000000000000000000",
+      "address": "kaspa:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqkx9awp4e"
+    },
+    {
+      "prefix": "kaspa",
+      "version": 0,
+      "public_key": "5fff3c4da18f45adcdd499e44611e9fff148ba69db3c4ea2ddd955fc46a59522",
+      "address": "kaspa:qp0l70zd5x85ttwd6jv7g3s3a8llzj96d8dncn4zmhv4tlzx5k2jyqh70xmfj"
+    }
+  ]
+}

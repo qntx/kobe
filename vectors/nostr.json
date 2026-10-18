@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "source": {
+    "kind": "reference",
+    "name": "nostr",
+    "version": "nostr-tools 2.25.2 nip06/nip19"
+  },
+  "cases": [
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "nip06",
+      "index": 0,
+      "path": "m/44'/1237'/0'/0/0",
+      "address": "npub1az708q3kd9zy6z6f44zav5ygvdwelkzspf6mtusttx47lft2z38sghk0w7",
+      "public_key": "e8bcf3823669444d0b49ad45d65088635d9fd8500a75b5f20b59abefa56a144f",
+      "private_key": "nsec1tu567wukwcvq9y880f8045n9cnp07299xqjxrae4jl76y6aj2ucs2mkupq"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "nip06",
+      "index": 1,
+      "path": "m/44'/1237'/1'/0/0",
+      "address": "npub1062km3rqunmrl3k9hj66kjj5z6gl7xf28xxdejs0u7hgmfrznhtqqt4s2w",
+      "public_key": "7e956dc460e4f63fc6c5bcb5ab4a541691ff192a398cdcca0fe7ae8da4629dd6",
+      "private_key": "nsec1vq7kg7awedr4zu0zk6kjxyfaf6s4q53x9e658a0yjyu8zscqw5ssxj49mf"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "nip06",
+      "index": 2,
+      "path": "m/44'/1237'/2'/0/0",
+      "address": "npub13decqens3pwk3yteh2yyd7jnjr8gksux2z6etvhunj8pa82eky2sv9vsap",
+      "public_key": "8b73806670885d689179ba8846fa5390ce8b438650b595b2fc9c8e1e9d59b115",
+      "private_key": "nsec1admal26lkphyzstv2zlcgr2nat809udhl608spw6wl277n45h0hquktcdg"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "nip06",
+      "index": 0,
+      "path": "m/44'/1237'/0'/0/0",
+      "address": "npub1rjn7fz3n6csx8uja08ccv97v3yh0qerz32hcpt6gteqcfy6reffq0p7slk",
+      "public_key": "1ca7e48a33d62063f25d79f18617cc892ef064628aaf80af485e41849343ca52",
+      "private_key": "nsec1zvhhc20zpl4fd6w3ru3pkr8c5yndnuykdm2fv0s7qrdwr4euap2sldmwkw"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "nip06",
+      "index": 1,
+      "path": "m/44'/1237'/1'/0/0",
+      "address": "npub1p3lp53h8ylvx646d0myyrwkacntswc4r2rjx9q845q7az2nzp5vq6286hh",
+      "public_key": "0c7e1a46e727d86d574d7ec841baddc4d70762a350e46280f5a03dd12a620d18",
+      "private_key": "nsec1mxkrxuxssptwkq2504tp6uzw3e8lqs8c6rsehwuaugjuz07d07gq3ftnu2"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "nip06",
+      "index": 2,
+      "path": "m/44'/1237'/2'/0/0",
+      "address": "npub1zhy7rlnyduv9keq4h3ajuvw32nqderwlgu8rjwupmwke2qal684q8cl0y3",
+      "public_key": "15c9e1fe646f185b6415bc7b2e31d154c0dc8ddf470e393b81dbad9503bfd1ea",
+      "private_key": "nsec1ceudfrd5hgwkplkwe4c3wr00vxky64gg2hpk5g8xapc8l0tt0ytqwwyz4m"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "nip06",
+      "index": 0,
+      "path": "m/44'/1237'/0'/0/0",
+      "address": "npub17v46v50fwtwq5rdc6xqxjznk6w2pqrk2k6u4jjcf2r5h5ua7k7hq2q3erf",
+      "public_key": "f32ba651e972dc0a0db8d180690a76d394100ecab6b9594b0950e97a73beb7ae",
+      "private_key": "nsec1c2jjw69jw24qh2kejyppr26aazgtcr6q5uw2uj64fyf8fwsu53nq3xhfs2"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "nip06",
+      "index": 1,
+      "path": "m/44'/1237'/1'/0/0",
+      "address": "npub18cydkyjym8dn03e6mpn2m393x2av3svuma2a9caugc7c5drwad7s8n759w",
+      "public_key": "3e08db1244d9db37c73ad866adc4b132bac8c19cdf55d2e3bc463d8a346eeb7d",
+      "private_key": "nsec139rwy2z7k95nvt3pmuy0lk4epxl6xwh0c0qzwsv3kz585f73k5hqpj3g27"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "nip06",
+      "index": 2,
+      "path": "m/44'/1237'/2'/0/0",
+      "address": "npub13efhtc79d8klhrcezx95rkrdunauumjdmhqvwyel7zg57funn3wqyzjf22",
+      "public_key": "8e5375e3c569edfb8f19118b41d86de4fbce6e4dddc0c7133ff0914f27939c5c",
+      "private_key": "nsec1d3my2sftceqf3darp5gh3sx46x47epgmuaxnuzfhsddtlwyfklgstwlcqz"
+    }
+  ]
+}

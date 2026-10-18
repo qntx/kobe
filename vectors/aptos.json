@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "source": {
+    "kind": "reference",
+    "name": "aptos",
+    "version": "@aptos-labs/ts-sdk 7.5.0 Account.fromDerivationPath (passphrase case: micro-key-producer 0.10.2 slip10 + Ed25519PrivateKey)"
+  },
+  "cases": [
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "standard",
+      "index": 0,
+      "path": "m/44'/637'/0'/0'/0'",
+      "address": "0xeb663b681209e7087d681c5d3eed12aaa8e1915e7c87794542c3f96e94b3d3bf",
+      "public_key": "a686f0309ab80312979606cfccc10ea2740147ae6888351488d11c46f08fbf60",
+      "private_key": "ed25519-priv-0xcc92c0eaf80206d817f150e21917f797e49cf644a33ac514de3c316baa2f1bf5"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "standard",
+      "index": 1,
+      "path": "m/44'/637'/1'/0'/0'",
+      "address": "0xf867372dfec13fb6c0740d4b574363685e10e6f243e9554ffa8f6e698e940efa",
+      "public_key": "7066056912887f31a78105b4dfea40a69172a3893f9f723aca9279e4f2cda7d4",
+      "private_key": "ed25519-priv-0x4c6f5a6b687631dd52f32c97457e895fb57947b9b827c6697c11cd7b2a075c5b"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "standard",
+      "index": 2,
+      "path": "m/44'/637'/2'/0'/0'",
+      "address": "0x6b09bb20f7fe6a471e5e0fe9875228e0c1bec845e267e34107b968c9c8952842",
+      "public_key": "eadcdd809a5273c63cc20423185985f96f5d72b72074527b68458b9753409be6",
+      "private_key": "ed25519-priv-0xd70c2108803fb710a21a758bb9c159aa4aec4395b134363005b55b097212ab7e"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "standard",
+      "index": 0,
+      "path": "m/44'/637'/0'/0'/0'",
+      "address": "0x226b5b5c15d19946b1fd26c3e4ad36833fd8c9c11c612b1327e608f824a5f2d4",
+      "public_key": "ba489e5562452afe9b4d4b4fdb0a1abcd4ddce7401276675a71715de5d6d16c2",
+      "private_key": "ed25519-priv-0xf9575dc1f8c70253c68a15ef784f8c1cf5907644c5d22d2617f0153ed892e6af"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "standard",
+      "index": 1,
+      "path": "m/44'/637'/1'/0'/0'",
+      "address": "0xf0f12cc090bb526434ecc758b5fd8547f806fe973f4e923f89e481a20b332828",
+      "public_key": "5ba5dddd21a18488d2f895b10f463c301bc5ed48cf839312915445d450b596ee",
+      "private_key": "ed25519-priv-0xda7572c4162db3db02e00e2c54df6cc08f234e5e58fa3dde71ee6aa9fa544b65"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "standard",
+      "index": 2,
+      "path": "m/44'/637'/2'/0'/0'",
+      "address": "0x2d38dfb8dff5cb748bd81c187626a9051129c06dfe2989742a341c98ec40f86a",
+      "public_key": "f7779da026e53d421223903bb1d0cb895e0672ac6e5ea1afb9a04091554835c0",
+      "private_key": "ed25519-priv-0x3de16be70cffcd438571b9e48070805340e766bc607629ef21b84f13e036e335"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "standard",
+      "index": 0,
+      "path": "m/44'/637'/0'/0'/0'",
+      "address": "0x53718253374d489c65ee9447c6c944880388e5168d8da2ae5e7c3ea69e049a1c",
+      "public_key": "ecffa5822aa6a7a78b98a4f8725a8eca7ed57cf01a0392ad5f6500837869953a",
+      "private_key": "ed25519-priv-0x3bcfc323f92f2765d1b97c5a5f8a741a87d5981f2d6119f2df93f621e9557841"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "standard",
+      "index": 1,
+      "path": "m/44'/637'/1'/0'/0'",
+      "address": "0xfc1479c5ea3a4c3c7c1c834fb52eea366d1170d76d08f936257b2b58904ee891",
+      "public_key": "47c8c6d83c441b79c6e39263a34e9c244a88f52e3181b27c16361a6a0e0e5d0e",
+      "private_key": "ed25519-priv-0x3fd2fe35b1d3388a3f40e931c76ce467a713f5c944514ee6160d4e0ba508450b"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "standard",
+      "index": 2,
+      "path": "m/44'/637'/2'/0'/0'",
+      "address": "0xd2741e3729bcd72fe7503e505f11f4849f75ac3f90809b0507e6a049b8b02e62",
+      "public_key": "05515a420c6435d6b137aec123bb1c1215dc8118517de83820a3981a7e343dac",
+      "private_key": "ed25519-priv-0xdbcab1c13ed5fe88943a187992e05d69aa908865266eb84e0df1d5665d81649d"
+    }
+  ]
+}
