@@ -34,8 +34,8 @@ Run the full gate before opening a PR:
 ```bash
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo clippy -p kobe --no-default-features -- -D warnings
-cargo clippy -p kobe --no-default-features --features all-chains -- -D warnings
+cargo clippy -p kobe --all-targets --no-default-features -- -D warnings
+cargo clippy -p kobe --all-targets --no-default-features --features all-chains -- -D warnings
 cargo test --workspace --all-features
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features
 cargo build -p kobe --no-default-features --features all-chains --target thumbv7m-none-eabi

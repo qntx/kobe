@@ -58,6 +58,10 @@ fn load(name: &str) -> Value {
     serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
 }
 
+#[cfg_attr(
+    not(feature = "all-chains"),
+    allow(dead_code, reason = "shared by the feature-gated chain tests")
+)]
 fn assert_case(chain: &dyn Chain, wallet: &Wallet, case: &Value) {
     let path: DerivationPath = case["path"].as_str().unwrap().parse().unwrap();
     let account = chain.derive(wallet, &path).unwrap();
@@ -84,6 +88,14 @@ fn assert_case(chain: &dyn Chain, wallet: &Wallet, case: &Value) {
         "private_key at {}",
         case["path"]
     );
+    assert_eq!(
+        account.extra.len(),
+        case.get("extra")
+            .and_then(Value::as_object)
+            .map_or(0, serde_json::Map::len),
+        "extra field count at {}",
+        case["path"]
+    );
     for (key, value) in &account.extra {
         assert_eq!(
             case["extra"][key].as_str().unwrap(),
@@ -94,6 +106,10 @@ fn assert_case(chain: &dyn Chain, wallet: &Wallet, case: &Value) {
     }
 }
 
+#[cfg_attr(
+    not(feature = "all-chains"),
+    allow(dead_code, reason = "shared by the feature-gated chain tests")
+)]
 fn wallet(case: &Value) -> Wallet {
     Wallet::from_mnemonic(
         case["mnemonic"].as_str().unwrap(),
@@ -104,6 +120,10 @@ fn wallet(case: &Value) -> Wallet {
 
 /// Drive every case in a generated reference file, checking the covered
 /// style set is exactly `expected_styles` in file order.
+#[cfg_attr(
+    not(feature = "all-chains"),
+    allow(dead_code, reason = "shared by the feature-gated chain tests")
+)]
 fn reference_file(name: &str, chain: &dyn Fn(&Value) -> Box<dyn Chain>, expected_styles: &[&str]) {
     let file = load(name);
     let mut seen_styles = Vec::new();
