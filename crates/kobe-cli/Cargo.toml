@@ -19,6 +19,7 @@ workspace = true
 [[bin]]
 name = "kobe"
 path = "src/main.rs"
+doc  = false
 
 [dependencies]
 kobe       = { workspace = true, features = ["std", "os-rng", "all-chains"] }
