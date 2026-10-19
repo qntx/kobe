@@ -1,0 +1,35 @@
+---
+title: Security
+description: kobe's security model — offline derivation, zeroization, hygiene.
+---
+
+kobe is `#![forbid(unsafe_code)]`, `no_std` + `alloc`, and makes no network or
+system calls. Entropy comes from the OS CSPRNG only when the `os-rng` feature
+is enabled (`kobe-cli` enables it; the library does not by default).
+
+Private keys and seeds live inside `Zeroizing` buffers for their whole
+lifetime; `SecretKey` and `Account` implement `Debug` without exposing secret
+material. The CLI stdin read goes straight into a zeroizing `String`, and
+mnemonic errors name the 1-based word position without echoing the input.
+Report vulnerabilities via
+[SECURITY.md](https://github.com/qntx/kobe/blob/main/SECURITY.md).
+
+## `--reveal` and shell history
+
+`private_key` fields and the mnemonic print only when `-r` is passed; human
+output shows `<hidden>` otherwise. Prefer `-m -` (stdin) over passing a
+mnemonic as an argument — an argument is recorded in shell history and is
+visible in `ps`. Never pipe real secrets through this tool on a shared or
+online machine; kobe is designed for offline/airgapped derivation.
+
+## Reference vectors
+
+Every chain and style is pinned to vectors in
+[`vectors/`](https://github.com/qntx/kobe/tree/main/vectors) — official
+test vectors where they exist, otherwise generated with an independent
+implementation and recorded in each file's `source` field. `cargo test
+--all-features` asserts every case byte-for-byte, and
+`scripts/vectors/crosscheck.ts` re-derives all accounts against Trust Wallet
+Core as a second source (`bun run crosscheck`; Wallet Core does not cover
+Kaspa, Nostr, Spark, Casper, TON V5R1, Ledger/Trezor Cardano masters, or
+BIP-39 passphrases for Cardano).

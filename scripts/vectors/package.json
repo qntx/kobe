@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "generate": "bun run generate.ts"
+    "generate": "bun run generate.ts",
+    "crosscheck": "bun run crosscheck.ts"
   },
   "dependencies": {
     "@aptos-labs/ts-sdk": "7.5.0",
@@ -25,6 +26,7 @@
     "@stellar/stellar-sdk": "17.2.1",
     "@ton/core": "0.63.1",
     "@ton/ton": "16.3.0",
+    "@trustwallet/wallet-core": "4.8.4",
     "bs58": "6.0.0",
     "casper-js-sdk": "5.1.1",
     "micro-key-producer": "0.10.2",

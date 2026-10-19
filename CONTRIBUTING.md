@@ -69,20 +69,35 @@ Rust tests in `crates/kobe/tests/vectors.rs` assert `path`, `address`,
 `public_key`, `private_key`, and `extra` byte-for-byte. A chain is not done
 until its vectors pass.
 
+### Second-source check
+
+```bash
+cargo build -p kobe-cli && cd scripts/vectors && bun run crosscheck
+```
+
+Re-derives every CLI account with Trust Wallet Core (C++/WASM) — a source
+independent of the reference packages behind `vectors/` — and checks every
+path against an independently written template table; it must end with
+`0 failures`. Wallet Core lacks kaspa, nostr, spark, casper, TON V5R1 and
+the Ledger/Trezor Cardano masters, and ignores the BIP-39 passphrase for
+Cardano; those cases rely on `vectors/` alone.
+
 ## Adding a chain
 
-1. `crates/kobe/src/<chain>.rs` — one `Chain` impl: option enums via
-   `option_enum!`, `styles()` as `Style::new(...)` lines, `derive()`.
+1. `crates/kobe/src/chains/<chain>.rs` — one `Chain` impl: option enums via
+   `option_enum!`, `styles()` as `Style::new(...)` lines, `derive()`; wire the
+   module in `crates/kobe/src/chains/mod.rs` behind its feature. Canonical
+   name = module = feature = CLI command.
 2. Feature flag in `crates/kobe/Cargo.toml` (`<chain> = [...]` minimal deps)
-   and in `all-chains`; module in `crates/kobe/src/lib.rs` behind the feature.
-3. CLI variant in `crates/kobe-cli/src/main.rs` (`Command` + spec + dispatch,
-   chain flags as clap args over the library enums).
+   and in `all-chains`.
+3. CLI variant in `crates/kobe-cli/src/cli.rs` (`Command` + clap args over
+   the library enums) and a `spec()` arm in `crates/kobe-cli/src/target.rs`.
 4. Reference vectors: extend `scripts/vectors/generate.ts`, regenerate, and
    cover every style and every option variant (networks, kinds, contracts,
    presets) at indices 0–2 for the 12-word, 24-word, and passphrase seeds.
 5. Rust test in `crates/kobe/tests/vectors.rs` asserting every field
    byte-for-byte; CLI smoke case in `crates/kobe-cli/tests/cli.rs`.
-6. A row in the README chain/style and output tables.
+6. A row in the `docs/chains.mdx` chain/style and output tables.
 
 ## Releasing
 

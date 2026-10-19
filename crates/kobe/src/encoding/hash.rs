@@ -2,12 +2,12 @@
 
 /// `RIPEMD-160(SHA-256(data))` — Bitcoin-style script-hash payloads.
 #[cfg(any(
-    feature = "btc",
-    feature = "ltc",
-    feature = "doge",
-    feature = "bch",
+    feature = "bitcoin",
+    feature = "litecoin",
+    feature = "dogecoin",
+    feature = "bitcoin-cash",
     feature = "cosmos",
-    feature = "xrp",
+    feature = "xrpl",
 ))]
 pub(crate) fn hash160(data: &[u8]) -> [u8; 20] {
     use ripemd::Ripemd160;
@@ -19,12 +19,12 @@ pub(crate) fn hash160(data: &[u8]) -> [u8; 20] {
 
 /// `SHA-256(SHA-256(data))` — `Base58Check` checksums.
 #[cfg(any(
-    feature = "btc",
-    feature = "ltc",
-    feature = "doge",
-    feature = "bch",
+    feature = "bitcoin",
+    feature = "litecoin",
+    feature = "dogecoin",
+    feature = "bitcoin-cash",
     feature = "tron",
-    feature = "xrp",
+    feature = "xrpl",
 ))]
 pub(crate) fn double_sha256(data: &[u8]) -> [u8; 32] {
     use sha2::{Digest, Sha256};
@@ -46,14 +46,14 @@ pub(crate) fn eth_address_bytes(public_key: &[u8; 65]) -> [u8; 20] {
 }
 
 /// `BLAKE2b-160` — Filecoin address payloads.
-#[cfg(feature = "fil")]
+#[cfg(feature = "filecoin")]
 pub(crate) fn blake2b_160(data: &[u8]) -> [u8; 20] {
     use blake2::Digest;
     blake2::Blake2b::<blake2::digest::consts::U20>::digest(data).into()
 }
 
 /// `BLAKE2b-224` — Cardano key hashes.
-#[cfg(feature = "ada")]
+#[cfg(feature = "cardano")]
 pub(crate) fn blake2b_224(data: &[u8]) -> [u8; 28] {
     use blake2::Digest;
     blake2::Blake2b::<blake2::digest::consts::U28>::digest(data).into()

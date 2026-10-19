@@ -1,0 +1,64 @@
+---
+title: CLI
+description: The kobe command-line interface — flags, styles, and output.
+---
+
+```text
+kobe [--json] [-r|--reveal] <COMMAND>
+kobe mnemonic [-w 12|15|18|21|24]
+kobe <chain> [shared flags] [chain flags]
+```
+
+Every chain command shares the same flags:
+
+| Flag               | Description                                                                                      |
+| ------------------ | ------------------------------------------------------------------------------------------------ |
+| `-m, --mnemonic`   | Import a mnemonic; `-` reads one line from stdin. Words may be unique ≥4-letter BIP-39 prefixes. |
+| `-w, --words`      | Word count when generating: 12/15/18/21/24 (conflicts with `-m`).                                |
+| `-p, --passphrase` | BIP-39 passphrase.                                                                               |
+| `-s, --style`      | Style id or alias, case-insensitive (see [Chains](/docs/kobe/chains)).                           |
+| `--path`           | Custom path template; `{i}` marks the iterated index (conflicts with `-s`).                      |
+| `-i, --index`      | First iterated index (defaults to the style's `start`).                                          |
+| `-c, --count`      | Number of accounts (default 1).                                                                  |
+| `--json`           | Machine-readable output.                                                                         |
+| `-r, --reveal`     | Show mnemonic and private keys (hidden by default).                                              |
+
+Without `-m` the command generates a fresh mnemonic. `kobe mnemonic` always
+prints the phrase — it is the output.
+
+## Output
+
+Human mode prints the chain id, the resolved options, style id and template,
+then one block per account (`address`, `public_key`, `private_key`, chain
+extras). Secrets render as `<hidden>` unless `-r` is passed.
+
+`--json` emits:
+
+```json
+{
+  "chain": "cardano",
+  "options": { "master": "icarus", "network": "mainnet" },
+  "style": "standard",
+  "template": "m/1852'/1815'/{i}'/0/0",
+  "mnemonic": "…",            // only with --reveal
+  "passphrase": false,
+  "accounts": [
+    {
+      "index": 0,             // null when the template has no {i}
+      "path": "m/1852'/1815'/0'/0/0",
+      "address": "addr1…",
+      "public_key": "…",
+      "private_key": "…",     // only with --reveal
+      "stake_address": "stake1…"   // chain extras are flattened per account
+    }
+  ]
+}
+```
+
+Errors exit non-zero; in `--json` mode the error is `{"error": "…"}` on
+stdout with exit code 1. Mnemonic errors name the 1-based word position
+(`word 3 is not a BIP-39 English word`) and never echo the input.
+
+`-m -` reads exactly one line from stdin into a zeroizing buffer. Word tokens
+may be exact BIP-39 English words or unique prefixes of at least 4 letters
+(`aban aban … abou` imports the `abandon … about` test vector).

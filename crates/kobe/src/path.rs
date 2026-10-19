@@ -57,7 +57,7 @@ impl ChildIndex {
     }
 
     /// The BIP-32 wire value: index with the hardened bit applied.
-    #[cfg(any(feature = "hd-bip32", feature = "hd-slip10", feature = "ada"))]
+    #[cfg(any(feature = "hd-bip32", feature = "hd-slip10", feature = "cardano"))]
     pub(crate) const fn wire(self) -> u32 {
         self.0
     }

@@ -137,7 +137,7 @@ impl Wallet {
     pub fn from_mnemonic(phrase: &str, passphrase: &str) -> Result<Self, Error> {
         let mnemonic = Mnemonic::parse_in(Language::English, phrase)
             .map_err(|e| Error::Mnemonic(e.to_string()))?;
-        Ok(Self::from_parts(&mnemonic, passphrase))
+        Ok(Self::from_parts(mnemonic, passphrase))
     }
 
     /// Import a wallet from raw entropy bytes.
@@ -152,15 +152,31 @@ impl Wallet {
         }
         let mnemonic = Mnemonic::from_entropy_in(Language::English, entropy)
             .map_err(|e| Error::Mnemonic(e.to_string()))?;
-        Ok(Self::from_parts(&mnemonic, passphrase))
+        Ok(Self::from_parts(mnemonic, passphrase))
     }
 
-    fn from_parts(mnemonic: &Mnemonic, passphrase: &str) -> Self {
+    fn from_parts(mnemonic: Mnemonic, passphrase: &str) -> Self {
+        let mnemonic = Zeroizing::new(mnemonic);
+        // Join `words()` into a pre-sized buffer instead of `to_string()` —
+        // no reallocation ever holds half-written secret characters.
+        let mut phrase = Zeroizing::new(String::with_capacity(
+            mnemonic
+                .words()
+                .map(|w| w.len() + 1)
+                .sum::<usize>()
+                .saturating_sub(1),
+        ));
+        for (i, word) in mnemonic.words().enumerate() {
+            if i > 0 {
+                phrase.push(' ');
+            }
+            phrase.push_str(word);
+        }
         Self {
-            mnemonic: Zeroizing::new(mnemonic.to_string()),
-            passphrase: Zeroizing::new(String::from(passphrase)),
             seed: Zeroizing::new(mnemonic.to_seed(passphrase)),
             entropy: Zeroizing::new(mnemonic.to_entropy()),
+            mnemonic: phrase,
+            passphrase: Zeroizing::new(String::from(passphrase)),
         }
     }
 

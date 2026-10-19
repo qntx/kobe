@@ -46,7 +46,12 @@ impl Node {
     }
 
     /// The 65-byte SEC1-uncompressed public key (`0x04 ‖ x ‖ y`).
-    #[cfg(any(feature = "evm", feature = "tron", feature = "cosmos", feature = "fil"))]
+    #[cfg(any(
+        feature = "evm",
+        feature = "tron",
+        feature = "cosmos",
+        feature = "filecoin"
+    ))]
     pub(crate) fn public_key_uncompressed(&self) -> [u8; 65] {
         let point = self.xprv.private_key().verifying_key().to_sec1_point(false);
         let mut out = [0u8; 65];

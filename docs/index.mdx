@@ -1,0 +1,29 @@
+---
+title: kobe
+description: Pure, offline BIP-39 HD wallet generator in Rust.
+---
+
+kobe turns a BIP-39 mnemonic into keys and addresses for 20 chains. It is a
+pure, offline generator: a `no_std + alloc` library crate (`kobe`) plus the
+`kobe` CLI (`kobe-cli`). No signing, no vault, no storage, no network — kobe
+derives keys and addresses, nothing else.
+
+```bash
+kobe mnemonic -w 24                 # fresh 24-word BIP-39 phrase
+kobe bitcoin -m "abandon … about"   # derive from an existing mnemonic
+kobe evm -s ledger-live -c 3        # 3 Ledger-Live-style accounts
+kobe cardano --json                 # machine-readable output
+```
+
+Every chain and every derivation style is pinned to official or independently
+generated reference vectors in [`vectors/`](https://github.com/qntx/kobe/tree/main/vectors),
+verified byte-for-byte in CI and cross-checked against Trust Wallet Core.
+
+The stateful self-custodial wallet SDK (vault, sessions, signing) lives at
+[qntx/wallet](https://github.com/qntx/wallet); kobe only generates keys and
+addresses.
+
+Out of scope: Polkadot/Substrate (sr25519 + substrate-bip39 is not BIP-32/SLIP-10
+HD), TON-native / Monero / Algorand-native mnemonics, Arweave, the Solana Sollet
+legacy path, transaction signing, mnemonic camouflage, and non-English
+wordlists.

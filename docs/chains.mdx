@@ -1,0 +1,115 @@
+---
+title: Chains
+description: Supported chains, derivation styles, and output formats.
+---
+
+`{i}` is the iterated index (the `-i`/`-c` sweep). Aliases are accepted for
+`-s`. Commands take ticker aliases only (e.g. `kobe btc` ≡ `kobe bitcoin`).
+
+| Chain        | Command                   | Options                                                                          | Style                      | Template                   | Wallets                                                                                                          |
+| ------------ | ------------------------- | -------------------------------------------------------------------------------- | -------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Bitcoin      | `bitcoin` (`btc`)         | `--type p2pkh\|p2sh-p2wpkh\|p2wpkh\|p2tr`, `--network mainnet\|testnet\|regtest` | `standard`                 | `m/<p>'/0'/0'/0/{i}`       | Sparrow, Electrum, BlueWallet, Trust Wallet                                                                      |
+|              |                           |                                                                                  | `account` (`ledger-live`)  | `m/<p>'/0'/{i}'/0/0`       | Ledger Live, Trezor Suite, OneKey                                                                                |
+| Litecoin     | `litecoin` (`ltc`)        | `--type p2pkh\|p2sh-p2wpkh\|p2wpkh`                                              | `standard`                 | `m/<p>'/2'/0'/0/{i}`       | Electrum-LTC, Trust Wallet                                                                                       |
+|              |                           |                                                                                  | `account` (`ledger-live`)  | `m/<p>'/2'/{i}'/0/0`       | Ledger Live, Trezor Suite, OneKey                                                                                |
+| Dogecoin     | `dogecoin` (`doge`)       |                                                                                  | `standard`                 | `m/44'/3'/0'/0/{i}`        | Trust Wallet                                                                                                     |
+|              |                           |                                                                                  | `account` (`ledger-live`)  | `m/44'/3'/{i}'/0/0`        | Ledger Live, Trezor Suite, OneKey                                                                                |
+| Bitcoin Cash | `bitcoin-cash` (`bch`)    |                                                                                  | `standard`                 | `m/44'/145'/0'/0/{i}`      | Electron Cash, Trust Wallet                                                                                      |
+|              |                           |                                                                                  | `account` (`ledger-live`)  | `m/44'/145'/{i}'/0/0`      | Ledger Live, OneKey                                                                                              |
+| EVM          | `evm` (`eth`, `ethereum`) |                                                                                  | `standard`                 | `m/44'/60'/0'/0/{i}`       | MetaMask, Rabby, Trezor Suite, OneKey, Trust Wallet                                                              |
+|              |                           |                                                                                  | `ledger-live`              | `m/44'/60'/{i}'/0/0`       | Ledger Live                                                                                                      |
+|              |                           |                                                                                  | `ledger-legacy` (`mew`)    | `m/44'/60'/0'/{i}`         | Ledger Live (legacy), MyEtherWallet, MyCrypto                                                                    |
+| TRON         | `tron` (`trx`)            |                                                                                  | `standard`                 | `m/44'/195'/0'/0/{i}`      | TronLink, OneKey, Trust Wallet                                                                                   |
+|              |                           |                                                                                  | `ledger-live`              | `m/44'/195'/{i}'/0/0`      | Ledger Live                                                                                                      |
+| Cosmos       | `cosmos` (`atom`)         | `--chain <preset>`, `--hrp`                                                      | `standard`                 | `m/44'/118'/0'/0/{i}`      | Keplr, Leap, Cosmostation, OneKey, Trust Wallet                                                                  |
+|              |                           |                                                                                  | `ledger-live`              | `m/44'/118'/{i}'/0/0`      | Ledger Live                                                                                                      |
+| XRP Ledger   | `xrpl` (`xrp`)            |                                                                                  | `standard`                 | `m/44'/144'/0'/0/{i}`      | Xaman, Trust Wallet                                                                                              |
+|              |                           |                                                                                  | `ledger-live`              | `m/44'/144'/{i}'/0/0`      | Ledger Live, OneKey                                                                                              |
+| Filecoin     | `filecoin` (`fil`)        | `--network mainnet\|testnet`                                                     | `standard`                 | `m/44'/461'/0'/0/{i}`      | Glif, Ledger Live, OneKey, Trust Wallet                                                                          |
+| Kaspa        | `kaspa` (`kas`)           | `--network mainnet\|testnet`, `--encoding standard\|onekey`                      | `standard`                 | `m/44'/111111'/0'/0/{i}`   | Kaspa NG, Kaspium, KasWare, OneKey (Kaspa Official); OneKey (default Kaspa account) on `onekey`                  |
+| Nostr        | `nostr`                   |                                                                                  | `nip06`                    | `m/44'/1237'/{i}'/0/0`     | OneKey, nostr-tools                                                                                              |
+| Spark        | `spark`                   | `--network mainnet\|regtest`                                                     | `standard`                 | `m/8797555'/{i}'/0'`       | Spark SDK (index starts at 1 on mainnet)                                                                         |
+| Casper       | `casper` (`cspr`)         |                                                                                  | `standard`                 | `m/44'/506'/0'/0/{i}`      | Casper Wallet, Ledger Live                                                                                       |
+| Solana       | `solana` (`sol`)          |                                                                                  | `bip44-change` (`phantom`) | `m/44'/501'/{i}'/0'`       | Phantom, Solflare, Backpack, OneKey, Ledger Live, Solana CLI (`?key=i/0`)                                        |
+|              |                           |                                                                                  | `bip44` (`trust`)          | `m/44'/501'/{i}'`          | Ledger Live, Trust Wallet                                                                                        |
+|              |                           |                                                                                  | `root`                     | `m/44'/501'`               | Ledger Live (first account)                                                                                      |
+| Sui          | `sui`                     |                                                                                  | `standard`                 | `m/44'/784'/{i}'/0'/0'`    | Slush, Suiet, OneKey, Ledger Live, Trust Wallet                                                                  |
+| Aptos        | `aptos` (`apt`)           |                                                                                  | `standard`                 | `m/44'/637'/{i}'/0'/0'`    | Petra, Pontem, OneKey, Ledger Live, Trust Wallet                                                                 |
+| TON          | `ton`                     | `--contract v4r2\|v5r1`, `--testnet`, `--bounceable`                             | `standard`                 | `m/44'/607'/{i}'`          | OneKey, Trust Wallet                                                                                             |
+|              |                           |                                                                                  | `ledger-live`              | `m/44'/607'/0'/0'/{i}'/0'` | Ledger Live                                                                                                      |
+| Stellar      | `stellar` (`xlm`)         |                                                                                  | `sep5`                     | `m/44'/148'/{i}'`          | Lobstr, Freighter, Ledger Live, OneKey, Trust Wallet                                                             |
+| NEAR         | `near`                    |                                                                                  | `standard`                 | `m/44'/397'/{i}'`          | MyNearWallet, Meteor, near-cli, OneKey, Trust Wallet                                                             |
+|              |                           |                                                                                  | `ledger-live`              | `m/44'/397'/0'/0'/{i}'`    | Ledger Live                                                                                                      |
+| Cardano      | `cardano` (`ada`)         | `--network mainnet\|testnet`, `--master icarus\|ledger\|icarus-trezor`           | `standard`                 | `m/1852'/1815'/{i}'/0/0`   | Yoroi, Eternl, Lace, Typhon, Daedalus, Trust Wallet (icarus); Trezor Suite (icarus-trezor); Ledger Live (ledger) |
+
+Where a wallet appears without a path of its own (Trust Wallet in
+particular) it derives a single account at index `0`.
+
+## Cosmos presets
+
+`--chain`: `cosmos`, `osmosis`, `celestia`, `dydx`, `sei`, `akash`, `terra`,
+`secret`, `kava`, `injective`, `evmos` — each fixes the BIP-44 coin type and
+bech32 HRP; `--hrp` overrides only the prefix.
+
+## Kaspa `--encoding`
+
+`standard` addresses carry the x-only schnorr public key; `onekey` carries
+the BIP-341 key-path-tweaked key used by the OneKey default Kaspa account
+type. The exported `private_key` is the untweaked raw key either way.
+
+## Solana `root`
+
+Ledger Live's `solanaMain` derivation mode — a single, non-iterating account
+at `m/44'/501'` (no `{i}`).
+
+## Cardano `--master`
+
+The CIP-3 master-key algorithm: `icarus` (Yoroi/Daedalus Shelley, Trezor
+<24 words), `ledger` (Ledger devices), `icarus-trezor` (Trezor 24-word
+mnemonics). Custom `--path` must keep the `m/1852'/1815'/a'/0/n` shape; the
+stake key is always derived at `m/1852'/1815'/a'/2/0` for the same account
+and emitted in `extra.stake_address`.
+
+## TON options
+
+`--contract` selects the wallet contract (`v4r2` subwallet
+`698983191 + workchain`, `v5r1` `networkGlobalId ^ clientContext`);
+`--testnet` emits testnet-only addresses (`0Q…`/`kQ…`); `--bounceable`
+emits bounceable ones (`EQ…`/`kQ…`).
+
+## Spark caveats
+
+- The official Spark SDK derives its seed with `mnemonicToSeed(mnemonic)` and
+  never applies a BIP-39 passphrase, so a kobe Spark address generated with
+  `-p` is only reachable in the SDK by passing that seed directly.
+- `private_key` is only the identity key at `m/8797555'/{account}'/0'` —
+  Spark wallets also use signing/deposit/static-deposit/HTLC keys at `/1'`
+  through `/4'`; restore a Spark wallet from the mnemonic, not from this key.
+- Spark is not Lightning: kobe derives no Lightning node keys, and Spark L1
+  deposit addresses depend on operator keys and cannot be derived offline.
+
+## Output formats
+
+Every account emits `path`, `address`, `public_key`, and `private_key` (the
+chain's wallet-import encoding):
+
+| Chain                                | `address`                                            | `private_key`                    | `extra`                           |
+| ------------------------------------ | ---------------------------------------------------- | -------------------------------- | --------------------------------- |
+| bitcoin / litecoin / dogecoin        | Base58Check or bech32 (`bc1q…`, `ltc1…`, `D…`)       | compressed WIF                   |                                   |
+| bitcoin-cash                         | CashAddr `bitcoincash:q…`                            | compressed WIF                   |                                   |
+| evm                                  | EIP-55 `0x…`                                         | `0x` hex                         |                                   |
+| tron                                 | Base58Check `T…`                                     | hex (no prefix)                  |                                   |
+| cosmos                               | bech32 per preset / `--hrp`                          | hex                              |                                   |
+| xrpl                                 | classic `r…` (XRPL alphabet)                         | hex                              |                                   |
+| filecoin                             | `f1…` / `t1…` (blake2b-160)                          | Lotus export JSON as hex         |                                   |
+| kaspa                                | `kaspa:` / `kaspatest:` (x-only pubkey)              | hex                              |                                   |
+| nostr                                | NIP-19 `npub…`                                       | `nsec…`                          |                                   |
+| spark                                | bech32m `spark1…` / `sparkrt1…`                      | hex                              |                                   |
+| casper                               | tagged pubkey hex `02…`                              | hex                              | `account_hash` (`account-hash-…`) |
+| solana                               | base58 pubkey                                        | base58 `sk‖pk` keypair           |                                   |
+| sui                                  | `0x…` (blake2b-256 with scheme flag)                 | `suiprivkey1…` bech32            |                                   |
+| aptos                                | `0x…` (sha3-256 with scheme flag)                    | AIP-80 `ed25519-priv-0x…`        |                                   |
+| ton                                  | user-friendly base64url `UQ…`/`EQ…`                  | hex                              |                                   |
+| stellar                              | StrKey `G…`                                          | StrKey `S…`                      |                                   |
+| near                                 | implicit account = hex pubkey                        | `ed25519:base58(sk‖pk)`          |                                   |
+| cardano                              | Shelley base `addr1…` / `addr_test1…`                | CIP-5 `addr_xsk1…`               | `stake_address` (`stake1…`)       |

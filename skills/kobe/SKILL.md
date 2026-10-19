@@ -46,26 +46,26 @@ kobe <chain> [-m PHRASE|-] [-w N] [-p PASSPHRASE] [-s STYLE | --path TEMPLATE] [
 
 | Chain | Command | Aliases | Chain flags |
 | ----- | ------- | ------- | ----------- |
-| Bitcoin | `btc` | `bitcoin` | `--type p2pkh\|p2sh-p2wpkh\|p2wpkh\|p2tr`, `--network mainnet\|testnet\|regtest` |
-| Litecoin | `ltc` | `litecoin` | `--type p2pkh\|p2sh-p2wpkh\|p2wpkh` |
-| Dogecoin | `doge` | `dogecoin` | |
-| Bitcoin Cash | `bch` | `bitcoincash` | |
+| Bitcoin | `bitcoin` | `btc` | `--type p2pkh\|p2sh-p2wpkh\|p2wpkh\|p2tr`, `--network mainnet\|testnet\|regtest` |
+| Litecoin | `litecoin` | `ltc` | `--type p2pkh\|p2sh-p2wpkh\|p2wpkh` |
+| Dogecoin | `dogecoin` | `doge` | |
+| Bitcoin Cash | `bitcoin-cash` | `bch` | |
 | EVM | `evm` | `eth`, `ethereum` | |
 | TRON | `tron` | `trx` | |
 | Cosmos | `cosmos` | `atom` | `--chain <preset>`, `--hrp <prefix>` |
-| XRP | `xrp` | `xrpl` | |
-| Filecoin | `fil` | `filecoin` | `--network mainnet\|testnet` |
-| Kaspa | `kaspa` | `kas` | `--network mainnet\|testnet` |
+| XRP Ledger | `xrpl` | `xrp` | |
+| Filecoin | `filecoin` | `fil` | `--network mainnet\|testnet` |
+| Kaspa | `kaspa` | `kas` | `--network mainnet\|testnet`, `--encoding standard\|onekey` |
 | Nostr | `nostr` | | |
 | Spark | `spark` | | `--network mainnet\|regtest` (mainnet starts at index 1) |
 | Casper | `casper` | `cspr` | |
-| Solana | `sol` | `solana`, `svm` | |
+| Solana | `solana` | `sol` | |
 | Sui | `sui` | | |
 | Aptos | `aptos` | `apt` | |
 | TON | `ton` | | `--contract v4r2\|v5r1`, `--testnet`, `--bounceable` |
-| Stellar | `xlm` | `stellar` | |
+| Stellar | `stellar` | `xlm` | |
 | NEAR | `near` | | |
-| Cardano | `ada` | `cardano` | `--network mainnet\|testnet`, `--master icarus\|ledger\|icarus-trezor` |
+| Cardano | `cardano` | `ada` | `--network mainnet\|testnet`, `--master icarus\|ledger\|icarus-trezor` |
 
 Cosmos `--chain` presets: `cosmos osmosis celestia dydx sei akash terra secret
 kava injective evmos`; `--hrp` overrides only the bech32 prefix.
@@ -79,14 +79,17 @@ Yoroi/Daedalus Shelley and Trezor <24 words, `ledger` = Ledger devices,
 
 Each chain's `--help` lists its styles with template and compatible wallets.
 Notable ids: `standard`/`account` (alias `ledger-live`) on the BIP-32 family,
-`ledger-live`/`ledger-legacy`(`mew`) on EVM, `bip44-change`(`phantom`) and
-`bip44`(`trust`) on Solana, `nip06` on Nostr, `sep5` on Stellar.
+`ledger-live`/`ledger-legacy`(`mew`) on EVM, `bip44-change`(`phantom`),
+`bip44`(`trust`), and `root` (Ledger Live `solanaMain`, non-iterating
+`m/44'/501'`) on Solana, `nip06` on Nostr, `sep5` on Stellar. Kaspa
+`--encoding onekey` addresses carry the BIP-341-tweaked x-only key (the
+exported `private_key` stays the untweaked raw key).
 
 ## JSON output
 
 ```json
 {
-  "chain": "ada",
+  "chain": "cardano",
   "options": { "master": "icarus", "network": "mainnet" },
   "style": "standard",
   "template": "m/1852'/1815'/{i}'/0/0",
@@ -109,11 +112,13 @@ Notable ids: `standard`/`account` (alias `ledger-live`) on the BIP-32 family,
 
 ```sh
 kobe mnemonic -w 24
-kobe btc -m "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
-kobe btc -m - --reveal                       # mnemonic from stdin
+kobe bitcoin -m "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+kobe bitcoin -m - --reveal                   # mnemonic from stdin
 kobe evm -s ledger-live -c 5
 kobe cosmos --chain injective -c 3 --json
-kobe ada --network testnet --master ledger
+kobe kaspa --encoding onekey
+kobe solana -s root
+kobe cardano --network testnet --master ledger
 kobe --json ton --contract v5r1 --testnet
 ```
 

@@ -3,7 +3,7 @@ members  = ["crates/*"]
 resolver = "3"
 
 [workspace.package]
-version      = "5.0.0"
+version      = "6.0.0"
 edition      = "2024"
 rust-version = "1.99"
 license      = "MIT OR Apache-2.0"
@@ -14,8 +14,8 @@ keywords     = ["crypto", "wallet", "bitcoin", "ethereum", "solana"]
 categories   = ["cryptography::cryptocurrencies"]
 
 [workspace.dependencies]
-kobe     = { version = "=5.0.0", path = "crates/kobe", default-features = false }
-kobe-cli = { version = "=5.0.0", path = "crates/kobe-cli" }
+kobe     = { version = "=6.0.0", path = "crates/kobe", default-features = false }
+kobe-cli = { version = "=6.0.0", path = "crates/kobe-cli" }
 
 base64         = { version = "0.23.1", default-features = false, features = ["alloc"] }
 bech32         = { version = "0.12.0", default-features = false, features = ["alloc"] }

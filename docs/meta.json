@@ -1,0 +1,5 @@
+{
+  "title": "kobe",
+  "description": "Pure offline HD wallet generator.",
+  "pages": ["index", "install", "cli", "chains", "library", "security"]
+}

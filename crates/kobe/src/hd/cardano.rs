@@ -17,10 +17,10 @@ type HmacSha512 = Hmac<Sha512>;
 /// 96-byte extended private key material (`kL ‖ kR ‖ chain code`).
 pub(crate) type XPrvBytes = Zeroizing<[u8; 96]>;
 
-/// ED25519-BIP32 clamping on `kL` (the scalar half of the extended key).
-///
-/// Icarus clears bits 0-2, 5 and 7 and sets bit 6 of the last byte;
-/// Ledger's `hash_repeatedly` already guarantees bit 5 is clear.
+/// ED25519-BIP32 clamping on `kL` (the scalar half of the extended key):
+/// `kL[0] &= 0b1111_1000`; Icarus additionally `kL[31] &= 0b0001_1111`;
+/// Ledger `kL[31] &= 0b0111_1111` (bit 5 is already clear after
+/// `hash_repeatedly`); both then `kL[31] |= 0b0100_0000`.
 const fn tweak_bits(data: &mut [u8; 96], icarus: bool) {
     let (kl, _) = data.split_at_mut(32);
     if let Some(kl0) = kl.first_mut() {
@@ -112,13 +112,16 @@ fn ledger(seed: &[u8; 64]) -> Result<XPrvBytes, Error> {
 
 /// The CIP-3 master key for `wallet` under `master` (one of the three
 /// algorithms above).
-pub(crate) fn master_key(master: crate::ada::Master, wallet: &Wallet) -> Result<XPrvBytes, Error> {
+pub(crate) fn master_key(
+    master: crate::chains::cardano::Master,
+    wallet: &Wallet,
+) -> Result<XPrvBytes, Error> {
     match master {
-        crate::ada::Master::Icarus => Ok(icarus(wallet.entropy(), wallet.passphrase())),
-        crate::ada::Master::IcarusTrezor => {
+        crate::chains::cardano::Master::Icarus => Ok(icarus(wallet.entropy(), wallet.passphrase())),
+        crate::chains::cardano::Master::IcarusTrezor => {
             Ok(icarus_trezor(wallet.entropy(), wallet.passphrase()))
         }
-        crate::ada::Master::Ledger => ledger(wallet.seed()),
+        crate::chains::cardano::Master::Ledger => ledger(wallet.seed()),
     }
 }
 
@@ -130,7 +133,7 @@ mod tests {
     use serde_json::Value;
 
     use super::*;
-    use crate::ada::Master;
+    use crate::chains::cardano::Master;
 
     const VECTORS: &str = include_str!("../../../../vectors/cip3.json");
 
