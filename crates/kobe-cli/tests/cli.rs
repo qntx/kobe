@@ -260,8 +260,17 @@ fn errors_exit_nonzero() {
     let bad_prefix = kobe(&["evm", "-m", "abandon bogus", "--json"]);
     assert_eq!(bad_prefix.status.code(), Some(1), "json error exit code");
     let error = parsed(&bad_prefix)["error"].as_str().unwrap().to_owned();
-    assert!(error.contains("word 2"), "error reports the word position");
+    assert_eq!(
+        error, "word 2 is not a BIP-39 English word or prefix",
+        "error reports the word position"
+    );
     assert!(!error.contains("bogus"), "error must not echo the word");
+    // A short non-word keeps the plain "not a word" message.
+    let short = parsed(&kobe(&["evm", "-m", "abandon zz", "--json"]))["error"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert_eq!(short, "word 2 is not a BIP-39 English word");
     // Unknown style lists the available ones.
     let bad_style = kobe(&["evm", "-m", M12, "-s", "bogus", "--json"]);
     assert!(

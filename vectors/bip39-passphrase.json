@@ -2,7 +2,7 @@
   "schema": 1,
   "source": {
     "kind": "generated",
-    "generator": "kobe-core + @qntx/kobe (cross-confirmed; the zero-entropy mnemonics and the 12-word seed are the canonical BIP-39 values, also covered by vectors/bip39/trezor.json); passphrase-rule cases verbatim from kobe-v4.0.0 vectors/core/bip39.json",
+    "generator": "kobe-core + @qntx/kobe (cross-confirmed; the zero-entropy mnemonics and the 12-word seed are the canonical BIP-39 values, also covered by vectors/bip39/trezor.json); passphrase-rule cases verbatim from v4.0.0 vectors/core/bip39.json",
     "version": "3.4.0",
     "reference": "Seeds cross-checked with Node.js v24.21.0 crypto.pbkdf2Sync(mnemonic, \"mnemonic\" + passphrase.normalize(\"NFKD\"), 2048, 64, \"sha512\")"
   },

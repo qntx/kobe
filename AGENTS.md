@@ -36,6 +36,8 @@
 Local gate before a pull request:
 
 ```bash
+npx --yes @taplo/cli@0.7.0 fmt --check
+npx --yes markdownlint-cli2@0.23.3 "*.md" "skills/**/*.md"
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo clippy -p kobe --all-targets --no-default-features -- -D warnings
