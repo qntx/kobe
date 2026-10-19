@@ -582,7 +582,7 @@ dependencies = [
 
 [[package]]
 name = "kobe"
-version = "5.0.0"
+version = "6.0.0"
 dependencies = [
  "base64",
  "bech32",
@@ -610,7 +610,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-cli"
-version = "5.0.0"
+version = "6.0.0"
 dependencies = [
  "bip39",
  "clap",

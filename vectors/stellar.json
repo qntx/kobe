@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "source": {
+    "kind": "reference",
+    "name": "stellar",
+    "version": "micro-key-producer 0.10.2 slip10 + @stellar/stellar-sdk 17.2.1 StrKey"
+  },
+  "cases": [
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "sep5",
+      "index": 0,
+      "path": "m/44'/148'/0'",
+      "address": "GB3JDWCQJCWMJ3IILWIGDTQJJC5567PGVEVXSCVPEQOTDN64VJBDQBYX",
+      "public_key": "7691d85048acc4ed085d9061ce0948bbdf7de6a92b790aaf241d31b7dcaa4238",
+      "private_key": "SBUV3MRWKNS6AYKZ6E6MOUVF2OYMON3MIUASWL3JLY5E3ISDJFELYBRZ"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "sep5",
+      "index": 1,
+      "path": "m/44'/148'/1'",
+      "address": "GDVSYYTUAJ3ACHTPQNSTQBDQ4LDHQCMNY4FCEQH5TJUMSSLWQSTG42MV",
+      "public_key": "eb2c62740276011e6f8365380470e2c678098dc70a2240fd9a68c9497684a66e",
+      "private_key": "SCHDCVCWGAKGIMTORV6K5DYYV3BY4WG3RA4M6MCBGJLHUCWU2MC6DL66"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "style": "sep5",
+      "index": 2,
+      "path": "m/44'/148'/2'",
+      "address": "GBFPWBTN4AXHPWPTQVQBP4KRZ2YVYYOGRMV2PEYL2OBPPJDP7LECEVHR",
+      "public_key": "4afb066de02e77d9f3856017f151ceb15c61c68b2ba7930bd382f7a46ffac822",
+      "private_key": "SAPLVTLUXSDLFRDGCCFLPDZMTCEVMP3ZXTM74EBJCVKZKM34LGQPF7K3"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "sep5",
+      "index": 0,
+      "path": "m/44'/148'/0'",
+      "address": "GB3TCCIC6KLYKM72PX7KA6RNYC2BHC7DQYDMEAAN7PDMUZQD7UKJGSSY",
+      "public_key": "77310902f2978533fa7dfea07a2dc0b4138be38606c2000dfbc6ca6603fd1493",
+      "private_key": "SDJPGZWJUCCGAU7AONCQH4O2STD725OLHPO2GPJZJC2GWG35BAGK6XS5"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "sep5",
+      "index": 1,
+      "path": "m/44'/148'/1'",
+      "address": "GBDJ5GGW764LWDTKNYZWXFLOTLCTIFWQDEV2HGPRSCAIPLVRK5SVDXQZ",
+      "public_key": "469e98d6ffb8bb0e6a6e336b956e9ac53416d0192ba399f1908087aeb1576551",
+      "private_key": "SCAX3ZGTF5YJQACRP7QZLAWRXIYEINEMRWTB4MGEBZB7ACAIP4V7FLGJ"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "style": "sep5",
+      "index": 2,
+      "path": "m/44'/148'/2'",
+      "address": "GCJY74BLAUTSTX6ALLVOKXETLF4Z2VEKNZLSNJDUJU7TBYNPQMZMO4JN",
+      "public_key": "938ff02b052729dfc05aeae55c9359799d548a6e5726a4744d3f30e1af8332c7",
+      "private_key": "SDHGYLLFBQX5FWEBYFAOP77RQAIXLLUXOB3HGVSUFFI2ZQAKIEMGGTMK"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "sep5",
+      "index": 0,
+      "path": "m/44'/148'/0'",
+      "address": "GBXISQLLM6OGWWZU7SCNF2GOJSQLHJU3I76P23J6IDSJGKEEGM2AJYG5",
+      "public_key": "6e89416b679c6b5b34fc84d2e8ce4ca0b3a69b47fcfd6d3e40e4932884333404",
+      "private_key": "SBGPMJZEIUP4742TKLMUIURMSMPNOSZQYXASNEI24JDN4PTNCSHSZXCK"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "sep5",
+      "index": 1,
+      "path": "m/44'/148'/1'",
+      "address": "GDYKW7WDIGLXMST6G323J4WC4UWDZXSMRAE4P4PUGHVERJKB65RVGZAF",
+      "public_key": "f0ab7ec34197764a7e36f5b4f2c2e52c3cde4c8809c7f1f431ea48a541f76353",
+      "private_key": "SBAUD2LTOLSPFB6LSKQZW5QEZJ5XKQOTW5ZOS26IQXSUKM7WG4RP5MCT"
+    },
+    {
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "TREZOR",
+      "style": "sep5",
+      "index": 2,
+      "path": "m/44'/148'/2'",
+      "address": "GDVZFU5A5C2B544D6JTJ3QQBCBL3U7BL6GNDB2QHEPCZQELP6PWZK5HH",
+      "public_key": "eb92d3a0e8b41ef383f2669dc2011057ba7c2bf19a30ea0723c598116ff3ed95",
+      "private_key": "SAIMNEVNR5FIIAWRM6EELJDJIUYETFAJ64FDK6WWFVACYSIZNCVF42GA"
+    }
+  ]
+}

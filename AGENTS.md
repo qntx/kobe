@@ -19,8 +19,10 @@
 - Secret material (entropy, mnemonic, seed, private keys) lives in
   `Zeroizing` buffers and is redacted from `Debug`; `String`/`Vec` copies of
   secret-derived bytes are never produced outside a `Zeroizing` guard.
-- Each chain is a feature-gated module with one `Chain` impl; chain option
-  enums use `option_enum!` and are the single source of truth for CLI choices.
+- Each chain is a feature-gated module under `crates/kobe/src/chains/` with
+  one `Chain` impl, reachable as `kobe::chains::<name>`; chain option enums
+  use `option_enum!` and are the single source of truth for CLI choices.
+  Canonical name = module = Cargo feature = CLI command (ticker aliases only).
 - Every chain and every style is backed by official or independent reference
   vectors in `vectors/`, asserted byte-for-byte in `cargo test`.
 - Dependencies are declared once in `[workspace.dependencies]`; `deny.toml`
@@ -57,4 +59,10 @@ Regenerate reference vectors after touching a chain:
 
 ```bash
 cd scripts/vectors && bun install && bun run generate
+```
+
+Second-source audit of the CLI against Trust Wallet Core:
+
+```bash
+cargo build -p kobe-cli && cd scripts/vectors && bun run crosscheck
 ```

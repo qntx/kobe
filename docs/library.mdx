@@ -1,0 +1,42 @@
+---
+title: Library
+description: Using the kobe crate — example, features, and no_std.
+---
+
+```toml
+kobe = { version = "6", features = ["bitcoin"] }   # or "all-chains"
+```
+
+```rust
+use kobe::{Wallet, chains::bitcoin::{Bitcoin, Type, Network}};
+// word indices are wiped on drop
+let mnemonic = bip39::Mnemonic::from_phrase(
+    "abandon abandon abandon abandon abandon abandon
+     abandon abandon abandon abandon abandon about",
+    bip39::Language::English,
+)?;
+let wallet = Wallet::from_mnemonic(mnemonic, "TREZOR")?;
+let chain = Bitcoin::new(Type::P2wpkh, Network::Mainnet);
+let account = wallet.account(&chain, "m/84'/0'/0'/0/0")?;
+assert_eq!(
+    account.address,
+    "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu",
+);
+```
+
+This example is exercised by a doctest on the `chains::bitcoin` module, so it
+is compiled and run by `cargo test --all-features`.
+
+Chain types live under `kobe::chains::<name>`; the feature name equals the
+CLI command. Feature `all-chains` enables every chain. Root re-exports:
+`Wallet`, `Account`, `SecretKey`, `Chain`, `Error`, `DerivationPath`,
+`ChildIndex`, `Style`, `WordCount`.
+
+Chain features: `bitcoin litecoin dogecoin bitcoin-cash evm tron cosmos xrpl
+filecoin kaspa nostr spark casper solana sui aptos ton stellar near cardano`.
+
+## no_std
+
+`kobe` is `#![no_std]` + `alloc`. Builds cleanly for `thumbv7m-none-eabi` and
+`wasm32-unknown-unknown`; `getrandom` only enters the tree through the `os-rng`
+feature (enabled by `kobe-cli` and no other crate).

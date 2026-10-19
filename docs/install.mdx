@@ -1,0 +1,31 @@
+---
+title: Install
+description: Install the kobe CLI or depend on the kobe crate.
+---
+
+CLI:
+
+```bash
+curl -fsSL https://sh.qntx.org/kobe | sh
+```
+
+```powershell
+irm https://sh.qntx.org/kobe/ps | iex
+```
+
+```bash
+cargo install kobe-cli
+```
+
+Pre-built binaries for macOS, Linux, and Windows are attached to every
+[GitHub release](https://github.com/qntx/kobe/releases).
+
+Library (enable chains explicitly):
+
+```toml
+kobe = { version = "6", features = ["bitcoin"] }   # or "all-chains"
+```
+
+Chain types live under `kobe::chains::<name>`; the feature name equals the
+CLI command (`bitcoin litecoin dogecoin bitcoin-cash evm tron cosmos xrpl
+filecoin kaspa nostr spark casper solana sui aptos ton stellar near cardano`).

@@ -4,6 +4,65 @@ All notable changes to this project are documented in this file. The format is
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.0.0] - 2026-10-19
+
+### Changed
+
+- **BREAKING CHANGE**: canonical chain naming — Cargo feature = Rust module =
+  CLI command. Renames: `btc`→`bitcoin`, `ltc`→`litecoin`, `doge`→`dogecoin`,
+  `bch`→`bitcoin-cash` (module `bitcoin_cash`), `xrp`→`xrpl`, `fil`→`filecoin`,
+  `sol`→`solana`, `xlm`→`stellar`, `ada`→`cardano`. CLI keeps ticker aliases
+  only (`btc`, `ltc`, `doge`, `bch`, `xrp`, `fil`, `sol`, `xlm`, `ada`, `kas`,
+  `trx`, `atom`, `cspr`, `apt`, `eth`, `ethereum`); non-ticker aliases were
+  removed. Vector files renamed to match (`vectors/bitcoin.json`, …).
+- **BREAKING CHANGE**: library layout — chain implementations now live under
+  `kobe::chains::<name>` (e.g. `kobe::chains::bitcoin::Bitcoin`) with no root
+  re-exports of chain modules (`Account`, `SecretKey`, `Chain`, `Wallet`,
+  `Style`, `DerivationPath` and friends stay at the crate root). Internally,
+  encoders live in `encoding/` submodules, derivation engines in `hd/`, and
+  TON TL-B cell hashing in `chains/ton/cell.rs`. The `kobe-cli` binary is split into
+  `cli`/`target`/`mnemonic`/`render`/`help` modules.
+- **BREAKING CHANGE**: `kobe::btc::Bitcoin`→`kobe::chains::bitcoin::Bitcoin`,
+  `Evm` struct name kept, `Xrpl`/`Filecoin`/`Solana`/`Stellar`/`Cardano` and
+  friends renamed to match their modules; `Kaspa::new` now takes
+  `(network, encoding)`.
+- Wallet-compatibility labels on every `Style` audited against the wallets'
+  own derivation settings (OneKey account template, Ledger Live modes,
+  Trust Wallet index-0, etc.).
+- **BREAKING CHANGE**: `kobe-cli` mnemonic-prefix error messages report the
+  1-based word position instead of echoing the offending word.
+- Documentation moved from `README.md` to `docs/` (Fumadocs tree, synced to
+  docs.qntx.org); the README is a minimal landing page again.
+- Version bump to 6.0.0 for the renamed modules/features/commands.
+
+### Added
+
+- Solana style `root` (`m/44'/501'`, non-iterating) — Ledger Live's
+  `solanaMain` derivation mode ("Ledger Live (first account)").
+- Kaspa `--encoding onekey`: the address carries the BIP-341 key-path-tweaked
+  x-only key (shared `encoding::taproot` with Bitcoin P2TR) while
+  `private_key` stays the untweaked raw key, matching OneKey's default Kaspa
+  account type.
+- `vectors/bip39-passphrase.json`: restored v4 passphrase-rule vectors —
+  NFC/NFD passphrases derive the same seed, empty passphrase equals none,
+  passphrases are never trimmed; asserted through the public API.
+- `scripts/vectors/crosscheck.ts`: a second-source audit that re-derives
+  every CLI account with Trust Wallet Core (`bun run crosscheck`).
+
+### Fixed
+
+- BIP-341 taproot tweak now fails on `t >= n` (as `taproot_tweak_pubkey`
+  requires) instead of reducing the scalar mod n; unreachable for any real
+  key.
+
+### Security
+
+- The parsed `bip39::Mnemonic` and the phrase string are built in
+  `Zeroizing` buffers — phrase assembled from `mnemonic.words()` into a
+  pre-sized string (no `to_string()` regrowth), and the CLI stdin read goes
+  straight into a `Zeroizing<String>` with error messages that never echo
+  mnemonic content.
+
 ## [5.0.0] - 2026-10-19
 
 A ground-up rewrite of kobe as a pure, offline HD wallet **generator**: BIP-39

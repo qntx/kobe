@@ -1,6 +1,6 @@
 //! Byte-for-byte checks against official and reference vector files in
-//! `vectors/`: BIP-39 (Trezor), BIP-84, BIP-86, plus generated btc/evm/sol
-//! case files produced by `scripts/vectors`.
+//! `vectors/`: BIP-39 (Trezor), BIP-39 passphrase rules, BIP-84, BIP-86,
+//! plus generated chain case files produced by `scripts/vectors`.
 #![allow(
     unused_crate_dependencies,
     clippy::tests_outside_test_module,
@@ -11,46 +11,46 @@
 
 use serde_json::Value;
 
-#[cfg(feature = "ada")]
-use kobe::ada::Cardano;
 #[cfg(feature = "aptos")]
-use kobe::aptos::Aptos;
-#[cfg(feature = "bch")]
-use kobe::bch::BitcoinCash;
-#[cfg(feature = "btc")]
-use kobe::btc::{Bitcoin, Kind, Network};
+use kobe::chains::aptos::Aptos;
+#[cfg(feature = "bitcoin")]
+use kobe::chains::bitcoin::{Bitcoin, Kind, Network};
+#[cfg(feature = "bitcoin-cash")]
+use kobe::chains::bitcoin_cash::BitcoinCash;
+#[cfg(feature = "cardano")]
+use kobe::chains::cardano::Cardano;
 #[cfg(feature = "casper")]
-use kobe::casper::Casper;
+use kobe::chains::casper::Casper;
 #[cfg(feature = "cosmos")]
-use kobe::cosmos::Cosmos;
-#[cfg(feature = "doge")]
-use kobe::doge::Dogecoin;
+use kobe::chains::cosmos::Cosmos;
+#[cfg(feature = "dogecoin")]
+use kobe::chains::dogecoin::Dogecoin;
 #[cfg(feature = "evm")]
-use kobe::evm::Evm;
-#[cfg(feature = "fil")]
-use kobe::fil::Filecoin;
+use kobe::chains::evm::Evm;
+#[cfg(feature = "filecoin")]
+use kobe::chains::filecoin::Filecoin;
 #[cfg(feature = "kaspa")]
-use kobe::kaspa::Kaspa;
-#[cfg(feature = "ltc")]
-use kobe::ltc::Litecoin;
+use kobe::chains::kaspa::Kaspa;
+#[cfg(feature = "litecoin")]
+use kobe::chains::litecoin::Litecoin;
 #[cfg(feature = "near")]
-use kobe::near::Near;
+use kobe::chains::near::Near;
 #[cfg(feature = "nostr")]
-use kobe::nostr::Nostr;
-#[cfg(feature = "sol")]
-use kobe::sol::Solana;
+use kobe::chains::nostr::Nostr;
+#[cfg(feature = "solana")]
+use kobe::chains::solana::Solana;
 #[cfg(feature = "spark")]
-use kobe::spark::Spark;
+use kobe::chains::spark::Spark;
+#[cfg(feature = "stellar")]
+use kobe::chains::stellar::Stellar;
 #[cfg(feature = "sui")]
-use kobe::sui::Sui;
+use kobe::chains::sui::Sui;
 #[cfg(feature = "ton")]
-use kobe::ton::Ton;
+use kobe::chains::ton::Ton;
 #[cfg(feature = "tron")]
-use kobe::tron::Tron;
-#[cfg(feature = "xlm")]
-use kobe::xlm::Stellar;
-#[cfg(feature = "xrp")]
-use kobe::xrp::Xrpl;
+use kobe::chains::tron::Tron;
+#[cfg(feature = "xrpl")]
+use kobe::chains::xrpl::Xrpl;
 use kobe::{Chain, DerivationPath, Wallet};
 
 fn load(name: &str) -> Value {
@@ -151,8 +151,50 @@ fn bip39_trezor() {
     }
 }
 
+/// BIP-39 passphrase rules (v4 vectors, verbatim): NFC and NFD forms of the
+/// same passphrase produce the same seed, the empty passphrase equals none,
+/// and passphrases are never trimmed. The seed itself is private, so each
+/// case is observed through a fixed derived Solana address.
+#[cfg(feature = "solana")]
+#[test]
+fn bip39_passphrase() {
+    let file = load("bip39-passphrase");
+    let cases = file["cases"].as_array().unwrap();
+    let path: DerivationPath = "m/44'/501'/0'/0'".parse().unwrap();
+    let derive = |case: &Value| -> (String, bool) {
+        let w = Wallet::from_mnemonic(
+            case["mnemonic"].as_str().unwrap(),
+            case["passphrase"].as_str().unwrap(),
+        )
+        .unwrap();
+        (
+            Solana.derive(&w, &path).unwrap().address,
+            w.has_passphrase(),
+        )
+    };
+
+    let mut addresses = Vec::new();
+    for case in cases {
+        addresses.push(derive(case));
+    }
+    // The empty passphrase reports "none".
+    assert!(!addresses.first().unwrap().1, "empty passphrase is none");
+    // NFC "élève" and NFD "élève" derive the same address (cases 2 and 3).
+    assert_eq!(
+        addresses.get(2).unwrap().0,
+        addresses.get(3).unwrap().0,
+        "NFC vs NFD passphrase"
+    );
+    // "  spaced  " is not trimmed to "spaced" (cases 4 and 5).
+    assert_ne!(
+        addresses.get(4).unwrap().0,
+        addresses.get(5).unwrap().0,
+        "passphrase must not be trimmed"
+    );
+}
+
 /// BIP-84 official vectors: P2WPKH addresses on mainnet.
-#[cfg(feature = "btc")]
+#[cfg(feature = "bitcoin")]
 #[test]
 fn bip84_p2wpkh() {
     let file = load("bip84");
@@ -171,7 +213,7 @@ fn bip84_p2wpkh() {
 }
 
 /// BIP-86 official vectors: internal key, tweaked output key, address.
-#[cfg(feature = "btc")]
+#[cfg(feature = "bitcoin")]
 #[test]
 fn bip86_p2tr() {
     let file = load("bip86");
@@ -203,11 +245,11 @@ fn bip86_p2tr() {
 }
 
 /// Generated reference vectors: all kinds, networks, styles, mnemonics.
-#[cfg(feature = "btc")]
+#[cfg(feature = "bitcoin")]
 #[test]
-fn btc_reference() {
+fn bitcoin_reference() {
     reference_file(
-        "btc",
+        "bitcoin",
         &|case| {
             let options = &case["options"];
             Box::new(Bitcoin::new(
@@ -229,10 +271,14 @@ fn evm_reference() {
     );
 }
 
-#[cfg(feature = "sol")]
+#[cfg(feature = "solana")]
 #[test]
-fn sol_reference() {
-    reference_file("sol", &|_| Box::new(Solana), &["bip44-change", "bip44"]);
+fn solana_reference() {
+    reference_file(
+        "solana",
+        &|_| Box::new(Solana),
+        &["bip44-change", "bip44", "root"],
+    );
 }
 
 /// NIP-06 official vectors (from vectors/nip06.json); same case shape as the
@@ -248,7 +294,7 @@ fn nip06_official() {
 
 /// SEP-0005 official vectors (from vectors/sep0005.json): strkey address and
 /// secret seed. The file carries no raw `public_key` field.
-#[cfg(feature = "xlm")]
+#[cfg(feature = "stellar")]
 #[test]
 fn sep0005_official() {
     let file = load("sep0005");
@@ -275,11 +321,11 @@ fn sep0005_official() {
     }
 }
 
-#[cfg(feature = "ltc")]
+#[cfg(feature = "litecoin")]
 #[test]
-fn ltc_reference() {
+fn litecoin_reference() {
     reference_file(
-        "ltc",
+        "litecoin",
         &|case| {
             Box::new(Litecoin::new(
                 case["options"]["kind"].as_str().unwrap().parse().unwrap(),
@@ -289,16 +335,24 @@ fn ltc_reference() {
     );
 }
 
-#[cfg(feature = "doge")]
+#[cfg(feature = "dogecoin")]
 #[test]
-fn doge_reference() {
-    reference_file("doge", &|_| Box::new(Dogecoin), &["standard", "account"]);
+fn dogecoin_reference() {
+    reference_file(
+        "dogecoin",
+        &|_| Box::new(Dogecoin),
+        &["standard", "account"],
+    );
 }
 
-#[cfg(feature = "bch")]
+#[cfg(feature = "bitcoin-cash")]
 #[test]
-fn bch_reference() {
-    reference_file("bch", &|_| Box::new(BitcoinCash), &["standard", "account"]);
+fn bitcoin_cash_reference() {
+    reference_file(
+        "bitcoin-cash",
+        &|_| Box::new(BitcoinCash),
+        &["standard", "account"],
+    );
 }
 
 #[cfg(feature = "tron")]
@@ -324,17 +378,17 @@ fn cosmos_reference() {
     );
 }
 
-#[cfg(feature = "xrp")]
+#[cfg(feature = "xrpl")]
 #[test]
-fn xrp_reference() {
-    reference_file("xrp", &|_| Box::new(Xrpl), &["standard", "ledger-live"]);
+fn xrpl_reference() {
+    reference_file("xrpl", &|_| Box::new(Xrpl), &["standard", "ledger-live"]);
 }
 
-#[cfg(feature = "fil")]
+#[cfg(feature = "filecoin")]
 #[test]
-fn fil_reference() {
+fn filecoin_reference() {
     reference_file(
-        "fil",
+        "filecoin",
         &|case| {
             Box::new(Filecoin::new(
                 case["options"]["network"]
@@ -354,12 +408,13 @@ fn kaspa_reference() {
     reference_file(
         "kaspa",
         &|case| {
+            let options = &case["options"];
             Box::new(Kaspa::new(
-                case["options"]["network"]
+                options["network"].as_str().unwrap().parse().unwrap(),
+                options["encoding"]
                     .as_str()
-                    .unwrap()
-                    .parse()
-                    .unwrap(),
+                    .map(|s| s.parse().unwrap())
+                    .unwrap_or_default(),
             ))
         },
         &["standard"],
@@ -425,10 +480,10 @@ fn ton_reference() {
     );
 }
 
-#[cfg(feature = "xlm")]
+#[cfg(feature = "stellar")]
 #[test]
-fn xlm_reference() {
-    reference_file("xlm", &|_| Box::new(Stellar), &["sep5"]);
+fn stellar_reference() {
+    reference_file("stellar", &|_| Box::new(Stellar), &["sep5"]);
 }
 
 #[cfg(feature = "near")]
@@ -437,11 +492,11 @@ fn near_reference() {
     reference_file("near", &|_| Box::new(Near), &["standard", "ledger-live"]);
 }
 
-#[cfg(feature = "ada")]
+#[cfg(feature = "cardano")]
 #[test]
-fn ada_reference() {
+fn cardano_reference() {
     reference_file(
-        "ada",
+        "cardano",
         &|case| {
             let options = &case["options"];
             Box::new(Cardano::new(

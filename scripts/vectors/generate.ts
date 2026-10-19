@@ -133,9 +133,9 @@ for (const s of SEEDS) {
         }
 }
 emitCounted(
-  "btc",
+  "bitcoin",
   file(
-    "btc",
+    "bitcoin",
     "@scure/bip32 2.4.0 + @scure/btc-signer 2.4.1 (seeds: @scure/bip39 2.4.0)",
     btcCases
   )
@@ -173,8 +173,8 @@ for (const s of SEEDS) {
       }
 }
 emitCounted(
-  "ltc",
-  file("ltc", "@scure/bip32 2.4.0 + @scure/btc-signer 2.4.1 (LTC params)", ltcCases)
+  "litecoin",
+  file("litecoin", "@scure/bip32 2.4.0 + @scure/btc-signer 2.4.1 (LTC params)", ltcCases)
 );
 
 const dogeCases: Case[] = [];
@@ -198,8 +198,8 @@ for (const s of SEEDS) {
     }
 }
 emitCounted(
-  "doge",
-  file("doge", "@scure/bip32 2.4.0 + @scure/btc-signer 2.4.1 (DOGE params)", dogeCases)
+  "dogecoin",
+  file("dogecoin", "@scure/bip32 2.4.0 + @scure/btc-signer 2.4.1 (DOGE params)", dogeCases)
 );
 
 // bch — @bitauth/libauth cashaddr
@@ -229,7 +229,7 @@ for (const s of SEEDS) {
       });
     }
 }
-emitCounted("bch", file("bch", "@scure/bip32 2.4.0 + @bitauth/libauth 3.0.0 cashaddr", bchCases));
+emitCounted("bitcoin-cash", file("bitcoin-cash", "@scure/bip32 2.4.0 + @bitauth/libauth 3.0.0 cashaddr", bchCases));
 
 // evm — viem
 const EVM_STYLES = [
@@ -414,9 +414,9 @@ for (const s of SEEDS)
       }
     }
 emitCounted(
-  "xrp",
+  "xrpl",
   file(
-    "xrp",
+    "xrpl",
     "xrpl 5.3.0 Wallet.fromMnemonic (hex normalized to lowercase, 00 seed prefix stripped); passphrase cases: @scure/bip32 2.4.0 + ripple-address-codec",
     xrpCases
   )
@@ -454,8 +454,8 @@ for (const s of SEEDS) {
     }
 }
 emitCounted(
-  "fil",
-  file("fil", "@scure/bip32 2.4.0 + @glif/filecoin-address 4.0.0", filCases)
+  "filecoin",
+  file("filecoin", "@scure/bip32 2.4.0 + @glif/filecoin-address 4.0.0", filCases)
 );
 
 // kaspa — @scure/bip32 key material; address encoding implemented here per the
@@ -532,11 +532,37 @@ for (const s of SEEDS) {
       });
     }
 }
+// `onekey` encoding: the BIP-341 key-path tweak of the x-only key
+// (@scure/btc-signer p2tr.tweakedPubkey), exported key stays raw.
+for (const s of SEEDS) {
+  const root = bip32Root(s);
+  for (const net of [
+    { id: "mainnet", prefix: "kaspa" },
+    { id: "testnet", prefix: "kaspatest" },
+  ])
+    for (const index of INDICES) {
+      const path = `m/44'/111111'/0'/0/${index}`;
+      const node = root.derive(path);
+      if (!node.privateKey || !node.publicKey) throw new Error("no key");
+      const tweaked = btc.p2tr(node.publicKey.slice(1)).tweakedPubkey;
+      kaspaCases.push({
+        mnemonic: s.mnemonic,
+        passphrase: s.passphrase,
+        options: { network: net.id, encoding: "onekey" },
+        style: "standard",
+        index,
+        path,
+        address: kaspaAddress(net.prefix, 0, tweaked),
+        public_key: hex(tweaked),
+        private_key: hex(node.privateKey),
+      });
+    }
+}
 emitCounted(
   "kaspa",
   file(
     "kaspa",
-    "@scure/bip32 2.4.0 key material; addresses encoded per the kaspa cashaddr spec — encoder verified byte-for-byte by vectors/kaspa-address.json (official rusty-kaspa vectors)",
+    "@scure/bip32 2.4.0 key material; addresses encoded per the kaspa cashaddr spec — encoder verified byte-for-byte by vectors/kaspa-address.json (official rusty-kaspa vectors); onekey cases: @scure/btc-signer 2.4.1 p2tr(xOnly).tweakedPubkey",
     kaspaCases
   )
 );
@@ -642,9 +668,25 @@ for (const s of SEEDS) {
       });
     }
 }
+// `root` — Ledger Live `solanaMain` derivation mode, a single non-iterating
+// account at m/44'/501'.
+for (const s of SEEDS) {
+  const node = slip10Root(s).derive("m/44'/501'");
+  const kp = Keypair.fromSeed(node.privateKey);
+  solCases.push({
+    mnemonic: s.mnemonic,
+    passphrase: s.passphrase,
+    style: "root",
+    index: null,
+    path: "m/44'/501'",
+    address: kp.publicKey.toBase58(),
+    public_key: hex(kp.publicKey.toBytes()),
+    private_key: bs58.encode(kp.secretKey),
+  });
+}
 emitCounted(
-  "sol",
-  file("sol", "micro-key-producer 0.10.2 slip10 + @solana/web3.js 1.99.0 Keypair", solCases)
+  "solana",
+  file("solana", "micro-key-producer 0.10.2 slip10 + @solana/web3.js 1.99.0 Keypair", solCases)
 );
 
 // sui — @mysten/sui Ed25519Keypair
@@ -785,8 +827,8 @@ for (const s of SEEDS) {
   }
 }
 emitCounted(
-  "xlm",
-  file("xlm", "micro-key-producer 0.10.2 slip10 + @stellar/stellar-sdk 17.2.1 StrKey", xlmCases)
+  "stellar",
+  file("stellar", "micro-key-producer 0.10.2 slip10 + @stellar/stellar-sdk 17.2.1 StrKey", xlmCases)
 );
 
 // near — near-seed-phrase parseSeedPhrase; passphrase case: micro-key-producer
@@ -954,9 +996,9 @@ for (const s of SEEDS)
     }
   }
 emitCounted(
-  "ada",
+  "cardano",
   file(
-    "ada",
+    "cardano",
     "@emurgo/cardano-serialization-lib-nodejs 17.0.0 (icarus: from_bip39_entropy; ledger/icarus-trezor: CIP-3 master computed in-generator and asserted against vectors/cip3.json) + @scure/base 2.4.0 bech32 addr_xsk",
     adaCases
   )

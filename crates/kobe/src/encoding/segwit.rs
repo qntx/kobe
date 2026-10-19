@@ -11,7 +11,7 @@ pub(crate) fn p2pkh(version: u8, compressed_pubkey: &[u8; 33]) -> String {
 }
 
 /// `P2SH-P2WPKH` address: a segwit redeem script inside `P2SH`.
-#[cfg(any(feature = "btc", feature = "ltc"))]
+#[cfg(any(feature = "bitcoin", feature = "litecoin"))]
 pub(crate) fn p2sh_p2wpkh(version: u8, compressed_pubkey: &[u8; 33]) -> String {
     let mut redeem = alloc::vec::Vec::with_capacity(22);
     redeem.push(0x00);
@@ -21,7 +21,7 @@ pub(crate) fn p2sh_p2wpkh(version: u8, compressed_pubkey: &[u8; 33]) -> String {
 }
 
 /// `P2WPKH` address: segwit-v0 bech32 over `hash160(pubkey)`.
-#[cfg(any(feature = "btc", feature = "ltc"))]
+#[cfg(any(feature = "bitcoin", feature = "litecoin"))]
 pub(crate) fn p2wpkh(
     hrp: bech32::Hrp,
     compressed_pubkey: &[u8; 33],

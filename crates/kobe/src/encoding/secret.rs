@@ -5,7 +5,7 @@ use alloc::string::String;
 
 use zeroize::Zeroizing;
 
-#[cfg(any(feature = "sol", feature = "near"))]
+#[cfg(any(feature = "solana", feature = "near"))]
 use crate::Error;
 
 /// Hex digit for the low nibble of a byte.
@@ -14,12 +14,12 @@ use crate::Error;
     feature = "casper",
     feature = "cosmos",
     feature = "evm",
-    feature = "fil",
+    feature = "filecoin",
     feature = "kaspa",
     feature = "spark",
     feature = "ton",
     feature = "tron",
-    feature = "xrp",
+    feature = "xrpl",
 ))]
 fn hex_digit(nibble: u8) -> char {
     char::from(if nibble < 10 {
@@ -35,12 +35,12 @@ fn hex_digit(nibble: u8) -> char {
     feature = "casper",
     feature = "cosmos",
     feature = "evm",
-    feature = "fil",
+    feature = "filecoin",
     feature = "kaspa",
     feature = "spark",
     feature = "ton",
     feature = "tron",
-    feature = "xrp",
+    feature = "xrpl",
 ))]
 pub(crate) fn push_hex(out: &mut String, data: &[u8]) {
     out.reserve(data.len() * 2);
@@ -54,12 +54,12 @@ pub(crate) fn push_hex(out: &mut String, data: &[u8]) {
 #[cfg(any(
     feature = "casper",
     feature = "cosmos",
-    feature = "fil",
+    feature = "filecoin",
     feature = "kaspa",
     feature = "spark",
     feature = "ton",
     feature = "tron",
-    feature = "xrp",
+    feature = "xrpl",
 ))]
 pub(crate) fn hex_secret(data: &[u8]) -> Zeroizing<String> {
     let mut out = Zeroizing::new(String::with_capacity(data.len() * 2));
@@ -77,7 +77,7 @@ pub(crate) fn hex_secret_prefixed(prefix: &str, data: &[u8]) -> Zeroizing<String
 }
 
 /// Append `data` base58-encoded (Bitcoin alphabet) to `out`.
-#[cfg(any(feature = "sol", feature = "near"))]
+#[cfg(any(feature = "solana", feature = "near"))]
 pub(crate) fn push_base58(out: &mut String, data: &[u8]) -> Result<(), Error> {
     bs58::encode(data)
         .onto(out)
@@ -86,7 +86,7 @@ pub(crate) fn push_base58(out: &mut String, data: &[u8]) -> Result<(), Error> {
 }
 
 /// `data` base58-encoded into a zeroized string.
-#[cfg(feature = "sol")]
+#[cfg(feature = "solana")]
 pub(crate) fn base58_secret(data: &[u8]) -> Result<Zeroizing<String>, Error> {
     let mut out = Zeroizing::new(String::new());
     push_base58(&mut out, data)?;
@@ -106,7 +106,7 @@ pub(crate) fn base58_secret_prefixed(
 }
 
 /// Append `data` base64-encoded (standard alphabet, with padding) to `out`.
-#[cfg(feature = "fil")]
+#[cfg(feature = "filecoin")]
 pub(crate) fn push_base64(out: &mut String, data: &[u8]) {
     use base64::Engine as _;
     base64::engine::general_purpose::STANDARD.encode_string(data, out);

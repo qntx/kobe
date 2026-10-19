@@ -144,14 +144,14 @@ fn evm_style_aliases() {
 }
 
 #[test]
-fn btc_kinds_and_networks() {
+fn bitcoin_kinds_and_networks() {
     for (kind, prefix) in [
         ("p2pkh", "1"),
         ("p2sh-p2wpkh", "3"),
         ("p2wpkh", "bc1q"),
         ("p2tr", "bc1p"),
     ] {
-        let v = ok_json(&["btc", "-m", M12, "--type", kind]);
+        let v = ok_json(&["bitcoin", "-m", M12, "--type", kind]);
         assert_eq!(v["options"]["type"], kind, "options.type field");
         assert!(
             v["accounts"][0].as_object().unwrap()["address"]
@@ -162,22 +162,22 @@ fn btc_kinds_and_networks() {
         );
     }
     assert_eq!(
-        ok_json(&["btc", "-m", M12, "--type", "p2wpkh"])["accounts"][0]["address"],
+        ok_json(&["bitcoin", "-m", M12, "--type", "p2wpkh"])["accounts"][0]["address"],
         BTC_P2WPKH,
         "bip84 address"
     );
     assert_eq!(
-        ok_json(&["btc", "-m", M12, "--type", "p2tr"])["accounts"][0]["address"],
+        ok_json(&["bitcoin", "-m", M12, "--type", "p2tr"])["accounts"][0]["address"],
         BTC_P2TR,
         "bip86 address"
     );
     assert_eq!(
-        ok_json(&["btc", "-m", M12, "--network", "testnet"])["accounts"][0]["path"],
+        ok_json(&["bitcoin", "-m", M12, "--network", "testnet"])["accounts"][0]["path"],
         "m/84'/1'/0'/0/0",
         "testnet coin type"
     );
     assert!(
-        ok_json(&["btc", "-m", M12, "--network", "regtest"])["accounts"][0]["address"]
+        ok_json(&["bitcoin", "-m", M12, "--network", "regtest"])["accounts"][0]["address"]
             .as_str()
             .unwrap()
             .starts_with("bcrt1q"),
@@ -186,29 +186,38 @@ fn btc_kinds_and_networks() {
 }
 
 #[test]
-fn btc_account_style_alias() {
-    let v = ok_json(&["btc", "-m", M12, "-s", "ledger-live", "--type", "p2tr"]);
+fn bitcoin_account_style_alias() {
+    let v = ok_json(&["bitcoin", "-m", M12, "-s", "ledger-live", "--type", "p2tr"]);
     assert_eq!(v["style"], "account", "alias resolves to canonical id");
     assert_eq!(v["accounts"][0]["path"], "m/86'/0'/0'/0/0", "account path");
 }
 
 #[test]
-fn sol_derives_address() {
+fn solana_derives_address() {
     assert_eq!(
-        ok_json(&["sol", "-m", M12])["accounts"][0]["address"],
+        ok_json(&["solana", "-m", M12])["accounts"][0]["address"],
         SOL_ADDRESS,
         "solana address"
     );
     assert_eq!(
-        ok_json(&["solana", "-m", M12])["chain"],
-        "sol",
-        "chain alias"
+        ok_json(&["sol", "-m", M12])["chain"],
+        "solana",
+        "ticker alias"
+    );
+    // Ledger Live's non-iterating solanaMain mode.
+    let root = ok_json(&["solana", "-m", M12, "-s", "root"]);
+    assert_eq!(root["style"], "root", "root style id");
+    assert_eq!(root["accounts"][0]["path"], "m/44'/501'", "root path");
+    assert_eq!(root["accounts"][0]["index"], Value::Null, "non-iterating");
+    assert_eq!(
+        root["accounts"][0]["address"], "D2PPQSYFe83nDzk96FqGumVU8JA7J8vj2Rhjc2oXzEi5",
+        "root address"
     );
 }
 
 #[test]
 fn stdin_and_prefix_expansion() {
-    let out = kobe_stdin(&["btc", "-m", "-", "--json"], &format!("{M12}\n"));
+    let out = kobe_stdin(&["bitcoin", "-m", "-", "--json"], &format!("{M12}\n"));
     assert!(out.status.success(), "stdin import failed");
     assert_eq!(
         parsed(&out)["accounts"][0]["address"],
@@ -217,7 +226,7 @@ fn stdin_and_prefix_expansion() {
     );
     // 4-letter prefixes expand to the identical derivation.
     assert_eq!(
-        ok_json(&["btc", "-m", M12_PREFIX])["accounts"][0]["address"],
+        ok_json(&["bitcoin", "-m", M12_PREFIX])["accounts"][0]["address"],
         BTC_P2WPKH,
         "prefix expansion"
     );
@@ -250,7 +259,9 @@ fn errors_exit_nonzero() {
     // JSON mode reports {"error": ...} on stdout with exit 1.
     let bad_prefix = kobe(&["evm", "-m", "abandon bogus", "--json"]);
     assert_eq!(bad_prefix.status.code(), Some(1), "json error exit code");
-    assert!(parsed(&bad_prefix)["error"].is_string(), "json error shape");
+    let error = parsed(&bad_prefix)["error"].as_str().unwrap().to_owned();
+    assert!(error.contains("word 2"), "error reports the word position");
+    assert!(!error.contains("bogus"), "error must not echo the word");
     // Unknown style lists the available ones.
     let bad_style = kobe(&["evm", "-m", M12, "-s", "bogus", "--json"]);
     assert!(
@@ -262,13 +273,13 @@ fn errors_exit_nonzero() {
     );
     // -w conflicts with -m.
     assert!(
-        !kobe(&["btc", "-m", M12, "-w", "24"]).status.success(),
+        !kobe(&["bitcoin", "-m", M12, "-w", "24"]).status.success(),
         "-w must conflict with -m"
     );
     // --path conflicts with -s.
     assert!(
         !kobe(&[
-            "btc",
+            "bitcoin",
             "-m",
             M12,
             "-s",
@@ -281,7 +292,7 @@ fn errors_exit_nonzero() {
         "--path must conflict with -s"
     );
     // Index overflow past 2^31-1 is rejected.
-    let overflow = kobe(&["sol", "-m", M12, "-i", "2147483647", "-c", "2", "--json"]);
+    let overflow = kobe(&["solana", "-m", M12, "-i", "2147483647", "-c", "2", "--json"]);
     assert!(
         parsed(&overflow)["error"]
             .as_str()
@@ -290,7 +301,7 @@ fn errors_exit_nonzero() {
         "index overflow rejected"
     );
     // Hardened-only chain rejects a non-hardened custom path.
-    let non_hardened = kobe(&["sol", "-m", M12, "--path", "m/44'/501'/0", "--json"]);
+    let non_hardened = kobe(&["solana", "-m", M12, "--path", "m/44'/501'/0", "--json"]);
     assert!(
         parsed(&non_hardened)["error"]
             .as_str()
@@ -306,12 +317,15 @@ fn errors_exit_nonzero() {
 fn new_chains_smoke() {
     let cases: &[(&[&str], &str)] = &[
         (
-            &["ltc", "-m", M12],
+            &["litecoin", "-m", M12],
             "ltc1qjmxnz78nmc8nq77wuxh25n2es7rzm5c2rkk4wh",
         ),
-        (&["doge", "-m", M12], "DBus3bamQjgJULBJtYXpEzDWQRwF5iwxgC"),
         (
-            &["bch", "-m", M12],
+            &["dogecoin", "-m", M12],
+            "DBus3bamQjgJULBJtYXpEzDWQRwF5iwxgC",
+        ),
+        (
+            &["bitcoin-cash", "-m", M12],
             "bitcoincash:qqyx49mu0kkn9ftfj6hje6g2wfer34yfnq5tahq3q6",
         ),
         (&["tron", "-m", M12], "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH"),
@@ -323,18 +337,22 @@ fn new_chains_smoke() {
             &["cosmos", "-m", M12, "--chain", "injective"],
             "inj1npvwllfr9dqr8erajqqr6s0vxnk2ak55re90dz",
         ),
-        (&["xrp", "-m", M12], "rHsMGQEkVNJmpGWs8XUBoTBiAAbwxZN5v3"),
+        (&["xrpl", "-m", M12], "rHsMGQEkVNJmpGWs8XUBoTBiAAbwxZN5v3"),
         (
-            &["fil", "-m", M12],
+            &["filecoin", "-m", M12],
             "f1qode47ievxlxzk6z2viuovedabmn3tq6t57uqhq",
         ),
         (
-            &["fil", "-m", M12, "--network", "testnet"],
+            &["filecoin", "-m", M12, "--network", "testnet"],
             "t1qode47ievxlxzk6z2viuovedabmn3tq6t57uqhq",
         ),
         (
             &["kaspa", "-m", M12],
             "kaspa:qqd6e65yefepe9wk0m9vuxdufxd80sphy67gwwd0vdaumzdt4tc9s3qt0lqeh",
+        ),
+        (
+            &["kaspa", "-m", M12, "--encoding", "onekey"],
+            "kaspa:qqhn4wqjhza6anql6k2v9cwez23jatxvygv9dc0qs799evcjkgmsqjd7yc593",
         ),
         (
             &["nostr", "-m", M12],
@@ -369,7 +387,7 @@ fn new_chains_smoke() {
             "0QCf9EYCGEnzNflKo0BRm4IM0g2i094C_uqgJBSBmHZMUG87",
         ),
         (
-            &["xlm", "-m", M12],
+            &["stellar", "-m", M12],
             "GB3JDWCQJCWMJ3IILWIGDTQJJC5567PGVEVXSCVPEQOTDN64VJBDQBYX",
         ),
         (
@@ -377,12 +395,12 @@ fn new_chains_smoke() {
             "5510e2b44cae6eb807e3e0e45d579dda058c274abcba15e5cb84636f5d1ee412",
         ),
         (
-            &["ada", "-m", M12],
+            &["cardano", "-m", M12],
             "addr1qy8ac7qqy0vtulyl7wntmsxc6wex80gvcyjy33qffrhm7sh927ysx5sftuw0dlft05dz3c7revpf7jx0xnlcjz3g69mq4afdhv",
         ),
         (
             &[
-                "ada",
+                "cardano",
                 "-m",
                 M12,
                 "--master",
@@ -405,13 +423,13 @@ fn new_chains_smoke() {
 
 #[test]
 fn help_lists_styles_and_enum_choices() {
-    let sol_help = kobe(&["sol", "--help"]);
+    let sol_help = kobe(&["solana", "--help"]);
     let sol_text = stdout(&sol_help);
-    assert!(sol_help.status.success(), "sol --help");
+    assert!(sol_help.status.success(), "solana --help");
     assert!(sol_text.contains("bip44-change"), "style id in help");
     assert!(sol_text.contains("phantom"), "style alias in help");
     assert!(sol_text.contains("m/44'/501'/{i}'/0'"), "template in help");
-    let btc_help = kobe(&["btc", "--help"]);
+    let btc_help = kobe(&["bitcoin", "--help"]);
     let btc_text = stdout(&btc_help);
     assert!(btc_text.contains("m/86'/0'/{i}'/0/0"), "btc styles in help");
     assert!(btc_text.contains("p2tr"), "--type possible values in help");
