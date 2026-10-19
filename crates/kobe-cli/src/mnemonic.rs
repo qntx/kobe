@@ -31,15 +31,16 @@ pub(crate) fn expand_mnemonic(input: &str) -> CliResult<Zeroizing<String>> {
                     .ok_or("word index out of range")?,
             );
         } else if token.len() >= 4 {
-            let mut iter = language
+            // BIP-39 English words are unique in their first four letters, so
+            // a prefix of four or more letters matches at most one word.
+            let word = language
                 .word_list()
                 .iter()
-                .filter(|w| w.starts_with(token.as_str()));
-            if let (Some(w), None) = (iter.next(), iter.next()) {
-                words.push(w);
-            } else {
-                return Err(format!("word {} is not a unique BIP-39 prefix", pos + 1).into());
-            }
+                .find(|w| w.starts_with(token.as_str()))
+                .ok_or_else(|| {
+                    format!("word {} is not a BIP-39 English word or prefix", pos + 1)
+                })?;
+            words.push(word);
         } else {
             return Err(format!("word {} is not a BIP-39 English word", pos + 1).into());
         }

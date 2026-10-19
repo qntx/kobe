@@ -1,5 +1,3 @@
-<!-- markdownlint-disable MD033 MD041 -->
-
 # kobe
 
 Pure, offline BIP-39 HD wallet generator in Rust: mnemonic → keys → addresses for 20 chains, as a `no_std` library and the `kobe` CLI.
