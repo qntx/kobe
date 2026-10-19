@@ -28,7 +28,7 @@
     "@ton/ton": "16.3.0",
     "@trustwallet/wallet-core": "4.8.4",
     "bs58": "6.0.0",
-    "casper-js-sdk": "5.1.1",
+    "casper-js-sdk": "5.2.0",
     "micro-key-producer": "0.10.2",
     "near-seed-phrase": "0.2.1",
     "nostr-tools": "2.25.2",
