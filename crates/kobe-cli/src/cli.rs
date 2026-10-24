@@ -43,6 +43,10 @@ pub(crate) enum Command {
               value_parser = seedqr_kind)]
         seedqr: Option<String>,
     },
+    /// Check for and install a kobe upgrade via the official installer
+    #[cfg(feature = "upgrade")]
+    #[command(visible_alias = "update", disable_version_flag = true)]
+    Upgrade(upg::Args),
     /// Bitcoin (BIP-32, P2PKH/P2SH-P2WPKH/P2WPKH/P2TR)
     #[command(visible_alias = "btc", after_help = help::bitcoin_styles_help())]
     Bitcoin {
@@ -337,5 +341,58 @@ fn seedqr_kind(s: &str) -> Result<String, String> {
     match s {
         "standard" | "compact" => Ok(s.to_owned()),
         _ => Err("expected 'standard' or 'compact'".to_owned()),
+    }
+}
+
+#[cfg(test)]
+#[cfg(feature = "upgrade")]
+mod upgrade_tests {
+    use clap::Parser as _;
+
+    use super::Cli;
+
+    fn parse(argv: &[&str]) -> Option<upg::Args> {
+        let cli = Cli::try_parse_from(argv).ok()?;
+        match cli.command {
+            super::Command::Upgrade(a) => Some(a),
+            _ => None,
+        }
+    }
+
+    #[test]
+    fn parses_upgrade_and_alias() {
+        assert!(parse(&["kobe", "upgrade"]).is_some());
+        assert!(parse(&["kobe", "update"]).is_some());
+    }
+
+    #[test]
+    fn parses_upgrade_flags() {
+        assert!(parse(&["kobe", "upgrade", "--check"]).unwrap().check);
+        let pinned = parse(&["kobe", "upgrade", "--version", "7.0.0"]).unwrap();
+        assert_eq!(pinned.version.unwrap().to_string(), "7.0.0");
+        assert!(parse(&["kobe", "upgrade", "--force"]).unwrap().force);
+        assert!(parse(&["kobe", "upgrade", "--version", "bogus"]).is_none());
+    }
+
+    #[test]
+    fn report_json_shape() {
+        let report = upg::Report {
+            tool: "kobe".into(),
+            current: semver::Version::new(6, 0, 0),
+            latest: semver::Version::new(7, 1, 0),
+            update_available: true,
+            action: upg::Action::Available,
+        };
+        assert_eq!(
+            serde_json::to_value(&report).unwrap(),
+            serde_json::json!({
+                "tool": "kobe",
+                "current": "6.0.0",
+                "latest": "7.1.0",
+                "update_available": true,
+                "action": { "action": "available" },
+            })
+        );
+        assert_eq!(report.to_string(), "kobe 6.0.0 -> 7.1.0 available");
     }
 }

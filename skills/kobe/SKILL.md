@@ -27,6 +27,7 @@ cargo install kobe-cli   # provides the `kobe` binary
 kobe [--json] [-r|--reveal] <COMMAND>
 kobe mnemonic [-w 12|15|18|21|24] [--seedqr [standard|compact]]
 kobe mnemonic encrypt|decrypt -m PHRASE|- [--password-stdin] [--allow-weak-password]
+kobe upgrade|update [--check] [--version X.Y.Z] [--force]
 kobe arweave|ar [-s rsa|ecdsa]      # rsa: deterministic RSA-4096 JWK (Wander); ecdsa: m/44'/472'/0'/0/{i}
 kobe <chain> [-m PHRASE|-] [-w N] [-p PASSPHRASE] [-s STYLE | --path TEMPLATE] [-i INDEX] [-c COUNT] [chain flags]
 ```

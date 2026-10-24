@@ -26,6 +26,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the nine official SeedSigner vectors.
 - `label()` on every chain option enum: the human-readable names the CLI
   prints.
+- `kobe upgrade` (alias `update`, `--check`, `--version`, `--force`) through
+  the first-party `upg` crate, which re-runs the sh.qntx.org installer; the
+  CLI links no HTTP, TLS or archive code. The command sits behind the
+  default `upgrade` feature.
 
 ### Changed
 
