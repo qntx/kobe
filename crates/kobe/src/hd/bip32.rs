@@ -29,6 +29,10 @@ impl Node {
     }
 
     /// The 32-byte private key.
+    #[allow(
+        dead_code,
+        reason = "used by every chain; dead when only `camouflage` enables BIP-32"
+    )]
     pub(crate) fn private_key(&self) -> Zeroizing<[u8; 32]> {
         Zeroizing::new(self.xprv.private_key().to_bytes().into())
     }

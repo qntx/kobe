@@ -75,6 +75,41 @@ pub(crate) fn prompt_passphrase(generating: bool) -> CliResult<Zeroizing<String>
     })
 }
 
+/// Hidden prompt for a camouflage password: `Password:` and (encrypt)
+/// `Confirm:`. Fails clearly without a TTY.
+pub(crate) fn prompt_password(confirm: bool) -> CliResult<Zeroizing<String>> {
+    let read = |prompt: &str| -> CliResult<String> {
+        rpassword::prompt_password(prompt).map_err(|e| format!("cannot read password: {e}").into())
+    };
+    let first = Zeroizing::new(read("Password: ")?);
+    if first.is_empty() {
+        return Err("empty password".into());
+    }
+    if confirm {
+        let again = Zeroizing::new(read("Confirm: ")?);
+        if *first != *again {
+            return Err("passwords do not match".into());
+        }
+    }
+    Ok(first)
+}
+
+/// Read the password from stdin (`--password-stdin`): one line, strips
+/// exactly one trailing newline (`\n` or `\r\n`), nothing else.
+pub(crate) fn password_from_stdin() -> CliResult<Zeroizing<String>> {
+    let mut raw = Zeroizing::new(String::new());
+    std::io::stdin().read_line(&mut raw)?;
+    if raw.is_empty() {
+        return Err("no password on stdin".into());
+    }
+    let trimmed = raw
+        .strip_suffix("\r\n")
+        .or_else(|| raw.strip_suffix('\n'))
+        .unwrap_or(raw.as_str())
+        .to_owned();
+    Ok(Zeroizing::new(trimmed))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

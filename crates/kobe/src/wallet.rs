@@ -211,6 +211,24 @@ impl Wallet {
     pub(crate) fn passphrase(&self) -> &str {
         &self.passphrase
     }
+
+    /// The BIP-32 master-key fingerprint: the first 4 bytes of HASH160 of
+    /// the compressed master public key — the same 8-hex-digit id Sparrow
+    /// and Coldcard show. Not secret.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::InvalidKey`] when the master key cannot be derived.
+    #[cfg(feature = "camouflage")]
+    pub fn fingerprint(&self) -> Result<[u8; 4], Error> {
+        use sha2::Digest as _;
+
+        let node = crate::hd::bip32::Node::derive(self.seed(), &crate::DerivationPath::default())?;
+        let hash160 = ripemd::Ripemd160::digest(sha2::Sha256::digest(node.public_key()));
+        let mut out = [0u8; 4];
+        out.copy_from_slice(hash160.get(0..4).unwrap_or(&[]));
+        Ok(out)
+    }
 }
 
 impl core::fmt::Debug for Wallet {
