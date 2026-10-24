@@ -874,7 +874,7 @@ dependencies = [
 
 [[package]]
 name = "kobe"
-version = "6.0.0"
+version = "7.0.0"
 dependencies = [
  "base64",
  "bech32",
@@ -905,7 +905,7 @@ dependencies = [
 
 [[package]]
 name = "kobe-cli"
-version = "6.0.0"
+version = "7.0.0"
 dependencies = [
  "anstream",
  "anstyle",
