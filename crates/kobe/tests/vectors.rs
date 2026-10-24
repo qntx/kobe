@@ -570,3 +570,113 @@ mod seedqr_vectors {
         assert!(kobe::seedqr::compact(&w15).is_err());
     }
 }
+
+/// `kobe::camouflage` against `vectors/camouflage.json` — generated from
+/// the kobe v4.0.0 release binary and the independent TS implementation in
+/// `scripts/vectors/camouflage-generate.ts` (byte-identical).
+#[allow(clippy::expect_used, reason = "vector files must parse in tests")]
+#[cfg(feature = "camouflage")]
+mod camouflage_vectors {
+    use kobe::Wallet;
+
+    fn vectors() -> serde_json::Value {
+        serde_json::from_str::<serde_json::Value>(include_str!("../../../vectors/camouflage.json"))
+            .expect("camouflage vectors json")
+    }
+
+    #[test]
+    fn encrypt_decrypt_match_spec() {
+        let file = vectors();
+        let list = file["vectors"].as_array().expect("vectors");
+        assert_eq!(list.len(), 21);
+        for v in list {
+            let phrase = v["phrase"].as_str().expect("phrase");
+            let password = v["password"].as_str().expect("password");
+            let want = v["camouflaged"].as_str().expect("camouflaged");
+            let decrypt_only = v["decrypt_only"].as_bool().unwrap_or(false);
+
+            if decrypt_only {
+                // NFD password: decrypt accepts raw bytes.
+                let cam = Wallet::from_mnemonic(want, "").expect("cam wallet");
+                let back = kobe::camouflage::decrypt(&cam, password).expect("decrypt");
+                assert_eq!(back.as_str(), phrase, "NFD decrypt for {phrase:?}");
+                continue;
+            }
+
+            let wallet = Wallet::from_mnemonic(phrase, "").expect("wallet");
+            let cam = kobe::camouflage::encrypt(&wallet, password).expect("encrypt");
+            assert_eq!(cam.as_str(), want, "encrypt for {phrase:?}");
+
+            // round-trip
+            let cam_w = Wallet::from_mnemonic(&cam, "").expect("cam wallet");
+            let back = kobe::camouflage::decrypt(&cam_w, password).expect("decrypt");
+            assert_eq!(back.as_str(), phrase, "decrypt for {phrase:?}");
+
+            // fingerprint matches the vector
+            let fp = wallet.fingerprint().expect("fingerprint");
+            let fp_hex: String = fp.iter().fold(String::new(), |mut s, b| {
+                use std::fmt::Write as _;
+                write!(s, "{b:02x}").expect("w");
+                s
+            });
+            assert_eq!(fp_hex, v["fingerprint"].as_str().expect("fp"));
+        }
+    }
+
+    #[test]
+    fn wrong_password_yields_different_valid_mnemonic() {
+        let phrase = "chuckle fiscal front time change dutch floor ramp warrior autumn prefer much";
+        let wallet = Wallet::from_mnemonic(phrase, "").expect("wallet");
+        let cam =
+            kobe::camouflage::encrypt(&wallet, "correct horse battery staple").expect("encrypt");
+        let cam_w = Wallet::from_mnemonic(&cam, "").expect("cam wallet");
+        let other = kobe::camouflage::decrypt(&cam_w, "wrong password").expect("decrypt");
+        assert_ne!(other.as_str(), phrase);
+        // `other` is still a valid mnemonic — Wallet::from_mnemonic accepted it above via cam_w.
+        assert!(Wallet::from_mnemonic(&other, "").is_ok());
+    }
+
+    #[test]
+    fn empty_password_rejected() {
+        let wallet = Wallet::from_mnemonic(
+            "chuckle fiscal front time change dutch floor ramp warrior autumn prefer much",
+            "",
+        )
+        .expect("wallet");
+        assert!(kobe::camouflage::encrypt(&wallet, "").is_err());
+        assert!(kobe::camouflage::decrypt(&wallet, "").is_err());
+    }
+
+    #[test]
+    fn nfd_password_rejected_by_encrypt_accepted_by_decrypt() {
+        let nfd = "pa\u{0308}sswo\u{0308}rd";
+        let wallet = Wallet::from_mnemonic(
+            "chuckle fiscal front time change dutch floor ramp warrior autumn prefer much",
+            "",
+        )
+        .expect("wallet");
+        assert!(!kobe::camouflage::is_nfc(nfd));
+        assert!(kobe::camouflage::is_nfc("pässwörd"));
+        assert!(kobe::camouflage::encrypt(&wallet, nfd).is_err());
+        assert!(kobe::camouflage::decrypt(&wallet, nfd).is_ok());
+    }
+
+    #[test]
+    fn fingerprint_bip32_reference() {
+        // abandon×11 + about, empty passphrase → 73c5da0a (BIP-32 spec).
+        let wallet = Wallet::from_mnemonic(
+            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+            "",
+        )
+        .expect("wallet");
+        let fp = wallet.fingerprint().expect("fp");
+        assert_eq!(
+            fp.iter().fold(String::new(), |mut s, b| {
+                use std::fmt::Write as _;
+                write!(s, "{b:02x}").expect("w");
+                s
+            }),
+            "73c5da0a"
+        );
+    }
+}

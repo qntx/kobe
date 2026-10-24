@@ -59,6 +59,8 @@ mod wallet;
 pub(crate) mod encoding;
 mod hd;
 
+#[cfg(feature = "camouflage")]
+pub mod camouflage;
 pub mod chains;
 pub mod seedqr;
 

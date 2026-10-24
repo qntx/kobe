@@ -61,9 +61,15 @@ fn fail(message: &str, json: bool) -> ExitCode {
 
 fn run(cli: &Cli) -> CliResult<String> {
     match &cli.command {
-        Command::Mnemonic { words, seedqr } => {
-            run_mnemonic(*words, cli.json, cli.reveal, seedqr.as_deref())
-        }
+        Command::Mnemonic {
+            action,
+            words,
+            seedqr,
+        } => match action {
+            Some(cli::MnemonicAction::Encrypt(a)) => run_crypt(true, a, cli.json, cli.reveal),
+            Some(cli::MnemonicAction::Decrypt(a)) => run_crypt(false, a, cli.json, cli.reveal),
+            None => run_mnemonic(*words, cli.json, cli.reveal, seedqr.as_deref()),
+        },
         command => {
             let Some(spec) = command.spec() else {
                 return Err("missing command".into());
@@ -170,5 +176,167 @@ fn run_chain(spec: &target::ChainSpec<'_>, json: bool, reveal: bool) -> CliResul
             reveal,
             args.qr,
         )
+    })
+}
+
+fn run_crypt(encrypt: bool, args: &cli::CryptArgs, json: bool, reveal: bool) -> CliResult<String> {
+    if encrypt {
+        return run_encrypt(args, json, reveal);
+    }
+    run_decrypt(args, json, reveal)
+}
+
+fn crypt_wallet_and_password(
+    encrypt: bool,
+    args: &cli::CryptArgs,
+) -> CliResult<(Wallet, usize, Zeroizing<String>, Zeroizing<String>)> {
+    if args.mnemonic == "-" && args.password_stdin {
+        return Err("-m - and --password-stdin both read stdin".into());
+    }
+    let raw = if args.mnemonic == "-" {
+        mnemonic::read_stdin_line()?
+    } else {
+        Zeroizing::new(args.mnemonic.clone())
+    };
+    let phrase = mnemonic::expand_mnemonic(&raw)?;
+    let wallet = Wallet::from_mnemonic(&phrase, "")?;
+    let words = phrase.split_whitespace().count();
+
+    let password = if args.password_stdin {
+        mnemonic::password_from_stdin()?
+    } else {
+        mnemonic::prompt_password(encrypt)?
+    };
+    if password.is_empty() {
+        return Err("password must not be empty".into());
+    }
+
+    Ok((wallet, words, phrase, password))
+}
+
+fn strength_word(score: u8) -> &'static str {
+    ["very weak", "weak", "fair", "good", "strong"]
+        .get(usize::from(score.min(4)))
+        .copied()
+        .unwrap_or("unknown")
+}
+
+fn run_encrypt(args: &cli::CryptArgs, json: bool, reveal: bool) -> CliResult<String> {
+    let (wallet, words, phrase, password) = crypt_wallet_and_password(true, args)?;
+    let mut warnings = String::new();
+    {
+        let score = u8::from(zxcvbn::zxcvbn(&password, &[]).score());
+        let label = strength_word(score);
+        if score < 3 && !args.allow_weak_password {
+            return Err(format!(
+                "password too weak (zxcvbn {score}/4); pass --allow-weak-password to override"
+            )
+            .into());
+        }
+        let camouflaged = kobe::camouflage::encrypt(&wallet, &password)?;
+        // Verify the round trip before printing anything.
+        let cam_wallet = Wallet::from_mnemonic(&camouflaged, "")?;
+        let back = kobe::camouflage::decrypt(&cam_wallet, &password)?;
+        if back.as_str() != phrase.as_str() {
+            return Err("round-trip verification failed".into());
+        }
+        let fp_hex = hex4(wallet.fingerprint()?);
+        warnings.push_str(&render::warn(
+            "! The camouflaged phrase is itself a valid (empty) wallet.",
+        ));
+        warnings.push('\n');
+        warnings.push_str(&render::warn(
+            "! Only this password recovers the original; it cannot be reset.",
+        ));
+        warnings.push('\n');
+        warnings.push_str(&render::warn("! Never reuse a password across mnemonics."));
+        if json {
+            let mut map = serde_json::Map::new();
+            map.insert("mode".into(), json!("encrypt"));
+            map.insert("words".into(), json!(words));
+            map.insert("strength".into(), json!(format!("{label} ({score}/4)")));
+            if reveal {
+                map.insert("phrase".into(), json!(camouflaged.as_str()));
+            }
+            map.insert("fingerprint".into(), json!(fp_hex));
+            let v = serde_json::Value::Object(map);
+            return Ok(serde_json::to_string_pretty(&v).unwrap_or_else(|_| v.to_string()));
+        }
+        let mut out = render::block(&[
+            ("Mode", render::Val::Plain(String::from("encrypt"))),
+            ("Words", render::Val::Plain(words.to_string())),
+            (
+                "Strength",
+                render::Val::Plain(format!("{label} (zxcvbn {score}/4)")),
+            ),
+            (
+                "Camouflaged",
+                if reveal {
+                    render::Val::Green(camouflaged.as_str().to_owned())
+                } else {
+                    render::Val::Dim(render::HIDDEN.to_owned())
+                },
+            ),
+            (
+                "Fingerprint",
+                render::Val::Plain(format!("{fp_hex} (original wallet — note it separately)")),
+            ),
+            ("Verified", render::Val::Plain("round-trip ok".to_owned())),
+        ]);
+        out.push_str(&warnings);
+        Ok(out)
+    }
+}
+
+fn run_decrypt(args: &cli::CryptArgs, json: bool, reveal: bool) -> CliResult<String> {
+    let (wallet, words, _phrase, password) = crypt_wallet_and_password(false, args)?;
+    let mut warnings = String::new();
+    {
+        if !kobe::camouflage::is_nfc(&password) {
+            warnings.push_str(&render::warn(
+                "! Password is not Unicode NFC; using it byte-for-byte.",
+            ));
+            warnings.push('\n');
+        }
+        let recovered = kobe::camouflage::decrypt(&wallet, &password)?;
+        let rec_wallet = Wallet::from_mnemonic(&recovered, "")?;
+        let fp_hex = hex4(rec_wallet.fingerprint()?);
+        warnings.push_str(&render::warn(
+            "! Check the fingerprint against your records before revealing.",
+        ));
+        if json {
+            let mut map = serde_json::Map::new();
+            map.insert("mode".into(), json!("decrypt"));
+            map.insert("words".into(), json!(words));
+            if reveal {
+                map.insert("phrase".into(), json!(recovered.as_str()));
+            }
+            map.insert("fingerprint".into(), json!(fp_hex));
+            let v = serde_json::Value::Object(map);
+            return Ok(serde_json::to_string_pretty(&v).unwrap_or_else(|_| v.to_string()));
+        }
+        let mut out = render::block(&[
+            ("Mode", render::Val::Plain(String::from("decrypt"))),
+            ("Words", render::Val::Plain(words.to_string())),
+            (
+                "Recovered",
+                if reveal {
+                    render::Val::Green(recovered.as_str().to_owned())
+                } else {
+                    render::Val::Dim(render::HIDDEN.to_owned())
+                },
+            ),
+            ("Fingerprint", render::Val::Plain(fp_hex)),
+        ]);
+        out.push_str(&warnings);
+        Ok(out)
+    }
+}
+
+fn hex4(fp: [u8; 4]) -> String {
+    use std::fmt::Write as _;
+    fp.iter().fold(String::with_capacity(8), |mut s, b| {
+        let _h = write!(s, "{b:02x}");
+        s
     })
 }

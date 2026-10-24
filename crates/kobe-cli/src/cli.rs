@@ -29,8 +29,11 @@ pub(crate) struct Cli {
 
 #[derive(Subcommand)]
 pub(crate) enum Command {
-    /// Generate a fresh BIP-39 mnemonic
+    /// Generate a fresh BIP-39 mnemonic (or run a subcommand)
+    #[command(args_conflicts_with_subcommands = true)]
     Mnemonic {
+        #[command(subcommand)]
+        action: Option<MnemonicAction>,
         /// Mnemonic word count: 12, 15, 18, 21 or 24
         #[arg(short, long, value_name = "N", default_value = "12")]
         words: WordCount,
@@ -299,6 +302,29 @@ where
 {
     PossibleValuesParser::new(all.iter().map(ToString::to_string))
         .try_map(|s| T::from_str(&s).map_err(|e| e.to_string()))
+}
+
+/// `kobe mnemonic` subcommands.
+#[derive(Subcommand)]
+pub(crate) enum MnemonicAction {
+    /// Camouflage a mnemonic behind a password
+    Encrypt(CryptArgs),
+    /// Recover the original mnemonic from a camouflaged one
+    Decrypt(CryptArgs),
+}
+
+/// Shared arguments for `mnemonic encrypt|decrypt`.
+#[derive(clap::Args)]
+pub(crate) struct CryptArgs {
+    /// Mnemonic to transform ('-' reads one line from stdin)
+    #[arg(short, long, value_name = "PHRASE")]
+    pub(crate) mnemonic: String,
+    /// Read the password from stdin (one line; strips one trailing newline)
+    #[arg(long)]
+    pub(crate) password_stdin: bool,
+    /// Allow a zxcvbn score below 3 (encrypt only)
+    #[arg(long)]
+    pub(crate) allow_weak_password: bool,
 }
 
 fn seedqr_kind(s: &str) -> Result<String, String> {

@@ -1,0 +1,155 @@
+{
+  "source": "Two independent sources, byte-identical: (A) kobe v4.0.0 release binary `kobe mnemonic encrypt --json -r` run in a temporary git worktree at tag v4.0.0; (B) scripts/vectors/camouflage-generate.ts (node:crypto pbkdf2Sync + @scure/bip39). Regenerate B with `bun run camouflage-generate.ts` in scripts/vectors; A outputs were captured to /tmp/v4-cases.json at generation time.",
+  "note": "Camouflage algorithm v1: E' = E XOR PBKDF2-HMAC-SHA256(password.as_bytes(), 'kobe-mnemonic-camouflage-v1', 600_000, |E|), re-encoded as BIP-39. Passwords are raw UTF-8 bytes; encrypt requires NFC, decrypt is byte-for-byte.",
+  "vectors": [
+    {
+      "words": 12,
+      "password": "correct horse battery staple",
+      "phrase": "chuckle fiscal front time change dutch floor ramp warrior autumn prefer much",
+      "camouflaged": "bean note path debate sword whale exile license clutch forum call slim",
+      "fingerprint": "a5c0221c"
+    },
+    {
+      "words": 12,
+      "password": "pässwörd",
+      "phrase": "chuckle fiscal front time change dutch floor ramp warrior autumn prefer much",
+      "camouflaged": "drip angry crystal old mind middle yard twist ahead range car special",
+      "fingerprint": "a5c0221c"
+    },
+    {
+      "words": 12,
+      "password": "🔑🦀 kobe",
+      "phrase": "chuckle fiscal front time change dutch floor ramp warrior autumn prefer much",
+      "camouflaged": "bitter myth adult inflict nation usage fold initial cat hand begin song",
+      "fingerprint": "a5c0221c"
+    },
+    {
+      "words": 12,
+      "password": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "phrase": "chuckle fiscal front time change dutch floor ramp warrior autumn prefer much",
+      "camouflaged": "fire alpha exotic juice great obey right room motion sight escape artefact",
+      "fingerprint": "a5c0221c"
+    },
+    {
+      "words": 15,
+      "password": "correct horse battery staple",
+      "phrase": "slow assault room obey armor disorder impulse unfair mention snow antique bread scorpion inch prison",
+      "camouflaged": "warm smile edge evil various live gossip tail express office leopard double enroll clown split",
+      "fingerprint": "7b919f15"
+    },
+    {
+      "words": 15,
+      "password": "pässwörd",
+      "phrase": "slow assault room obey armor disorder impulse unfair mention snow antique bread scorpion inch prison",
+      "camouflaged": "pole fancy stadium use patrol warrior stereo retire just initial list forum august endorse column",
+      "fingerprint": "7b919f15"
+    },
+    {
+      "words": 15,
+      "password": "🔑🦀 kobe",
+      "phrase": "slow assault room obey armor disorder impulse unfair mention snow antique bread scorpion inch prison",
+      "camouflaged": "venue silk tornado almost salon nest impact convince garbage priority refuse dune bounce legend bag",
+      "fingerprint": "7b919f15"
+    },
+    {
+      "words": 15,
+      "password": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "phrase": "slow assault room obey armor disorder impulse unfair mention snow antique bread scorpion inch prison",
+      "camouflaged": "receive fringe repeat aspect episode undo myth travel ugly anxiety unfold march dune alien tone",
+      "fingerprint": "7b919f15"
+    },
+    {
+      "words": 18,
+      "password": "correct horse battery staple",
+      "phrase": "oppose pudding forum abuse smart notice twice assault lounge rabbit village about jeans bamboo grocery demand square talent",
+      "camouflaged": "party hire plastic swamp dad clinic work differ garbage tomorrow laundry follow world era cable polar change silly",
+      "fingerprint": "3dcc0afc"
+    },
+    {
+      "words": 18,
+      "password": "pässwörd",
+      "phrase": "oppose pudding forum abuse smart notice twice assault lounge rabbit village about jeans bamboo grocery demand square talent",
+      "camouflaged": "usual venture crisp just green gain erupt first involve atom legend doll rifle civil today voyage swing airport",
+      "fingerprint": "3dcc0afc"
+    },
+    {
+      "words": 18,
+      "password": "🔑🦀 kobe",
+      "phrase": "oppose pudding forum abuse smart notice twice assault lounge rabbit village about jeans bamboo grocery demand square talent",
+      "camouflaged": "place habit ahead mosquito ketchup dial trim someone express struggle end gallery provide cabin tail deputy meat hire",
+      "fingerprint": "3dcc0afc"
+    },
+    {
+      "words": 18,
+      "password": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "phrase": "oppose pudding forum abuse smart notice twice assault lounge rabbit village about jeans bamboo grocery demand square talent",
+      "camouflaged": "tomorrow world finger option milk earth armor alpha today jeans awkward orphan verb gravity citizen energy weekend afford",
+      "fingerprint": "3dcc0afc"
+    },
+    {
+      "words": 21,
+      "password": "correct horse battery staple",
+      "phrase": "crowd oven accuse skirt luxury remember swim motor business detect seed body lobster youth wine destroy drink knock unknown invest suit",
+      "camouflaged": "aunt friend winter awful left anchor snake parent shadow half ensure drama ankle patrol live pause rent habit olive soda monitor",
+      "fingerprint": "aa3d2d09"
+    },
+    {
+      "words": 21,
+      "password": "pässwörd",
+      "phrase": "crowd oven accuse skirt luxury remember swim motor business detect seed body lobster youth wine destroy drink knock unknown invest suit",
+      "camouflaged": "garment section have real convince laugh labor skin uniform link enact flag essay shaft lawn useless erase person age element whip",
+      "fingerprint": "aa3d2d09"
+    },
+    {
+      "words": 21,
+      "password": "🔑🦀 kobe",
+      "phrase": "crowd oven accuse skirt luxury remember swim motor business detect seed body lobster youth wine destroy drink knock unknown invest suit",
+      "camouflaged": "anxiety flee game fortune coral bundle submit fancy slide force legal elegant flash verify divorce diary bounce silly cost six group",
+      "fingerprint": "aa3d2d09"
+    },
+    {
+      "words": 21,
+      "password": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "phrase": "crowd oven accuse skirt luxury remember swim motor business detect seed body lobster youth wine destroy drink knock unknown invest suit",
+      "camouflaged": "episode snap artefact expand shed great deputy online job winner change lounge alcohol merge reduce equal harvest park dose feature lock",
+      "fingerprint": "aa3d2d09"
+    },
+    {
+      "words": 24,
+      "password": "correct horse battery staple",
+      "phrase": "expand novel enact else sphere scale party agree glue cement text voyage great thumb hood panther harbor comfort meadow margin leaf joy enact chunk",
+      "camouflaged": "hen file regular mutual climb lava rent crystal return illness figure proud umbrella sand behave action ordinary differ wrist destroy copper hope rude split",
+      "fingerprint": "27b951a2"
+    },
+    {
+      "words": 24,
+      "password": "pässwörd",
+      "phrase": "expand novel enact else sphere scale party agree glue cement text voyage great thumb hood panther harbor comfort meadow margin leaf joy enact chunk",
+      "camouflaged": "describe silent cannon corn knife amused already garment muscle opera feature replace popular sustain trip fault grid wall gauge remember feed axis glide act",
+      "fingerprint": "27b951a2"
+    },
+    {
+      "words": 24,
+      "password": "🔑🦀 kobe",
+      "phrase": "expand novel enact else sphere scale party agree glue cement text voyage great thumb hood panther harbor comfort meadow margin leaf joy enact chunk",
+      "camouflaged": "hover faith blood suit goat hip pet shy resist drastic giraffe practice runway uncover strategy pact corn outer female design situate load ivory october",
+      "fingerprint": "27b951a2"
+    },
+    {
+      "words": 24,
+      "password": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "phrase": "expand novel enact else sphere scale party agree glue cement text voyage great thumb hood panther harbor comfort meadow margin leaf joy enact chunk",
+      "camouflaged": "convince shy during sport multiply bean dizzy auto agent tired derive height toast nice carpet useful drop volcano chair plate cancel local gift loyal",
+      "fingerprint": "27b951a2"
+    },
+    {
+      "words": 12,
+      "password": "pässwörd",
+      "phrase": "chuckle fiscal front time change dutch floor ramp warrior autumn prefer much",
+      "camouflaged": "retire adapt subway cream sustain envelope toe unit paper music fee kidney",
+      "fingerprint": "a5c0221c",
+      "decrypt_only": true,
+      "note": "NFD form of 'pässwörd': byte-distinct from NFC, yields a different valid mnemonic (v4-compatible)"
+    }
+  ]
+}

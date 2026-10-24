@@ -86,3 +86,49 @@ stdout with exit code 1. Mnemonic errors name the 1-based word position
 `-m -` reads exactly one line from stdin into a zeroizing buffer. Word tokens
 may be exact BIP-39 English words or unique prefixes of at least 4 letters
 (`aban aban … abou` imports the `abandon … about` test vector).
+
+## Mnemonic camouflage
+
+`kobe mnemonic encrypt` disguises a mnemonic as a different, fully valid
+BIP-39 mnemonic; `decrypt` recovers the original with the same password
+(algorithm v1, byte-compatible with kobe v1.0.0–v4.0.0):
+`E' = E XOR PBKDF2-HMAC-SHA256(password, "kobe-mnemonic-camouflage-v1",
+600_000, |E|)`.
+
+- **Security = password strength.** The camouflaged phrase gives attackers
+  an offline oracle: each guess costs 600k PBKDF2 iterations plus a BIP-39
+  derivation and a balance check. Use ≥64-bit password entropy (six+
+  diceware words). `encrypt` refuses zxcvbn scores below 3 unless
+  `--allow-weak-password` is passed.
+- **Global fixed salt.** The output must be a bare mnemonic — there is
+  nowhere to store a random salt, so every user shares one salt. Strong
+  passwords are the only defence.
+- **Never reuse a password across mnemonics** (two-time pad:
+  `M1' XOR M2' = E1 XOR E2`).
+- **No integrity check, by design.** A wrong password yields a different
+  valid (empty) wallet — that is the deniability. The printed `Fingerprint`
+  (the BIP-32 master fingerprint, not secret) is the correctness check:
+  verify it matches your records before revealing.
+- **NFC rule.** Passwords are raw UTF-8 bytes. `encrypt` requires the NFC
+  form so the same phrase reproduces under any input method; `decrypt`
+  accepts raw bytes for compatibility with mnemonics camouflaged by kobe ≤
+  v4, and warns when the password is not NFC.
+- **Alternatives.** BIP-39 passphrases give the same decoy-wallet effect
+  with weaker KDF (2048 iterations) but wallet support everywhere; if the
+  goal is resilience rather than disguise, prefer SLIP-39 or Seed XOR.
+
+```text
+$ echo "correct horse battery staple" | kobe mnemonic encrypt -m <PHRASE> --password-stdin
+
+      Mode         encrypt
+      Words        12
+      Strength     strong (zxcvbn 4/4)
+      Camouflaged  (hidden; pass -r / --reveal)
+      Fingerprint  a5c0221c (original wallet — note it separately)
+      Verified     round-trip ok
+```
+
+Passwords are never taken on the command line: the default is a hidden
+terminal prompt (`Password:`/`Confirm:`), `--password-stdin` reads one
+line for scripts (strips a single trailing newline; conflicts with
+`-m -`).

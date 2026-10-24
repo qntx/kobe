@@ -45,6 +45,8 @@ stellar      = ["hd-slip10", "dep:data-encoding", "dep:crc", "dep:hex"]
 near         = ["hd-slip10", "dep:bs58", "dep:hex"]
 cardano      = ["dep:ed25519-bip32", "dep:pbkdf2", "dep:hmac", "dep:sha2", "dep:bech32", "dep:blake2", "dep:hex"]
 
+camouflage = ["hd-bip32", "dep:pbkdf2", "dep:sha2", "dep:ripemd", "dep:unicode-normalization"]
+
 all-chains = ["bitcoin", "litecoin", "dogecoin", "bitcoin-cash", "evm", "tron", "cosmos", "xrpl", "filecoin", "kaspa", "nostr", "spark", "casper", "solana", "sui", "aptos", "ton", "stellar", "near", "cardano"]
 
 [dependencies]
@@ -53,23 +55,24 @@ rand_core = { workspace = true }
 thiserror = { workspace = true }
 zeroize   = { workspace = true }
 
-bip32-crate   = { workspace = true, optional = true }
-k256          = { workspace = true, optional = true }
-hmac          = { workspace = true, optional = true }
-sha2          = { workspace = true, optional = true }
-sha3          = { workspace = true, optional = true }
-ripemd        = { workspace = true, optional = true }
-bech32        = { workspace = true, optional = true }
-bs58          = { workspace = true, optional = true }
-ed25519-dalek = { workspace = true, optional = true }
-blake2        = { workspace = true, optional = true }
-data-encoding = { workspace = true, optional = true }
-base64        = { workspace = true, optional = true }
-crc           = { workspace = true, optional = true }
-ed25519-bip32 = { workspace = true, optional = true }
-pbkdf2        = { workspace = true, optional = true }
-hex           = { workspace = true, optional = true }
-getrandom     = { workspace = true, optional = true }
+bip32-crate           = { workspace = true, optional = true }
+k256                  = { workspace = true, optional = true }
+hmac                  = { workspace = true, optional = true }
+sha2                  = { workspace = true, optional = true }
+sha3                  = { workspace = true, optional = true }
+ripemd                = { workspace = true, optional = true }
+bech32                = { workspace = true, optional = true }
+bs58                  = { workspace = true, optional = true }
+ed25519-dalek         = { workspace = true, optional = true }
+blake2                = { workspace = true, optional = true }
+data-encoding         = { workspace = true, optional = true }
+base64                = { workspace = true, optional = true }
+crc                   = { workspace = true, optional = true }
+ed25519-bip32         = { workspace = true, optional = true }
+pbkdf2                = { workspace = true, optional = true }
+unicode-normalization = { workspace = true, optional = true }
+hex                   = { workspace = true, optional = true }
+getrandom             = { workspace = true, optional = true }
 
 [dev-dependencies]
 bech32     = { workspace = true }

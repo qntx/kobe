@@ -24,7 +24,7 @@ pub(crate) fn extra_label(key: &str) -> &'static str {
 }
 
 /// A display row: label (cyan bold), value styled plain/dim/green.
-enum Val {
+pub(crate) enum Val {
     Plain(String),
     Dim(String),
     Green(String),
@@ -235,6 +235,18 @@ pub(crate) fn block_label(label: &str, value: &str) -> String {
         LABEL.render_reset(),
         value
     )
+}
+
+/// A labelled block with leading/trailing blank lines, using the same
+/// width rule as `human_output` (`max(12, longest label) + 1`).
+pub(crate) fn block(rows: &[(&str, Val)]) -> String {
+    let width = rows.iter().map(|(k, _)| k.len()).max().unwrap_or(0).max(12);
+    let mut out = String::from('\n');
+    for (k, v) in rows {
+        emit(&mut out, width + 1, k, v);
+    }
+    out.push('\n');
+    out
 }
 
 #[cfg(test)]

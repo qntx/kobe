@@ -25,12 +25,21 @@ cargo install kobe-cli   # provides the `kobe` binary
 
 ```text
 kobe [--json] [-r|--reveal] <COMMAND>
-kobe mnemonic [-w 12|15|18|21|24]
+kobe mnemonic [-w 12|15|18|21|24] [--seedqr [standard|compact]]
+kobe mnemonic encrypt|decrypt -m PHRASE|- [--password-stdin] [--allow-weak-password]
 kobe <chain> [-m PHRASE|-] [-w N] [-p PASSPHRASE] [-s STYLE | --path TEMPLATE] [-i INDEX] [-c COUNT] [chain flags]
 ```
 
 - Without `-m` the command generates a fresh mnemonic; `-m -` reads exactly one
-  line from stdin.
+  line from stdin. `kobe mnemonic encrypt|decrypt` camouflages/recovers a
+  mnemonic behind a password (PBKDF2-HMAC-SHA256, 600_000 iterations, salt
+  `kobe-mnemonic-camouflage-v1`, XOR over entropy — compatible with kobe ≤ v4).
+  The password is prompted without echo (twice for encrypt) unless
+  `--password-stdin` reads one line from stdin; it never appears on the command
+  line. Encrypt rejects zxcvbn scores < 3 unless `--allow-weak-password`.
+  Encrypt requires the password in Unicode NFC; decrypt uses raw bytes.
+  The `Fingerprint` row (BIP-32 master fingerprint) is not secret and is the
+  way to confirm the password is right before revealing.
 - `-m` accepts unique ≥4-letter BIP-39 word prefixes (`abando abando … about`
   works).
 - `-s` takes a style id or alias, case-insensitive; `--path` takes a template
