@@ -1,0 +1,144 @@
+{
+  "source": "Wander call path (bip39-web-crypto 4.0.1 + human-crypto-keys 0.1.4, node-forge 1.3.1 via overrides). node-forge 0.8.5 run in an isolated project (overrides pin) produced byte-identical JWKs and addresses for all three cases. ECDSA cross-checked against kobe v4.0.0 release binary.",
+  "rsa": [
+    {
+      "id": "abandon12",
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "passphrase": "",
+      "address": "l55sI4sCbT9d9AV6WKz2DQpnW4Ld0EcBAZv-CMv_HAQ",
+      "ms": 153333,
+      "jwk": {
+        "kty": "RSA",
+        "e": "AQAB",
+        "n": "vPoIigNJwKcd3_lUfeQqUK6tuMsgadOLY1HCt4mHDeked-LyzDEUP2TIeuGRVCuFAEvIFpFaoGp-4NGXaEQMhRtLTtGEEinkD8KoyTgFjLOrc438h2Lyz4RBFbi7f_-MevowJDWs1DB6xogs8SvK6Qj7UUjk7DI1V44HyfQIUzCKevPxHfwZciqjFqPm9xeB8s_wCuW0dFAglEcJC0me7VldK7OrdFCy9RMAV0g320CKURWoMvIgtnZoxYuSAS5YEsQdP2RbNb94WC8kJ3bMFtSykhAvPQaNH1qCV51bNNi32vo47d8JDfp6jBHkbADzIVWg-UGhs-W1nl3GVx07yhuNQhoRZqhWsIcEVcm5OZuctnbGR4zSe8oKiVw9o4__i5VRofKD0aPn1LjRutSkVKTS5BWGLci6AwOxlKo3vB67fXXrMwJJ5QLGm0w2azH_lg2L4H43EXGoBLUEdjnlh9-ZS9PiBQPgQRA6wCb31csiWwZxH7JMrIPMOr2oOEGHZtAonfflzB28uK8sidieoCUbJsM9Rt29LFVn5r1pUIvv044WWiUPOQV22vbjWU_0R6oYGnYkRBCacJKI9c1BNrM0hwy_AGp4KNAGNxcDmfRw4akYjQeUBQYmlDS_oXK1SGMOGLiMkRqmtYVhJBjKkWUGDTsa1173RIz4-S83Le0",
+        "d": "c0wVw6an69vKVWl4zGpWCu3YXgPIneiMhadPps1I0grmJP0ZZ82V7eueiaJwGauHtRuHU4WRhogTKzWVK-9AuEFj3A3mh3J5i8gXVNVSRXslYxZA-ZU8UbH-R7Ny6nBPFITqtFzvOnLtpY1V5jryzOVG-FwCF722X9nvFJ9IKQFXrBaDiOjT2Zz77gdIFn-IME3_xZZKWCC_D9ibQwDC70rzloNDW28VEINsVNRiB-pDuZ7-BT9HCCwMVmKGTSQqZiCzO4cOQyez1BHG_DD16gQRgx5Ow-voVDXTioMeL4r9-aNq8m5-xsGI3UbZV6_opvDoisspTmobOik6ptHWNLUrqCO9YSp9GaOanar9U0GP8-4UyIW_QTxISgzVnVW-Wcmfj8PDupH54CbFTOY75nA2JaRyXxgbe16uLRJQmcK5ZGNWzpDGAztsYvr-3bb4VZkuHBHSaafjuktevaGBUu6vwKt6z6mU_05d_8d25HE0g-m2EHW58j7casUAHHnPbz1xgf4bK_O8sgKdHdtJXna61jMgL64vkUfdFY00E9uPm3IWpj7LVvUOIuyOC_cnn3Ucv0wX-5WJ6tOFTm-8xW14AcZLBHsC7bWiHYEDlVs7xm3aA1JVcK-PXv7DQFA-qnz5q7yUd74YZlfKnWVj4UzJqxjFrS_N5snsD--ebME",
+        "p": "_XhQc5ckjjTwE_Th1vKfGldxFARXqtbzYdnYUanpMIj0mY0cwfdn9wdwII5qE7ZwaXNETKbtUvv8rcfeM5H4ocX5D9XYG9KiUpEK1fbkADZFHxTljwu0z4eBCdLKBLYGBuInIujoR603sdRCZ1jVDvfZYZmxU2cL5iwsOhe1c8zm1bjcH4HaSkzrvJzJ2oOLQyz3MfVTE5iW16scBXcUfy_IJ6MIumnrOwxVPSLLqTOBwON3Xw5dR__LEe_SMiDjuCALF4V0Qz6jZLrHh-UGLM0tz0rPY5rZwriXcokhvFn6P9VwZz54WMJcXVgJezcP50WcIBUXSLPTB91tUAG7UQ",
+        "q": "vtzrw5K6kgwPQi0oh9SDrl4lyioh20LuugqiMX_Y9HL5tWp0iO_XBhdUxTLRjb_v7Af-1LXEZcVgyAGynm8jSqRAM712qevKYmjiJCucsd25LbJeBk-b83x7z_Z54H0Og30YzPEtw1V05Q2_IHqN-k7aIu44-39CdPPzINCLcobiKO0OSTgHuqfAteXg4rO6rbD5EGk7tJWdh6IcQ5qrJYZE69tPYlnSNyXBGnrVkXlc-jCbeo7QGlwKnnoz9RkObcHNUvhXKQ2b4AmECh2LSpsrmOf2wrGNNrbPo9uG1CDByVShpQpvH0bISbzyOqnqjOMf1kmpLrhVrVJxBBCp3Q",
+        "dp": "7qo0LrL5Y8Gq8U-auzeW4knFmtB_78gYQWHLUxHHFcFPd6oskuMvjKX_SVhvv4IAlPpJLFfdjU7iXIueyTZAQ6tS2jtEEuahm1chOdkQVLbFHQAjKy8doG957FMDj64JPMADk9Z0qNEMaTBxGjjF3SM5F7KNCvgzdxbOyiB65b_g9wrqkexGK8IEEoQbeNp17dnQJMVX5VK_bfGbH_ZBYYUPVWspE8YaDW6OcFNsKzTpj0NfqiyvXtUXVBtZ84OOiFf7ubkagRrg5T8OFAJtbw__e3l4j9RGCRig2eMP1fdvMF38SerDjOft6qKzwsZU_jJIUNkrJHTWV0iC3lvTEQ",
+        "dq": "hmb_xvreUtYXMJyoO-5UxEccCV7d9I8PmQa_7GeBGbKVUUEjywJJwspPMYZ1toIAq499zcAqCxiQ7Ib1h0fv7DH52_WBSGr4W5BMHvhvIXlnW1yNhZgt06pHbcy9Sm4F-GXxPvBfL3xQErQ5cN-cdzVruslSaxfUbpMTFHqGmCGPxQ4Zz0mbd7-FnxG_6SRzQriqyvmvx5zMD6UCjkCuYIBKrGQFZNanh5oYf1McbZKu_KeZ9RX4SXejKrIXQHNii7u7oL-scQZaS8unpY_kdKcMbmJ6i-OH842MbnC6Y0ql6-ai5ZuRYM7xX6ukT9czif6ufrHkZzf7bU_usdQiKQ",
+        "qi": "noKlaLsartCZTY5RQMYF2GEB9vdM2jw1Jf8drg_O5o9raVw3ULnjWbPI7W2HtQaj1cWid5CSIHTne3C65BA5lbxnKPIHwwtfu9vyGVpXoQMQqpR08y2f5N-EbGR_aG9zx1SFAF9-Hck9Iq0P0QqZjkvD6O0pm1nOywW5Ie6WCAjJNlOayZtf6p6TdZBmrnPVMpvMKKff4wBWja_9CiwngbKIIvWSEYgW3nZms9f9vFDVnr4QGDcMEA7eKjaIpWWuT8nhP5QbLEmUG379ELq3Gblvq6pxwqYgUMy4dsiwt_Azle5KT_tpB0vh1FE_fAt23pV1PcnpZqUMNOa2bicUZQ"
+      },
+      "branches": [],
+      "replay_matches": true
+    },
+    {
+      "id": "m24",
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "passphrase": "",
+      "address": "tJq3qdBq0dO4y-orolSeNm9CdgyVam2F02ECD2QyjBE",
+      "ms": 61917,
+      "jwk": {
+        "kty": "RSA",
+        "e": "AQAB",
+        "n": "lAyMO0Qp5WBECU_HoSd6cDK-8Qa2Sgf_1hpzuJgAJM0BZ_zMZaNVWWxVynhNA1zoMYNRsUBnALOjx_3pMq_N7HduNbIAI5mPxTyZrNCj8yA0_c0Ro88MOVj4ysGfq7aBoVDgUCrcO139jUOJktY1E5OZBIIjCSXioj_rp_xk4_hTp3moSv4wUCNuREiqBgBV8VIqqqatvGztSDLwYiuRN_di2gfNqoxtQKy8G7buS012ACwj1RHO7hjNJdJOPOYIkouBEY8YRQJkz1X2vJb99T8m3ZKQVui362mljO9e4xn6P5DL6VstrXyAhpr1wvASbsH0JLtYeNvGATCr_8f3VJ7yBDK9f_GSKJbM8FCSg6z1_r_cdC_FJtl3eQgIA-ys2ezCInSvKU7E2qGkE3P1j3V-qeWD2E6U5vuOQQ-vzjgDV3qErAspcV-cRRU3hc2ImTN5UVHuIgg5y4iGYEb69QgXTepQBVmMFEpHHjv8vXQewGNbpRolTmtlnipo9wO5icZL9AukADmgxH2mEiqR-Ua4GEK9y57wydD6D9H7YuChDSzUZRKy1PmfjTskziUcEfPVrP9zoDlZbMV9o6NB_lTfuRLS8GCQC5drMbeiAJbgd5pg6YCoVIFumnF6IiQJS8ykXmsdBrcp7Zf7rwWo8hmvutH22szqnhT-cD238wM",
+        "d": "hZ5Rjkf1_CSHI1RS2zrzQYI7XPPu4CAaIhWbrdXaA1zXURATNgRVSrEBOQycjVVz5wQbXfu_Ox3myuB6cRnEpBAicunlQDwfSydnl1ZzMkI2MX681fhPkw6e9PgN8P92Pa7t1MzqGda5uZ5j8xfLrZCAAVam4mHECyXfvayJLkt4zOV7I7wIxLtFkPF4KpRw_K1o_r4SfcZd3dTDqgaiOT3YhOmYEL5O-Jkt6WGP7nzJ7FvqNyqsda4CsYj-ve3rfL_VzJA2mkoPzCVM3Gb2bDsEC-R0y0uceybNmMaOAC_48RfxQfrd3f9JTLNc7gSYzkfU3rYLooDQU1CnW-IRcXjsTyX6wlH0lj3kgMJ0wM2zr7rZK6QKfghlf_kuNnr6_aIu1WCztbqdH7Uim5JNVPkqb_1xf2AxPsHEMkpRPPaggowrjQGUK4hfC_AasBMDMtcd9zyt2Q2GTdKDjo1LLE4HxNI_MQdV36TKvv8d2Yz8urSSbh7IkMcvlcfMY_mfNZI7apY3ONLKF9tmdPW5-mPmDkJVONxpLSTgL-DQNlDBRD50LVHK4khbFoUijOR4agCj-zYbRRVhziwEjNABf_PIchAhYgceNuBTPhGYC5EE3n0F9xYaj8vjFTMhIj6nKHqWSs37-2nt2WWAUDffgNujauHJXvQz1jtd01N_yqE",
+        "p": "0XG3UCHTO3XZBdzbKHAyU_BMrhOj5iWfTuJWHVIhw8K3VJRbrjDYNMqpSzDgEkflRs7r-PatKU1DkvJJ6CjXCeqv53ssx-qN9tS3fLW4Zi-Fb-nen9msfTRvRycXnTwQ9MbjpCwEDhFlmk9mnIldIDohGjDK_vdprMuchqrz80QD_jPLIcCEsf3i4O85u2Ec2GLYve60vAcjjuZoONHBDh6WnYJnP2qxOvUluvScrCI3PucaFaPyJWlzjWD05ZvjpaMCat40SOKIXPEDbEH8C_lLIBXSibG7T-IKmqANUwq4oX5A2T1dwlWdVQEX0__eZ_Q1I0iGLH17POAIhL54EQ",
+        "q": "tPUt2PPe077Db0nPG3-NMst1sxC_gb6UHoAH_TQVD6vdYkDqwaiatisxjHQ-uufrTwqOhy18FxgYSaNNHsuUzu7wp6jrkTtpk5t_G-z379CKbvTW_J8hkYzovqea9i4mSzTOn8iBJuLOh8IjC7RheJSr4ir1CellNOCGBSYOFV3E9wcgGVZ-_OagIYPNm-0G6DNMVjg-MOZT0kty3Gg9vZS6Pj7QnDt_P1iAMhV6-ulWIBKswF0dmJNMgTJd6pXuNDKS03JY3Ym6cYII2DEtyeVcx3yLv42AMD4V0ma08B2frpsXqSwpMmu1GFgvmwYWg_q-gAlVVX_91qa8X6At0w",
+        "dp": "VqRLJ_wGLPfQYmt9wdnACBdFMVHwoFl58KES7Kg4TYo0WunQj1unZRddNzytxQI257bbyS8KbSaISLawOjkC1Bhg0kqTONRgC_btPMrT0HniImzF6qyafWT-j5mtXB8oCIpqS1TmDIfH1zD3itQMUTOa1AHRR-5DqfbE9rSrnDvLxxHX-0tv2U3k2BY-dLR0wVMKxG-GFq6BWDEadj7XNScUOW5jlclmLbSR-igM0-yHnB7wHHmoxy87XQX56S422yN28YygZnJH5OLS_qrBQJbNLCW65bk_eolQx6xkNrEdtbjLzNJlAep23l5IZCvZ7nkIrmLnFmqGW6V2AKvmcQ",
+        "dq": "XwqrAtjLPuFhmjDk8ydiDLyp29u_CbED8KUEDSvup-V3iCRaaE5au7Uh-AgR7m7iuwfrZfoww5xnHT4EwljglnMOuLBS0VuoDtvLveoPKsiX_MDhrZsSsXSVxZUYIZaJjFR29ZsEolzbZphDeeFKlF9Zi5dOTd9kxYnrOgcLvJMcYTY_2K8CUWf70L5-Hhg22Xwf6uTtXReMDNaNxE-HpevYidrKDFR_d9DOu_9mMSSelIfabco6QimTNAQ1KYGHs6igTygunmS5JObMKGhkCTdLLIcwivIR0sS5B2HkRHz6omVY3wSPuqixW9DtZ_mhl735khvU0uw_cR7vrzXc-w",
+        "qi": "c1e4nuHv5rot1KPhN_l3JBalFgdWQX6-xRb_hnTs81rz_i8y_LBeU-1f1_tr3FlI7uT-4oXj3Pt0yHFwiI0n2FJ5lwEmz1-7OwVP61BrxWbXTOhGTfCEUgY69vyvRpVkXTqkJC_ymDQ3mxG2qqQw2rpVlQoPtNYGlroCD82xa3LKWzOMT8H_rzQQycXb8C_esXpJkIovITlPgjXu-RxmydKoLSOpG5CsqToBSC41nKOAnxgXWEvXX9FHsfiO9uqxmzna-tH-Au9dG4h457fkM0-Fy__T-XlLl4Czr1DN1ok66DluTPbZwqVzZ7sWTeCYtnNv8Ep9RXL8260sKeOTig"
+      },
+      "branches": [
+        "swap"
+      ],
+      "replay_matches": true
+    },
+    {
+      "id": "m12-pass",
+      "mnemonic": "legal winner thank year wave sausage worth useful legal winner thank yellow",
+      "passphrase": "TREZOR",
+      "address": "YTiAzkZMzWUapZk6YFY9Yjvr0bzVii2dFRFWn2itzLs",
+      "ms": 98996,
+      "jwk": {
+        "kty": "RSA",
+        "e": "AQAB",
+        "n": "3SSpKG47sHq_tv1LBVOdFzEoRxjMdlH4FhX3LbHa9sgOGysbDIMaCtUUh8PwBocAfQQGJXyjMqA8VFyV-BWOMrKNLn9WpXVA1luyyikgdMxxpsW1MMARr3Wos-wy4yNf-OLj7HVkHA71zlCAoSOnxkIl1qVmJ0Lq45mzaJWmI4sSaRcKv1Ar0tmSxuniXJVhVUJG3GtopQuV_oSltPsVhmkeNZ74mdAzjzzVIaGAiJaZHFYPteHah6Zrzfv0xDRafllTQzjYV-VkJ8JCw4ZebFaZz-wOFCwSWioJ1oy_PstuWTzxkn1DLZ7JdA8Rkv_SV5VJckzhWel3CkR6nJ20xa59uLxHWklwPwgNtPo2G6Bua6-dsZZgiW5vd5fwEcHGp3eeBESxrEUmW1LlpkMQU5Tlge1vBW1J764ztnNn_7JSk5idQEwStbrgDgh9RtDfI6-LsvL7oH5_blRee8RP2aUiTaHMTeFKcrEUr_jS8NqRdK7n1IGg4Zwe4OAW4kg3jMMURL8wHJwPFJbtFXL3h834KtvKpR7tw5gTbSe8BUjZN6QpUSpQve7-a2hwT7mQ8I1B5qoYps_WhFVivUwLRGxEjdny2tvfeXNoMD1mSfK1TSVKgONci-IOjTLn7PxfYxYGVsfTp-diFYPy9ZWUfYVdPzsL0bD1CvcgDvO1u0s",
+        "d": "v8UK7ASrvl6z4fvFEtlvYK1AQGdA51otyPlDYFzbhSX3FZhL3I3UB5DAPPutKfvocIEM03VCEKTjrESdyIToyw4LYEcM3G7RyxG5-ZWwj5i69eR9O8lTjNR7d4tclZwXnb0j6eni5nISttcYtKQ22baDGaBU9bcR-k1PR2J-sFPpozhYGY9scWw73EL2CVOBFG5lBMAf_wANEqn1CPyzrdt6VwWEj9382DnomUF0NP5jyC7ZcOBqoTewRPA5UewUjXzot2KUOaSzNcdAHk5nk4uF1sjdbKDLSWUrIuLq9Yl0J-6xjlcR6n3INNzcYJ13ynurNXN1-IJ8uGqp6SbZmvYUk7vqGy69UOPJVuUF7nYR18SFVw7hb0YUBQ-zQZHHydXUIfi6Moi1NdEXnavQiKz1aYXaNvmZHvDkGre4LolNtGBnFCAQCxEszcymJJl6PzeSeEokka0xE_VnUFdtToc5_wpX23wgY3quWEO829xiS9ELltXG0vaKvuw-KSJkCZ8p_tZS0MvhA77bAwr0j9XN9LHwiiMKhMu2LJ5xw6Sc5MDpl5jJJZTJUZrsoJtWplz2VnHONeoJkPnhacirYEjt5mRg7c_7H_ZUMINFnK6t08kQk7BYMMNI71J0A23DJVAv_Bi2UNh3TY6Gccfydy1FzuUi69ze4qOQDHo98AE",
+        "p": "_sK6ZtOTLnUwyiZzxPftju8cUsmrbpITEjzNEWCzormpxd1ZuI3ZlCj3cKSepi1BEvhCEWOp0EulfhVex3mhBouamvisdZP4SIL9ntiIvpzWrOPNCNUp2LGq3vtRtBCWfb26PqNBCQ-vMfJo44Fvq4UHSIeDFj65R69HiJrJTuyif6lHwLJRen5rw5ttvFO5mEz9plXv6y1qYgJ07zhjkXoLu3oDGwupDYkAY5ptr6eOcAx-0J2mHbQlM2Cbd6FkoXOEok6P5FwwY2AKhrcN1AXcQoZg16d-cYKtCsnjwE-WDrCKPOOYxD3jG7UhW-dD4QloL1jrVxhGAEnxGJozdw",
+        "q": "3jgQ_41U1ND3mzDKzQp9E81fsb39am9V5NTsGC4i_9-a92IlAxN750wZeh8W4G0219hkNIgzc7ISNwYS7wRlS4GBboc5SH6LtiXcjN53cUFTINixB2z4AlT3LVYqW4A-l8lyyo1-DUsNwMiI4C2dUoQsl5Fvihi_sWtSdqIOKRbTL5Txdg0vUTJRnmx1F4rkXHQQ9P_3_zCZ-dYxf0vWqRldEmwF-hPKp-DG0dEAj7eAcK7U7hJ2pAKur1S10gMPH8w10dfQgyXzy3j7OsPZAF4h75NGYkjLlg1gnCNqPFIFcjG1JvaAqAFuWEuqW9HXex2oueOLQLueUpJw1ijjzQ",
+        "dp": "Bmf_J_bKDLEFuQ-eeaWCY8W_gJVxqiYiNKMyxO0Zl03z5vXZ-7oVbpRZJIv_MU6SBFgZ0TYgXwyH7NO8vmdglTmNebgnHg3KgIhKuGPZjHGFNHPGBCLYGordMR5Av7ZrEl5jAJA6Ym_yh98ApDftBvMha8F8mmKZZiQSOG0sAsAQlgU7uKzDP8FOFG0kJUg1so69EiG3FsLdmflV124jktTu1pgK2_M_HQgE6nxHpdMg0dB-n-BW_Qg6p0AWqLt2PFkbTLmNBMEMtnMD0L9pqZs8HrAiX0nm9BPFJjBNediGfXgTAdT3Unf77gZwAE-gdVg3NnmV8Wq61-cEGQpHoQ",
+        "dq": "doswPjOV6oWjYQ1xUlpjCPpJL1dr5aiJCK6xV-Dc2OTfFVMs7Wwqb-P_v07wdD6uwAx2wDNcRz7aSrIZzZnps5Ldiinm3A5t13hxJFDVJPy1LNOL9KsjzpKm3W-W3wMV4QEdFILQmKTOLGaN5hFPWKKb6ysxdljngez_q7udlDvR4xMwkEpOUKFoOvweprV4Rv2_wgL-uAqkSUwDUaYSWFjodphbw-Fk_ZOCXJGDHCfHA9WwT2RYF_w6Vdv5tpPdMJhOqafYWu4XFRdv5hRuIa0Vq2lEZc_xkxWF0SVvWchjkVyFB8j-LyG8TKvosFzL96iFxsxlD95GgkQOn6BmjQ",
+        "qi": "HWoZxauCAu4C6si-d1ectt35uF-_VnHR6U4DDCrRume940N8tFM1K7U88Bqp9ZEnYHqB2bIlwVf9bTaKiohQrqFtCoJGcXX8a8XVHoCEFHA31MC4yGgcdk0Gn4XTXItAlVwXYhgoO2xjGUlCInnRzIJh1DiHciWtO2C-TDcxPvstUaFZAnxxVosod7SpzOmFagZz72jR9M456ASZHCZvbntK6e9YbJbHF12iIqiCQkH8xoN9g4evEWaugCFeZH7EAlol-KMaX0wdW8DU4IkjlXLqWXam2YhC7B8kkjpR8OPC1CoX3KQ8uBKvOsNzhZxi7YOAOJqxHw3CNBUbqiTLhg"
+      },
+      "branches": [
+        "bitlen(n)!=4096",
+        "swap"
+      ],
+      "replay_matches": true
+    }
+  ],
+  "ecdsa": [
+    {
+      "mnemonic": "abandon12",
+      "index": 0,
+      "path": "m/44'/472'/0'/0/0",
+      "address": "G3y00z9F3EvSzJprpIH6vPqHVZPH0rLqLrg0JOsd88Y",
+      "public_key": "A9-agndOu82Va7G9inhR8lqV3LEbBkp0zK3PJ3zLbTtv",
+      "private_key": "130721c87ce0ace0999c94a5943d055b224411eda752680ca24969d0837ff152",
+      "v4": {
+        "address": "G3y00z9F3EvSzJprpIH6vPqHVZPH0rLqLrg0JOsd88Y",
+        "private_key": "130721c87ce0ace0999c94a5943d055b224411eda752680ca24969d0837ff152"
+      }
+    },
+    {
+      "mnemonic": "abandon12",
+      "index": 1,
+      "path": "m/44'/472'/0'/0/1",
+      "address": "s67JULQPjY6wpxYV4imfx_Ui6twtC_jfxnluJT4GOSo",
+      "public_key": "ArNfSAMdOU_wyHtBUyxJeoS1C0DqDZ_exlm9AYWYEvvw",
+      "private_key": "a8822ffcffba36d726f8ddd866963325b668c36d780f73fcf245a59babd8aa12",
+      "v4": {
+        "address": "s67JULQPjY6wpxYV4imfx_Ui6twtC_jfxnluJT4GOSo",
+        "private_key": "a8822ffcffba36d726f8ddd866963325b668c36d780f73fcf245a59babd8aa12"
+      }
+    },
+    {
+      "mnemonic": "abandon12",
+      "index": 2,
+      "path": "m/44'/472'/0'/0/2",
+      "address": "msp_K_28POy1_FI-YZrES4nMpwJEAv90-C5YGTKeB7U",
+      "public_key": "AwVZAWUOacBMwhjTWeurDuOMBuR-23UhsocEJpN0P21F",
+      "private_key": "7ec4031df1ed49b4c490c09aa48811a9059d6392733a029615f6a537bf511dd6",
+      "v4": {
+        "address": "msp_K_28POy1_FI-YZrES4nMpwJEAv90-C5YGTKeB7U",
+        "private_key": "7ec4031df1ed49b4c490c09aa48811a9059d6392733a029615f6a537bf511dd6"
+      }
+    },
+    {
+      "mnemonic": "m24",
+      "index": 0,
+      "path": "m/44'/472'/0'/0/0",
+      "address": "Dur-xRPlQpFE_iaXA5rP81ZxDUUl5NjmbIMcsnJfkIg",
+      "public_key": "Amcqkwd-kvF8Kji8RIfS755SspZGmykcO3ZczVpZ8SGU",
+      "private_key": "d976d1b6809480da822e6cc9ba749cdb812bed4883f3ae691f1cfac8cacb6e3a",
+      "v4": {
+        "address": "Dur-xRPlQpFE_iaXA5rP81ZxDUUl5NjmbIMcsnJfkIg",
+        "private_key": "d976d1b6809480da822e6cc9ba749cdb812bed4883f3ae691f1cfac8cacb6e3a"
+      }
+    },
+    {
+      "mnemonic": "m24",
+      "index": 1,
+      "path": "m/44'/472'/0'/0/1",
+      "address": "s8oOm2fHTfE8SZVhjDYrYNBbicHlSwN5oGcdz_8eVmo",
+      "public_key": "A1HjHraAtVC3cp7M3ZSH0MZGqRIqOAzm_QY0GE_pJ0LQ",
+      "private_key": "800bff0373dcea98bb6f2b7cace52ffddfe055d5faf9ecf19b8c62771cbee6bc",
+      "v4": {
+        "address": "s8oOm2fHTfE8SZVhjDYrYNBbicHlSwN5oGcdz_8eVmo",
+        "private_key": "800bff0373dcea98bb6f2b7cace52ffddfe055d5faf9ecf19b8c62771cbee6bc"
+      }
+    },
+    {
+      "mnemonic": "m24",
+      "index": 2,
+      "path": "m/44'/472'/0'/0/2",
+      "address": "VaJK5e6LV6pHqqUSftpL4E_LqUVu53pGaany3Jy0ArI",
+      "public_key": "AuhoOufpJRsv1NpI-SUyq1492WFWG2-CzffYq3j7aHG3",
+      "private_key": "527301756d4833682c494086cb90625c8e1e15a5b2cbeedb9dd233e2f5972184",
+      "v4": {
+        "address": "VaJK5e6LV6pHqqUSftpL4E_LqUVu53pGaany3Jy0ArI",
+        "private_key": "527301756d4833682c494086cb90625c8e1e15a5b2cbeedb9dd233e2f5972184"
+      }
+    }
+  ]
+}

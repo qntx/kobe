@@ -4,6 +4,43 @@ All notable changes to this project are documented in this file. The format is
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Arweave (`kobe arweave`, alias `ar`, feature `arweave`): style `rsa`
+  (default) derives the Wander-compatible RSA-4096 key deterministically
+  from the BIP-39 seed (human-crypto-keys 0.1.4 with node-forge 1.3.1 and
+  0.8.5); style `ecdsa` derives secp256k1 keys at `m/44'/472'/0'/0/{i}`,
+  byte-identical to kobe 3.x/4.x. Vectors in `vectors/arweave.json`; the
+  HMAC_DRBG is checked against NIST CAVP vectors (`vectors/hmac-drbg.json`).
+- Mnemonic camouflage (`kobe mnemonic encrypt|decrypt`, library
+  `kobe::camouflage`, feature `camouflage`), byte-compatible with kobe
+  1.0–4.0; passwords are read without echo or from `--password-stdin`,
+  must be NFC and score at least 3 on zxcvbn to encrypt (override with
+  `--allow-weak-password`). `Wallet::fingerprint()` returns the BIP-32
+  master fingerprint.
+- `-p -` reads the BIP-39 passphrase without echo; `--qr` prints an
+  address QR per account; `kobe mnemonic --seedqr [standard|compact]`
+  (requires `--reveal`) with payloads from `kobe::seedqr`, checked against
+  the nine official SeedSigner vectors.
+- `label()` on every chain option enum: the human-readable names the CLI
+  prints.
+
+### Changed
+
+- **BREAKING CHANGE**: text output uses the indented, coloured v3 layout
+  (colours follow TTY, `NO_COLOR` and `CLICOLOR`); JSON keeps the v6 fields
+  and is pretty-printed; errors print as `Error: …` (or `{"error": …}`).
+- **BREAKING CHANGE**: `-c`/`-i` are rejected for non-iterating styles
+  instead of being ignored.
+- Release binaries grow by about 2.3 MB for zxcvbn's frequency lists.
+
+### Fixed
+
+- `crypto-bigint` 0.7.6 and `ctutils` 0.4.5 for RUSTSEC-2026-0387 and
+  RUSTSEC-2026-0385.
+
 ## [6.0.0] - 2026-10-19
 
 ### Changed

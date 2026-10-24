@@ -33,6 +33,7 @@ extern crate alloc;
     feature = "litecoin",
     feature = "spark",
     feature = "ton",
+    feature = "arweave",
 ))]
 mod macros;
 
@@ -45,6 +46,7 @@ mod macros;
     feature = "litecoin",
     feature = "spark",
     feature = "ton",
+    feature = "arweave",
 ))]
 pub(crate) use macros::option_enum;
 

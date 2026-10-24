@@ -29,8 +29,9 @@ const eq = (what: string, got: unknown, want: unknown) => {
   if (got !== want) failures.push(`${what}\n    kobe: ${got}\n    ref:  ${want}`);
 };
 
-function kobe(args: string[], seed: { m: string; p: string }) {
-  const r = spawnSync(KOBE, [...args, "-m", "-", "-p", seed.p, "-i", "0", "-c", String(COUNT), "--json", "--reveal"], {
+function kobe(args: string[], seed: { m: string; p: string }, iterate = true) {
+  const iter = iterate ? ["-i", "0", "-c", String(COUNT)] : [];
+  const r = spawnSync(KOBE, [...args, "-m", "-", "-p", seed.p, ...iter, "--json", "--reveal"], {
     input: seed.m + "\n",
   });
   const out = JSON.parse(r.stdout.toString());
@@ -257,7 +258,7 @@ for (const [style, tpl] of [
 {
   for (const seed of SEEDS) {
     const wallet = c.HDWallet.createWithMnemonic(seed.m, seed.p);
-    const out = kobe(["solana", "-s", "root"], seed);
+    const out = kobe(["solana", "-s", "root"], seed, false);
     eq("solana root count", out.accounts.length, 1);
     const key = wallet.getKey(c.CoinType.solana, "m/44'/501'");
     eq("solana root path", out.accounts[0].path, "m/44'/501'");

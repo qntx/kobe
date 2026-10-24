@@ -680,3 +680,74 @@ mod camouflage_vectors {
         );
     }
 }
+
+#[cfg(feature = "arweave")]
+mod arweave_vectors {
+    use kobe::Chain;
+    use kobe::chains::arweave::Arweave;
+    use kobe::{DerivationPath, Wallet};
+
+    fn wallet(phrase: &str, passphrase: &str) -> Wallet {
+        Wallet::from_mnemonic(phrase, passphrase).unwrap()
+    }
+
+    #[test]
+    fn rsa_vectors() {
+        let raw = include_str!("../../../vectors/arweave.json");
+        let doc: serde_json::Value = serde_json::from_str(raw).unwrap();
+        for v in doc["rsa"].as_array().unwrap() {
+            let w = wallet(
+                v["mnemonic"].as_str().unwrap(),
+                v["passphrase"].as_str().unwrap(),
+            );
+            let chain = Arweave::new(false);
+            let account = chain
+                .derive(&w, &"m".parse::<DerivationPath>().unwrap())
+                .unwrap();
+            assert_eq!(
+                account.address,
+                v["address"].as_str().unwrap(),
+                "{}",
+                v["id"]
+            );
+            let jwk = &v["jwk"];
+            let expect = format!(
+                "{{\"kty\":\"RSA\",\"e\":\"AQAB\",\"n\":\"{}\",\"d\":\"{}\",\"p\":\"{}\",\"q\":\"{}\",\"dp\":\"{}\",\"dq\":\"{}\",\"qi\":\"{}\"}}",
+                jwk["n"].as_str().unwrap(),
+                jwk["d"].as_str().unwrap(),
+                jwk["p"].as_str().unwrap(),
+                jwk["q"].as_str().unwrap(),
+                jwk["dp"].as_str().unwrap(),
+                jwk["dq"].as_str().unwrap(),
+                jwk["qi"].as_str().unwrap()
+            );
+            assert_eq!(account.private_key.as_str(), expect, "{}", v["id"]);
+            assert_eq!(
+                account.public_key,
+                jwk["n"].as_str().unwrap(),
+                "{}",
+                v["id"]
+            );
+        }
+    }
+
+    #[test]
+    fn ecdsa_vectors() {
+        let raw = include_str!("../../../vectors/arweave.json");
+        let doc: serde_json::Value = serde_json::from_str(raw).unwrap();
+        let mut phrases = std::collections::HashMap::new();
+        phrases.insert("abandon12", "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about");
+        phrases.insert("m24", "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art");
+        for v in doc["ecdsa"].as_array().unwrap() {
+            let w = wallet(phrases[v["mnemonic"].as_str().unwrap()], "");
+            let path: DerivationPath = v["path"].as_str().unwrap().parse().unwrap();
+            let account = Arweave::new(true).derive(&w, &path).unwrap();
+            assert_eq!(account.address, v["address"].as_str().unwrap());
+            assert_eq!(account.public_key, v["public_key"].as_str().unwrap());
+            assert_eq!(
+                account.private_key.as_str(),
+                v["private_key"].as_str().unwrap()
+            );
+        }
+    }
+}

@@ -142,6 +142,9 @@ fn run_chain(spec: &target::ChainSpec<'_>, json: bool, reveal: bool) -> CliResul
     };
 
     let iterates = style.has_index();
+    if !iterates && args.path.is_none() && (args.count.is_some() || args.index.is_some()) {
+        return Err(format!("style '{}' does not iterate; -c/-i are invalid", style.id).into());
+    }
     let start = args.index.unwrap_or(style.start);
     let count = if iterates { args.count.unwrap_or(1) } else { 1 };
     if count == 0 {
