@@ -16,3 +16,9 @@ jobs:
     with:
       bin: kobe
       package: kobe-cli
+      # Pure Rust: the static musl builds run on every Linux distribution;
+      # sh.qntx.org prefers them over the glibc builds.
+      targets: >-
+        x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu
+        x86_64-unknown-linux-musl aarch64-unknown-linux-musl
+        aarch64-apple-darwin x86_64-pc-windows-msvc aarch64-pc-windows-msvc

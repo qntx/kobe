@@ -6,6 +6,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [7.0.0] - 2026-10-24
+
 ### Added
 
 - Arweave (`kobe arweave`, alias `ar`, feature `arweave`): style `rsa`
@@ -39,6 +41,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **BREAKING CHANGE**: `-c`/`-i` are rejected for non-iterating styles
   instead of being ignored.
 - Release binaries grow by about 2.3 MB for zxcvbn's frequency lists.
+- Releases add static `x86_64-unknown-linux-musl` and
+  `aarch64-unknown-linux-musl` binaries and are published as GitHub
+  immutable releases.
 
 ### Fixed
 
