@@ -1,6 +1,7 @@
 use kobe::Chain;
 use kobe::Style;
 use kobe::chains::aptos::Aptos;
+use kobe::chains::arweave::Arweave;
 use kobe::chains::bitcoin::Bitcoin;
 use kobe::chains::bitcoin_cash::BitcoinCash;
 use kobe::chains::cardano::Cardano;
@@ -173,6 +174,15 @@ impl Command {
             ),
             Self::Stellar { args } => spec!("stellar", Stellar, args),
             Self::Near { args } => spec!("near", Near, args),
+            Self::Arweave { args } => spec!(
+                "arweave",
+                Arweave::new(
+                    args.style
+                        .as_deref()
+                        .is_some_and(|s| { s.eq_ignore_ascii_case("ecdsa") })
+                ),
+                args
+            ),
             Self::Cardano {
                 args,
                 network,

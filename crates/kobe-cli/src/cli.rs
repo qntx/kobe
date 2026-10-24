@@ -241,6 +241,12 @@ pub(crate) enum Command {
         #[command(flatten)]
         args: Args,
     },
+    /// Arweave (deterministic RSA-4096 or secp256k1)
+    #[command(visible_alias = "ar")]
+    Arweave {
+        #[command(flatten)]
+        args: Args,
+    },
     /// Cardano (CIP-3 ed25519-bip32, Shelley addresses)
     #[command(visible_alias = "ada", after_help = help::plain_styles_help(cardano::Cardano::default()))]
     Cardano {

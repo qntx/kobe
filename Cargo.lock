@@ -373,6 +373,7 @@ dependencies = [
  "hybrid-array",
  "num-traits",
  "rand_core",
+ "serdect",
  "subtle",
  "zeroize",
 ]
@@ -394,6 +395,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ce6e4c961d6cd6c9a86db418387425e8bdeaf05b3c8bc1411e6dca4c252f1453"
 dependencies = [
  "hybrid-array",
+ "rand_core",
+]
+
+[[package]]
+name = "crypto-primes"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3633a51a39c69ebbaa4feaa694bd83d241e4093901c84a0963b19d9bb3f0cf8f"
+dependencies = [
+ "crypto-bigint",
  "rand_core",
 ]
 
@@ -872,6 +883,8 @@ dependencies = [
  "blake2",
  "bs58",
  "crc",
+ "crypto-bigint",
+ "crypto-primes",
  "data-encoding",
  "ed25519-bip32",
  "ed25519-dalek",
@@ -1259,6 +1272,16 @@ dependencies = [
  "serde",
  "serde_core",
  "zmij",
+]
+
+[[package]]
+name = "serdect"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "66cf8fedced2fcf12406bcb34223dffb92eaf34908ede12fed414c82b7f00b3e"
+dependencies = [
+ "base16ct",
+ "serde",
 ]
 
 [[package]]

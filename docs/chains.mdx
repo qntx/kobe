@@ -113,3 +113,26 @@ chain's wallet-import encoding):
 | stellar                              | StrKey `G…`                                          | StrKey `S…`                      |                                   |
 | near                                 | implicit account = hex pubkey                        | `ed25519:base58(sk‖pk)`          |                                   |
 | cardano                              | Shelley base `addr1…` / `addr_test1…`                | CIP-5 `addr_xsk1…`               | `stake_address` (`stake1…`)       |
+
+## Arweave (`arweave`, alias `ar`)
+
+Two key algorithms, selected with `-s`:
+
+- **`rsa`** (default, non-iterating): deterministic RSA-4096 generated from
+  the BIP-39 seed via HMAC_DRBG(SHA-256) — byte-compatible with Wander
+  (`bip39-web-crypto` + `human-crypto-keys`, node-forge 1.3.1/0.8.5). A
+  mnemonic maps to exactly one key; `-i`/`-c` are rejected. The `private_key`
+  is a single-line Arweave JWK (`kty","e","n","d","p","q","dp","dq","qi`,
+  WebCrypto export form) — `> wallet.json` imports into Wander directly.
+  Address = `base64url_nopad(SHA-256(n))`, `public_key` = owner
+  `base64url(n)`.
+- **`ecdsa`**: secp256k1 at `m/44'/472'/0'/0/{i}` (iterating), address =
+  `base64url_nopad(SHA-256(33-byte compressed pubkey))`. Byte-identical to
+  kobe v3/v4 output; protocol 2.9+.
+
+**Caveats:** Wander never uses a BIP-39 passphrase — only empty-passphrase
+mnemonics reproduce Wander wallets (`kobe arweave` still derives RSA from
+the passphrase-protected seed when `-p` is given). RSA generation is a
+deterministic prime search; each run takes seconds on modern hardware and
+is not constant-time. There is no integrity check on the passphrase —
+wrong passphrases yield different valid JWKs.

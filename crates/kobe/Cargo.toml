@@ -43,11 +43,12 @@ aptos        = ["hd-slip10", "dep:sha3", "dep:hex"]
 ton          = ["hd-slip10", "dep:base64", "dep:crc", "dep:hex"]
 stellar      = ["hd-slip10", "dep:data-encoding", "dep:crc", "dep:hex"]
 near         = ["hd-slip10", "dep:bs58", "dep:hex"]
+arweave      = ["hd-bip32", "dep:crypto-bigint", "dep:crypto-primes", "dep:sha2", "dep:hmac", "dep:base64", "dep:hex"]
 cardano      = ["dep:ed25519-bip32", "dep:pbkdf2", "dep:hmac", "dep:sha2", "dep:bech32", "dep:blake2", "dep:hex"]
 
 camouflage = ["hd-bip32", "dep:pbkdf2", "dep:sha2", "dep:ripemd", "dep:unicode-normalization"]
 
-all-chains = ["bitcoin", "litecoin", "dogecoin", "bitcoin-cash", "evm", "tron", "cosmos", "xrpl", "filecoin", "kaspa", "nostr", "spark", "casper", "solana", "sui", "aptos", "ton", "stellar", "near", "cardano"]
+all-chains = ["bitcoin", "litecoin", "dogecoin", "bitcoin-cash", "evm", "tron", "cosmos", "xrpl", "filecoin", "kaspa", "nostr", "spark", "casper", "solana", "sui", "aptos", "ton", "stellar", "near", "cardano", "arweave"]
 
 [dependencies]
 bip39     = { workspace = true }
@@ -71,6 +72,8 @@ crc                   = { workspace = true, optional = true }
 ed25519-bip32         = { workspace = true, optional = true }
 pbkdf2                = { workspace = true, optional = true }
 unicode-normalization = { workspace = true, optional = true }
+crypto-bigint         = { workspace = true, optional = true }
+crypto-primes         = { workspace = true, optional = true }
 hex                   = { workspace = true, optional = true }
 getrandom             = { workspace = true, optional = true }
 

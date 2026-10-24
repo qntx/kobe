@@ -18,6 +18,8 @@ pub enum SecretKey {
     Ed25519(Zeroizing<[u8; 32]>),
     /// BIP32-Ed25519 extended key `kL ‖ kR` (64 bytes).
     Ed25519Extended(Zeroizing<[u8; 64]>),
+    /// Opaque key material (e.g. an RSA JWK blob).
+    Opaque(Zeroizing<Vec<u8>>),
 }
 
 impl fmt::Debug for SecretKey {
@@ -26,6 +28,7 @@ impl fmt::Debug for SecretKey {
             Self::Secp256k1(_) => "Secp256k1",
             Self::Ed25519(_) => "Ed25519",
             Self::Ed25519Extended(_) => "Ed25519Extended",
+            Self::Opaque(_) => "Opaque",
         };
         write!(f, "SecretKey::{kind}([REDACTED])")
     }
