@@ -1,0 +1,78 @@
+{
+  "source": "https://raw.githubusercontent.com/SeedSigner/seedsigner/dev/docs/seed_qr/README.md (Test Vectors 1-9)",
+  "note": "Extracted verbatim from the SeedQR specification and cross-checked against the BIP-39 English wordlist and checksum. standard: 4-digit zero-padded word indices (QR numeric mode, ECC L). compact: BIP-39 entropy without checksum bits, hex (QR byte mode, ECC L). Versions per the specification: 12 words -> standard 2 / compact 1; 24 words -> standard 3 / compact 2.",
+  "vectors": [
+    {
+      "words": 24,
+      "phrase": "attack pizza motion avocado network gather crop fresh patrol unusual wild holiday candy pony ranch winter theme error hybrid van cereal salon goddess expire",
+      "standard": "011513251154012711900771041507421289190620080870026613431420201617920614089619290300152408010643",
+      "compact": "0e74b64107f94cc0ccfae6a13dcbec3662154fec67e0e00999c07892597d190a",
+      "standard_version": 3,
+      "compact_version": 2
+    },
+    {
+      "words": 24,
+      "phrase": "atom solve joy ugly ankle message setup typical bean era cactus various odor refuse element afraid meadow quick medal plate wisdom swap noble shallow",
+      "standard": "011416550964188800731119157218870156061002561932122514430573003611011405110613292018175411971576",
+      "compact": "0e59dde276009317f1275f1389888078c99368d1e82489b5f629531fc5b6a56e",
+      "standard_version": 3,
+      "compact_version": 2
+    },
+    {
+      "words": 24,
+      "phrase": "sound federal bonus bleak light raise false engage round stock update render quote truck quality fringe palace foot recipe labor glow tortoise potato still",
+      "standard": "166206750203018810361417065805941507171219081456140818651401074412730727143709940798183613501710",
+      "compact": "cfca8c658bc81962549252bc7ac3ba5b0b01d26bcae89f2b5ecebe263dcb2a36",
+      "standard_version": 3,
+      "compact_version": 2
+    },
+    {
+      "words": 12,
+      "phrase": "forum undo fragile fade shy sign arrest garment culture tube off merit",
+      "standard": "073318950739065415961602009907670428187212261116",
+      "compact": "5bbd9d71a8ec7990831aff359d426545",
+      "standard_version": 2,
+      "compact_version": 1
+    },
+    {
+      "words": 12,
+      "phrase": "good battle boil exact add seed angle hurry success glad carbon whisper",
+      "standard": "080301540200062600251559007008931730078802752004",
+      "compact": "6462686427203385c2337dd84c5089fd",
+      "standard_version": 2,
+      "compact_version": 1
+    },
+    {
+      "words": 12,
+      "phrase": "approve fruit lens brass ring actual stool coin doll boss strong rate",
+      "standard": "008607501025021714880023171503630517020917211425",
+      "compact": "0acbba008d9ba005f5996b40a3475cd9",
+      "standard_version": 2,
+      "compact_version": 1
+    },
+    {
+      "words": 12,
+      "phrase": "dignity utility vacant shiver thought canoe feel multiply item youth actor coyote",
+      "standard": "049619221923158517990268067811630950204300210397",
+      "compact": "3e1e0bc1e31e0e4315348b76dfec0a98",
+      "standard_version": 2,
+      "compact_version": 1
+    },
+    {
+      "words": 12,
+      "phrase": "corn voice scrap arrow original diamond trial property benefit choose junk lock",
+      "standard": "038719631547010112530489185713790169032209701051",
+      "compact": "307eaf058659ca7a7a0d63152509e541",
+      "standard_version": 2,
+      "compact_version": 1
+    },
+    {
+      "words": 12,
+      "phrase": "vocal tray giggle tool duck letter category pattern train magnet excite swamp",
+      "standard": "196218530783182905421028028912901848107106301753",
+      "compact": "f55cf587f2543d01090d0ae710bd3b6d",
+      "standard_version": 2,
+      "compact_version": 1
+    }
+  ]
+}

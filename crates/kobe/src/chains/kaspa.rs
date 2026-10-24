@@ -19,9 +19,11 @@ crate::option_enum! {
     pub enum Network {
         /// Kaspa mainnet (`kaspa:`).
         #[default]
-        Mainnet = "mainnet",
+        Mainnet = "mainnet" => "mainnet",
+
         /// Kaspa testnet (`kaspatest:`).
-        Testnet = "testnet",
+        Testnet = "testnet" => "testnet",
+
     }
 }
 
@@ -41,9 +43,11 @@ crate::option_enum! {
     pub enum Encoding {
         /// Derived x-only schnorr public key (`kaspa:q…`).
         #[default]
-        Standard = "standard",
+        Standard = "standard" => "standard",
+
         /// The `OneKey` tweaked key: `x(Q)` for `Q = lift_x(P) + tweak·G`.
-        Onekey = "onekey",
+        Onekey = "onekey" => "OneKey",
+
     }
 }
 

@@ -24,6 +24,14 @@ doc  = false
 [dependencies]
 kobe       = { workspace = true, features = ["std", "os-rng", "all-chains"] }
 bip39      = { workspace = true }
+anstream   = { workspace = true }
+anstyle    = { workspace = true }
 clap       = { workspace = true }
+qrcode     = { workspace = true }
+rpassword  = { workspace = true }
 serde_json = { workspace = true }
 zeroize    = { workspace = true }
+
+[dev-dependencies]
+insta = { workspace = true }
+rqrr  = { workspace = true }

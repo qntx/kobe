@@ -46,9 +46,11 @@ crate::option_enum! {
     pub enum Contract {
         /// Wallet V4R2 (subwallet `698983191 + workchain`).
         #[default]
-        V4r2 = "v4r2",
+        V4r2 = "v4r2" => "v4r2",
+
         /// Wallet V5R1 (`networkGlobalId ^ clientContext` wallet id).
-        V5r1 = "v5r1",
+        V5r1 = "v5r1" => "v5r1",
+
     }
 }
 

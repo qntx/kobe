@@ -15,11 +15,12 @@ Every chain command shares the same flags:
 | ------------------ | ------------------------------------------------------------------------------------------------ |
 | `-m, --mnemonic`   | Import a mnemonic; `-` reads one line from stdin. Words may be unique ≥4-letter BIP-39 prefixes. |
 | `-w, --words`      | Word count when generating: 12/15/18/21/24 (conflicts with `-m`).                                |
-| `-p, --passphrase` | BIP-39 passphrase.                                                                               |
+| `-p, --passphrase` | BIP-39 passphrase; `-` prompts on the terminal without echo (asks twice when generating).        |
 | `-s, --style`      | Style id or alias, case-insensitive (see [Chains](/docs/kobe/chains)).                           |
 | `--path`           | Custom path template; `{i}` marks the iterated index (conflicts with `-s`).                      |
 | `-i, --index`      | First iterated index (defaults to the style's `start`).                                          |
 | `-c, --count`      | Number of accounts (default 1).                                                                  |
+| `--qr`             | Print a terminal QR for every derived address (ignored with `--json`).                           |
 | `--json`           | Machine-readable output.                                                                         |
 | `-r, --reveal`     | Show mnemonic and private keys (hidden by default).                                              |
 
@@ -28,9 +29,32 @@ prints the phrase — it is the output.
 
 ## Output
 
-Human mode prints the chain id, the resolved options, style id and template,
-then one block per account (`address`, `public_key`, `private_key`, chain
-extras). Secrets render as `<hidden>` unless `-r` is passed.
+Human mode prints a header block (chain options as human labels, `Mnemonic`,
+`Passphrase` when set, `Style` with wallet labels), then one block per
+account (`Index` when iterating more than one, `Path`, `Address`, chain
+extras like `Stake Address`, `Private Key`). Secrets render as
+`(hidden; pass -r / --reveal)` unless `-r` is passed; the public key is not
+shown in text mode. Labels are cyan-bold, addresses green, hints dimmed
+when writing to a TTY.
+
+```text
+
+      Network      mainnet
+      Address Type P2WPKH (Native SegWit)
+      Mnemonic     (hidden; pass -r / --reveal)
+      Style        standard (Sparrow, Electrum, BlueWallet, Trust Wallet)
+
+      Path         m/84'/0'/0'/0/0
+      Address      bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu
+      Private Key  (hidden; pass -r / --reveal)
+
+```
+
+`kobe mnemonic` prints a labelled block on a TTY and the bare phrase on a
+pipe (`kobe mnemonic -w 24 | kobe bitcoin -m -`). `--seedqr [standard|compact]`
+requires `--reveal` and encodes the mnemonic as a SeedQR (SeedSigner format).
+
+`--json` emits pretty-printed JSON with the same fields as before:
 
 `--json` emits:
 

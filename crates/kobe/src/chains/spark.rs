@@ -36,9 +36,11 @@ crate::option_enum! {
     pub enum Network {
         /// Spark mainnet (`spark1…`, default account index 1).
         #[default]
-        Mainnet = "mainnet",
+        Mainnet = "mainnet" => "mainnet",
+
         /// Spark regtest (`sparkrt1…`, default account index 0).
-        Regtest = "regtest",
+        Regtest = "regtest" => "regtest",
+
     }
 }
 

@@ -14,12 +14,15 @@ crate::option_enum! {
     /// Litecoin address kind (output type).
     pub enum Kind {
         /// Legacy pay-to-public-key-hash (`L…`).
-        P2pkh = "p2pkh",
+        P2pkh = "p2pkh" => "P2PKH (Legacy)",
+
         /// Segwit wrapped in P2SH (`M…`).
-        P2shP2wpkh = "p2sh-p2wpkh",
+        P2shP2wpkh = "p2sh-p2wpkh" => "P2SH-P2WPKH (Nested SegWit)",
+
         /// Native segwit v0 pay-to-witness-public-key-hash (`ltc1q…`).
         #[default]
-        P2wpkh = "p2wpkh",
+        P2wpkh = "p2wpkh" => "P2WPKH (Native SegWit)",
+
     }
 }
 

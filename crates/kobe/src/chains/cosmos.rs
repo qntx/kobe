@@ -21,27 +21,38 @@ crate::option_enum! {
     pub enum Preset {
         /// Cosmos Hub (`cosmos`, coin type 118).
         #[default]
-        Cosmos = "cosmos",
+        Cosmos = "cosmos" => "Cosmos",
+
         /// Osmosis (`osmo`, coin type 118).
-        Osmosis = "osmosis",
+        Osmosis = "osmosis" => "Osmosis",
+
         /// Celestia (`celestia`, coin type 118).
-        Celestia = "celestia",
+        Celestia = "celestia" => "Celestia",
+
         /// dYdX (`dydx`, coin type 118).
-        Dydx = "dydx",
+        Dydx = "dydx" => "dYdX",
+
         /// Sei (`sei`, coin type 118).
-        Sei = "sei",
+        Sei = "sei" => "Sei",
+
         /// Akash (`akash`, coin type 118).
-        Akash = "akash",
+        Akash = "akash" => "Akash",
+
         /// Terra (`terra`, coin type 330).
-        Terra = "terra",
+        Terra = "terra" => "Terra",
+
         /// Secret Network (`secret`, coin type 529).
-        Secret = "secret",
+        Secret = "secret" => "Secret",
+
         /// Kava (`kava`, coin type 459).
-        Kava = "kava",
+        Kava = "kava" => "Kava",
+
         /// Injective (`inj`, coin type 60, keccak256 hashing).
-        Injective = "injective",
+        Injective = "injective" => "Injective",
+
         /// Evmos (`evmos`, coin type 60, keccak256 hashing).
-        Evmos = "evmos",
+        Evmos = "evmos" => "Evmos",
+
     }
 }
 

@@ -1,0 +1,19 @@
+---
+source: crates/kobe-cli/src/render.rs
+expression: out
+---
+
+      Network      mainnet
+      Address Type P2WPKH (Native SegWit)
+      Mnemonic     abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about
+      Style        standard (Sparrow, Electrum, BlueWallet, Trust Wallet)
+
+      Index        [0]
+      Path         m/84'/0'/0'/0/0
+      Address      bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu
+      Private Key  KyZpNDKnfs94vbrwhJneDi77V6jF64PWPF8x5cdJb8ifgg2DUc9d
+
+      Index        [1]
+      Path         m/84'/0'/0'/0/1
+      Address      bc1qnjg0jd8228aq7egyzacy8cys3knf9xvrerkf9g
+      Private Key  Kxpf5b8p3qX56DKEe5NqWbNUP9MnqoRFzZwHRtsFqhzuvUJsYZCy

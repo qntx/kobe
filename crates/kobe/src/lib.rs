@@ -60,6 +60,7 @@ pub(crate) mod encoding;
 mod hd;
 
 pub mod chains;
+pub mod seedqr;
 
 pub use account::{Account, SecretKey};
 pub use chain::Chain;
