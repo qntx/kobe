@@ -21,8 +21,13 @@ name = "kobe"
 path = "src/main.rs"
 doc  = false
 
+[features]
+default = ["upgrade"]
+upgrade = ["dep:upg"]
+
 [dependencies]
 kobe       = { workspace = true, features = ["std", "os-rng", "all-chains", "camouflage"] }
+upg        = { workspace = true, optional = true }
 bip39      = { workspace = true }
 anstream   = { workspace = true }
 anstyle    = { workspace = true }
@@ -34,5 +39,6 @@ serde_json = { workspace = true }
 zeroize    = { workspace = true }
 
 [dev-dependencies]
-insta = { workspace = true }
-rqrr  = { workspace = true }
+insta  = { workspace = true }
+rqrr   = { workspace = true }
+semver = "1.0.28"

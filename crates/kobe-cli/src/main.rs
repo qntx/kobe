@@ -6,6 +6,10 @@
 )]
 //! kobe — pure offline HD wallet generator CLI.
 
+// `semver` is a dev-dependency only for the `upgrade` tests.
+#[cfg(all(test, not(feature = "upgrade")))]
+use semver as _;
+
 mod cli;
 mod help;
 mod mnemonic;
@@ -70,6 +74,8 @@ fn run(cli: &Cli) -> CliResult<String> {
             Some(cli::MnemonicAction::Decrypt(a)) => run_crypt(false, a, cli.json, cli.reveal),
             None => run_mnemonic(*words, cli.json, cli.reveal, seedqr.as_deref()),
         },
+        #[cfg(feature = "upgrade")]
+        Command::Upgrade(args) => run_upgrade(args, cli.json),
         command => {
             let Some(spec) = command.spec() else {
                 return Err("missing command".into());
@@ -77,6 +83,19 @@ fn run(cli: &Cli) -> CliResult<String> {
             run_chain(&spec, cli.json, cli.reveal)
         }
     }
+}
+
+#[cfg(feature = "upgrade")]
+const TOOL: upg::Tool = upg::Tool::new("kobe", env!("CARGO_PKG_VERSION")).package("kobe-cli");
+
+/// `kobe upgrade` — the whole flow lives in `upg`; only I/O shape is ours.
+#[cfg(feature = "upgrade")]
+fn run_upgrade(args: &upg::Args, json: bool) -> CliResult<String> {
+    let report = upg::run(&TOOL, args).map_err(|e| e.to_string())?;
+    if json {
+        return serde_json::to_string_pretty(&report).map_err(|e| e.to_string().into());
+    }
+    Ok(report.to_string())
 }
 
 fn run_mnemonic(

@@ -56,6 +56,8 @@ impl Command {
         }
         Some(match self {
             Self::Mnemonic { .. } => return None,
+            #[cfg(feature = "upgrade")]
+            Self::Upgrade(_) => return None,
             Self::Bitcoin {
                 args,
                 kind,

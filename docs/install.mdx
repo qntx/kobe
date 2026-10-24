@@ -20,6 +20,11 @@ cargo install kobe-cli
 Pre-built binaries for macOS, Linux, and Windows are attached to every
 [GitHub release](https://github.com/qntx/kobe/releases).
 
+A binary installed by the script upgrades itself with `kobe upgrade`
+(`kobe upgrade --check` only reports). Binaries installed with cargo print
+the matching `cargo install` command instead. Air-gapped builds can drop
+the command entirely: `cargo install kobe-cli --no-default-features`.
+
 Library (enable chains explicitly):
 
 ```toml

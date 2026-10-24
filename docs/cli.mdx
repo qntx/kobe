@@ -132,3 +132,27 @@ Passwords are never taken on the command line: the default is a hidden
 terminal prompt (`Password:`/`Confirm:`), `--password-stdin` reads one
 line for scripts (strips a single trailing newline; conflicts with
 `-m -`).
+
+## `kobe upgrade`
+
+Self-upgrade via the official installer (feature `upgrade`, on by default;
+`update` alias). Behaviour depends on how the running binary was installed:
+
+- **Installer-managed** (`sh.qntx.org` receipt present): fetches the locked
+  release metadata, verifies hashes, and installs in place.
+- **Cargo-installed** (`cargo install kobe-cli`): reports
+  `kobe was installed with cargo; run: cargo install …` — upgrading is
+  cargo's job.
+- **Unmanaged** (e.g. a `target/` build): same cargo-style notice.
+
+Flags: `--check` (report only, install nothing), `--version X.Y.Z` (pin a
+release instead of latest), `--force` (reinstall same version). `--json`
+prints the machine-readable report.
+
+An air-gapped or minimal build can drop the command entirely:
+
+```sh
+cargo install kobe-cli --no-default-features
+```
+
+that binary has no `upgrade` subcommand and no `upg` in its dependency tree.

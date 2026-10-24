@@ -36,6 +36,7 @@ unicode-normalization = { version = "0.1.26", default-features = false }
 crypto-bigint         = { version = "0.7.6", default-features = false, features = ["alloc"] }
 crypto-primes         = { version = "0.7.2", default-features = false }
 zxcvbn                = { version = "3.1.1", default-features = false }
+upg                   = { version = "0.1.0", features = ["clap"] }                                                            # first-party qntx crate — 7-day rule N/A
 rand_core             = { version = "0.10.1", default-features = false }
 ripemd                = { version = "0.2.0", default-features = false }
 sha2                  = { version = "0.11.0", default-features = false }
