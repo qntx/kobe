@@ -29,11 +29,16 @@ pub(crate) struct ChainSpec<'a> {
     pub(crate) id: &'static str,
     pub(crate) chain: Box<dyn Chain>,
     pub(crate) args: &'a Args,
-    pub(crate) options: Vec<(&'static str, Value)>,
+    /// `(key, label, value)`: label for text output, value for JSON.
+    pub(crate) options: Vec<(&'static str, String, Value)>,
 }
 
 impl Command {
     /// `(id, chain, shared args, rendered options)`; `None` for non-chain commands.
+    #[allow(
+        clippy::too_many_lines,
+        reason = "a flat mapping table from subcommand to chain/options"
+    )]
     pub(crate) fn spec(&self) -> Option<ChainSpec<'_>> {
         macro_rules! spec {
             ($id:literal, $chain:expr, $args:expr) => {
@@ -59,24 +64,32 @@ impl Command {
                 Bitcoin::new(*network, *kind),
                 args,
                 vec![
-                    ("type", json!(kind.to_string())),
-                    ("network", json!(network.to_string())),
+                    (
+                        "network",
+                        network.label().to_owned(),
+                        json!(network.to_string())
+                    ),
+                    ("type", kind.label().to_owned(), json!(kind.to_string())),
                 ]
             ),
             Self::Litecoin { args, kind } => spec!(
                 "litecoin",
                 Litecoin::new(*kind),
                 args,
-                vec![("type", json!(kind.to_string()))]
+                vec![("type", kind.label().to_owned(), json!(kind.to_string()))]
             ),
             Self::Dogecoin { args } => spec!("dogecoin", Dogecoin, args),
             Self::BitcoinCash { args } => spec!("bitcoin-cash", BitcoinCash, args),
             Self::Evm { args } => spec!("evm", Evm, args),
             Self::Tron { args } => spec!("tron", Tron, args),
             Self::Cosmos { args, preset, hrp } => {
-                let mut options = vec![("chain", json!(preset.to_string()))];
+                let mut options = vec![(
+                    "chain",
+                    preset.label().to_owned(),
+                    json!(preset.to_string()),
+                )];
                 if let Some(h) = hrp {
-                    options.push(("hrp", json!(h)));
+                    options.push(("hrp", h.clone(), json!(h)));
                 }
                 spec!(
                     "cosmos",
@@ -93,7 +106,11 @@ impl Command {
                 "filecoin",
                 Filecoin::new(*network),
                 args,
-                vec![("network", json!(network.to_string()))]
+                vec![(
+                    "network",
+                    network.label().to_owned(),
+                    json!(network.to_string())
+                )]
             ),
             Self::Kaspa {
                 args,
@@ -104,8 +121,16 @@ impl Command {
                 Kaspa::new(*network, *encoding),
                 args,
                 vec![
-                    ("network", json!(network.to_string())),
-                    ("encoding", json!(encoding.to_string())),
+                    (
+                        "network",
+                        network.label().to_owned(),
+                        json!(network.to_string())
+                    ),
+                    (
+                        "encoding",
+                        encoding.label().to_owned(),
+                        json!(encoding.to_string())
+                    ),
                 ]
             ),
             Self::Nostr { args } => spec!("nostr", Nostr, args),
@@ -113,7 +138,11 @@ impl Command {
                 "spark",
                 Spark::new(*network),
                 args,
-                vec![("network", json!(network.to_string()))]
+                vec![(
+                    "network",
+                    network.label().to_owned(),
+                    json!(network.to_string())
+                )]
             ),
             Self::Casper { args } => spec!("casper", Casper, args),
             Self::Solana { args } => spec!("solana", Solana, args),
@@ -133,9 +162,13 @@ impl Command {
                 },
                 args,
                 vec![
-                    ("contract", json!(contract.to_string())),
-                    ("testnet", json!(testnet)),
-                    ("bounceable", json!(bounceable)),
+                    (
+                        "contract",
+                        contract.label().to_owned(),
+                        json!(contract.to_string())
+                    ),
+                    ("testnet", "testnet".to_owned(), json!(testnet)),
+                    ("bounceable", "bounceable".to_owned(), json!(bounceable)),
                 ]
             ),
             Self::Stellar { args } => spec!("stellar", Stellar, args),
@@ -149,8 +182,16 @@ impl Command {
                 Cardano::new(*network, *master),
                 args,
                 vec![
-                    ("network", json!(network.to_string())),
-                    ("master", json!(master.to_string())),
+                    (
+                        "network",
+                        network.label().to_owned(),
+                        json!(network.to_string())
+                    ),
+                    (
+                        "master",
+                        master.label().to_owned(),
+                        json!(master.to_string())
+                    ),
                 ]
             ),
         })

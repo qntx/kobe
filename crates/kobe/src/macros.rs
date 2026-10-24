@@ -11,8 +11,8 @@
 ///     pub enum Network {
 ///         /// Doc comment for the variant.
 ///         #[default]
-///         Mainnet = "mainnet",
-///         Testnet = "testnet",
+///         Mainnet = "mainnet" => "mainnet",
+///         Testnet = "testnet" => "testnet",
 ///     }
 /// }
 /// ```
@@ -22,7 +22,7 @@ macro_rules! option_enum {
         $vis:vis enum $name:ident {
             $(
                 $(#[$vmeta:meta])*
-                $variant:ident = $id:literal
+                $variant:ident = $id:literal => $label:literal
             ),+ $(,)?
         }
     ) => {
@@ -40,6 +40,12 @@ macro_rules! option_enum {
             /// Every variant, in declaration (CLI) order.
             pub const ALL: [Self; { [$(stringify!($variant)),+].len() }] =
                 [$(Self::$variant),+];
+
+            /// Human-readable label for rendered output (the single source
+            /// of truth; the CLI never re-maps option ids).
+            pub const fn label(self) -> &'static str {
+                match self { $($name::$variant => $label,)+ }
+            }
         }
 
         impl ::core::fmt::Display for $name {

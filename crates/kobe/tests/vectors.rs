@@ -507,3 +507,66 @@ fn cardano_reference() {
         &["standard"],
     );
 }
+
+/// `option_enum!`'s `label()` contract: every variant has a
+/// human-readable label, used by the CLI's text renderer.
+#[cfg(feature = "all-chains")]
+#[test]
+fn option_labels() {
+    use kobe::chains::bitcoin::{Kind as BtcKind, Network as BtcNetwork};
+    use kobe::chains::cardano::Master;
+    use kobe::chains::cosmos::Preset;
+    use kobe::chains::kaspa::Encoding;
+    use kobe::chains::ton::Contract;
+
+    assert_eq!(BtcKind::P2wpkh.label(), "P2WPKH (Native SegWit)");
+    assert_eq!(BtcKind::P2tr.label(), "P2TR (Taproot)");
+    assert_eq!(BtcNetwork::Mainnet.label(), "mainnet");
+    assert!(Master::Icarus.label().starts_with("icarus ("));
+    assert_eq!(Contract::V4r2.label(), "v4r2");
+    assert_eq!(Encoding::Onekey.label(), "OneKey");
+    assert_eq!(Preset::Osmosis.label(), "Osmosis");
+}
+
+/// `SeedQR` payloads against the nine official `SeedSigner` vectors in
+/// `vectors/seedqr.json` (words → standard digit stream / compact entropy).
+#[allow(clippy::expect_used, reason = "vector files must parse in tests")]
+#[cfg(all(feature = "all-chains", test))]
+mod seedqr_vectors {
+    use kobe::Wallet;
+    fn vectors() -> serde_json::Value {
+        serde_json::from_str::<serde_json::Value>(include_str!("../../../vectors/seedqr.json"))
+            .expect("seedqr vectors json")
+    }
+
+    #[test]
+    fn standard_and_compact_match_spec() {
+        let file = vectors();
+        let list = file["vectors"].as_array().expect("vectors array");
+        assert_eq!(list.len(), 9, "all nine spec vectors present");
+        for v in list {
+            let phrase = v["phrase"].as_str().expect("phrase");
+            let wallet = Wallet::from_mnemonic(phrase, "").expect("wallet");
+            let standard = kobe::seedqr::standard(&wallet).expect("standard");
+            let digits: String = v["standard"].as_str().expect("digits").replace(' ', "");
+            assert_eq!(standard.as_str(), digits, "standard digits for {phrase:?}");
+            let compact = kobe::seedqr::compact(&wallet).expect("compact");
+            let want = v["compact"].as_str().expect("entropy");
+            let got: String = compact.iter().fold(String::new(), |mut s, b| {
+                use std::fmt::Write as _;
+                write!(s, "{b:02x}").expect("write");
+                s
+            });
+            assert_eq!(got, want, "compact entropy for {phrase:?}");
+        }
+    }
+
+    #[test]
+    fn rejects_unsupported_word_counts() {
+        // 15-word mnemonic (160-bit entropy, valid BIP-39) must error.
+        let entropy = [7u8; 20];
+        let w15 = Wallet::from_entropy(&entropy, "").expect("15-word wallet");
+        assert!(kobe::seedqr::standard(&w15).is_err());
+        assert!(kobe::seedqr::compact(&w15).is_err());
+    }
+}

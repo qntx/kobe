@@ -79,7 +79,7 @@ fn evm_import_and_styles() {
     assert!(text.contains(EVM_ADDRESS), "expected EIP-55 address");
     assert!(text.contains("m/44'/60'/0'/0/0"), "expected path");
     // Secrets stay hidden without --reveal.
-    assert!(text.contains("<hidden>"), "secrets must be hidden");
+    assert!(text.contains("hidden"), "secrets must be hidden");
     assert!(!text.contains(M12), "mnemonic must not leak");
     assert!(!text.contains(EVM_PRIVATE), "private key must not leak");
 }

@@ -41,6 +41,14 @@ zeroize       = { version = "1.9.0", default-features = false, features = ["deri
 
 clap       = { version = "4.6.6", features = ["derive", "string"] }
 serde_json = { version = "1.0.151" }
+# Terminal styling/QR/passphrase for the CLI (anstream/anstyle arrive via
+# clap; declared at the versions already in Cargo.lock).
+anstream  = { version = "1.0.0" }
+anstyle   = { version = "1.0.14" }
+rpassword = { version = "7.4.0" }
+qrcode    = { version = "0.14.1", default-features = false }
+insta     = { version = "1.47.1" }
+rqrr      = { version = "0.10.0" }
 
 [profile.release]
 codegen-units = 1

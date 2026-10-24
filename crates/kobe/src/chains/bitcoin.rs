@@ -30,11 +30,14 @@ crate::option_enum! {
     pub enum Network {
         /// Bitcoin mainnet (`bc`, coin type 0).
         #[default]
-        Mainnet = "mainnet",
+        Mainnet = "mainnet" => "mainnet",
+
         /// Bitcoin testnet (`tb`, coin type 1).
-        Testnet = "testnet",
+        Testnet = "testnet" => "testnet",
+
         /// Bitcoin regtest (`bcrt`, coin type 1).
-        Regtest = "regtest",
+        Regtest = "regtest" => "regtest",
+
     }
 }
 
@@ -82,14 +85,18 @@ crate::option_enum! {
     /// Bitcoin address kind (output type).
     pub enum Kind {
         /// Legacy pay-to-public-key-hash (`1…` / `m…`/`n…`).
-        P2pkh = "p2pkh",
+        P2pkh = "p2pkh" => "P2PKH (Legacy)",
+
         /// Segwit wrapped in P2SH (`3…` / `2…`).
-        P2shP2wpkh = "p2sh-p2wpkh",
+        P2shP2wpkh = "p2sh-p2wpkh" => "P2SH-P2WPKH (Nested SegWit)",
+
         /// Native segwit v0 pay-to-witness-public-key-hash (`bc1q…` / `tb1q…`).
         #[default]
-        P2wpkh = "p2wpkh",
+        P2wpkh = "p2wpkh" => "P2WPKH (Native SegWit)",
+
         /// Taproot key-path-only output (`bc1p…` / `tb1p…` / `bcrt1p…`).
-        P2tr = "p2tr",
+        P2tr = "p2tr" => "P2TR (Taproot)",
+
     }
 }
 

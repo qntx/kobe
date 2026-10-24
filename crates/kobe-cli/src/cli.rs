@@ -34,6 +34,11 @@ pub(crate) enum Command {
         /// Mnemonic word count: 12, 15, 18, 21 or 24
         #[arg(short, long, value_name = "N", default_value = "12")]
         words: WordCount,
+        /// Print the mnemonic as a `SeedQR` (requires `--reveal`)
+        #[arg(long, value_name = "FORMAT", num_args = 0..=1,
+              default_missing_value = "standard",
+              value_parser = seedqr_kind)]
+        seedqr: Option<String>,
     },
     /// Bitcoin (BIP-32, P2PKH/P2SH-P2WPKH/P2WPKH/P2TR)
     #[command(visible_alias = "btc", after_help = help::bitcoin_styles_help())]
@@ -266,7 +271,7 @@ pub(crate) struct Args {
     /// Word count when generating (conflicts with -m)
     #[arg(short, long, value_name = "N", default_value = "12")]
     pub(crate) words: WordCount,
-    /// BIP-39 passphrase
+    /// BIP-39 passphrase ('-' prompts on the terminal without echo)
     #[arg(short, long, value_name = "PASSPHRASE", default_value = "")]
     pub(crate) passphrase: String,
     /// Derivation style id or alias (see below)
@@ -281,6 +286,9 @@ pub(crate) struct Args {
     /// Number of accounts (default 1)
     #[arg(short, long, value_name = "COUNT")]
     pub(crate) count: Option<u32>,
+    /// Print a terminal QR for every derived address (ignored with --json)
+    #[arg(long)]
+    pub(crate) qr: bool,
 }
 
 /// Parse an option enum by its `FromStr` while listing `ALL` ids in `--help`.
@@ -291,4 +299,11 @@ where
 {
     PossibleValuesParser::new(all.iter().map(ToString::to_string))
         .try_map(|s| T::from_str(&s).map_err(|e| e.to_string()))
+}
+
+fn seedqr_kind(s: &str) -> Result<String, String> {
+    match s {
+        "standard" | "compact" => Ok(s.to_owned()),
+        _ => Err("expected 'standard' or 'compact'".to_owned()),
+    }
 }

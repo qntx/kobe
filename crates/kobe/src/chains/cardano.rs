@@ -25,9 +25,11 @@ crate::option_enum! {
     pub enum Network {
         /// Mainnet: `addr`, `stake`.
         #[default]
-        Mainnet = "mainnet",
+        Mainnet = "mainnet" => "mainnet",
+
         /// Testnets (preprod/preview/legacy): `addr_test`, `stake_test`.
-        Testnet = "testnet",
+        Testnet = "testnet" => "testnet",
+
     }
 }
 
@@ -69,11 +71,14 @@ crate::option_enum! {
         /// Icarus (Yoroi, Eternl, Lace, Typhon, Daedalus): PBKDF2 over the
         /// BIP-39 entropy.
         #[default]
-        Icarus = "icarus",
+        Icarus = "icarus" => "icarus (Yoroi, Eternl, Lace, Typhon, Daedalus, Trust Wallet)",
+
         /// Ledger/BitBox02: HMAC-SHA512 loop over the BIP-39 seed.
-        Ledger = "ledger",
+        Ledger = "ledger" => "ledger",
+
         /// Icarus with the Trezor 24-word checksum-byte quirk.
-        IcarusTrezor = "icarus-trezor",
+        IcarusTrezor = "icarus-trezor" => "icarus-trezor",
+
     }
 }
 

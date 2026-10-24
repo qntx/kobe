@@ -23,9 +23,11 @@ crate::option_enum! {
     pub enum Network {
         /// Mainnet (`f1…`).
         #[default]
-        Mainnet = "mainnet",
+        Mainnet = "mainnet" => "mainnet",
+
         /// Testnet (`t1…`).
-        Testnet = "testnet",
+        Testnet = "testnet" => "testnet",
+
     }
 }
 
