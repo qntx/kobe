@@ -53,7 +53,7 @@ anstyle   = { version = "1.0.14" }
 rpassword = { version = "7.4.0" }
 qrcode    = { version = "0.14.1", default-features = false }
 insta     = { version = "1.47.1" }
-rqrr      = { version = "0.10.0" }
+rqrr      = { version = "0.11.0" }
 
 [profile.release]
 codegen-units = 1
