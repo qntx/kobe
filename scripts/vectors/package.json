@@ -23,7 +23,7 @@
     "@scure/bip32": "2.4.0",
     "@scure/bip39": "2.4.0",
     "@scure/btc-signer": "2.4.1",
-    "@solana/web3.js": "1.99.0",
+    "@solana/web3.js": "3.1.0",
     "@stellar/stellar-sdk": "17.2.1",
     "@ton/core": "0.63.1",
     "@ton/ton": "16.3.0",
