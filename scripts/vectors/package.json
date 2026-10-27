@@ -28,7 +28,7 @@
     "@ton/core": "0.63.1",
     "@ton/ton": "16.3.0",
     "@trustwallet/wallet-core": "4.8.4",
-    "arweave": "1.15.5",
+    "arweave": "2.1.0",
     "bip39-web-crypto": "4.0.1",
     "bs58": "6.0.0",
     "casper-js-sdk": "5.3.0",
