@@ -18,7 +18,7 @@
     "@mysten/sui": "2.36.0",
     "@noble/curves": "2.4.0",
     "@noble/hashes": "2.4.0",
-    "@noble/secp256k1": "1.7.1",
+    "@noble/secp256k1": "3.2.0",
     "@scure/base": "2.4.0",
     "@scure/bip32": "2.4.0",
     "@scure/bip39": "2.4.0",
