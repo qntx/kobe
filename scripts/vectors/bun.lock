@@ -26,7 +26,7 @@
         "@ton/core": "0.63.1",
         "@ton/ton": "16.3.0",
         "@trustwallet/wallet-core": "4.8.4",
-        "arweave": "1.15.5",
+        "arweave": "2.1.0",
         "bip39-web-crypto": "4.0.1",
         "bs58": "6.0.0",
         "casper-js-sdk": "5.3.0",
@@ -275,9 +275,7 @@
 
     "ansi-styles": ["ansi-styles@4.3.0", "", { "dependencies": { "color-convert": "^2.0.1" } }, "sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg=="],
 
-    "arconnect": ["arconnect@0.4.2", "", { "dependencies": { "arweave": "^1.10.13" } }, "sha512-Jkpd4QL3TVqnd3U683gzXmZUVqBUy17DdJDuL/3D9rkysLgX6ymJ2e+sR+xyZF5Rh42CBqDXWNMmCjBXeP7Gbw=="],
-
-    "arweave": ["arweave@1.15.5", "", { "dependencies": { "arconnect": "^0.4.2", "asn1.js": "^5.4.1", "base64-js": "^1.5.1", "bignumber.js": "^9.0.2" } }, "sha512-Zj3b8juz1ZtDaQDPQlzWyk2I4wZPx3RmcGq8pVJeZXl2Tjw0WRy5ueHPelxZtBLqCirGoZxZEAFRs6SZUSCBjg=="],
+    "arweave": ["arweave@2.1.0", "", { "dependencies": { "asn1.js": "^5.4.1", "bignumber.js": "^9.1.2" } }, "sha512-YQQfUpvUFvq3fCXewakjN6KFH8JXG28S1Gudgz66uZdhaavWZRUMFVLLPqCC+dFAjAaPzUB8C/KJEw+pMs2FrQ=="],
 
     "asn1.js": ["asn1.js@5.4.1", "", { "dependencies": { "bn.js": "^4.0.0", "inherits": "^2.0.1", "minimalistic-assert": "^1.0.0", "safer-buffer": "^2.1.0" } }, "sha512-+I//4cYPccV8LdmBLiX8CYvf9Sp3vQsrqu2QNXRcrbiWvcx/UdlFiqUJJzxRQxgsZmvhXhn4cSKeSmoFjVdupA=="],
 
