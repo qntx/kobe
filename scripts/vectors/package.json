@@ -27,7 +27,7 @@
     "@stellar/stellar-sdk": "17.4.0",
     "@ton/core": "0.63.1",
     "@ton/ton": "16.3.0",
-    "@trustwallet/wallet-core": "4.9.2",
+    "@trustwallet/wallet-core": "4.9.3",
     "arweave": "1.15.5",
     "bip39-web-crypto": "4.0.1",
     "bs58": "6.0.0",
@@ -37,10 +37,10 @@
     "micro-key-producer": "0.10.2",
     "near-seed-phrase": "0.2.1",
     "node-forge": "1.4.3",
-    "nostr-tools": "2.26.0",
+    "nostr-tools": "2.26.1",
     "ripple-address-codec": "5.0.1",
-    "tronweb": "6.5.1",
-    "viem": "2.57.17",
+    "tronweb": "6.5.2",
+    "viem": "2.57.20",
     "xrpl": "5.3.0"
   },
   "overrides": {
