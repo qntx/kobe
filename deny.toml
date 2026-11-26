@@ -13,6 +13,24 @@ no-default-features = false
 [output]
 feature-depth = 1
 
+[advisories]
+db-path = "$CARGO_HOME/advisory-dbs"
+db-urls = ["https://github.com/RustSec/advisory-db"]
+yanked = "deny"
+ignore = [
+  # chrono is unmaintained and has no patched release. It is in the
+  # lockfile only through zxcvbn 3.1.1's unconditional
+  # [target.'cfg(target_arch = "wasm32")'.dependencies] entry — not a
+  # feature, so it cannot be disabled — and zxcvbn is used only by
+  # kobe-cli (crates/kobe-cli/src/main.rs). chrono therefore compiles
+  # only if the CLI is built for wasm32; the wasm32 CI job builds
+  # `-p kobe` alone (--no-default-features --features all-chains) and
+  # the CLI is never a wasm32 target, so chrono is never compiled.
+  # Revisit: remove this entry when zxcvbn drops chrono; review by
+  # 2027-02-27.
+  { id = "RUSTSEC-2026-0543", reason = "chrono unmaintained; lockfile-only via zxcvbn's wasm32-only dep, zxcvbn used only by kobe-cli which is never built for wasm32; remove when zxcvbn drops chrono; review by 2027-02-27" },
+]
+
 [licenses]
 confidence-threshold = 0.8
 allow                = ["MIT", "Apache-2.0", "Apache-2.0 WITH LLVM-exception", "BSD-2-Clause", "BSD-3-Clause", "BSD-1-Clause", "CC0-1.0", "Unlicense", "Zlib", "MPL-2.0", "Unicode-3.0"]
