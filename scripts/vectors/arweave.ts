@@ -5,7 +5,7 @@
 //     {privateKeyFormat:'pkcs8-der'})  with node-forge forced to 1.3.1.
 // The finish-branch audit replays forge's algorithm (hmac-drbg 1.0.1 + BigInt)
 // and asserts p/q/n equal the JWK, recording which regeneration branch fired.
-// ECDSA vectors cross-check kobe v4.0.0 release output against @noble/secp256k1.
+// ECDSA vectors cross-check kobe v4.0.0 release output against @scure/bip32.
 import { mnemonicToSeed } from "bip39-web-crypto";
 import { getKeyPairFromSeed } from "human-crypto-keys";
 import { createPrivateKey, createHash, pbkdf2Sync } from "node:crypto";
@@ -14,7 +14,6 @@ import { writeFileSync } from "node:fs";
 import Drbg from "hmac-drbg";
 import hash from "hash.js";
 
-import * as secp from "@noble/secp256k1";
 import { HDKey } from "@scure/bip32";
 
 const V4 = process.env.KOBE_V4 ?? "/tmp/kobe-v4/target/release/kobe";
@@ -108,7 +107,7 @@ for (const { id, mnemonic, passphrase } of MNEMONICS) {
   console.log(`${id}: ${address} ${ms}ms branches=${audit.branches} replay=${ok}`);
 }
 
-// ECDSA: v4 binary + independent @noble check.
+// ECDSA: v4 binary + independent @scure/bip32 check.
 const ecdsaVectors = [];
 for (const id of ["abandon12", "m24"]) {
   const { mnemonic } = MNEMONICS.find((m) => m.id === id)!;

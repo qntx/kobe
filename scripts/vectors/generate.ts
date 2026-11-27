@@ -6,7 +6,7 @@ import { mnemonicToSeedSync } from "@scure/bip39";
 import * as btc from "@scure/btc-signer";
 import { bech32 } from "@scure/base";
 import { HDKey as Slip10 } from "micro-key-producer/slip10.js";
-import { Keypair } from "@solana/web3.js";
+import { createKeyPairSignerFromPrivateKeyBytes } from "@solana/kit";
 import { mnemonicToAccount } from "viem/accounts";
 import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { sha256 } from "@noble/hashes/sha2.js";
@@ -643,7 +643,12 @@ for (const s of SEEDS) {
 }
 emitCounted("casper", file("casper", "@scure/bip32 2.4.0 + casper-js-sdk 5.1.1", casperCases));
 
-// sol — micro-key-producer slip10 + @solana/web3.js
+// sol — micro-key-producer slip10 + @solana/kit
+const solKeypair = async (seed: Uint8Array) => {
+  const kp = await createKeyPairSignerFromPrivateKeyBytes(seed);
+  const publicKey = new Uint8Array(await crypto.subtle.exportKey("raw", kp.keyPair.publicKey));
+  return { address: kp.address as string, publicKey, secretKey: concatBytes(seed, publicKey) };
+};
 const SOL_STYLES = [
   { id: "bip44-change", tpl: (i: number) => `m/44'/501'/${i}'/0'` },
   { id: "bip44", tpl: (i: number) => `m/44'/501'/${i}'` },
@@ -655,15 +660,15 @@ for (const s of SEEDS) {
     for (const index of INDICES) {
       const path = style.tpl(index);
       const node = root.derive(path);
-      const kp = Keypair.fromSeed(node.privateKey);
+      const kp = await solKeypair(node.privateKey);
       solCases.push({
         mnemonic: s.mnemonic,
         passphrase: s.passphrase,
         style: style.id,
         index,
         path,
-        address: kp.publicKey.toBase58(),
-        public_key: hex(kp.publicKey.toBytes()),
+        address: kp.address,
+        public_key: hex(kp.publicKey),
         private_key: bs58.encode(kp.secretKey),
       });
     }
@@ -672,21 +677,21 @@ for (const s of SEEDS) {
 // account at m/44'/501'.
 for (const s of SEEDS) {
   const node = slip10Root(s).derive("m/44'/501'");
-  const kp = Keypair.fromSeed(node.privateKey);
+  const kp = await solKeypair(node.privateKey);
   solCases.push({
     mnemonic: s.mnemonic,
     passphrase: s.passphrase,
     style: "root",
     index: null,
     path: "m/44'/501'",
-    address: kp.publicKey.toBase58(),
-    public_key: hex(kp.publicKey.toBytes()),
+    address: kp.address,
+    public_key: hex(kp.publicKey),
     private_key: bs58.encode(kp.secretKey),
   });
 }
 emitCounted(
   "solana",
-  file("solana", "micro-key-producer 0.10.2 slip10 + @solana/web3.js 1.99.0 Keypair", solCases)
+  file("solana", "micro-key-producer 0.10.2 slip10 + @solana/kit 8.6.0", solCases)
 );
 
 // sui — @mysten/sui Ed25519Keypair
