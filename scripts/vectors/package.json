@@ -9,7 +9,7 @@
   "dependencies": {
     "@aptos-labs/ts-sdk": "7.5.0",
     "@bitauth/libauth": "3.0.0",
-    "@buildonspark/spark-sdk": "0.15.0",
+    "@buildonspark/spark-sdk": "0.16.0",
     "@cosmjs/crypto": "0.39.0",
     "@cosmjs/proto-signing": "0.39.0",
     "@emurgo/cardano-serialization-lib-nodejs": "17.0.0",
@@ -25,7 +25,7 @@
     "@stellar/stellar-sdk": "17.4.0",
     "@ton/core": "0.63.1",
     "@ton/ton": "16.3.0",
-    "@trustwallet/wallet-core": "4.9.2",
+    "@trustwallet/wallet-core": "4.10.0",
     "bip39-web-crypto": "4.0.1",
     "bs58": "6.0.0",
     "casper-js-sdk": "5.3.1",
@@ -33,10 +33,10 @@
     "micro-key-producer": "0.10.2",
     "near-seed-phrase": "0.2.1",
     "node-forge": "1.4.3",
-    "nostr-tools": "2.26.0",
+    "nostr-tools": "2.26.1",
     "ripple-address-codec": "5.0.1",
-    "tronweb": "6.5.1",
-    "viem": "2.57.17",
+    "tronweb": "6.5.2",
+    "viem": "2.58.4",
     "xrpl": "5.3.0"
   },
   "overrides": {
