@@ -3,7 +3,7 @@
   "source": {
     "kind": "reference",
     "name": "solana",
-    "version": "micro-key-producer 0.10.2 slip10 + @solana/web3.js 1.99.0 Keypair"
+    "version": "micro-key-producer 0.10.2 slip10 + @solana/kit 8.6.0"
   },
   "cases": [
     {
