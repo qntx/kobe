@@ -360,7 +360,7 @@ mod rsa {
         let mut n = aligned(drbg, b);
         let mut k = 0usize;
         loop {
-            if n.bits_vartime() > b {
+            if n.bit_width_vartime() > b {
                 n = aligned(drbg, b);
                 k = 0;
             } else if is_probable_prime(&n) {
@@ -438,7 +438,7 @@ mod rsa {
                 q = next_prime();
                 continue;
             }
-            if p.concatenating_mul(&q).bits_vartime() != MODULUS_BITS {
+            if p.concatenating_mul(&q).bit_width_vartime() != MODULUS_BITS {
                 q = next_prime();
                 continue;
             }
